@@ -111,6 +111,10 @@ impl TaskKind for Cleanup {
         };
         let summary = match (examined, components) {
             (0, _) => "no repository has a cleanup policy".to_owned(),
+            (_, 0) if protected > 0 => format!(
+                "nothing was deleted by the cleanup policies of {}",
+                count(examined as i64, "repository", "repositories")
+            ),
             (_, 0) => format!(
                 "nothing matched the cleanup policies of {}",
                 count(examined as i64, "repository", "repositories")

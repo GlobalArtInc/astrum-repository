@@ -1599,6 +1599,26 @@ async fn docker_cleanup_keeps_old_immutable_tags_and_says_so() {
 }
 
 #[tokio::test]
+async fn docker_cleanup_that_only_met_immutable_tags_says_nothing_was_deleted() {
+    let fixture = ready().await;
+    tag_policy(
+        &fixture,
+        json!({"name": "old-tags", "format": "docker", "criteriaLastBlobUpdated": 35}),
+    )
+    .await;
+    protected_repository(&fixture).await;
+    push_tags(&fixture, "a", &["v1"]).await;
+    age_tags(&fixture, "c.name = 'a'", "50 days").await;
+
+    let run = run_protected_cleanup(&fixture).await;
+    assert_eq!(run["counts"]["protected"], 1);
+    assert_eq!(
+        run["message"],
+        "nothing was deleted by the cleanup policies of 1 repository, kept 1 component protected by immutable tag rules"
+    );
+}
+
+#[tokio::test]
 async fn docker_cleanup_moves_past_more_protected_components_than_one_batch() {
     let fixture = ready().await;
     tag_policy(
