@@ -1,0 +1,15 @@
+.banner {
+  margin: var(--space-4) var(--page-gutter) 0;
+}
+
+.link {
+  color: inherit;
+  font-weight: 500;
+  text-decoration: underline;
+}
+
+.link:focus-visible {
+  outline: 2px solid var(--accent-8);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
