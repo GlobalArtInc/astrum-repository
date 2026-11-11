@@ -221,6 +221,7 @@ struct Collected {
     disk: Option<(u64, u64)>,
     alerts: Vec<(String, String)>,
     scan: Option<astrum_scan::queue::Depth>,
+    backlog: Option<astrum_scan::matcher::Backlog>,
 }
 
 async fn tasks(
@@ -263,7 +264,7 @@ async fn disk(state: &AppState) -> Option<(u64, u64)> {
 }
 
 async fn collect(state: &AppState) -> Collected {
-    let (stores, checks, repositories, tasks, pending, disk, alerts, scan) = tokio::join!(
+    let (stores, checks, repositories, tasks, pending, disk, alerts, scan, backlog) = tokio::join!(
         async { measure_all(state).await.ok() },
         health::run(state),
         async { astrum_repo::store::list(state.db().conn()).await.ok() },
@@ -272,6 +273,7 @@ async fn collect(state: &AppState) -> Collected {
         disk(state),
         crate::space::tracked(state),
         async { astrum_scan::queue::depth(state.db().conn()).await.ok() },
+        async { astrum_scan::matcher::backlog(state.db().conn()).await.ok() },
     );
     Collected {
         stores,
@@ -282,6 +284,7 @@ async fn collect(state: &AppState) -> Collected {
         disk,
         alerts,
         scan,
+        backlog,
     }
 }
 
@@ -601,6 +604,82 @@ pub async fn render(state: &AppState, settings: &Prometheus) -> String {
         "Scan attempts of this node that failed, retried ones included.",
     );
     out.sample("astrum_scan_failures_total", &[], scans.failures);
+
+    if let Some(backlog) = &collected.backlog {
+        out.family(
+            "astrum_scan_unmatched_packages",
+            "gauge",
+            "Packages waiting to be matched against the advisories, on every node together.",
+        );
+        out.sample("astrum_scan_unmatched_packages", &[], backlog.unmatched);
+        out.family(
+            "astrum_scan_rejudge_pending_packages",
+            "gauge",
+            "Packages whose match changed and whose components are not all queued for judgement yet.",
+        );
+        out.sample("astrum_scan_rejudge_pending_packages", &[], backlog.rejudge);
+    }
+    let matches = state.matcher_metrics().snapshot();
+    out.family(
+        "astrum_scan_match_seconds",
+        "histogram",
+        "Time this node took to match one batch of packages against the advisories.",
+    );
+    for (bound, count) in astrum_scan::worker::BUCKETS.iter().zip(matches.buckets) {
+        out.sample(
+            "astrum_scan_match_seconds_bucket",
+            &[("le", &bound.to_string())],
+            count,
+        );
+    }
+    out.sample(
+        "astrum_scan_match_seconds_bucket",
+        &[("le", "+Inf")],
+        matches.count,
+    );
+    out.sample("astrum_scan_match_seconds_sum", &[], matches.sum);
+    out.sample("astrum_scan_match_seconds_count", &[], matches.count);
+    out.family(
+        "astrum_scan_matches_total",
+        "counter",
+        "Matches of packages with advisories that this node added or removed.",
+    );
+    out.sample(
+        "astrum_scan_matches_total",
+        &[("change", "added")],
+        matches.added,
+    );
+    out.sample(
+        "astrum_scan_matches_total",
+        &[("change", "removed")],
+        matches.removed,
+    );
+    out.family(
+        "astrum_scan_match_skipped_total",
+        "counter",
+        "Advisories and packages this node could not judge: unreadable ranges, unreadable versions, cut-off lists.",
+    );
+    out.sample(
+        "astrum_scan_match_skipped_total",
+        &[("reason", "advisory_ranges")],
+        matches.skipped_advisories,
+    );
+    out.sample(
+        "astrum_scan_match_skipped_total",
+        &[("reason", "package_version")],
+        matches.unresolved_packages,
+    );
+    out.sample(
+        "astrum_scan_match_skipped_total",
+        &[("reason", "advisory_cap")],
+        matches.truncated_packages,
+    );
+    out.family(
+        "astrum_scan_match_failures_total",
+        "counter",
+        "Matching or queueing steps of this node that failed and are retried.",
+    );
+    out.sample("astrum_scan_match_failures_total", &[], matches.failures);
 
     if let Some(at) = state.tasks().last_tick() {
         out.family(

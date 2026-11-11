@@ -9,6 +9,7 @@ publish.workspace = true
 astrum-content.workspace = true
 astrum-db.workspace = true
 astrum-outbound.workspace = true
+astrum-policy.workspace = true
 astrum-security.workspace = true
 async-trait.workspace = true
 chrono.workspace = true

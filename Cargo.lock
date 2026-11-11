@@ -1547,6 +1547,7 @@ dependencies = [
  "astrum-content",
  "astrum-db",
  "astrum-outbound",
+ "astrum-policy",
  "astrum-security",
  "astrum-testkit",
  "async-trait",

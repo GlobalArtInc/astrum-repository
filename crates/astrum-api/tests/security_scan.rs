@@ -315,6 +315,8 @@ async fn the_scrape_reports_the_queue_and_the_scan_durations() {
     assert_eq!(enabled.status, StatusCode::CREATED, "{}", enabled.text());
     fixture.state.scan_metrics().observe(0.02);
     fixture.state.scan_metrics().failed();
+    fixture.state.matcher_metrics().observe(0.02);
+    fixture.state.matcher_metrics().failed(2);
 
     let text = fixture
         .call(
@@ -330,6 +332,11 @@ async fn the_scrape_reports_the_queue_and_the_scan_durations() {
         "astrum_scan_seconds_bucket{le=\"0.025\"} 1",
         "astrum_scan_seconds_count 1",
         "astrum_scan_failures_total 1",
+        "astrum_scan_unmatched_packages 0",
+        "astrum_scan_rejudge_pending_packages 0",
+        "astrum_scan_match_seconds_count 1",
+        "astrum_scan_matches_total{change=\"added\"} 0",
+        "astrum_scan_match_failures_total 2",
     ] {
         assert!(
             text.lines().any(|line| line == expected),

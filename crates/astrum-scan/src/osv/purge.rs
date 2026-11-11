@@ -41,8 +41,10 @@ pub async fn run(db: &DatabaseConnection) -> Result<Purged, DbErr> {
     .await?;
     let packages = delete(
         &txn,
-        "DELETE FROM sca_package p WHERE NOT EXISTS \
-         (SELECT 1 FROM sca_inventory_package ip WHERE ip.package_id = p.id)",
+        "DELETE FROM sca_package WHERE id IN (\
+           SELECT p.id FROM sca_package p WHERE NOT EXISTS \
+             (SELECT 1 FROM sca_inventory_package ip WHERE ip.package_id = p.id) \
+           ORDER BY p.id FOR UPDATE OF p)",
     )
     .await?;
     txn.commit().await?;

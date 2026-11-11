@@ -84,6 +84,11 @@ impl Server {
             astrum_scan::worker::Config::load(self.state.db().conn()).await,
             self.state.scan_metrics().clone(),
         );
+        let matchers = astrum_scan::matcher::spawn(
+            self.state.db().conn().clone(),
+            astrum_scan::matcher::Config::load(self.state.db().conn()).await,
+            self.state.matcher_metrics().clone(),
+        );
         match crate::web::installed(&self.web_dir) {
             true => tracing::info!(dir = %self.web_dir.display(), "serving the user interface"),
             false => tracing::warn!(
@@ -121,6 +126,7 @@ impl Server {
         revisions.abort();
         space.abort();
         scan.abort();
+        matchers.abort();
         astrum_api::nodes::leave(&self.state).await;
         if let Err(error) = self.state.content().flush_downloads().await {
             tracing::warn!(%error, "download counts were not saved");

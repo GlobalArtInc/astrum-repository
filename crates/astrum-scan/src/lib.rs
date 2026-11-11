@@ -1,4 +1,5 @@
 pub mod cvss;
+pub mod matcher;
 pub mod osv;
 pub mod queue;
 pub mod version;

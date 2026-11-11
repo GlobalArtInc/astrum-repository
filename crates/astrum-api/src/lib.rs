@@ -60,6 +60,7 @@ struct Inner {
     limits: limits::Limiter,
     metrics: metrics::Registry,
     scan_metrics: Arc<astrum_scan::worker::Metrics>,
+    matcher_metrics: Arc<astrum_scan::matcher::Metrics>,
     stars: github::Stars,
 }
 
@@ -101,6 +102,7 @@ impl AppState {
                 limits: limits::Limiter::default(),
                 metrics: metrics::Registry::default(),
                 scan_metrics: Arc::default(),
+                matcher_metrics: Arc::default(),
                 stars: github::Stars::default(),
             }),
         }
@@ -205,6 +207,10 @@ impl AppState {
 
     pub fn scan_metrics(&self) -> &Arc<astrum_scan::worker::Metrics> {
         &self.inner.scan_metrics
+    }
+
+    pub fn matcher_metrics(&self) -> &Arc<astrum_scan::matcher::Metrics> {
+        &self.inner.matcher_metrics
     }
 
     pub async fn audit(&self, caller: &Caller, event: Event) {

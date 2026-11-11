@@ -7,7 +7,8 @@ use sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, Statement, Transac
 use super::{claim, give_up, record_inventory, record_unsupported, retry_later};
 use crate::PACKAGE_LOCK;
 use crate::osv::purge;
-use crate::worker::State;
+use crate::worker::{Claimed, State};
+use astrum_content::Component;
 
 const LEASE: Duration = Duration::from_secs(60);
 
@@ -84,6 +85,17 @@ async fn a_worker_that_lost_its_lease_cannot_give_up_a_row_another_worker_holds(
         .await,
         1
     );
+    assert_eq!(
+        scalar(
+            &db,
+            &format!(
+                "SELECT count(*) AS n FROM policy_dirty WHERE repository = 'releases' AND subject = '{}'",
+                astrum_policy::subject::component(id)
+            )
+        )
+        .await,
+        1
+    );
     assert_eq!(scalar(&db, "SELECT count(*) AS n FROM scan_queue").await, 0);
 }
 
@@ -115,6 +127,51 @@ async fn recording_an_inventory_waits_while_the_purge_holds_the_package_lock() {
         scalar(&db, "SELECT count(*) AS n FROM sca_inventory_package").await,
         1
     );
+}
+
+#[tokio::test]
+async fn recording_a_result_queues_the_component_even_when_its_packages_were_matched_before() {
+    let (_test, db, id) = setup().await;
+    db.execute_unprepared(
+        "INSERT INTO sca_package (ecosystem, name, version, purl, matched_at) \
+         VALUES ('Maven', 'lib', '1', 'pkg:maven/lib@1', now())",
+    )
+    .await
+    .unwrap();
+    let component = astrum_content::store::component_by_id(&db, id)
+        .await
+        .unwrap()
+        .unwrap();
+    let subject = astrum_policy::subject::component(id);
+    let queued = format!(
+        "SELECT count(*) AS n FROM policy_dirty WHERE repository = 'releases' AND subject = '{subject}'"
+    );
+
+    let item = claim(&db, 10, LEASE).await.unwrap().remove(0);
+    assert!(
+        record_inventory(&db, item, &component, &inventory(), State::Scanned)
+            .await
+            .unwrap()
+    );
+    assert_eq!(scalar(&db, &queued).await, 1);
+    assert_eq!(
+        scalar(
+            &db,
+            "SELECT count(*) AS n FROM sca_package WHERE matched_at IS NULL"
+        )
+        .await,
+        0
+    );
+
+    db.execute_unprepared(&format!(
+        "DELETE FROM policy_dirty; \
+         INSERT INTO scan_queue (component_id, reason) VALUES ({id}, 'again') ON CONFLICT DO NOTHING"
+    ))
+    .await
+    .unwrap();
+    let item = claim(&db, 10, LEASE).await.unwrap().remove(0);
+    assert!(record_unsupported(&db, item, &component).await.unwrap());
+    assert_eq!(scalar(&db, &queued).await, 1);
 }
 
 #[tokio::test]
@@ -297,4 +354,84 @@ async fn the_purge_drops_layer_facts_before_it_waits_for_the_package_lock() {
     );
     holder.commit().await.unwrap();
     assert_eq!(purger.await.unwrap().unwrap().layer_facts, 1);
+}
+
+async fn claimed_component(db: &DatabaseConnection, id: i64) -> (Claimed, Component) {
+    let item = claim(db, 10, LEASE).await.unwrap().remove(0);
+    let component = astrum_content::store::component_by_id(db, id)
+        .await
+        .unwrap()
+        .unwrap();
+    (item, component)
+}
+
+fn record_in_background(
+    db: &DatabaseConnection,
+    item: Claimed,
+    component: Component,
+) -> tokio::task::JoinHandle<Result<bool, sea_orm::DbErr>> {
+    let db = db.clone();
+    tokio::spawn(async move {
+        record_inventory(&db, item, &component, &inventory(), State::Scanned).await
+    })
+}
+
+#[tokio::test]
+async fn a_worker_waits_for_a_repository_delete_and_then_finds_the_component_gone() {
+    let (_test, db, id) = setup().await;
+    let (item, component) = claimed_component(&db, id).await;
+    let deleter = db.begin().await.unwrap();
+    deleter
+        .execute_unprepared("DELETE FROM repository WHERE name = 'releases'")
+        .await
+        .unwrap();
+
+    let writer = record_in_background(&db, item, component);
+    tokio::time::sleep(Duration::from_millis(300)).await;
+    assert!(!writer.is_finished());
+    deleter.commit().await.unwrap();
+
+    assert!(!writer.await.unwrap().unwrap());
+    for table in ["policy_dirty", "component_scan", "scan_queue"] {
+        assert_eq!(
+            scalar(&db, &format!("SELECT count(*) AS n FROM {table}")).await,
+            0,
+            "{table}"
+        );
+    }
+}
+
+#[tokio::test]
+async fn a_repository_delete_arriving_during_a_write_does_not_deadlock_with_it() {
+    let (_test, db, id) = setup().await;
+    let (item, component) = claimed_component(&db, id).await;
+    let holder = db.begin().await.unwrap();
+    holder
+        .execute_unprepared("SELECT 1 FROM scan_queue FOR UPDATE")
+        .await
+        .unwrap();
+
+    let writer = record_in_background(&db, item, component);
+    tokio::time::sleep(Duration::from_millis(300)).await;
+    let deleter = {
+        let db = db.clone();
+        tokio::spawn(async move {
+            db.execute_unprepared("DELETE FROM repository WHERE name = 'releases'")
+                .await
+        })
+    };
+    tokio::time::sleep(Duration::from_millis(300)).await;
+    assert!(!writer.is_finished());
+    assert!(!deleter.is_finished());
+    holder.commit().await.unwrap();
+
+    assert!(writer.await.unwrap().unwrap());
+    deleter.await.unwrap().unwrap();
+    for table in ["repository", "component", "policy_dirty", "component_scan"] {
+        assert_eq!(
+            scalar(&db, &format!("SELECT count(*) AS n FROM {table}")).await,
+            0,
+            "{table}"
+        );
+    }
 }

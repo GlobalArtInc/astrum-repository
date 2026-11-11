@@ -3,6 +3,7 @@ use std::time::Duration;
 
 use astrum_content::Component;
 use astrum_content::inventory::{Inventory, PackageRef};
+use astrum_policy::subject;
 use chrono::{DateTime, Utc};
 use sea_orm::{
     ConnectionTrait, DatabaseConnection, DatabaseTransaction, DbBackend, DbErr, Statement,
@@ -118,6 +119,7 @@ pub async fn give_up(db: &DatabaseConnection, item: Claimed, message: &str) -> R
         ],
     ))
     .await?;
+    mark_dirty(&txn, item.component_id).await?;
     dequeue(&txn, item).await?;
     txn.commit().await
 }
@@ -137,6 +139,7 @@ pub async fn record_unsupported(
         return Ok(false);
     }
     upsert_scan(&txn, component, None, State::Unsupported).await?;
+    mark_dirty(&txn, component.id).await?;
     dequeue(&txn, item).await?;
     txn.commit().await?;
     Ok(true)
@@ -167,20 +170,32 @@ pub async fn record_inventory(
     let package_ids = lock_packages(&txn, &packages).await?;
     replace_links(&txn, inventory_id, &package_ids).await?;
     upsert_scan(&txn, component, Some(inventory_id), state).await?;
+    mark_dirty(&txn, component.id).await?;
     dequeue(&txn, item).await?;
     txn.commit().await?;
     Ok(true)
 }
 
 async fn begin_write(txn: &DatabaseTransaction, component_id: i64) -> Result<bool, DbErr> {
-    let row = txn
+    let repository = txn
+        .query_one(Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            "SELECT 1 AS found FROM repository r JOIN component c ON c.repository = r.name \
+             WHERE c.id = $1 FOR KEY SHARE OF r",
+            [component_id.into()],
+        ))
+        .await?;
+    if repository.is_none() {
+        return Ok(false);
+    }
+    let component = txn
         .query_one(Statement::from_sql_and_values(
             DbBackend::Postgres,
             "SELECT 1 AS found FROM component WHERE id = $1 FOR KEY SHARE",
             [component_id.into()],
         ))
         .await?;
-    Ok(row.is_some())
+    Ok(component.is_some())
 }
 
 async fn owns(txn: &DatabaseTransaction, item: Claimed) -> Result<bool, DbErr> {
@@ -332,6 +347,18 @@ async fn upsert_scan(
             inventory_id.into(),
             state.as_str().into(),
         ],
+    ))
+    .await?;
+    Ok(())
+}
+
+async fn mark_dirty(txn: &DatabaseTransaction, component_id: i64) -> Result<(), DbErr> {
+    txn.execute(Statement::from_sql_and_values(
+        DbBackend::Postgres,
+        "INSERT INTO policy_dirty (repository, subject) \
+         SELECT repository, $2 FROM component WHERE id = $1 \
+         ON CONFLICT (repository, subject) DO NOTHING",
+        [component_id.into(), subject::component(component_id).into()],
     ))
     .await?;
     Ok(())

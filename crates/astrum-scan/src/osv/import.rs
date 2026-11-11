@@ -347,12 +347,14 @@ async fn write(
     let invalidated = txn
         .execute(Statement::from_sql_and_values(
             DbBackend::Postgres,
-            "UPDATE sca_package p SET matched_at = NULL \
-             WHERE p.matched_at IS NOT NULL AND (p.ecosystem, p.name) IN ( \
-                SELECT f.ecosystem, f.name FROM advisory_affected f \
-                WHERE f.advisory_id IN (SELECT i.id FROM jsonb_to_recordset($1::jsonb) AS i(id text)) \
-                UNION \
-                SELECT n.ecosystem, n.name FROM jsonb_to_recordset($2::jsonb) AS n(ecosystem text, name text))",
+            "UPDATE sca_package SET matched_at = NULL WHERE id IN ( \
+               SELECT p.id FROM sca_package p \
+               WHERE p.matched_at IS NOT NULL AND (p.ecosystem, p.name) IN ( \
+                  SELECT f.ecosystem, f.name FROM advisory_affected f \
+                  WHERE f.advisory_id IN (SELECT i.id FROM jsonb_to_recordset($1::jsonb) AS i(id text)) \
+                  UNION \
+                  SELECT n.ecosystem, n.name FROM jsonb_to_recordset($2::jsonb) AS n(ecosystem text, name text)) \
+               ORDER BY p.id FOR UPDATE OF p)",
             [ids.clone(), affected.clone()],
         ))
         .await?
@@ -438,10 +440,12 @@ async fn remove_vanished(
             .execute(Statement::from_sql_and_values(
                 DbBackend::Postgres,
                 format!(
-                    "UPDATE sca_package p SET matched_at = NULL \
-                     WHERE p.matched_at IS NOT NULL AND (p.ecosystem, p.name) IN ( \
-                        SELECT f.ecosystem, f.name FROM advisory_affected f \
-                        WHERE f.advisory_id = ANY($2) AND {SCOPE})"
+                    "UPDATE sca_package SET matched_at = NULL WHERE id IN ( \
+                       SELECT p.id FROM sca_package p \
+                       WHERE p.matched_at IS NOT NULL AND (p.ecosystem, p.name) IN ( \
+                          SELECT f.ecosystem, f.name FROM advisory_affected f \
+                          WHERE f.advisory_id = ANY($2) AND {SCOPE}) \
+                       ORDER BY p.id FOR UPDATE OF p)"
                 ),
                 [ecosystem.into(), ids.clone().into()],
             ))
