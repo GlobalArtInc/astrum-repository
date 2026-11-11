@@ -1,4 +1,4 @@
-use std::collections::{BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::io;
 use std::pin::Pin;
 use std::sync::{Arc, Mutex};
@@ -19,7 +19,7 @@ use serde_json::Value;
 use uuid::Uuid;
 
 use crate::mime;
-use crate::transfer::{AssetOutcome, AssetStatus, Conflict, Outcome, Status};
+use crate::transfer::{AssetOutcome, AssetStatus, Conflict, MAX_COMPONENTS, Outcome, Status};
 use crate::{Content, ContentError, Ctx, holds};
 
 pub type Asset = asset::Model;
@@ -440,21 +440,18 @@ async fn insert_new_asset(
         .exec_without_returning(db)
         .await?;
     match inserted {
-        0 => Err(ContentError::Conflict(format!(
-            "{repository} changed while the transfer ran; try again"
-        ))),
+        0 => Err(changed_meanwhile(repository)),
         _ => Ok(()),
     }
 }
 
-async fn upsert_component(
-    db: &impl ConnectionTrait,
+fn component_row(
     repository: &str,
     format: &str,
     key: &ComponentKey,
     now: DateTime<FixedOffset>,
-) -> Result<i64, ContentError> {
-    let row = component::ActiveModel {
+) -> component::ActiveModel {
+    component::ActiveModel {
         id: ActiveValue::NotSet,
         repository: ActiveValue::Set(repository.to_owned()),
         format: ActiveValue::Set(format.to_owned()),
@@ -468,25 +465,56 @@ async fn upsert_component(
         }),
         created_at: ActiveValue::Set(now),
         updated_at: ActiveValue::Set(now),
-    };
-    let stored = component::Entity::insert(row)
+    }
+}
+
+fn component_identity_columns() -> [component::Column; 4] {
+    [
+        component::Column::Repository,
+        component::Column::Namespace,
+        component::Column::Name,
+        component::Column::Version,
+    ]
+}
+
+async fn upsert_component(
+    db: &impl ConnectionTrait,
+    repository: &str,
+    format: &str,
+    key: &ComponentKey,
+    now: DateTime<FixedOffset>,
+) -> Result<i64, ContentError> {
+    let stored = component::Entity::insert(component_row(repository, format, key, now))
         .on_conflict(
-            OnConflict::columns([
-                component::Column::Repository,
-                component::Column::Namespace,
-                component::Column::Name,
-                component::Column::Version,
-            ])
-            .update_columns([
-                component::Column::Kind,
-                component::Column::Attributes,
-                component::Column::UpdatedAt,
-            ])
-            .to_owned(),
+            OnConflict::columns(component_identity_columns())
+                .update_columns([
+                    component::Column::Kind,
+                    component::Column::Attributes,
+                    component::Column::UpdatedAt,
+                ])
+                .to_owned(),
         )
         .exec_with_returning(db)
         .await?;
     Ok(stored.id)
+}
+
+async fn insert_component_if_absent(
+    db: &impl ConnectionTrait,
+    repository: &str,
+    format: &str,
+    key: &ComponentKey,
+    now: DateTime<FixedOffset>,
+) -> Result<bool, ContentError> {
+    let inserted = component::Entity::insert(component_row(repository, format, key, now))
+        .on_conflict(
+            OnConflict::columns(component_identity_columns())
+                .do_nothing()
+                .to_owned(),
+        )
+        .exec_without_returning(db)
+        .await?;
+    Ok(inserted > 0)
 }
 
 async fn drop_empty_component(
@@ -635,6 +663,8 @@ pub(crate) async fn delete_blobs(content: &Content, blobs: Vec<(String, Uuid)>) 
     }
 }
 
+pub type Replaceable<'a> = &'a (dyn Fn(&str) -> bool + Send + Sync);
+
 pub struct Planned {
     pub put: PutAsset,
     pub size: u64,
@@ -656,10 +686,11 @@ struct Decision {
 }
 
 impl Decision {
-    fn outcome(self, component_id: Option<i64>) -> Outcome {
+    fn outcome(self, component_ids: Vec<i64>) -> Outcome {
         Outcome {
             status: self.status,
-            component_id,
+            component_id: component_ids.first().copied(),
+            component_ids,
             assets: self.assets,
             bytes_copied: self.bytes_copied,
             bytes_reused: self.bytes_reused,
@@ -677,6 +708,8 @@ fn check_write(
     repository: &str,
     put: &PutAsset,
     existing: Option<&Asset>,
+    conflict: Conflict,
+    replaceable: Option<&dyn Fn(&str) -> bool>,
 ) -> Result<(), ContentError> {
     match (put.write_policy, existing) {
         (None, _) => Err(ContentError::internal(anyhow::anyhow!(
@@ -686,7 +719,14 @@ fn check_write(
         (Some(WritePolicy::Deny), _) => Err(ContentError::BadRequest(format!(
             "the repository {repository} is read-only"
         ))),
-        (Some(WritePolicy::AllowOnce), Some(_)) => Err(redeploy(repository, &put.path)),
+        (Some(WritePolicy::AllowOnce), Some(_)) => {
+            match conflict == Conflict::Replace
+                && replaceable.is_some_and(|allowed| allowed(&put.path))
+            {
+                true => Ok(()),
+                false => Err(redeploy(repository, &put.path)),
+            }
+        }
         (Some(WritePolicy::Allow | WritePolicy::AllowOnce), _) => Ok(()),
     }
 }
@@ -697,6 +737,7 @@ fn decide(
     existing: &HashMap<String, Asset>,
     conflict: Conflict,
     planning: bool,
+    replaceable: Option<&dyn Fn(&str) -> bool>,
 ) -> Result<Decision, ContentError> {
     let mut statuses: Vec<AssetStatus> = candidates
         .iter()
@@ -747,9 +788,17 @@ fn decide(
     }
     for (candidate, status) in candidates.iter().zip(statuses.iter_mut()) {
         match status {
-            AssetStatus::New => check_write(repository, candidate.put, None)?,
+            AssetStatus::New => {
+                check_write(repository, candidate.put, None, conflict, replaceable)?
+            }
             AssetStatus::Conflict => {
-                check_write(repository, candidate.put, existing.get(&candidate.put.path))?;
+                check_write(
+                    repository,
+                    candidate.put,
+                    existing.get(&candidate.put.path),
+                    conflict,
+                    replaceable,
+                )?;
                 *status = AssetStatus::Replaced;
             }
             AssetStatus::Unchanged | AssetStatus::Replaced => {}
@@ -809,10 +858,45 @@ async fn find_component(
         .await?)
 }
 
+type ComponentIdentity = (String, String, String);
+
+fn component_keys<'a>(
+    puts: impl Iterator<Item = &'a PutAsset>,
+) -> Result<Vec<ComponentKey>, ContentError> {
+    let mut keys: BTreeMap<ComponentIdentity, ComponentKey> = BTreeMap::new();
+    for found in puts.filter_map(|put| put.component.as_ref()) {
+        let identity = (
+            found.namespace.clone(),
+            found.name.clone(),
+            found.version.clone(),
+        );
+        keys.entry(identity).or_insert_with(|| found.clone());
+        if keys.len() > MAX_COMPONENTS {
+            return Err(ContentError::BadRequest(format!(
+                "one transfer takes at most {MAX_COMPONENTS} components"
+            )));
+        }
+    }
+    Ok(keys.into_values().collect())
+}
+
+fn identity_of(key: &ComponentKey) -> ComponentIdentity {
+    (key.namespace.clone(), key.name.clone(), key.version.clone())
+}
+
 pub async fn preview_many(
     ctx: &Ctx,
     planned: &[Planned],
     conflict: Conflict,
+) -> Result<Outcome, ContentError> {
+    preview_many_with(ctx, planned, conflict, None).await
+}
+
+pub async fn preview_many_with(
+    ctx: &Ctx,
+    planned: &[Planned],
+    conflict: Conflict,
+    replaceable: Option<Replaceable<'_>>,
 ) -> Result<Outcome, ContentError> {
     let repository = ctx.name();
     let paths: Vec<String> = planned.iter().map(|item| item.put.path.clone()).collect();
@@ -825,24 +909,30 @@ pub async fn preview_many(
             sha256: &item.sha256,
         })
         .collect();
-    let decision = decide(repository, &candidates, &existing, conflict, true)?;
-    let component_id = match planned.iter().find_map(|item| item.put.component.as_ref()) {
-        Some(key) => find_component(ctx.db(), repository, key)
-            .await?
-            .map(|found| found.id),
-        None => None,
-    };
-    Ok(decision.outcome(component_id))
+    let decision = decide(
+        repository,
+        &candidates,
+        &existing,
+        conflict,
+        true,
+        replaceable.map(|allowed| allowed as &dyn Fn(&str) -> bool),
+    )?;
+    let mut component_ids = Vec::new();
+    for key in component_keys(planned.iter().map(|item| &item.put))? {
+        if let Some(found) = find_component(ctx.db(), repository, &key).await? {
+            component_ids.push(found.id);
+        }
+    }
+    Ok(decision.outcome(component_ids))
 }
 
-fn validate_many(items: &[(PutAsset, Written)]) -> Result<Option<ComponentKey>, ContentError> {
+fn validate_many(items: &[(PutAsset, Written)]) -> Result<Vec<ComponentKey>, ContentError> {
     if items.is_empty() {
         return Err(ContentError::BadRequest(
             "there is nothing to record".to_owned(),
         ));
     }
     let mut paths = HashSet::new();
-    let mut key: Option<&ComponentKey> = None;
     for (put, written) in items {
         if put.write_policy.is_none() {
             return Err(ContentError::internal(anyhow::anyhow!(
@@ -862,23 +952,8 @@ fn validate_many(items: &[(PutAsset, Written)]) -> Result<Option<ComponentKey>, 
                 put.path
             )));
         }
-        if let Some(found) = &put.component {
-            match key {
-                None => key = Some(found),
-                Some(first)
-                    if first.namespace != found.namespace
-                        || first.name != found.name
-                        || first.version != found.version =>
-                {
-                    return Err(ContentError::BadRequest(
-                        "the assets of one transfer belong to one component".to_owned(),
-                    ));
-                }
-                Some(_) => {}
-            }
-        }
     }
-    Ok(key.cloned())
+    component_keys(items.iter().map(|(put, _)| put))
 }
 
 pub async fn record_many(
@@ -887,12 +962,22 @@ pub async fn record_many(
     conflict: Conflict,
     action: &str,
 ) -> Result<Outcome, ContentError> {
+    record_many_with(ctx, items, conflict, action, None).await
+}
+
+pub async fn record_many_with(
+    ctx: &Ctx,
+    items: Vec<(PutAsset, Written)>,
+    conflict: Conflict,
+    action: &str,
+    replaceable: Option<Replaceable<'_>>,
+) -> Result<Outcome, ContentError> {
     let blobs: Vec<(String, Uuid)> = items
         .iter()
         .map(|(_, written)| (written.store.clone(), written.id.uuid()))
         .collect();
-    let key = match validate_many(&items) {
-        Ok(key) => key,
+    let keys = match validate_many(&items) {
+        Ok(keys) => keys,
         Err(error) => {
             abandon(&ctx.content, blobs, true).await;
             return Err(error);
@@ -905,7 +990,7 @@ pub async fn record_many(
             return Err(error.into());
         }
     };
-    let executed = write_many(ctx, &txn, &items, key.as_ref(), conflict, action).await;
+    let executed = write_many(ctx, &txn, &items, &keys, conflict, action, replaceable).await;
     match executed {
         Ok(Executed {
             outcome,
@@ -937,13 +1022,26 @@ async fn rolled_back(txn: sea_orm::DatabaseTransaction) {
     }
 }
 
+struct Resolved<'a> {
+    key: &'a ComponentKey,
+    id: Option<i64>,
+    created: bool,
+}
+
+fn changed_meanwhile(repository: &str) -> ContentError {
+    ContentError::Conflict(format!(
+        "{repository} changed while the transfer ran; try again"
+    ))
+}
+
 async fn write_many(
     ctx: &Ctx,
     txn: &impl ConnectionTrait,
     items: &[(PutAsset, Written)],
-    key: Option<&ComponentKey>,
+    keys: &[ComponentKey],
     conflict: Conflict,
     action: &str,
+    replaceable: Option<Replaceable<'_>>,
 ) -> Result<Executed, ContentError> {
     let repository = ctx.name();
     let new_blobs: Vec<(String, astrum_blob::BlobId)> = items
@@ -962,20 +1060,41 @@ async fn write_many(
     ))
     .await?;
     let now = Utc::now().fixed_offset();
-    let mut component_ids: BTreeSet<i64> = BTreeSet::new();
-    let mut known = None;
-    if let Some(key) = key {
-        known = find_component(txn, repository, key)
-            .await?
-            .map(|found| found.id);
-        let own = match known {
-            Some(id) => id,
-            None => upsert_component(txn, repository, ctx.format_id(), key, now).await?,
-        };
-        component_ids.insert(own);
-    }
     let mut paths: Vec<String> = items.iter().map(|(put, _)| put.path.clone()).collect();
     paths.sort();
+    let preliminary = existing_assets(txn, repository, &paths).await?;
+    let mut to_write: HashSet<ComponentIdentity> = HashSet::new();
+    for (put, written) in items {
+        let same = preliminary
+            .get(&put.path)
+            .is_some_and(|found| found.sha256.eq_ignore_ascii_case(&written.digests.sha256));
+        if let (false, Some(found)) = (same, put.component.as_ref()) {
+            to_write.insert(identity_of(found));
+        }
+    }
+    let mut resolved: Vec<Resolved<'_>> = Vec::with_capacity(keys.len());
+    for key in keys {
+        let mut id = find_component(txn, repository, key)
+            .await?
+            .map(|found| found.id);
+        let mut created = false;
+        if id.is_none() && to_write.contains(&identity_of(key)) {
+            created =
+                insert_component_if_absent(txn, repository, ctx.format_id(), key, now).await?;
+            id = Some(
+                find_component(txn, repository, key)
+                    .await?
+                    .ok_or_else(|| changed_meanwhile(repository))?
+                    .id,
+            );
+        }
+        resolved.push(Resolved { key, id, created });
+    }
+    let own: HashMap<ComponentIdentity, i64> = resolved
+        .iter()
+        .filter_map(|found| found.id.map(|id| (identity_of(found.key), id)))
+        .collect();
+    let mut component_ids: BTreeSet<i64> = own.values().copied().collect();
     component_ids.extend(
         existing_assets(txn, repository, &paths)
             .await?
@@ -994,6 +1113,12 @@ async fn write_many(
             .map(|found| found.id)
             .collect(),
     };
+    if resolved
+        .iter()
+        .any(|found| found.id.is_some_and(|id| !locked.contains(&id)))
+    {
+        return Err(changed_meanwhile(repository));
+    }
     let existing: HashMap<String, Asset> = asset::Entity::find()
         .filter(asset::Column::Repository.eq(repository))
         .filter(asset::Column::Path.is_in(paths))
@@ -1008,9 +1133,7 @@ async fn write_many(
         .values()
         .any(|found| found.component_id.is_some_and(|id| !locked.contains(&id)))
     {
-        return Err(ContentError::Conflict(format!(
-            "{repository} changed while the transfer ran; try again"
-        )));
+        return Err(changed_meanwhile(repository));
     }
     let candidates: Vec<Candidate<'_>> = items
         .iter()
@@ -1020,22 +1143,53 @@ async fn write_many(
             sha256: &written.digests.sha256,
         })
         .collect();
-    let decision = decide(repository, &candidates, &existing, conflict, false)?;
+    let decision = decide(
+        repository,
+        &candidates,
+        &existing,
+        conflict,
+        false,
+        replaceable.map(|allowed| allowed as &dyn Fn(&str) -> bool),
+    )?;
     if !decision.writes {
-        let component_id = match key {
-            Some(_) => known,
-            None => existing.values().find_map(|found| found.component_id),
+        let ids: Vec<i64> = match keys.is_empty() {
+            true => existing
+                .values()
+                .filter_map(|found| found.component_id)
+                .collect::<BTreeSet<i64>>()
+                .into_iter()
+                .collect(),
+            false => resolved
+                .iter()
+                .filter(|found| !found.created)
+                .filter_map(|found| found.id)
+                .collect(),
         };
         return Ok(Executed {
-            outcome: decision.outcome(component_id),
+            outcome: decision.outcome(ids),
             committed: false,
             unused: Vec::new(),
         });
     }
-    let component_id = match key {
-        Some(key) => Some(upsert_component(txn, repository, ctx.format_id(), key, now).await?),
-        None => None,
-    };
+    let mut written_keys: HashSet<ComponentIdentity> = HashSet::new();
+    for (index, (put, _)) in items.iter().enumerate() {
+        if matches!(
+            decision.assets[index].status,
+            AssetStatus::New | AssetStatus::Replaced
+        ) && let Some(found) = put.component.as_ref()
+        {
+            written_keys.insert(identity_of(found));
+        }
+    }
+    for found in resolved
+        .iter()
+        .filter(|found| written_keys.contains(&identity_of(found.key)))
+    {
+        if found.id.is_none() {
+            return Err(changed_meanwhile(repository));
+        }
+        upsert_component(txn, repository, ctx.format_id(), found.key, now).await?;
+    }
     let mut order: Vec<usize> = (0..items.len()).collect();
     order.sort_by(|a, b| items[*a].0.path.cmp(&items[*b].0.path));
     let mut unused = Vec::new();
@@ -1053,7 +1207,10 @@ async fn write_many(
             .filter(|value| !value.is_empty() && value != mime::OCTET_STREAM)
             .or_else(|| mime::from_path(&put.path))
             .unwrap_or_else(|| mime::OCTET_STREAM.to_owned());
-        let asset_component = put.component.as_ref().and(component_id);
+        let asset_component = put
+            .component
+            .as_ref()
+            .and_then(|key| own.get(&identity_of(key)).copied());
         let row = asset_row(
             ctx,
             put,
@@ -1078,10 +1235,20 @@ async fn write_many(
             }
         }
     }
+    let mut ids = Vec::new();
+    for found in &resolved {
+        let Some(id) = found.id else { continue };
+        match !found.created || written_keys.contains(&identity_of(found.key)) {
+            true => ids.push(id),
+            false => {
+                left_components.insert(id);
+            }
+        }
+    }
     for old in left_components {
         drop_empty_component(txn, old).await?;
     }
-    let outcome = decision.outcome(component_id);
+    let outcome = decision.outcome(ids);
     Ok(Executed {
         outcome,
         committed: true,

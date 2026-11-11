@@ -166,6 +166,7 @@ pub fn transfer_of(describe: DescribeFn) -> GenericTransfer {
         describe,
         after: None,
         admit: None,
+        replaceable: None,
     }
 }
 

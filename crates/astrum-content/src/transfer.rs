@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -14,6 +14,7 @@ use crate::store::{self, Component, ComponentKey, Planned, PutAsset};
 use crate::{Content, ContentError, Ctx, holds, mime, normalize};
 
 pub const MAX_ASSETS: usize = 10_000;
+pub const MAX_COMPONENTS: usize = 100;
 pub const PROMOTED: &str = "promoted";
 const HOLD_TTL: Duration = Duration::from_secs(30 * 60);
 const MAX_TEXT: usize = 4096;
@@ -58,6 +59,7 @@ pub struct AssetOutcome {
 pub struct Outcome {
     pub status: Status,
     pub component_id: Option<i64>,
+    pub component_ids: Vec<i64>,
     pub assets: Vec<AssetOutcome>,
     pub bytes_copied: u64,
     pub bytes_reused: u64,
@@ -68,6 +70,7 @@ impl Outcome {
         Self {
             status: Status::Unchanged,
             component_id: None,
+            component_ids: Vec::new(),
             assets: Vec::new(),
             bytes_copied: 0,
             bytes_reused: 0,
@@ -223,6 +226,7 @@ pub trait Transfer: Send + Sync {
 pub type PlanFn = fn(RepositoryType, &str, &str) -> Plan;
 pub type DescribeFn = for<'a> fn(&'a Imported) -> BoxFuture<'a, Result<Option<Described>, String>>;
 pub type AfterFn = for<'a> fn(&'a Ctx) -> BoxFuture<'a, Result<(), ContentError>>;
+pub type ReplaceFn = for<'a> fn(&'a Ctx, &'a str, &'a BundleAsset) -> bool;
 pub type AdmitFn = for<'a> fn(&'a Ctx, &'a Bundle) -> BoxFuture<'a, Result<(), ContentError>>;
 
 pub struct GenericTransfer {
@@ -230,6 +234,7 @@ pub struct GenericTransfer {
     pub describe: DescribeFn,
     pub after: Option<AfterFn>,
     pub admit: Option<AdmitFn>,
+    pub replaceable: Option<ReplaceFn>,
 }
 
 struct Staged<'a> {
@@ -452,19 +457,41 @@ impl GenericTransfer {
                 sha256: asset.sha256.clone(),
             })
             .collect();
-        store::preview_many(target, &planned, terms.conflict).await
+        let origins: HashMap<String, &BundleAsset> = wanted
+            .iter()
+            .map(|asset| (asset.path.clone(), *asset))
+            .collect();
+        let allowed = self.allowance(target, origins);
+        store::preview_many_with(target, &planned, terms.conflict, Some(&allowed)).await
     }
 
-    async fn stage(
+    fn allowance<'a>(
+        &self,
+        target: &'a Ctx,
+        origins: HashMap<String, &'a BundleAsset>,
+    ) -> impl Fn(&str) -> bool + Send + Sync + 'a {
+        let hook = self.replaceable;
+        move |path: &str| {
+            hook.is_some_and(|hook| {
+                origins
+                    .get(path)
+                    .is_some_and(|asset| hook(target, path, asset))
+            })
+        }
+    }
+
+    async fn stage<'a>(
         &self,
         target: &Ctx,
         bundle: &Bundle,
         blobs: &dyn BlobSource,
         sink: &Sink,
-        wanted: &[&BundleAsset],
+        wanted: &[&'a BundleAsset],
         staged: &mut Staged<'_>,
-    ) -> Result<Vec<(PutAsset, Written)>, ContentError> {
-        let mut items = Vec::new();
+    ) -> Result<(Vec<(PutAsset, Written)>, HashMap<String, &'a BundleAsset>), ContentError> {
+        let mut items: Vec<(PutAsset, Written)> = Vec::new();
+        let mut origins: HashMap<String, &'a BundleAsset> = HashMap::new();
+        let mut components: HashSet<(String, String, String)> = HashSet::new();
         for asset in wanted {
             staged.check()?;
             let written = blobs.write(sink, asset).await?;
@@ -518,15 +545,40 @@ impl GenericTransfer {
                     (fresh, bytes)
                 }
             };
-            items.push(Self::finish(target, put, primary, &sample)?);
+            let item = Self::finish(target, put, primary, &sample)?;
+            Self::count_component(&mut components, &item.0)?;
+            origins.insert(item.0.path.clone(), *asset);
+            items.push(item);
             for (put, bytes) in extra {
                 staged.check()?;
                 let fresh = Self::write_bytes(sink, staged, &bytes).await?;
-                items.push(Self::finish(target, put, fresh, &bytes)?);
+                let item = Self::finish(target, put, fresh, &bytes)?;
+                Self::count_component(&mut components, &item.0)?;
+                origins.insert(item.0.path.clone(), *asset);
+                items.push(item);
             }
         }
         staged.check()?;
-        Ok(items)
+        Ok((items, origins))
+    }
+
+    fn count_component(
+        components: &mut HashSet<(String, String, String)>,
+        put: &PutAsset,
+    ) -> Result<(), ContentError> {
+        if let Some(found) = put.component.as_ref() {
+            components.insert((
+                found.namespace.clone(),
+                found.name.clone(),
+                found.version.clone(),
+            ));
+        }
+        match components.len() > MAX_COMPONENTS {
+            true => Err(ContentError::BadRequest(format!(
+                "one transfer takes at most {MAX_COMPONENTS} components"
+            ))),
+            false => Ok(()),
+        }
     }
 
     async fn write_bytes(
@@ -613,11 +665,11 @@ impl Transfer for GenericTransfer {
         }
         let sink = Sink::of(target).await?;
         let mut staged = Staged::new(&target.content);
-        let items = match self
+        let (items, origins) = match self
             .stage(target, bundle, blobs, &sink, &wanted, &mut staged)
             .await
         {
-            Ok(items) => items,
+            Ok(done) => done,
             Err(error) => {
                 staged.abandon().await;
                 return Err(error);
@@ -626,7 +678,10 @@ impl Transfer for GenericTransfer {
         if items.is_empty() {
             return Ok(Outcome::nothing());
         }
-        let outcome = store::record_many(target, items, terms.conflict, terms.action).await?;
+        let allowed = self.allowance(target, origins);
+        let outcome =
+            store::record_many_with(target, items, terms.conflict, terms.action, Some(&allowed))
+                .await?;
         if outcome.status == Status::Copied
             && let Some(after) = self.after
             && let Err(error) = after(target).await
