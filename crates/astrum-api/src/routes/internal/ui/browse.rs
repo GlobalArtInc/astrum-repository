@@ -147,6 +147,7 @@ pub(super) fn content_error(error: ContentError) -> ApiError {
         ContentError::BadRequest(message) => ApiError::BadRequest(message),
         ContentError::Unauthorized => ApiError::Unauthorized,
         ContentError::Forbidden => ApiError::forbidden(),
+        ContentError::Protected(message) => ApiError::Conflict(message),
         other => ApiError::internal(other),
     }
 }
@@ -659,6 +660,12 @@ async fn remove(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_protected_refusal_is_a_conflict_and_never_a_server_error() {
+        let error = content_error(ContentError::Protected("tag v1 is immutable".to_owned()));
+        assert!(matches!(error, ApiError::Conflict(message) if message == "tag v1 is immutable"));
+    }
 
     #[test]
     fn versions_put_words_before_numbers_and_compare_numbers_as_numbers() {
