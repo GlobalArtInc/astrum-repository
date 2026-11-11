@@ -87,6 +87,7 @@ pub async fn repository_of(
                     strict_content_type_validation: Some(false),
                     write_policy: Some(policy),
                     latest_policy: None,
+                    immutable_tags: None,
                 }),
                 ..Default::default()
             },
