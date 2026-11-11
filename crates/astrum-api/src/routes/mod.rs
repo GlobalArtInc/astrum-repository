@@ -1,3 +1,4 @@
+pub mod advisories;
 pub mod blobstores;
 pub mod capabilities;
 pub mod cleanup_policies;

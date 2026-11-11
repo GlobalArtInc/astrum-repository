@@ -272,6 +272,7 @@ fn endpoints(extra: Router<AppState>) -> Router<AppState> {
         .merge(routes::components::routes())
         .merge(routes::tasks::routes())
         .merge(routes::cleanup_policies::routes())
+        .merge(routes::advisories::routes())
         .merge(routes::support::routes())
         .merge(routes::capabilities::routes())
         .merge(routes::routing_rules::routes())

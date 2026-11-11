@@ -12,6 +12,7 @@ astrum-content.workspace = true
 astrum-db.workspace = true
 astrum-mail.workspace = true
 astrum-repo.workspace = true
+astrum-scan.workspace = true
 astrum-security.workspace = true
 async-trait.workspace = true
 chrono.workspace = true

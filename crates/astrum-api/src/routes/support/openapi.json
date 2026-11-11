@@ -17213,6 +17213,64 @@
         ]
       }
     },
+    "/v1/security/advisories/feeds": {
+      "get": {
+        "operationId": "getV1SecurityAdvisoriesFeeds",
+        "responses": {
+          "200": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "List security advisories feeds",
+        "tags": [
+          "Security management: advisories"
+        ]
+      }
+    },
+    "/v1/security/advisories/import": {
+      "post": {
+        "operationId": "postV1SecurityAdvisoriesImport",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "ecosystem",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "force",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/zip": {
+              "schema": {
+                "format": "binary",
+                "type": "string"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {},
+          "400": {},
+          "401": {},
+          "403": {},
+          "409": {},
+          "413": {}
+        },
+        "summary": "Create security advisories import",
+        "tags": [
+          "Security management: advisories"
+        ]
+      }
+    },
     "/v1/security/anonymous": {
       "get": {
         "operationId": "getV1SecurityAnonymous",
@@ -18820,6 +18878,9 @@
     },
     {
       "name": "Security management"
+    },
+    {
+      "name": "Security management: advisories"
     },
     {
       "name": "Security management: privileges"

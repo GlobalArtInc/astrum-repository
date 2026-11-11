@@ -4,6 +4,7 @@ use sea_orm::{ConnectionTrait, DbBackend, DbErr, Statement};
 
 pub const SECURITY: &str = "security";
 pub const BLOB_STORES: &str = "blobstores";
+pub const ADVISORIES: &str = "advisories";
 
 pub async fn bump(db: &impl ConnectionTrait, name: &str) -> Result<i64, DbErr> {
     let row = db

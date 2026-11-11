@@ -1,3 +1,4 @@
+pub mod advisories;
 pub mod compact;
 pub mod expired;
 pub mod purge_unused;

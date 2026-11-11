@@ -16,6 +16,7 @@ astrum-mcp.workspace = true
 astrum-notify.workspace = true
 astrum-outbound.workspace = true
 astrum-repo.workspace = true
+astrum-scan.workspace = true
 astrum-security.workspace = true
 astrum-tasks.workspace = true
 async-trait.workspace = true

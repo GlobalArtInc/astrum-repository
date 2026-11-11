@@ -10377,6 +10377,60 @@
     ]
    }
   },
+  "/v1/security/advisories/feeds": {
+   "get": {
+    "tags": [
+     "Security management: advisories"
+    ],
+    "responses": {
+     "200": {},
+     "401": {},
+     "403": {}
+    }
+   }
+  },
+  "/v1/security/advisories/import": {
+   "post": {
+    "tags": [
+     "Security management: advisories"
+    ],
+    "parameters": [
+     {
+      "name": "ecosystem",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "force",
+      "in": "query",
+      "schema": {
+       "type": "boolean"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/zip": {
+       "schema": {
+        "type": "string",
+        "format": "binary"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {},
+     "400": {},
+     "401": {},
+     "403": {},
+     "409": {},
+     "413": {}
+    }
+   }
+  },
   "/v1/security/anonymous": {
    "get": {
     "responses": {

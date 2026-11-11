@@ -38,6 +38,9 @@ impl Server {
         state.security().ldap().set_cache_ttl(config.ldap_cache_ttl);
         crate::formats::register(state.content());
         crate::formats::register_tasks(state.tasks());
+        state.tasks().register(std::sync::Arc::new(
+            astrum_tasks::kinds::advisories::AdvisorySync::new(config.data_dir.join("tmp")),
+        ));
         let listener = TcpListener::bind(config.listen)
             .await
             .with_context(|| format!("cannot listen on {}", config.listen))?;

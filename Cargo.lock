@@ -269,6 +269,7 @@ dependencies = [
  "astrum-notify",
  "astrum-outbound",
  "astrum-repo",
+ "astrum-scan",
  "astrum-security",
  "astrum-tasks",
  "astrum-testkit",
@@ -1534,6 +1535,26 @@ dependencies = [
 [[package]]
 name = "astrum-scan"
 version = "3.0.4"
+dependencies = [
+ "astrum-blob",
+ "astrum-content",
+ "astrum-db",
+ "astrum-outbound",
+ "astrum-security",
+ "astrum-testkit",
+ "async-trait",
+ "chrono",
+ "futures-util",
+ "reqwest",
+ "sea-orm",
+ "serde_json",
+ "tempfile",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "url",
+ "uuid",
+]
 
 [[package]]
 name = "astrum-security"
@@ -1659,6 +1680,7 @@ dependencies = [
  "astrum-db",
  "astrum-mail",
  "astrum-repo",
+ "astrum-scan",
  "astrum-security",
  "astrum-testkit",
  "async-trait",

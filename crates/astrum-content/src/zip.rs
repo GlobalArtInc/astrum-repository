@@ -95,6 +95,10 @@ impl Entry {
     pub fn is_directory(&self) -> bool {
         self.name.ends_with('/')
     }
+
+    pub fn offset(&self) -> u64 {
+        self.offset
+    }
 }
 
 fn zip64_extra(extra: &[u8], entry: &mut Entry, raw: (u64, u64, u64)) {
