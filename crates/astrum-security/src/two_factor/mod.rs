@@ -12,6 +12,7 @@ use crate::catalogue::DEFAULT_SOURCE;
 use crate::model::{SecurityModel, tolerant};
 use crate::{Error, realm};
 
+pub mod passkeys;
 pub mod qr;
 pub mod store;
 
