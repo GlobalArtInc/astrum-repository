@@ -11,6 +11,7 @@ pub mod proxy;
 mod request;
 pub mod routing;
 mod serve;
+pub mod share;
 pub mod store;
 pub mod zip;
 
@@ -30,7 +31,7 @@ pub use error::{CHALLENGE, ContentError};
 pub use format::{BrowseLayout, Format, SearchKey, UploadField, UploadForm, UploadSpec, fetch};
 pub use proxy::Freshness;
 pub use request::{ContentRequest, normalize};
-pub use serve::{Serve, serve};
+pub use serve::{Delivery, Serve, delivery, serve};
 pub use store::{Asset, Component, ComponentKey, PutAsset};
 
 pub const DOWNLOAD_FLUSH: Duration = Duration::from_secs(10);
@@ -208,10 +209,13 @@ impl Content {
                 if let Err(error) = content.flush_downloads().await {
                     tracing::warn!(%error, "download counts were not saved");
                 }
-                if ticks.is_multiple_of(DOWNLOAD_DAYS_PRUNE)
-                    && let Err(error) = content.prune_download_days().await
-                {
-                    tracing::warn!(%error, "old download days were not deleted");
+                if ticks.is_multiple_of(DOWNLOAD_DAYS_PRUNE) {
+                    if let Err(error) = content.prune_download_days().await {
+                        tracing::warn!(%error, "old download days were not deleted");
+                    }
+                    if let Err(error) = share::prune(content.db()).await {
+                        tracing::warn!(%error, "expired share links were not deleted");
+                    }
                 }
                 ticks = ticks.wrapping_add(1);
             }

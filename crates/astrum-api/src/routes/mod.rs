@@ -14,6 +14,7 @@ pub mod outbound;
 pub mod repositories;
 pub mod routing_rules;
 pub mod security;
+pub mod share;
 pub mod status;
 pub mod support;
 pub mod tasks;

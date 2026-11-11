@@ -22,6 +22,7 @@ pub mod security_privilege;
 pub mod security_role;
 pub mod security_user;
 pub mod security_user_role;
+pub mod share_link;
 pub mod ssl_certificate;
 pub mod task;
 pub mod task_log;

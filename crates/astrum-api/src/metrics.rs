@@ -96,6 +96,8 @@ fn classify(path: &str) -> (&'static str, Option<&str>) {
         "internal"
     } else if path.starts_with("/service/rest/") {
         "rest"
+    } else if path.starts_with("/service/share/") {
+        "share"
     } else if path.starts_with("/service/") {
         "service"
     } else if path == "/mcp"
@@ -637,6 +639,10 @@ mod tests {
         );
         assert_eq!(classify("/service/rest/v1/status"), ("rest", None));
         assert_eq!(classify(PATH), ("service", None));
+        assert_eq!(
+            classify("/service/share/astrum_share_x/a.txt"),
+            ("share", None)
+        );
         assert_eq!(classify("/mcp"), ("mcp", None));
         assert_eq!(classify("/v2/"), ("docker", None));
         assert_eq!(classify("/browse"), ("web", None));

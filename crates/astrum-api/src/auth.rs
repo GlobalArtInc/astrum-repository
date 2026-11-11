@@ -99,7 +99,8 @@ pub async fn authenticate(State(state): State<AppState>, request: Request, next:
 
 async fn admit(state: AppState, mut request: Request, next: Next) -> Response {
     let from_ui = is_ui(request.headers());
-    if crate::routes::oauth::is_endpoint(request.uri().path()) {
+    let path = request.uri().path();
+    if crate::routes::oauth::is_endpoint(path) || crate::routes::share::is_endpoint(path) {
         request.extensions_mut().insert(Caller(None));
         return next.run(request).await;
     }
