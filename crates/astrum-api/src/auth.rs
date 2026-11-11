@@ -34,6 +34,7 @@ pub struct RestrictedSession;
 
 const RESTRICTED_SESSION_PATH: &str = "/service/rest/internal/session";
 const RESTRICTED_ACCOUNT_PATH: &str = "/service/rest/internal/ui/user";
+const RESTRICTED_STATE_PATH: &str = "/service/rest/internal/ui/state";
 const RESTRICTED_FACTORS_PATH: &str = "/service/rest/internal/ui/user/two-factor";
 
 impl Caller {
@@ -249,7 +250,9 @@ async fn resolve(
 fn restricted_allows(method: &Method, path: &str) -> bool {
     match path {
         RESTRICTED_SESSION_PATH => matches!(*method, Method::GET | Method::DELETE),
-        RESTRICTED_ACCOUNT_PATH | crate::routes::status::STATUS => *method == Method::GET,
+        RESTRICTED_ACCOUNT_PATH | RESTRICTED_STATE_PATH | crate::routes::status::STATUS => {
+            *method == Method::GET
+        }
         _ => path
             .strip_prefix(RESTRICTED_FACTORS_PATH)
             .is_some_and(|rest| {

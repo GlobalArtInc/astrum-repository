@@ -276,7 +276,12 @@ async fn a_locked_factor_answers_uniformly_and_a_recovery_code_lifts_it() {
     let right = step(&fixture, &handle, "totp", &factor.code()).await;
     let wrong = step(&fixture, &handle, "totp", &factor.wrong()).await;
     assert_eq!(right.status, StatusCode::TOO_MANY_REQUESTS);
-    assert!(right.headers.get(header::RETRY_AFTER).is_some());
+    let wait: u64 = right.headers[header::RETRY_AFTER]
+        .to_str()
+        .unwrap()
+        .parse()
+        .unwrap();
+    assert!(wait > 0);
     assert_eq!(right.status, wrong.status);
     assert_eq!(right.body, wrong.body);
     assert!(!String::from_utf8_lossy(&right.body).contains("locked"));

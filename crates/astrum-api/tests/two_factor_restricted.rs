@@ -1,9 +1,11 @@
 mod support;
 
 use axum::http::{Method, StatusCode};
-use serde_json::json;
+use serde_json::{Value, json};
 use support::Fixture;
 use support::two_factor::*;
+
+const STATE: &str = "/service/rest/internal/ui/state";
 
 async fn require_enrollment(fixture: &Fixture, user: &str) {
     execute(
@@ -65,6 +67,7 @@ async fn a_user_who_must_enroll_gets_a_restricted_session() {
         assert_ne!(reply.status, StatusCode::UNAUTHORIZED, "{method} {path}");
     }
     let refused = [
+        (Method::POST, STATE),
         (Method::POST, TOKENS),
         (Method::GET, TOKENS),
         (Method::PUT, "/service/rest/internal/ui/user/password"),
@@ -118,4 +121,26 @@ async fn tokens_and_agent_consent_work_for_an_unrestricted_session_and_a_policy_
     require_enrollment(&fixture, "pat").await;
     let still = with_session(&fixture, Method::POST, TOKENS, &login, Some(body)).await;
     assert_eq!(still.status, StatusCode::CREATED, "{}", still.text());
+}
+
+#[tokio::test]
+async fn a_restricted_session_loads_the_interface_state_without_permissions() {
+    let fixture = world().await;
+    let admin = fixture.admin_password.clone();
+    let normal = password(&fixture, "admin", &admin, &[]).await;
+    let open = with_session(&fixture, Method::GET, STATE, &normal, None).await;
+    assert_eq!(open.status, StatusCode::OK, "{}", open.text());
+    assert_eq!(open.json()["restricted"], false);
+    assert!(!open.json()["permissions"].as_array().unwrap().is_empty());
+
+    require_enrollment(&fixture, "admin").await;
+    let login = password(&fixture, "admin", &admin, &[]).await;
+    assert_eq!(login.json()["secondFactor"], json!({"restricted": true}));
+    let shut = with_session(&fixture, Method::GET, STATE, &login, None).await;
+    assert_eq!(shut.status, StatusCode::OK, "{}", shut.text());
+    let body = shut.json();
+    assert_eq!(body["restricted"], true);
+    assert_eq!(body["permissions"], json!([]));
+    assert_eq!(body["user"]["userId"], "admin");
+    assert_eq!(body["adminPasswordFile"], Value::Null);
 }
