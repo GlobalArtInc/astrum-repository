@@ -177,7 +177,7 @@ async fn callback(
             }
         }
         let user = oidc::user_from_claims(&settings, &claims)?;
-        if user.user_id == model.anonymous.user_id {
+        if state.security().model().local_id_taken(&user.user_id) {
             return Err(OidcError::denied(format!(
                 "The username '{}' is reserved",
                 user.user_id

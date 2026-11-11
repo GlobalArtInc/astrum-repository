@@ -265,11 +265,19 @@ impl Security {
         if model.ldap_servers.is_empty() || password.is_empty() {
             return None;
         }
+        if model.local_id_taken(user_id) {
+            tracing::info!(user = user_id, "a directory sign-in was not accepted");
+            return None;
+        }
         match self
             .ldap
             .authenticate(&model.ldap_servers, self.secrets(), user_id, password)
             .await
         {
+            Ok(user) if model.local_id_taken(&user.username) => {
+                tracing::info!(user = user_id, "a directory sign-in was not accepted");
+                None
+            }
             Ok(user) => Some(model.external_subject(
                 &user.username,
                 ldap::SOURCE,

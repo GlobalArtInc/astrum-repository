@@ -418,6 +418,15 @@ impl SecurityModel {
         Some(self.subject(&user.id, DEFAULT_SOURCE, realm))
     }
 
+    pub fn local_id_taken(&self, user_id: &str) -> bool {
+        if self.users.contains_key(user_id) {
+            return true;
+        }
+        let wanted = user_id.to_lowercase();
+        wanted == self.anonymous.user_id.to_lowercase()
+            || self.users.keys().any(|id| id.to_lowercase() == wanted)
+    }
+
     pub fn anonymous_subject(&self) -> Option<Subject> {
         if !self.anonymous.enabled {
             return None;
@@ -519,6 +528,19 @@ mod tests {
         model.users.get_mut("jane").unwrap().status = UserStatus::Disabled;
         assert!(model.local_subject("jane", realm::LOCAL).is_none());
         assert!(model.local_subject("nobody", realm::LOCAL).is_none());
+    }
+
+    #[test]
+    fn local_ids_are_taken_whatever_their_case_or_status() {
+        let mut model = model();
+        assert!(model.local_id_taken("jane"));
+        assert!(model.local_id_taken("JANE"));
+        assert!(model.local_id_taken("anonymous"));
+        assert!(!model.local_id_taken("janet"));
+        model.users.get_mut("jane").unwrap().status = UserStatus::Disabled;
+        assert!(model.local_id_taken("Jane"));
+        model.users.remove("jane");
+        assert!(!model.local_id_taken("jane"));
     }
 
     #[test]
