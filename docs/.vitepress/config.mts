@@ -9,6 +9,7 @@ const FORMATS: [string, string][] = [
   ['ansible', 'Ansible Galaxy'],
   ['apt', 'APT'],
   ['bazel', 'Bazel'],
+  ['bazelcache', 'Bazel remote cache'],
   ['cargo', 'Cargo'],
   ['chef', 'Chef Supermarket'],
   ['chrome', 'Chromium extensions'],

@@ -11,6 +11,7 @@ repositories themselves are in [repositories](../repositories/overview.md).
 | [Ansible Galaxy](ansible.md) | `ansible-galaxy` | ✓ | ✓ | ✓ |
 | [APT](apt.md) | `apt` | ✓ | ✓ | |
 | [Bazel](bazel.md) | Bazel modules (Bzlmod) | ✓ | ✓ | ✓ |
+| [Bazel remote cache](bazelcache.md) | Bazel | ✓ | | |
 | [Cargo](cargo.md) | `cargo` | ✓ | ✓ | ✓ |
 | [Chef Supermarket](chef.md) | Berkshelf, Policyfiles, `knife` | ✓ | ✓ | ✓ |
 | [Chromium extensions](chrome.md) | Chrome, Edge and other Chromium browsers | ✓ | ✓ | ✓ |

@@ -1,6 +1,7 @@
 import type { RepositoryDomain, RepositoryType } from '../../../api';
 import { ansible } from './ansible';
 import { bazel } from './bazel';
+import { bazelcache } from './bazelcache';
 import { chef } from './chef';
 import { chrome } from './chrome';
 import { firefox } from './firefox';
@@ -94,6 +95,7 @@ export const USAGE_FORMATS = [
   'turbo',
   'nx',
   'gradlecache',
+  'bazelcache',
   'bazel',
   'jetbrains',
   'protobuf',
@@ -1115,6 +1117,8 @@ const GENERATORS: Record<string, (context: UsageContext) => Snippet[]> = {
   nx: (context) => nx(repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   gradlecache: (context) =>
     gradlecache(repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
+  bazelcache: (context) =>
+    bazelcache(repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   bazel: (context) =>
     bazel(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   jetbrains: (context) =>

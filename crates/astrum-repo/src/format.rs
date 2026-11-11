@@ -72,6 +72,11 @@ pub const FORMATS: &[Format] = &[
         types: HPG,
     },
     Format {
+        id: "bazelcache",
+        api_name: "bazelcache",
+        types: &[H],
+    },
+    Format {
         id: "cargo",
         api_name: "cargo",
         types: HPG,
@@ -272,7 +277,7 @@ mod tests {
         sorted.sort_unstable();
         sorted.dedup();
         assert_eq!(ids, sorted);
-        assert_eq!(ids.len(), 40);
+        assert_eq!(ids.len(), 41);
     }
 
     #[test]

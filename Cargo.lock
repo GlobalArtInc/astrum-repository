@@ -228,6 +228,7 @@ dependencies = [
  "astrum-format-ansible",
  "astrum-format-apt",
  "astrum-format-bazel",
+ "astrum-format-bazelcache",
  "astrum-format-cargo",
  "astrum-format-chef",
  "astrum-format-chrome",
@@ -530,6 +531,16 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
+]
+
+[[package]]
+name = "astrum-format-bazelcache"
+version = "3.0.4"
+dependencies = [
+ "astrum-content",
+ "astrum-repo",
+ "async-trait",
+ "axum",
 ]
 
 [[package]]
@@ -1579,6 +1590,7 @@ dependencies = [
  "astrum-format-ansible",
  "astrum-format-apt",
  "astrum-format-bazel",
+ "astrum-format-bazelcache",
  "astrum-format-cargo",
  "astrum-format-chef",
  "astrum-format-chrome",

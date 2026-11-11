@@ -527,6 +527,7 @@
   "repositories.formats.ansible": "Collections of Ansible modules, plugins and roles, served through the Galaxy API.",
   "repositories.formats.apt": "The package tool of Debian and Ubuntu distributions.",
   "repositories.formats.bazel": "Module registry for Bazel: the modules that Bzlmod resolves through --registry.",
+  "repositories.formats.bazelcache": "A self-hosted remote cache for Bazel: build results and blobs that Bazel uploads and downloads instead of building them again.",
   "repositories.formats.chef": "Chef Infra cookbooks, served through the Supermarket API to Berkshelf, Policyfiles and knife.",
   "repositories.formats.chrome": "Extensions for Chromium browsers such as Chrome, Edge and Brave, installed and updated by browser policy from your own packages or a cache of the Chrome Web Store.",
   "repositories.formats.cocoapods": "Dependency manager for Swift and Objective-C projects.",

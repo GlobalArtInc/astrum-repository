@@ -1410,6 +1410,19 @@ describe('protobuf usage', () => {
   });
 });
 
+describe('bazelcache usage', () => {
+  it('points Bazel at the cache in .bazelrc and sets the upload flag for CI and developers', () => {
+    const snippets = usageSnippets(context({ format: 'bazelcache', repositoryName: 'bazel-cache' }));
+    expect(ids(snippets)).toEqual(['bazelrc', 'developers', 'ci']);
+    expect(code(snippets, 'bazelrc')).toContain(
+      'build --remote_cache=https://repo.example.org/repository/bazel-cache\n',
+    );
+    expect(code(snippets, 'developers')).toBe('build --remote_upload_local_results=false');
+    expect(code(snippets, 'ci')).toBe('build --remote_upload_local_results=true');
+    expect(supportsUsage('bazelcache')).toBe(true);
+  });
+});
+
 describe('gradlecache usage', () => {
   it('points Gradle at the cache by settings, properties and CI', () => {
     const snippets = usageSnippets(context({ format: 'gradlecache', repositoryName: 'gradle-cache' }));

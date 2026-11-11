@@ -7,6 +7,7 @@ export const FORMATS: Record<string, { name: string; color: Color; label?: strin
   ansible: { name: 'Ansible Galaxy', color: 'ruby' },
   apt: { name: 'APT', color: 'green' },
   bazel: { name: 'Bazel', color: 'green' },
+  bazelcache: { name: 'Bazel remote cache', color: 'green' },
   cargo: { name: 'Cargo (Rust)', color: 'orange' },
   chef: { name: 'Chef Supermarket', color: 'orange' },
   chrome: { name: 'Chromium Extensions', color: 'blue' },

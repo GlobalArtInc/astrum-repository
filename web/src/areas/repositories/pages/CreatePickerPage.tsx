@@ -33,6 +33,7 @@ const FORMAT_TEXTS: Record<string, string> = {
   ansible: 'repositories.formats.ansible',
   apt: 'repositories.formats.apt',
   bazel: 'repositories.formats.bazel',
+  bazelcache: 'repositories.formats.bazelcache',
   chef: 'repositories.formats.chef',
   chrome: 'repositories.formats.chrome',
   cocoapods: 'repositories.formats.cocoapods',
