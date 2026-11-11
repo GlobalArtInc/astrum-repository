@@ -116,6 +116,7 @@ async fn link(
             prefix,
             note: String::new(),
             created_by: "admin".to_owned(),
+            created_source: "default".to_owned(),
             expires_at: Utc::now() + Duration::hours(1),
             max_downloads,
         },
@@ -737,6 +738,7 @@ async fn links_are_created_validated_and_pruned() {
         prefix,
         note: String::new(),
         created_by: "admin".to_owned(),
+        created_source: "default".to_owned(),
         expires_at: Utc::now() + Duration::seconds(ttl),
         max_downloads: max,
     };
@@ -765,6 +767,7 @@ async fn links_are_created_validated_and_pruned() {
         prefix: ActiveValue::Set(true),
         note: ActiveValue::Set(String::new()),
         created_by: ActiveValue::Set("admin".to_owned()),
+        created_source: ActiveValue::Set("default".to_owned()),
         created_at: ActiveValue::Set(Utc::now().fixed_offset()),
         expires_at: ActiveValue::Set((Utc::now() + Duration::hours(1)).fixed_offset()),
         max_downloads: ActiveValue::Set(Some(1)),
@@ -779,12 +782,15 @@ async fn links_are_created_validated_and_pruned() {
     expire(&fixture, &old, Duration::days(31)).await;
     expire(&fixture, &recent, Duration::days(29)).await;
     assert_eq!(share::prune(db).await.unwrap(), 1);
-    let ids: Vec<_> = share::list(db, Some("admin"), None)
+    let ids: Vec<_> = share::list(db, Some(("default", "admin")), None)
         .await
         .unwrap()
         .into_iter()
         .map(|link| link.id)
         .collect();
     assert!(ids.contains(&recent.id) && ids.contains(&first.id) && !ids.contains(&old.id));
-    assert_eq!(share::delete_of_user(db, "admin").await.unwrap(), 2);
+    assert_eq!(
+        share::delete_of_user(db, "default", "admin").await.unwrap(),
+        2
+    );
 }

@@ -2,8 +2,8 @@ use astrum_db::entity::share_link;
 use astrum_security::{password, tokens};
 use chrono::{DateTime, Duration, Utc};
 use sea_orm::{
-    ActiveValue, ColumnTrait, ConnectionTrait, DbBackend, EntityTrait, QueryFilter, QueryOrder,
-    Statement,
+    ActiveValue, ColumnTrait, ConnectionTrait, DbBackend, EntityTrait, PaginatorTrait, QueryFilter,
+    QueryOrder, QuerySelect, Statement, sea_query::Expr,
 };
 use uuid::Uuid;
 
@@ -12,6 +12,8 @@ use crate::{ContentError, normalize};
 pub const SECRET_PREFIX: &str = "astrum_share_";
 const SECRET_LENGTH: usize = 45;
 pub const KEPT_AFTER_EXPIRY: Duration = Duration::days(30);
+pub const MAX_ACTIVE_PER_USER: u64 = 1000;
+pub const LIST_LIMIT: u64 = 1000;
 
 pub type Link = share_link::Model;
 
@@ -51,6 +53,7 @@ pub struct NewLink {
     pub prefix: bool,
     pub note: String,
     pub created_by: String,
+    pub created_source: String,
     pub expires_at: DateTime<Utc>,
     pub max_downloads: Option<i32>,
 }
@@ -118,6 +121,7 @@ pub async fn create(
         prefix: ActiveValue::Set(new.prefix),
         note: ActiveValue::Set(new.note),
         created_by: ActiveValue::Set(new.created_by),
+        created_source: ActiveValue::Set(new.created_source),
         created_at: ActiveValue::Set(now.fixed_offset()),
         expires_at: ActiveValue::Set(new.expires_at.fixed_offset()),
         max_downloads: ActiveValue::Set(new.max_downloads),
@@ -195,23 +199,44 @@ pub async fn refund(
     Ok(())
 }
 
+pub async fn count_active(
+    db: &impl ConnectionTrait,
+    source: &str,
+    user: &str,
+) -> Result<u64, ContentError> {
+    Ok(share_link::Entity::find()
+        .filter(share_link::Column::CreatedSource.eq(source))
+        .filter(share_link::Column::CreatedBy.eq(user))
+        .filter(share_link::Column::ExpiresAt.gt(Utc::now().fixed_offset()))
+        .count(db)
+        .await?)
+}
+
 pub async fn list(
     db: &impl ConnectionTrait,
-    creator: Option<&str>,
+    creator: Option<(&str, &str)>,
     repository: Option<&str>,
 ) -> Result<Vec<Link>, ContentError> {
     let mut query = share_link::Entity::find();
-    if let Some(creator) = creator {
-        query = query.filter(share_link::Column::CreatedBy.eq(creator));
+    if let Some((source, user)) = creator {
+        query = query
+            .filter(share_link::Column::CreatedSource.eq(source))
+            .filter(share_link::Column::CreatedBy.eq(user));
     }
     if let Some(repository) = repository {
         query = query.filter(share_link::Column::Repository.eq(repository));
     }
     Ok(query
+        .order_by_desc(Expr::cust("expires_at > now()"))
         .order_by_desc(share_link::Column::CreatedAt)
         .order_by_asc(share_link::Column::Id)
+        .limit(LIST_LIMIT)
         .all(db)
         .await?)
+}
+
+pub async fn find(db: &impl ConnectionTrait, id: Uuid) -> Result<Option<Link>, ContentError> {
+    Ok(share_link::Entity::find_by_id(id).one(db).await?)
 }
 
 pub async fn delete(db: &impl ConnectionTrait, id: Uuid) -> Result<bool, ContentError> {
@@ -219,8 +244,13 @@ pub async fn delete(db: &impl ConnectionTrait, id: Uuid) -> Result<bool, Content
     Ok(result.rows_affected > 0)
 }
 
-pub async fn delete_of_user(db: &impl ConnectionTrait, user: &str) -> Result<u64, ContentError> {
+pub async fn delete_of_user(
+    db: &impl ConnectionTrait,
+    source: &str,
+    user: &str,
+) -> Result<u64, ContentError> {
     let result = share_link::Entity::delete_many()
+        .filter(share_link::Column::CreatedSource.eq(source))
         .filter(share_link::Column::CreatedBy.eq(user))
         .exec(db)
         .await?;
@@ -250,6 +280,7 @@ mod tests {
             prefix: false,
             note: String::new(),
             created_by: "admin".to_owned(),
+            created_source: "default".to_owned(),
             created_at: now.fixed_offset(),
             expires_at: (now + Duration::seconds(expires_in)).fixed_offset(),
             max_downloads: maximum,

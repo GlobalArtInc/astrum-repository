@@ -278,6 +278,7 @@ fn endpoints(extra: Router<AppState>) -> Router<AppState> {
         .merge(routes::outbound::routes())
         .merge(routes::email::routes())
         .merge(routes::share::routes())
+        .merge(routes::share_links::routes())
         .merge(routes::mcp::routes())
         .merge(routes::oauth::routes())
         .merge(metrics::routes())

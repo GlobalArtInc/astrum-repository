@@ -11,6 +11,7 @@ pub struct Model {
     pub prefix: bool,
     pub note: String,
     pub created_by: String,
+    pub created_source: String,
     pub created_at: DateTimeWithTimeZone,
     pub expires_at: DateTimeWithTimeZone,
     pub max_downloads: Option<i32>,
