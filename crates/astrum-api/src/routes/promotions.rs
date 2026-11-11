@@ -309,6 +309,27 @@ impl ItemResult {
     }
 }
 
+struct Kept {
+    message: String,
+    retryable: Option<bool>,
+}
+
+impl Kept {
+    fn new(message: impl Into<String>) -> Self {
+        Self {
+            message: message.into(),
+            retryable: None,
+        }
+    }
+
+    fn protected(reason: &str) -> Self {
+        Self {
+            message: format!("the source was kept: {reason}"),
+            retryable: Some(false),
+        }
+    }
+}
+
 enum Refusal {
     NotFound(String),
     Forbidden(String),
@@ -337,6 +358,10 @@ impl Refusal {
             ContentError::Conflict(message) => Refusal::Conflict {
                 message,
                 retryable: phase == Phase::Run,
+            },
+            ContentError::Protected(message) => Refusal::Conflict {
+                message,
+                retryable: false,
             },
             other => {
                 tracing::error!(error = format!("{other:#}"), "a promotion item failed");
@@ -689,9 +714,10 @@ impl Job {
                         removed = true;
                         result.source_kept = Some(false);
                     }
-                    Err(reason) => {
+                    Err(kept) => {
                         result.source_kept = Some(true);
-                        result.error = Some(reason);
+                        result.error = Some(kept.message);
+                        result.retryable = kept.retryable;
                     }
                 }
             } else {
@@ -709,28 +735,29 @@ impl Job {
         result
     }
 
-    async fn withdraw(&self, removal: Removal<'_>) -> Result<(), String> {
+    async fn withdraw(&self, removal: Removal<'_>) -> Result<(), Kept> {
         match removal {
             Removal::Component { component, bundle } => self.remove(component, bundle).await,
             Removal::Tag { image, tag, digest } => self.remove_tag(image, tag, digest).await,
         }
     }
 
-    async fn remove_tag(&self, image: &str, tag: &str, digest: &str) -> Result<(), String> {
+    async fn remove_tag(&self, image: &str, tag: &str, digest: &str) -> Result<(), Kept> {
         let transfers = self
             .state
             .image_transfers()
-            .ok_or_else(|| "the source was kept: image promotion is not available".to_owned())?;
+            .ok_or_else(|| Kept::new("the source was kept: image promotion is not available"))?;
         match transfers.remove_tag(&self.source, image, tag, digest).await {
             Ok(()) => Ok(()),
             Err(ContentError::NotFound(_)) => {
-                Err("the source was kept: the tag is already gone".to_owned())
+                Err(Kept::new("the source was kept: the tag is already gone"))
             }
-            Err(ContentError::Conflict(_)) => {
-                Err("the source was kept: the tag changed while the transfer ran".to_owned())
-            }
+            Err(ContentError::Conflict(_)) => Err(Kept::new(
+                "the source was kept: the tag changed while the transfer ran",
+            )),
+            Err(ContentError::Protected(reason)) => Err(Kept::protected(&reason)),
             Err(ContentError::Forbidden | ContentError::Unauthorized) => {
-                Err(format!("the source was kept: {DELETE_MISSING}"))
+                Err(Kept::new(format!("the source was kept: {DELETE_MISSING}")))
             }
             Err(error) => {
                 tracing::error!(
@@ -738,7 +765,7 @@ impl Job {
                     repository = self.source.name(),
                     "the source tag of a moved image was not deleted"
                 );
-                Err(SOURCE_FAILED.to_owned())
+                Err(Kept::new(SOURCE_FAILED))
             }
         }
     }
@@ -971,7 +998,7 @@ impl Job {
         result
     }
 
-    async fn remove(&self, component: &Component, bundle: &Bundle) -> Result<(), String> {
+    async fn remove(&self, component: &Component, bundle: &Bundle) -> Result<(), Kept> {
         let expected: Vec<(String, String)> = bundle
             .assets
             .iter()
@@ -980,15 +1007,16 @@ impl Job {
         match store::delete_component_matching(self.state.content(), component.id, &expected).await
         {
             Ok(true) => Ok(()),
-            Ok(false) => Err(SOURCE_GONE.to_owned()),
-            Err(ContentError::Conflict(_)) => Err(SOURCE_CHANGED.to_owned()),
+            Ok(false) => Err(Kept::new(SOURCE_GONE)),
+            Err(ContentError::Conflict(_)) => Err(Kept::new(SOURCE_CHANGED)),
+            Err(ContentError::Protected(reason)) => Err(Kept::protected(&reason)),
             Err(error) => {
                 tracing::error!(
                     error = format!("{error:#}"),
                     repository = self.source.name(),
                     "the source of a moved component was not deleted"
                 );
-                Err(SOURCE_FAILED.to_owned())
+                Err(Kept::new(SOURCE_FAILED))
             }
         }
     }
@@ -1094,6 +1122,21 @@ mod tests {
             assert!(matches!(
                 refusal,
                 Refusal::Conflict { retryable, .. } if retryable == expected
+            ));
+        }
+    }
+
+    #[test]
+    fn a_protected_refusal_is_a_conflict_that_a_repeat_does_not_change() {
+        for phase in [Phase::Plan, Phase::Run] {
+            let refusal = Refusal::from_content(
+                ContentError::Protected("tag v1 of app is immutable".to_owned()),
+                phase,
+                ADD_MISSING,
+            );
+            assert!(matches!(
+                refusal,
+                Refusal::Conflict { retryable: false, message } if message == "tag v1 of app is immutable"
             ));
         }
     }

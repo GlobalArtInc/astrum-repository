@@ -56,6 +56,9 @@ impl Registry {
             .state
             .content()
             .register(Arc::new(astrum_format_docker::Docker::default()));
+        fixture
+            .state
+            .set_image_transfers(Arc::new(astrum_format_docker::transfer::Images));
         let app = astrum_api::router_with(fixture.state.clone(), astrum_format_docker::routes());
         let admin = format!(
             "Basic {}",
@@ -101,6 +104,22 @@ impl Registry {
             headers,
             body,
         }
+    }
+
+    async fn promote_image(&self, source: &str, target: &str, tag: &str, options: Value) -> Value {
+        let mut body = json!({
+            "source": source,
+            "target": target,
+            "items": [{"image": "app", "tag": tag}],
+        });
+        body.as_object_mut()
+            .unwrap()
+            .extend(options.as_object().unwrap().clone());
+        let reply = self
+            .rest(Method::POST, "/service/rest/v1/promotions", Some(body))
+            .await;
+        assert_eq!(reply.status, StatusCode::OK, "{}", reply.text());
+        reply.json()["results"][0].clone()
     }
 
     async fn status(&self, method: Method, path: &str) -> StatusCode {
@@ -818,4 +837,142 @@ async fn a_folder_delete_keeps_immutable_tags_and_answers_409_when_only_they_are
         "1 protected asset not deleted in /solo/; first reason: tag v1 of solo is immutable in repository rel (rule v*)"
     );
     assert!(registry.pulls("/v2/rel/solo/manifests/v1").await.is_some());
+}
+
+const RELEASE_RULE: &str = "tag v1 of app is immutable in repository rel (rule v*)";
+
+async fn replaced_target(registry: &Registry) -> String {
+    registry.create(hosted("dev", "ALLOW", &[], &[])).await;
+    registry.create(hosted("rel", "ALLOW", &["v*"], &[])).await;
+    let (first, _) = registry.push("/v2/dev/app", "v1", b"one").await;
+    let copied = registry.promote_image("dev", "rel", "v1", json!({})).await;
+    assert_eq!(copied["status"], "copied", "{copied}");
+    registry.push("/v2/dev/app", "v1", b"two").await;
+    first
+}
+
+async fn assert_target_untouched(registry: &Registry, assets: i64, first: &str) {
+    assert_eq!(
+        registry
+            .count("SELECT count(*) AS n FROM asset WHERE repository = 'rel'")
+            .await,
+        assets
+    );
+    assert_eq!(
+        registry.count("SELECT count(*) AS n FROM blob_hold").await,
+        0
+    );
+    assert_eq!(
+        registry.pulls("/v2/rel/app/manifests/v1").await.as_deref(),
+        Some(first)
+    );
+}
+
+#[tokio::test]
+async fn rest_reports_a_replace_over_an_immutable_target_tag_as_a_final_conflict() {
+    let registry = Registry::new().await;
+    let first = replaced_target(&registry).await;
+    let assets = registry
+        .count("SELECT count(*) AS n FROM asset WHERE repository = 'rel'")
+        .await;
+
+    let result = registry
+        .promote_image("dev", "rel", "v1", json!({"conflict": "replace"}))
+        .await;
+    assert_eq!(result["status"], "conflict", "{result}");
+    assert_eq!(result["error"], RELEASE_RULE);
+    assert_eq!(result["retryable"], false);
+    assert_target_untouched(&registry, assets, &first).await;
+}
+
+#[tokio::test]
+async fn a_dry_run_reports_the_same_conflict_over_an_immutable_target_tag() {
+    let registry = Registry::new().await;
+    let first = replaced_target(&registry).await;
+    let assets = registry
+        .count("SELECT count(*) AS n FROM asset WHERE repository = 'rel'")
+        .await;
+
+    let result = registry
+        .promote_image(
+            "dev",
+            "rel",
+            "v1",
+            json!({"conflict": "replace", "dryRun": true}),
+        )
+        .await;
+    assert_eq!(result["status"], "conflict", "{result}");
+    assert_eq!(result["error"], RELEASE_RULE);
+    assert_eq!(result["retryable"], false);
+    assert_target_untouched(&registry, assets, &first).await;
+}
+
+#[tokio::test]
+async fn rest_replaces_an_excepted_latest_and_refuses_it_without_the_exception() {
+    let registry = Registry::new().await;
+    registry.create(hosted("dev", "ALLOW", &[], &[])).await;
+    registry
+        .create(hosted("once", "ALLOW_ONCE", &["*"], &["latest"]))
+        .await;
+    registry
+        .create(hosted("strict", "ALLOW_ONCE", &["*"], &[]))
+        .await;
+    let (older, _) = registry.push("/v2/strict/app", "latest", b"one").await;
+    registry.push("/v2/once/app", "latest", b"one").await;
+    let (newer, _) = registry.push("/v2/dev/app", "latest", b"three").await;
+
+    let moved = registry
+        .promote_image("dev", "once", "latest", json!({"conflict": "replace"}))
+        .await;
+    assert_eq!(moved["status"], "copied", "{moved}");
+    assert_eq!(
+        registry
+            .pulls("/v2/once/app/manifests/latest")
+            .await
+            .as_deref(),
+        Some(newer.as_str())
+    );
+    let refused = registry
+        .promote_image("dev", "strict", "latest", json!({"conflict": "replace"}))
+        .await;
+    assert_eq!(refused["status"], "conflict", "{refused}");
+    assert_eq!(
+        refused["error"],
+        "tag latest of app is immutable in repository strict (rule *)"
+    );
+    assert_eq!(refused["retryable"], false);
+    assert_eq!(
+        registry
+            .pulls("/v2/strict/app/manifests/latest")
+            .await
+            .as_deref(),
+        Some(older.as_str())
+    );
+}
+
+#[tokio::test]
+async fn a_move_of_an_immutable_source_tag_is_copied_and_keeps_the_source_for_good() {
+    let registry = Registry::new().await;
+    registry.create(hosted("rel", "ALLOW", &["v*"], &[])).await;
+    registry.create(hosted("dst", "ALLOW", &[], &[])).await;
+    let (digest, _) = registry.push("/v2/rel/app", "v1", b"one").await;
+
+    let result = registry
+        .promote_image("rel", "dst", "v1", json!({"move": true}))
+        .await;
+    assert_eq!(result["status"], "copied", "{result}");
+    assert_eq!(result["sourceKept"], true);
+    assert_eq!(result["retryable"], false);
+    assert_eq!(
+        result["error"],
+        format!("the source was kept: {RELEASE_RULE}")
+    );
+    assert_eq!(
+        registry.pulls("/v2/rel/app/manifests/v1").await.as_deref(),
+        Some(digest.as_str())
+    );
+    assert_eq!(
+        registry.pulls("/v2/dst/app/manifests/v1").await.as_deref(),
+        Some(digest.as_str())
+    );
 }
