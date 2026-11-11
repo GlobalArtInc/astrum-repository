@@ -545,5 +545,10 @@
   "security.users.userId": "User ID",
   "security.wizard.back": "Back",
   "security.wizard.continue": "Continue",
-  "security.wizard.progress": "Progress"
+  "security.wizard.progress": "Progress",
+  "security.findings.severity.critical": "Critical",
+  "security.findings.severity.high": "High",
+  "security.findings.severity.medium": "Medium",
+  "security.findings.severity.low": "Low",
+  "security.findings.severity.unknown": "Unknown"
 }

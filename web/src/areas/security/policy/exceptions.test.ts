@@ -34,6 +34,40 @@ describe('policy exceptions', () => {
     });
   });
 
+  it('sends an advisory with the component it is excepted for', () => {
+    const form: ExceptionForm = {
+      ...EMPTY_EXCEPTION_FORM,
+      rule: 'vulnerability',
+      subject: 'advisory',
+      advisory: ' GHSA-aaaa-bbbb-cccc ',
+      policy: 'strict',
+      format: 'maven2',
+      namespace: 'org.acme',
+      name: 'lib',
+      version: '1.0',
+      reason: 'vendor patch in review',
+      expiry: 'never',
+    };
+    expect(requestOf(form, NOW)).toEqual({
+      policy: 'strict',
+      rule: 'vulnerability',
+      advisory: 'GHSA-aaaa-bbbb-cccc',
+      format: 'maven2',
+      namespace: 'org.acme',
+      name: 'lib',
+      version: '1.0',
+      reason: 'vendor patch in review',
+      expiresAt: null,
+    });
+    expect(requestOf({ ...form, format: '', namespace: '', name: '', version: '' }, NOW)).toEqual({
+      policy: 'strict',
+      rule: 'vulnerability',
+      advisory: 'GHSA-aaaa-bbbb-cccc',
+      reason: 'vendor patch in review',
+      expiresAt: null,
+    });
+  });
+
   it('counts the presets from now and offers only the subjects a rule can take', () => {
     expect(Date.parse(expiresAtOf({ ...EMPTY_EXCEPTION_FORM, expiry: '7d' }, NOW) ?? '') - NOW).toBe(7 * DAY);
     expect(subjectsOf('license')).toEqual(['license']);

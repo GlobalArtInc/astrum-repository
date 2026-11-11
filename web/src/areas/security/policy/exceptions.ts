@@ -137,6 +137,21 @@ export function targetFilled(form: ExceptionForm): boolean {
   }
 }
 
+function componentOf(form: ExceptionForm, body: ExceptionRequest): void {
+  if (form.format !== '') {
+    body.format = form.format;
+  }
+  if (form.namespace.trim() !== '') {
+    body.namespace = form.namespace.trim();
+  }
+  if (form.name.trim() !== '') {
+    body.name = form.name.trim();
+  }
+  if (form.version.trim() !== '') {
+    body.version = form.version.trim();
+  }
+}
+
 export function requestOf(form: ExceptionForm, now: number): ExceptionRequest {
   const body: ExceptionRequest = {
     rule: form.rule,
@@ -149,6 +164,7 @@ export function requestOf(form: ExceptionForm, now: number): ExceptionRequest {
   switch (form.subject) {
     case 'advisory':
       body.advisory = form.advisory.trim();
+      componentOf(form, body);
       break;
     case 'license':
       body.license = form.license.trim();
@@ -157,18 +173,7 @@ export function requestOf(form: ExceptionForm, now: number): ExceptionRequest {
       body.digest = form.digest.trim();
       break;
     case 'component':
-      if (form.format !== '') {
-        body.format = form.format;
-      }
-      if (form.namespace.trim() !== '') {
-        body.namespace = form.namespace.trim();
-      }
-      if (form.name.trim() !== '') {
-        body.name = form.name.trim();
-      }
-      if (form.version.trim() !== '') {
-        body.version = form.version.trim();
-      }
+      componentOf(form, body);
       break;
   }
   return body;

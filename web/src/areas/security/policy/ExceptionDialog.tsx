@@ -36,6 +36,22 @@ import { POLICY_READ } from './permissions';
 interface ExceptionDialogProps {
   open: boolean;
   onOpenChange(open: boolean): void;
+  initial?: Partial<ExceptionForm>;
+  scoped?: boolean;
+}
+
+function sentValues(values: ExceptionForm, scoped: boolean): ExceptionForm {
+  if (scoped || values.subject !== 'advisory') {
+    return values;
+  }
+  return { ...values, format: '', namespace: '', name: '', version: '' };
+}
+
+function withCurrent(options: Array<{ value: string; label: string }>, value: string) {
+  if (value === '' || options.some((option) => option.value === value)) {
+    return options;
+  }
+  return [...options, { value, label: value }];
 }
 
 function choices<V extends string>(
@@ -64,22 +80,29 @@ function problemsOf(t: Translate, values: ExceptionForm, now: number): Errors<Ex
 
 interface ExceptionFieldsProps {
   form: Form<ExceptionForm>;
+  scoped: boolean;
 }
 
-function ExceptionFields({ form }: ExceptionFieldsProps) {
+function ExceptionFields({ form, scoped }: ExceptionFieldsProps) {
   const t = useT();
   const { state } = useSession();
   const canReadPolicies = useCan(POLICY_READ);
   const policies = useApi<Policy[]>(canReadPolicies ? POLICIES : null);
   const { values } = form;
-  const policyOptions = [
-    { value: NONE, label: t('security.exceptions.allPolicies') },
-    ...(policies.data ?? []).map((policy) => ({ value: policy.name, label: policy.name })),
-  ];
-  const formatOptions = [
-    { value: NONE, label: t('security.exceptions.anyFormat') },
-    ...state.formats.map((format) => ({ value: format.id, label: format.id })),
-  ];
+  const policyOptions = withCurrent(
+    [
+      { value: NONE, label: t('security.exceptions.allPolicies') },
+      ...(policies.data ?? []).map((policy) => ({ value: policy.name, label: policy.name })),
+    ],
+    values.policy,
+  );
+  const formatOptions = withCurrent(
+    [
+      { value: NONE, label: t('security.exceptions.anyFormat') },
+      ...state.formats.map((format) => ({ value: format.id, label: format.id })),
+    ],
+    values.format,
+  );
   const subjects = subjectsOf(values.rule);
   const setRule = (rule: Rule) => {
     form.set('rule', rule);
@@ -132,7 +155,7 @@ function ExceptionFields({ form }: ExceptionFieldsProps) {
           required
         />
       )}
-      {values.subject === 'component' && (
+      {(values.subject === 'component' || (scoped && values.subject === 'advisory')) && (
         <>
           <SelectField
             label={t('security.exceptions.format')}
@@ -176,16 +199,22 @@ function ExceptionFields({ form }: ExceptionFieldsProps) {
   );
 }
 
-function ExceptionDialogForm({ onDone }: { onDone(): void }) {
+interface ExceptionDialogFormProps {
+  onDone(): void;
+  initial: Partial<ExceptionForm>;
+  scoped: boolean;
+}
+
+function ExceptionDialogForm({ onDone, initial, scoped }: ExceptionDialogFormProps) {
   const t = useT();
   const toast = useToast();
   const invalidate = useInvalidateApi();
   const form = useForm<ExceptionForm>({
-    initial: EMPTY_EXCEPTION_FORM,
+    initial: { ...EMPTY_EXCEPTION_FORM, ...initial },
     validate: (values) => problemsOf(t, values, Date.now()),
     onSubmit: (values) =>
       explainRefusal(t, async () => {
-        await api.post(POLICY_EXCEPTIONS, requestOf(values, Date.now()));
+        await api.post(POLICY_EXCEPTIONS, requestOf(sentValues(values, scoped), Date.now()));
         toast.success(t('security.exceptions.created'));
         await invalidate(POLICY_EXCEPTIONS);
         onDone();
@@ -195,7 +224,7 @@ function ExceptionDialogForm({ onDone }: { onDone(): void }) {
     <form onSubmit={form.submit} noValidate>
       <Flex direction="column" gap="4">
         <div className={styles.card}>
-          <ExceptionFields form={form} />
+          <ExceptionFields form={form} scoped={scoped} />
         </div>
         <FormError message={form.formError} />
         <Flex gap="3" justify="end" wrap="wrap">
@@ -213,7 +242,7 @@ function ExceptionDialogForm({ onDone }: { onDone(): void }) {
   );
 }
 
-export function ExceptionDialog({ open, onOpenChange }: ExceptionDialogProps) {
+export function ExceptionDialog({ open, onOpenChange, initial = {}, scoped = false }: ExceptionDialogProps) {
   const t = useT();
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -222,7 +251,7 @@ export function ExceptionDialog({ open, onOpenChange }: ExceptionDialogProps) {
         <Dialog.Description size="2" color="gray">
           {t('security.exceptions.intro')}
         </Dialog.Description>
-        {open && <ExceptionDialogForm onDone={() => onOpenChange(false)} />}
+        {open && <ExceptionDialogForm onDone={() => onOpenChange(false)} initial={initial} scoped={scoped} />}
       </Dialog.Content>
     </Dialog.Root>
   );

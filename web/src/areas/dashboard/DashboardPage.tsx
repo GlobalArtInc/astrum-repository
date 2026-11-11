@@ -14,9 +14,15 @@ import {
 import { type ReactNode, useState } from 'react';
 import { Link } from 'react-router';
 import { useApi, withQuery } from '../../api';
+import { useCan, useSession } from '../../auth/state';
 import { formatBytes, formatNumber, useI18n, useT } from '../../i18n';
-import { ErrorState, FormatLogo, formatName, Page, RelativeTime } from '../../ui';
+import { ErrorState, FormatLogo, formatName, Page, RelativeTime, StatusBadge } from '../../ui';
 import { browseUrl } from '../browse/tree/model';
+import { ADVISORY_FEEDS, SECURITY_SUMMARY } from '../security/api';
+import { SEVERITIES, type SecuritySummary, type Severity } from '../security/findings/model';
+import { SeverityBadge } from '../security/findings/SeverityBadge';
+import { type AdvisoryFeed, ageInDays, isStale, STALE_AFTER_DAYS } from '../security/policy/feeds';
+import { POLICY_READ } from '../security/policy/permissions';
 import styles from './Dashboard.module.css';
 import { CHART_HEIGHT, DownloadsChart, shortDay } from './DownloadsChart';
 import {
@@ -523,10 +529,83 @@ function Loading() {
   );
 }
 
+interface SeverityCount {
+  severity: Severity;
+  count: number;
+}
+
+function SecurityCard() {
+  const t = useT();
+  const { language } = useI18n();
+  const signedIn = useSession().user !== null;
+  const canFeeds = useCan(POLICY_READ);
+  const summary = useApi<SecuritySummary>(signedIn ? SECURITY_SUMMARY : null);
+  const feeds = useApi<AdvisoryFeed[]>(signedIn && canFeeds ? ADVISORY_FEEDS : null);
+  const totals = summary.data?.totals;
+  if (totals === undefined) {
+    return null;
+  }
+  const counts: SeverityCount[] = SEVERITIES.map((severity) => ({ severity, count: totals[severity] }));
+  const now = Date.now();
+  const list = feeds.data;
+  const synced = (list ?? []).flatMap((feed) => (feed.syncedAt === null ? [] : [feed.syncedAt]));
+  const oldest =
+    synced.length === 0
+      ? null
+      : synced.reduce((left, right) => (Date.parse(left) <= Date.parse(right) ? left : right));
+  const stale = (list ?? []).some((feed) => isStale(feed, now));
+  return (
+    <Card size="3" asChild className={styles.securityCard}>
+      <section aria-labelledby="dashboard-security">
+        <div className={styles.cardHead}>
+          <Heading id="dashboard-security">{t('dashboard.security.title')}</Heading>
+          {canFeeds && (
+            <Link to="/admin/security/vulnerability-data" className={styles.name}>
+              {t('dashboard.security.dataLink')}
+            </Link>
+          )}
+        </div>
+        <div className={styles.securityBadges}>
+          {counts.map((row) => (
+            <span key={row.severity} className={styles.securityCount}>
+              <SeverityBadge severity={row.severity} />
+              <span>{formatNumber(language, row.count)}</span>
+            </span>
+          ))}
+        </div>
+        <p className={styles.securityLine}>
+          {t('dashboard.security.blocked')}: {formatNumber(language, totals.blocked)}
+        </p>
+        <p className={styles.securityLine}>
+          {t('dashboard.security.scanned', {
+            scanned: formatNumber(language, totals.componentsScanned),
+            vulnerable: formatNumber(language, totals.componentsVulnerable),
+          })}
+        </p>
+        {list !== undefined && (
+          <div className={styles.securityLine}>
+            {oldest === null ? (
+              <span>{t('dashboard.security.neverSynced')}</span>
+            ) : (
+              <span>{t('dashboard.security.age', { count: ageInDays(oldest, now) })}</span>
+            )}
+            {stale && (
+              <StatusBadge tone="warning">
+                {t('dashboard.security.stale', { days: STALE_AFTER_DAYS })}
+              </StatusBadge>
+            )}
+          </div>
+        )}
+      </section>
+    </Card>
+  );
+}
+
 function Board({ data }: { data: Usage }) {
   return (
     <div className={styles.board}>
       <Tiles data={data} />
+      <SecurityCard />
       <ChartCard data={data} />
       <div className={styles.row}>
         <TopCard data={data} />

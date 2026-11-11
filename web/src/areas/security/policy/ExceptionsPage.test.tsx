@@ -89,6 +89,30 @@ describe('the policy exceptions page', () => {
     expect(Math.abs(Date.parse(body.expiresAt as string) - (Date.now() + 7 * DAY))).toBeLessThan(60_000);
   });
 
+  it('sends no component of a typed component that the advisory subject hides', async () => {
+    const server = fakeServer({
+      'GET /service/rest/v1/security/exceptions': () => jsonResponse([]),
+      'GET /service/rest/v1/security/policies': () => jsonResponse([]),
+      'POST /service/rest/v1/security/exceptions': () => jsonResponse(LIVE, 201),
+    });
+    vi.stubGlobal('fetch', server.fetch);
+    renderWithApp(<ExceptionsPage />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Add Exception' }));
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.click(within(dialog).getByRole('combobox', { name: 'Subject' }));
+    await userEvent.click(screen.getByRole('option', { name: 'Package or component' }));
+    await userEvent.type(within(dialog).getByRole('textbox', { name: 'Name' }), 'left-pad');
+    await userEvent.click(within(dialog).getByRole('combobox', { name: 'Subject' }));
+    await userEvent.click(screen.getByRole('option', { name: 'Advisory' }));
+    await userEvent.type(within(dialog).getByRole('textbox', { name: 'Advisory' }), 'GHSA-aaaa-bbbb-cccc');
+    await userEvent.type(within(dialog).getByRole('textbox', { name: 'Reason' }), 'vendor patch in review');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Add Exception' }));
+    await waitFor(() => expect(server.calls.some((call) => call.method === 'POST')).toBe(true));
+    const body = server.calls.find((call) => call.method === 'POST')?.body as Record<string, unknown>;
+    expect(body).not.toHaveProperty('name');
+    expect(body.advisory).toBe('GHSA-aaaa-bbbb-cccc');
+  });
+
   it('revokes an exception after the admin confirms it', async () => {
     const server = fakeServer({
       'GET /service/rest/v1/security/exceptions': () => jsonResponse([LIVE]),

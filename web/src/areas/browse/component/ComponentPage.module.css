@@ -252,3 +252,7 @@
     flex-wrap: wrap;
   }
 }
+
+.versionSeverity {
+  margin-left: 8px;
+}

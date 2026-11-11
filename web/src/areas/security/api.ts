@@ -17,6 +17,7 @@ export const POLICY_EXCEPTIONS = `${SECURITY}/exceptions`;
 export const TRUSTED_KEYS = `${SECURITY}/keys`;
 export const ADVISORY_FEEDS = `${SECURITY}/advisories/feeds`;
 export const ADVISORY_IMPORT = `${SECURITY}/advisories/import`;
+export const SECURITY_SUMMARY = `${SECURITY}/summary`;
 export const REPOSITORIES = `${V1}/repositories`;
 export const ROLE_SOURCES = `${INTERNAL}/ui/roles/sources`;
 export const SOURCE_ROLES = `${INTERNAL}/ui/roles`;

@@ -16,6 +16,7 @@ import {
   useDocumentTitle,
   useToast,
 } from '../../../ui';
+import { type ComponentSecurity, isUnavailable, worstSeverity } from '../../security/findings/model';
 import { componentKey, fromProxy, parseComponentKey } from '../links';
 import {
   REPOSITORIES_PATH,
@@ -27,11 +28,12 @@ import {
   type VersionsResponse,
 } from '../types';
 import styles from './ComponentPage.module.css';
+import { type SecurityEntry, SecurityTab } from './SecurityTab';
 import { componentGuideUrl, componentPath, componentSnippets, registryUrl } from './snippets';
 import { type FileRow, FilesTab, RepositoriesTab, VersionsTab } from './tables';
 
 const PREFIX = '/search/component/';
-const TABS = ['versions', 'repos', 'files'] as const;
+const TABS = ['versions', 'repos', 'files', 'security'] as const;
 type Tab = 'overview' | (typeof TABS)[number];
 
 export function locate(pathname: string): { key: string; tab: Tab } {
@@ -342,6 +344,31 @@ export default function ComponentPage() {
     }),
   });
   const loaded = components.flatMap((result) => (result.data ? [result.data] : []));
+  const signedIn = useSession().user !== null;
+  const securities = useQueries({
+    queries: (entry?.componentIds ?? []).map((id) => {
+      const target = path`/service/rest/v1/components/${id}/security`;
+      return {
+        queryKey: apiKey(target),
+        queryFn: ({ signal }: { signal: AbortSignal }) => api.get<ComponentSecurity>(target, { signal }),
+        enabled: signedIn,
+      };
+    }),
+  });
+  const securityEntries: SecurityEntry[] = securities.map((result, index) => {
+    const found = components[index]?.data;
+    return {
+      id: entry?.componentIds[index] ?? '',
+      repository: found?.repository,
+      coordinates: found
+        ? { format: found.format, namespace: found.group, name: found.name, version: found.version }
+        : undefined,
+      result,
+    };
+  });
+  const currentSeverity = worstSeverity(
+    securities.flatMap((result) => result.data?.vulnerabilities.map((item) => item.severity) ?? []),
+  );
   const files: FileRow[] = loaded.flatMap((component) =>
     component.assets.map((asset) => ({ ...asset, key: `${component.repository}|${asset.path}` })),
   );
@@ -405,6 +432,11 @@ export default function ComponentPage() {
     { id: 'versions', label: t('browse.component.versionsTab'), count: list.length },
     { id: 'repos', label: t('browse.component.repositoriesTab'), count: repositoryCount },
     { id: 'files', label: t('browse.component.files'), count: loadingFiles ? undefined : files.length },
+    ...(securities.some(
+      (result) => result.data !== undefined || (result.isError && !isUnavailable(result.error)),
+    )
+      ? [{ id: 'security' as const, label: t('browse.component.securityTab') }]
+      : []),
   ];
   return (
     <Frame crumbs={crumbs} title={title}>
@@ -436,9 +468,11 @@ export default function ComponentPage() {
           current={entry.version}
           hrefOf={(version) => tabUrl(own, 'versions', version)}
           compare={compare}
+          currentSeverity={currentSeverity}
         />
       )}
       {tab === 'repos' && <RepositoriesTab versions={list} repositories={repositories.data ?? []} />}
+      {tab === 'security' && <SecurityTab entries={signedIn ? securityEntries : []} />}
       {tab === 'files' &&
         (filesError ? (
           <ErrorState error={filesError} />
