@@ -433,6 +433,171 @@
     ]
    }
   },
+  "/v1/components/{id}/security": {
+   "get": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "id",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "scan": {
+           "type": "object",
+           "properties": {
+            "state": {
+             "type": "string"
+            },
+            "scannedAt": {
+             "type": "string",
+             "nullable": true
+            },
+            "packages": {
+             "type": "integer",
+             "format": "int64",
+             "nullable": true
+            }
+           }
+          },
+          "policy": {
+           "type": "object",
+           "properties": {
+            "name": {
+             "type": "string"
+            },
+            "revision": {
+             "type": "integer",
+             "format": "int64",
+             "nullable": true
+            }
+           },
+           "nullable": true
+          },
+          "verdict": {
+           "type": "object",
+           "properties": {
+            "policy": {
+             "type": "string"
+            },
+            "revision": {
+             "type": "integer",
+             "format": "int64"
+            },
+            "state": {
+             "type": "string"
+            },
+            "blocked": {
+             "type": "boolean"
+            },
+            "counts": {
+             "type": "object",
+             "properties": {
+              "critical": {
+               "type": "integer",
+               "format": "int64"
+              },
+              "high": {
+               "type": "integer",
+               "format": "int64"
+              },
+              "medium": {
+               "type": "integer",
+               "format": "int64"
+              },
+              "low": {
+               "type": "integer",
+               "format": "int64"
+              },
+              "unknown": {
+               "type": "integer",
+               "format": "int64"
+              }
+             }
+            },
+            "maxSeverity": {
+             "type": "string",
+             "nullable": true
+            },
+            "reasons": {
+             "type": "array",
+             "items": {
+              "type": "object"
+             }
+            },
+            "computedAt": {
+             "type": "string"
+            }
+           },
+           "nullable": true
+          },
+          "vulnerabilities": {
+           "type": "array",
+           "items": {
+            "type": "object",
+            "properties": {
+             "id": {
+              "type": "string"
+             },
+             "aliases": {
+              "type": "array",
+              "items": {
+               "type": "string"
+              }
+             },
+             "severity": {
+              "type": "string"
+             },
+             "score": {
+              "type": "number",
+              "format": "double",
+              "nullable": true
+             },
+             "summary": {
+              "type": "string"
+             },
+             "fixed": {
+              "type": "string",
+              "nullable": true
+             },
+             "malicious": {
+              "type": "boolean"
+             },
+             "excepted": {
+              "type": "boolean"
+             }
+            }
+           }
+          },
+          "truncated": {
+           "type": "boolean"
+          },
+          "license": {
+           "type": "string",
+           "nullable": true
+          }
+         }
+        }
+       }
+      }
+     },
+     "401": {},
+     "404": {}
+    },
+    "tags": [
+     "components"
+    ]
+   }
+  },
   "/v1/email": {
    "get": {
     "tags": [
@@ -10431,6 +10596,156 @@
     }
    }
   },
+  "/v1/security/advisories/{id}": {
+   "get": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "id",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "id": {
+           "type": "string"
+          },
+          "aliases": {
+           "type": "array",
+           "items": {
+            "type": "string"
+           }
+          },
+          "summary": {
+           "type": "string"
+          },
+          "severity": {
+           "type": "string"
+          },
+          "score": {
+           "type": "number",
+           "format": "double",
+           "nullable": true
+          },
+          "malicious": {
+           "type": "boolean"
+          },
+          "published": {
+           "type": "string",
+           "nullable": true
+          },
+          "modified": {
+           "type": "string"
+          },
+          "withdrawn": {
+           "type": "string",
+           "nullable": true
+          },
+          "references": {
+           "type": "array",
+           "items": {
+            "type": "object",
+            "properties": {
+             "type": {
+              "type": "string"
+             },
+             "url": {
+              "type": "string"
+             }
+            }
+           }
+          },
+          "affected": {
+           "type": "array",
+           "items": {
+            "type": "object",
+            "properties": {
+             "ecosystem": {
+              "type": "string"
+             },
+             "name": {
+              "type": "string"
+             },
+             "ranges": {
+              "type": "array",
+              "items": {
+               "type": "object"
+              }
+             },
+             "versions": {
+              "type": "array",
+              "items": {
+               "type": "string"
+              }
+             }
+            }
+           }
+          },
+          "truncated": {
+           "type": "boolean"
+          },
+          "components": {
+           "type": "array",
+           "items": {
+            "type": "object",
+            "properties": {
+             "componentId": {
+              "type": "string"
+             },
+             "repository": {
+              "type": "string"
+             },
+             "format": {
+              "type": "string"
+             },
+             "name": {
+              "type": "string"
+             },
+             "version": {
+              "type": "string"
+             },
+             "fixed": {
+              "type": "string",
+              "nullable": true
+             },
+             "excepted": {
+              "type": "boolean"
+             },
+             "blocked": {
+              "type": "boolean"
+             }
+            }
+           }
+          },
+          "componentCount": {
+           "type": "integer",
+           "format": "int64"
+          },
+          "componentsTruncated": {
+           "type": "boolean"
+          }
+         }
+        }
+       }
+      }
+     },
+     "401": {},
+     "403": {},
+     "404": {}
+    },
+    "tags": [
+     "Security management: findings"
+    ]
+   }
+  },
   "/v1/security/anonymous": {
    "get": {
     "responses": {
@@ -10648,6 +10963,136 @@
      "403": {},
      "404": {}
     }
+   }
+  },
+  "/v1/security/findings": {
+   "get": {
+    "parameters": [
+     {
+      "in": "query",
+      "name": "repository",
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "severity",
+      "schema": {
+       "type": "string",
+       "enum": [
+        "critical",
+        "high",
+        "medium",
+        "low",
+        "unknown"
+       ]
+      }
+     },
+     {
+      "in": "query",
+      "name": "advisory",
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "blocked",
+      "schema": {
+       "type": "boolean"
+      }
+     },
+     {
+      "in": "query",
+      "name": "continuationToken",
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "limit",
+      "schema": {
+       "type": "integer",
+       "format": "int32",
+       "minimum": 1,
+       "maximum": 200
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "items": {
+           "type": "array",
+           "items": {
+            "type": "object",
+            "properties": {
+             "componentId": {
+              "type": "string"
+             },
+             "repository": {
+              "type": "string"
+             },
+             "format": {
+              "type": "string"
+             },
+             "namespace": {
+              "type": "string"
+             },
+             "name": {
+              "type": "string"
+             },
+             "version": {
+              "type": "string"
+             },
+             "advisory": {
+              "type": "string"
+             },
+             "severity": {
+              "type": "string"
+             },
+             "score": {
+              "type": "number",
+              "format": "double",
+              "nullable": true
+             },
+             "fixed": {
+              "type": "string",
+              "nullable": true
+             },
+             "malicious": {
+              "type": "boolean"
+             },
+             "excepted": {
+              "type": "boolean"
+             },
+             "blocked": {
+              "type": "boolean"
+             }
+            }
+           }
+          },
+          "continuationToken": {
+           "type": "string",
+           "nullable": true
+          }
+         }
+        }
+       }
+      }
+     },
+     "400": {},
+     "401": {}
+    },
+    "tags": [
+     "Security management: findings"
+    ]
    }
   },
   "/v1/security/jwt": {
@@ -11652,6 +12097,119 @@
     },
     "tags": [
      "Security Management: SSRF Protection"
+    ]
+   }
+  },
+  "/v1/security/summary": {
+   "get": {
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "generatedAt": {
+           "type": "string"
+          },
+          "totals": {
+           "type": "object",
+           "properties": {
+            "critical": {
+             "type": "integer",
+             "format": "int64"
+            },
+            "high": {
+             "type": "integer",
+             "format": "int64"
+            },
+            "medium": {
+             "type": "integer",
+             "format": "int64"
+            },
+            "low": {
+             "type": "integer",
+             "format": "int64"
+            },
+            "unknown": {
+             "type": "integer",
+             "format": "int64"
+            },
+            "blocked": {
+             "type": "integer",
+             "format": "int64"
+            },
+            "componentsScanned": {
+             "type": "integer",
+             "format": "int64"
+            },
+            "componentsVulnerable": {
+             "type": "integer",
+             "format": "int64"
+            },
+            "truncated": {
+             "type": "boolean"
+            }
+           }
+          },
+          "repositories": {
+           "type": "array",
+           "items": {
+            "type": "object",
+            "properties": {
+             "critical": {
+              "type": "integer",
+              "format": "int64"
+             },
+             "high": {
+              "type": "integer",
+              "format": "int64"
+             },
+             "medium": {
+              "type": "integer",
+              "format": "int64"
+             },
+             "low": {
+              "type": "integer",
+              "format": "int64"
+             },
+             "unknown": {
+              "type": "integer",
+              "format": "int64"
+             },
+             "blocked": {
+              "type": "integer",
+              "format": "int64"
+             },
+             "componentsScanned": {
+              "type": "integer",
+              "format": "int64"
+             },
+             "componentsVulnerable": {
+              "type": "integer",
+              "format": "int64"
+             },
+             "truncated": {
+              "type": "boolean"
+             },
+             "repository": {
+              "type": "string"
+             },
+             "format": {
+              "type": "string"
+             }
+            }
+           }
+          }
+         }
+        }
+       }
+      }
+     },
+     "401": {}
+    },
+    "tags": [
+     "Security management: findings"
     ]
    }
   },
