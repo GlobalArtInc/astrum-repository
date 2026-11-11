@@ -9,9 +9,9 @@ pub mod version;
 mod xml;
 
 use astrum_content::format::SearchTarget;
-use astrum_content::import::{Described, Imported};
+use astrum_content::import::{Described, Imported, Plan};
 use astrum_content::store::{self, ComponentKey, PutAsset};
-use astrum_content::transfer::{GenericTransfer, Transfer};
+use astrum_content::transfer::{Bundle, GenericTransfer, Transfer};
 use astrum_content::{
     Asset, ContentError, ContentRequest, Ctx, Format, Freshness, SearchKey, Serve, UploadForm,
     UploadSpec, View, group, proxy, serve,
@@ -67,10 +67,25 @@ static TRANSFER: GenericTransfer = GenericTransfer {
     plan: import::plan,
     describe: describe_imported,
     after: None,
+    admit: Some(admit_bundle),
 };
 
 fn describe_imported(file: &Imported) -> BoxFuture<'_, Result<Option<Described>, String>> {
     Box::pin(import::describe(file))
+}
+
+fn admit_bundle<'a>(ctx: &'a Ctx, bundle: &'a Bundle) -> BoxFuture<'a, Result<(), ContentError>> {
+    Box::pin(std::future::ready(admit(ctx, bundle)))
+}
+
+fn admit(ctx: &Ctx, bundle: &Bundle) -> Result<(), ContentError> {
+    for asset in &bundle.assets {
+        if import::plan(RepositoryType::Hosted, &asset.path, &asset.kind) == Plan::Derived {
+            continue;
+        }
+        check_write(ctx, &path::parse(&asset.path))?;
+    }
+    Ok(())
 }
 
 pub(crate) fn component_key(coordinates: &Coordinates) -> ComponentKey {
@@ -163,6 +178,19 @@ fn refused(ctx: &Ctx, parsed: &MavenPath) -> Option<String> {
         };
         format!("Repository version policy: {name} does not allow {what}")
     })
+}
+
+fn check_write(ctx: &Ctx, parsed: &MavenPath) -> Result<(), ContentError> {
+    if let Some(message) = refused(ctx, parsed) {
+        return Err(ContentError::BadRequest(message));
+    }
+    if strict(ctx) && !parsed.kind.follows_layout() {
+        return Err(ContentError::BadRequest(format!(
+            "Invalid path for a Maven 2 repository: {}",
+            parsed.path
+        )));
+    }
+    Ok(())
 }
 
 fn freshness(kind: &Kind) -> Freshness {
@@ -375,15 +403,7 @@ impl Maven {
         if parsed.kind == Kind::ArchetypeCatalog {
             return Err(not_allowed(&request.method, READ_ALLOW));
         }
-        if let Some(message) = refused(ctx, &parsed) {
-            return Err(ContentError::BadRequest(message));
-        }
-        if strict(ctx) && !parsed.kind.follows_layout() {
-            return Err(ContentError::BadRequest(format!(
-                "Invalid path for a Maven 2 repository: {}",
-                parsed.path
-            )));
-        }
+        check_write(ctx, &parsed)?;
         let write_policy = ctx
             .repository
             .attributes

@@ -223,11 +223,13 @@ pub trait Transfer: Send + Sync {
 pub type PlanFn = fn(RepositoryType, &str, &str) -> Plan;
 pub type DescribeFn = for<'a> fn(&'a Imported) -> BoxFuture<'a, Result<Option<Described>, String>>;
 pub type AfterFn = for<'a> fn(&'a Ctx) -> BoxFuture<'a, Result<(), ContentError>>;
+pub type AdmitFn = for<'a> fn(&'a Ctx, &'a Bundle) -> BoxFuture<'a, Result<(), ContentError>>;
 
 pub struct GenericTransfer {
     pub plan: PlanFn,
     pub describe: DescribeFn,
     pub after: Option<AfterFn>,
+    pub admit: Option<AdmitFn>,
 }
 
 struct Staged<'a> {
@@ -602,6 +604,9 @@ impl Transfer for GenericTransfer {
         let wanted = self.wanted(target, bundle)?;
         if wanted.is_empty() {
             return Ok(Outcome::nothing());
+        }
+        if let Some(admit) = self.admit {
+            admit(target, bundle).await?;
         }
         if terms.dry_run {
             return self.preview(target, bundle, &wanted, terms).await;
