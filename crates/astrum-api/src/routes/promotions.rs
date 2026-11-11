@@ -71,6 +71,8 @@ struct Request {
     dry_run: bool,
     #[serde(default = "yes")]
     referrers: bool,
+    #[serde(default = "yes")]
+    dist_tags: bool,
 }
 
 #[derive(Clone, Default, Deserialize, Serialize)]
@@ -463,6 +465,7 @@ struct Job {
     relocate: bool,
     dry_run: bool,
     referrers: bool,
+    dist_tags: bool,
     budget: Duration,
 }
 
@@ -550,6 +553,7 @@ async fn prepare(state: &AppState, caller: &Caller, request: Request) -> Result<
         relocate: request.relocate,
         dry_run: request.dry_run,
         referrers: request.referrers,
+        dist_tags: request.dist_tags,
         budget: state.promotion_budget().unwrap_or(REQUEST_BUDGET),
     })
 }
@@ -666,7 +670,9 @@ impl Job {
                 &self.target,
                 &bundle,
                 &blobs,
-                Terms::new(self.conflict, PROMOTED).dry_run(),
+                Terms::new(self.conflict, PROMOTED)
+                    .with_dist_tags(self.dist_tags)
+                    .dry_run(),
             )
             .await
             .map_err(|error| Refusal::from_content(error, Phase::Plan, ADD_MISSING))?;
@@ -682,7 +688,7 @@ impl Job {
                     &self.target,
                     &bundle,
                     &blobs,
-                    Terms::new(effective, PROMOTED),
+                    Terms::new(effective, PROMOTED).with_dist_tags(self.dist_tags),
                 )
                 .await
                 .map_err(|error| Refusal::from_content(error, Phase::Run, ADD_MISSING))?,

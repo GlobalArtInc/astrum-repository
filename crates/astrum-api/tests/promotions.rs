@@ -29,6 +29,7 @@ async fn world() -> Fixture {
     content.register(Arc::new(astrum_format_maven::Maven));
     content.register(Arc::new(astrum_format_helm::Helm::default()));
     content.register(Arc::new(astrum_format_pypi::PyPi));
+    content.register(Arc::new(astrum_format_npm::Npm::default()));
     fixture
 }
 
@@ -475,7 +476,19 @@ async fn request_bodies_are_validated_strictly() {
         ("101 items", request("source", "target", many)),
         (
             "an unknown field",
-            json!({"source": "source", "target": "target", "items": [named()], "distTags": true}),
+            json!({"source": "source", "target": "target", "items": [named()], "force": true}),
+        ),
+        (
+            "a string for distTags",
+            json!({"source": "source", "target": "target", "items": [named()], "distTags": "yes"}),
+        ),
+        (
+            "a number for distTags",
+            json!({"source": "source", "target": "target", "items": [named()], "distTags": 1}),
+        ),
+        (
+            "a null for distTags",
+            json!({"source": "source", "target": "target", "items": [named()], "distTags": null}),
         ),
         (
             "an unknown item field",
@@ -1438,4 +1451,741 @@ async fn items_that_start_after_the_budget_ran_out_fail_while_the_running_one_fi
     assert!(!exists(&fixture, "source", "/a.txt").await);
     assert!(exists(&fixture, "source", "/b.txt").await);
     assert!(!exists(&fixture, "target", "/b.txt").await);
+}
+
+fn npm_repository(name: &str, policy: &str) -> Value {
+    plain_repository(name, policy)
+}
+
+async fn npm_repositories(fixture: &Fixture, names: &[(&str, &str)]) {
+    for (name, policy) in names {
+        create(fixture, "npm", "hosted", npm_repository(name, policy)).await;
+    }
+}
+
+fn npm_tarball(name: &str, version: &str, flavor: &str) -> Vec<u8> {
+    let mut data = b"\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\x03".to_vec();
+    data.extend_from_slice(format!("package {name} {version} {flavor}").as_bytes());
+    data
+}
+
+async fn npm_publish(
+    fixture: &Fixture,
+    repository: &str,
+    name: &str,
+    version: &str,
+    tag: &str,
+    flavor: &str,
+) {
+    use base64::Engine;
+    let data = npm_tarball(name, version, flavor);
+    let bare = name.rsplit('/').next().unwrap();
+    let body = json!({
+        "_id": name,
+        "name": name,
+        "dist-tags": {tag: version},
+        "versions": {version: {
+            "name": name,
+            "version": version,
+            "description": format!("{bare} does things"),
+            "dist": {"tarball": format!("http://client.example/{name}/-/{bare}-{version}.tgz")}
+        }},
+        "_attachments": {format!("{name}-{version}.tgz"): {
+            "content_type": "application/octet-stream",
+            "data": base64::engine::general_purpose::STANDARD.encode(&data),
+            "length": data.len()
+        }}
+    });
+    let reply = fixture
+        .call(
+            Method::PUT,
+            &format!("/repository/{repository}/{}", name.replace('/', "%2f")),
+            Auth::Admin,
+            Some(body),
+        )
+        .await;
+    assert_eq!(reply.status, StatusCode::OK, "{}", reply.text());
+}
+
+async fn npm_doc(fixture: &Fixture, repository: &str, name: &str) -> Reply {
+    served(fixture, repository, &format!("/{name}")).await
+}
+
+fn npm_item(name: &str, version: &str) -> Value {
+    match name.strip_prefix('@').and_then(|name| name.split_once('/')) {
+        Some((scope, bare)) => json!({"namespace": scope, "name": bare, "version": version}),
+        None => json!({"name": name, "version": version}),
+    }
+}
+
+async fn npm_promote(fixture: &Fixture, target: &str, name: &str, version: &str) -> Vec<String> {
+    let reply = promote(
+        fixture,
+        Auth::Admin,
+        request("source", target, vec![npm_item(name, version)]),
+    )
+    .await;
+    statuses(&reply)
+}
+
+async fn stored_blobs(fixture: &Fixture) -> usize {
+    fixture
+        .state
+        .content()
+        .blob_stores()
+        .get("default")
+        .await
+        .unwrap()
+        .list(None, 1000)
+        .await
+        .unwrap()
+        .len()
+}
+
+fn npm_tarball_path(name: &str, version: &str) -> String {
+    format!(
+        "/{name}/-/{}-{version}.tgz",
+        name.rsplit('/').next().unwrap()
+    )
+}
+
+#[tokio::test]
+async fn npm_versions_are_promoted_with_their_packument_entry_into_an_empty_target() {
+    let fixture = world().await;
+    npm_repositories(&fixture, &[("source", "ALLOW"), ("target", "ALLOW")]).await;
+    for name in ["plain", "@team/tool"] {
+        npm_publish(&fixture, "source", name, "1.0.0", "latest", "a").await;
+        assert_eq!(
+            npm_promote(&fixture, "target", name, "1.0.0").await,
+            ["copied"]
+        );
+        let from = npm_doc(&fixture, "source", name).await.json();
+        let reply = npm_doc(&fixture, "target", name).await;
+        assert_eq!(reply.status, StatusCode::OK, "{}", reply.text());
+        let doc = reply.json();
+        let (before, after) = (&from["versions"]["1.0.0"], &doc["versions"]["1.0.0"]);
+        for field in ["shasum", "integrity"] {
+            assert_eq!(
+                after["dist"][field], before["dist"][field],
+                "{name} {field}"
+            );
+        }
+        assert_eq!(
+            after["dist"]["tarball"],
+            format!(
+                "http://localhost/repository/target{}",
+                npm_tarball_path(name, "1.0.0")
+            )
+        );
+        assert_eq!(after["description"], before["description"]);
+        assert_eq!(doc["dist-tags"], json!({"latest": "1.0.0"}));
+        assert_eq!(doc["time"]["1.0.0"], from["time"]["1.0.0"]);
+        assert_eq!(doc["time"]["created"], from["time"]["1.0.0"]);
+        assert!(doc["time"]["modified"].is_string());
+        assert_eq!(
+            served(&fixture, "target", &npm_tarball_path(name, "1.0.0"))
+                .await
+                .body,
+            npm_tarball(name, "1.0.0", "a")
+        );
+    }
+}
+
+#[tokio::test]
+async fn a_promoted_version_joins_a_populated_packument_without_touching_the_others() {
+    let fixture = world().await;
+    npm_repositories(&fixture, &[("source", "ALLOW"), ("target", "ALLOW")]).await;
+    let promoted = "1.5.0-rc.1+build.5";
+    npm_publish(&fixture, "source", "plain", "0.1.0", "latest", "a").await;
+    npm_publish(&fixture, "source", "plain", promoted, "beta", "a").await;
+    for version in ["1.0.0", "2.0.0"] {
+        npm_publish(&fixture, "target", "plain", version, "latest", "a").await;
+    }
+    let before = npm_doc(&fixture, "target", "plain").await.json();
+    assert_eq!(
+        npm_promote(&fixture, "target", "plain", promoted).await,
+        ["copied"]
+    );
+    let doc = npm_doc(&fixture, "target", "plain").await.json();
+    for version in ["1.0.0", "2.0.0"] {
+        assert_eq!(doc["versions"][version], before["versions"][version]);
+        assert_eq!(doc["time"][version], before["time"][version]);
+    }
+    assert!(doc["versions"][promoted].is_object());
+    assert_eq!(
+        doc["dist-tags"],
+        json!({"latest": "2.0.0", "beta": promoted})
+    );
+    assert_eq!(doc["time"]["created"], before["time"]["created"]);
+    assert_ne!(doc["time"]["modified"], before["time"]["modified"]);
+    assert_eq!(doc["_rev"], "3");
+    assert_eq!(
+        served(&fixture, "target", &npm_tarball_path("plain", promoted))
+            .await
+            .body,
+        npm_tarball("plain", promoted, "a")
+    );
+}
+
+#[tokio::test]
+async fn dist_tags_move_only_when_the_source_lists_them_and_the_option_is_on() {
+    let fixture = world().await;
+    npm_repositories(
+        &fixture,
+        &[
+            ("source", "ALLOW"),
+            ("tags-on", "ALLOW"),
+            ("tags-off", "ALLOW"),
+            ("tags-unlisted", "ALLOW"),
+            ("tags-high", "ALLOW"),
+            ("tags-high-off", "ALLOW"),
+        ],
+    )
+    .await;
+    npm_publish(&fixture, "source", "plain", "1.0.0", "latest", "a").await;
+    npm_publish(&fixture, "source", "plain", "1.1.0", "beta", "a").await;
+    assert_eq!(
+        npm_promote(&fixture, "tags-on", "plain", "1.1.0").await,
+        ["copied"]
+    );
+    let doc = npm_doc(&fixture, "tags-on", "plain").await.json();
+    assert_eq!(doc["dist-tags"]["beta"], "1.1.0");
+    let off = promote(
+        &fixture,
+        Auth::Admin,
+        json!({"source": "source", "target": "tags-off", "items": [npm_item("plain", "1.1.0")], "distTags": false}),
+    )
+    .await;
+    assert_eq!(statuses(&off), ["copied"]);
+    let doc = npm_doc(&fixture, "tags-off", "plain").await.json();
+    assert_eq!(doc["dist-tags"], json!({"latest": "1.1.0"}));
+    npm_publish(&fixture, "tags-unlisted", "plain", "0.9.0", "beta", "a").await;
+    assert_eq!(
+        npm_promote(&fixture, "tags-unlisted", "plain", "1.0.0").await,
+        ["copied"]
+    );
+    let doc = npm_doc(&fixture, "tags-unlisted", "plain").await.json();
+    assert_eq!(doc["dist-tags"]["beta"], "0.9.0");
+    assert_eq!(doc["dist-tags"]["latest"], "1.0.0");
+    let stable = fixture
+        .call(
+            Method::PUT,
+            "/repository/source/-/package/plain/dist-tags/stable",
+            Auth::Admin,
+            Some(json!("1.0.0")),
+        )
+        .await;
+    assert_eq!(stable.status, StatusCode::OK, "{}", stable.text());
+    for (target, on, moved) in [("tags-high", true, true), ("tags-high-off", false, false)] {
+        npm_publish(&fixture, target, "plain", "3.0.0", "latest", "a").await;
+        let reply = promote(
+            &fixture,
+            Auth::Admin,
+            json!({"source": "source", "target": target, "items": [npm_item("plain", "1.0.0")], "distTags": on}),
+        )
+        .await;
+        assert_eq!(statuses(&reply), ["copied"]);
+        let doc = npm_doc(&fixture, target, "plain").await.json();
+        assert_eq!(doc["dist-tags"]["latest"], "3.0.0", "{target}");
+        assert_eq!(doc["dist-tags"].get("stable").is_some(), moved, "{target}");
+        assert!(doc["versions"]["1.0.0"].is_object());
+    }
+}
+
+async fn trusted(fixture: &Fixture, name: &str) -> astrum_content::Ctx {
+    let ctx = support::repository_ctx(fixture, name).await;
+    let repository = ctx.repository.clone();
+    ctx.member(repository)
+}
+
+async fn npm_receive(
+    fixture: &Fixture,
+    target: &str,
+    bundle: &astrum_content::transfer::Bundle,
+) -> Result<astrum_content::transfer::Outcome, astrum_content::ContentError> {
+    use astrum_content::transfer::{Conflict, LocalSource, PROMOTED, Terms};
+    let format = fixture.state.content().format("npm").unwrap();
+    format
+        .transfer()
+        .unwrap()
+        .receive(
+            &trusted(fixture, target).await,
+            bundle,
+            &LocalSource::new(trusted(fixture, "source").await),
+            Terms::new(Conflict::Fail, PROMOTED),
+        )
+        .await
+}
+
+#[tokio::test]
+async fn a_tarball_that_does_not_match_its_manifest_is_refused_and_nothing_is_written() {
+    use astrum_content::ContentError;
+    let fixture = world().await;
+    npm_repositories(
+        &fixture,
+        &[("source", "ALLOW"), ("target", "ALLOW"), ("kept", "ALLOW")],
+    )
+    .await;
+    npm_publish(&fixture, "source", "plain", "1.0.0", "latest", "a").await;
+    npm_publish(&fixture, "kept", "plain", "0.5.0", "latest", "a").await;
+    let found = store::find(
+        fixture.state.db().conn(),
+        "source",
+        &npm_tarball_path("plain", "1.0.0"),
+    )
+    .await
+    .unwrap()
+    .unwrap();
+    let component = store::component_by_id(fixture.state.db().conn(), found.component_id.unwrap())
+        .await
+        .unwrap()
+        .unwrap();
+    let format = fixture.state.content().format("npm").unwrap();
+    let genuine = format
+        .transfer()
+        .unwrap()
+        .bundle(&trusted(&fixture, "source").await, &component)
+        .await
+        .unwrap();
+    let wrong_integrity = format!("sha512-{}==", "A".repeat(86));
+    let packument_before = npm_doc(&fixture, "kept", "plain").await.body;
+    let stored_before = stored_blobs(&fixture).await;
+    for (field, value) in [("integrity", wrong_integrity), ("shasum", "0".repeat(40))] {
+        for target in ["target", "kept"] {
+            let mut bundle = genuine.clone();
+            bundle.meta["manifest"]["dist"][field] = json!(value);
+            let refused = npm_receive(&fixture, target, &bundle).await;
+            let Err(ContentError::BadRequest(message)) = refused else {
+                panic!("{field} into {target}: {refused:?}");
+            };
+            assert!(message.contains("does not match"), "{message}");
+            assert!(!exists(&fixture, target, &npm_tarball_path("plain", "1.0.0")).await);
+        }
+    }
+    assert_eq!(
+        npm_doc(&fixture, "target", "plain").await.status,
+        StatusCode::NOT_FOUND
+    );
+    assert_eq!(
+        npm_doc(&fixture, "kept", "plain").await.body,
+        packument_before
+    );
+    assert_eq!(stored_blobs(&fixture).await, stored_before);
+    npm_receive(&fixture, "target", &genuine).await.unwrap();
+    assert!(npm_doc(&fixture, "target", "plain").await.json()["versions"]["1.0.0"].is_object());
+}
+
+#[tokio::test]
+async fn a_rerun_is_unchanged_and_a_missing_packument_entry_is_repaired() {
+    let fixture = world().await;
+    npm_repositories(&fixture, &[("source", "ALLOW"), ("target", "ALLOW")]).await;
+    npm_publish(&fixture, "source", "plain", "1.0.0", "latest", "a").await;
+    assert_eq!(
+        npm_promote(&fixture, "target", "plain", "1.0.0").await,
+        ["copied"]
+    );
+    let packument = npm_doc(&fixture, "target", "plain").await.body;
+    assert_eq!(
+        npm_promote(&fixture, "target", "plain", "1.0.0").await,
+        ["unchanged"]
+    );
+    assert_eq!(npm_doc(&fixture, "target", "plain").await.body, packument);
+    store::delete(&support::repository_ctx(&fixture, "target").await, "/plain")
+        .await
+        .unwrap();
+    assert_eq!(
+        npm_doc(&fixture, "target", "plain").await.status,
+        StatusCode::NOT_FOUND
+    );
+    let mut dry = request("source", "target", vec![npm_item("plain", "1.0.0")]);
+    dry["dryRun"] = json!(true);
+    assert_eq!(
+        statuses(&promote(&fixture, Auth::Admin, dry).await),
+        ["copied"]
+    );
+    assert_eq!(
+        npm_promote(&fixture, "target", "plain", "1.0.0").await,
+        ["copied"]
+    );
+    let doc = npm_doc(&fixture, "target", "plain").await.json();
+    assert!(doc["versions"]["1.0.0"].is_object());
+    assert_eq!(
+        npm_promote(&fixture, "target", "plain", "1.0.0").await,
+        ["unchanged"]
+    );
+}
+
+#[tokio::test]
+async fn different_npm_content_follows_the_conflict_option_and_the_write_policy() {
+    let fixture = world().await;
+    npm_repositories(
+        &fixture,
+        &[
+            ("source", "ALLOW"),
+            ("target", "ALLOW"),
+            ("once", "ALLOW_ONCE"),
+            ("frozen", "DENY"),
+        ],
+    )
+    .await;
+    npm_publish(&fixture, "source", "plain", "1.0.0", "latest", "source").await;
+    for target in ["target", "once"] {
+        npm_publish(&fixture, target, "plain", "1.0.0", "latest", "target").await;
+    }
+    let source_doc = npm_doc(&fixture, "source", "plain").await.json();
+    for (target, option, expected) in [
+        ("target", "fail", "conflict"),
+        ("once", "fail", "conflict"),
+        ("once", "replace", "conflict"),
+    ] {
+        let before = npm_doc(&fixture, target, "plain").await.body;
+        let mut body = request("source", target, vec![npm_item("plain", "1.0.0")]);
+        body["conflict"] = json!(option);
+        assert_eq!(
+            statuses(&promote(&fixture, Auth::Admin, body).await),
+            [expected],
+            "{target} {option}"
+        );
+        assert_eq!(npm_doc(&fixture, target, "plain").await.body, before);
+        assert_eq!(
+            served(&fixture, target, &npm_tarball_path("plain", "1.0.0"))
+                .await
+                .body,
+            npm_tarball("plain", "1.0.0", "target")
+        );
+    }
+    let mut body = request("source", "target", vec![npm_item("plain", "1.0.0")]);
+    body["conflict"] = json!("replace");
+    assert_eq!(
+        statuses(&promote(&fixture, Auth::Admin, body).await),
+        ["copied"]
+    );
+    assert_eq!(
+        served(&fixture, "target", &npm_tarball_path("plain", "1.0.0"))
+            .await
+            .body,
+        npm_tarball("plain", "1.0.0", "source")
+    );
+    let doc = npm_doc(&fixture, "target", "plain").await.json();
+    for field in ["shasum", "integrity"] {
+        assert_eq!(
+            doc["versions"]["1.0.0"]["dist"][field],
+            source_doc["versions"]["1.0.0"]["dist"][field]
+        );
+    }
+    assert_eq!(
+        npm_promote(&fixture, "frozen", "plain", "1.0.0").await,
+        ["failed"]
+    );
+    assert_eq!(
+        npm_doc(&fixture, "frozen", "plain").await.status,
+        StatusCode::NOT_FOUND
+    );
+}
+
+#[tokio::test]
+async fn an_npm_dry_run_writes_nothing_and_reports_the_plan() {
+    let fixture = world().await;
+    npm_repositories(&fixture, &[("source", "ALLOW"), ("target", "ALLOW")]).await;
+    npm_publish(&fixture, "source", "plain", "1.0.0", "latest", "a").await;
+    let mut body = request("source", "target", vec![npm_item("plain", "1.0.0")]);
+    body["dryRun"] = json!(true);
+    let planned = promote(&fixture, Auth::Admin, body.clone()).await;
+    assert_eq!(statuses(&planned), ["copied"]);
+    assert!(!exists(&fixture, "target", &npm_tarball_path("plain", "1.0.0")).await);
+    assert!(!exists(&fixture, "target", "/plain").await);
+    body["dryRun"] = json!(false);
+    let real = promote(&fixture, Auth::Admin, body).await;
+    for field in ["bytesCopied", "bytesReused", "assetCount"] {
+        assert_eq!(
+            planned.json()["results"][0][field],
+            real.json()["results"][0][field]
+        );
+    }
+}
+
+#[tokio::test]
+async fn moving_an_npm_version_removes_it_from_the_source_packument() {
+    let fixture = world().await;
+    npm_repositories(&fixture, &[("source", "ALLOW"), ("target", "ALLOW")]).await;
+    npm_publish(&fixture, "source", "plain", "1.0.0", "latest", "a").await;
+    npm_publish(&fixture, "source", "plain", "1.1.0", "beta", "a").await;
+    let mut body = request("source", "target", vec![npm_item("plain", "1.1.0")]);
+    body["move"] = json!(true);
+    let reply = promote(&fixture, Auth::Admin, body.clone()).await;
+    assert_eq!(statuses(&reply), ["copied"]);
+    assert_eq!(reply.json()["results"][0]["sourceKept"], false);
+    let doc = npm_doc(&fixture, "source", "plain").await.json();
+    assert!(doc["versions"].get("1.1.0").is_none());
+    assert!(doc["time"].get("1.1.0").is_none());
+    assert_eq!(doc["dist-tags"], json!({"latest": "1.0.0"}));
+    assert_eq!(
+        served(&fixture, "source", &npm_tarball_path("plain", "1.1.0"))
+            .await
+            .status,
+        StatusCode::NOT_FOUND
+    );
+    assert!(npm_doc(&fixture, "target", "plain").await.json()["versions"]["1.1.0"].is_object());
+    body["items"] = json!([npm_item("plain", "1.0.0")]);
+    assert_eq!(
+        statuses(&promote(&fixture, Auth::Admin, body).await),
+        ["copied"]
+    );
+    assert_eq!(
+        npm_doc(&fixture, "source", "plain").await.status,
+        StatusCode::NOT_FOUND
+    );
+}
+
+#[tokio::test]
+async fn concurrent_promotions_of_one_package_all_reach_its_packument() {
+    let fixture = world().await;
+    npm_repositories(&fixture, &[("source", "ALLOW"), ("target", "ALLOW")]).await;
+    let versions: Vec<String> = (0..8).map(|minor| format!("1.{minor}.0")).collect();
+    for version in &versions {
+        npm_publish(&fixture, "source", "plain", version, "next", "a").await;
+    }
+    let runs = versions
+        .iter()
+        .map(|version| npm_promote(&fixture, "target", "plain", version));
+    for result in futures_util::future::join_all(runs).await {
+        assert_eq!(result, ["copied"]);
+    }
+    let doc = npm_doc(&fixture, "target", "plain").await.json();
+    let listed: Vec<&String> = versions
+        .iter()
+        .filter(|version| doc["versions"].get(version.as_str()).is_some())
+        .collect();
+    assert_eq!(listed.len(), versions.len(), "{listed:?}");
+    assert_eq!(doc["_rev"], "8");
+}
+
+#[tokio::test]
+async fn the_dist_tags_option_is_ignored_by_other_formats() {
+    let fixture = world().await;
+    raw_pair(&fixture, "ALLOW", "ALLOW").await;
+    put(&fixture, "source", "/a.txt", b"alpha").await;
+    let item = component_of(&fixture, "source", "/a.txt").await;
+    let mut body = request("source", "target", vec![item]);
+    body["distTags"] = json!(false);
+    assert_eq!(
+        statuses(&promote(&fixture, Auth::Admin, body).await),
+        ["copied"]
+    );
+}
+
+#[tokio::test]
+async fn a_content_selector_that_leaves_the_packument_out_forbids_the_promotion() {
+    let fixture = world().await;
+    npm_repositories(&fixture, &[("source", "ALLOW"), ("target", "ALLOW")]).await;
+    npm_publish(&fixture, "source", "plain", "1.0.0", "latest", "a").await;
+    for (path, body) in [
+        (
+            "/service/rest/v1/security/content-selectors",
+            json!({"name": "tarballs-only", "description": "", "expression": format!("format == \"npm\" and path == \"{}\"", npm_tarball_path("plain", "1.0.0"))}),
+        ),
+        (
+            "/service/rest/v1/security/privileges/repository-content-selector",
+            json!({"name": "tarballs-add", "description": "", "actions": ["ADD"], "format": "npm", "repository": "target", "contentSelector": "tarballs-only"}),
+        ),
+        (
+            "/service/rest/v1/security/roles",
+            json!({"id": "tarball-adder", "name": "tarball-adder", "description": "", "privileges": ["tarballs-add", "as-repository-view-npm-source-read"], "roles": []}),
+        ),
+    ] {
+        let reply = fixture
+            .call(Method::POST, path, Auth::Admin, Some(body))
+            .await;
+        assert!(reply.status.is_success(), "{}", reply.text());
+    }
+    fixture
+        .add_user("adder", PASSWORD, &["tarball-adder"])
+        .await;
+    let reply = promote(
+        &fixture,
+        Auth::Basic("adder", PASSWORD),
+        request("source", "target", vec![npm_item("plain", "1.0.0")]),
+    )
+    .await;
+    assert_eq!(statuses(&reply), ["forbidden"]);
+    assert!(!exists(&fixture, "target", &npm_tarball_path("plain", "1.0.0")).await);
+    assert!(!exists(&fixture, "target", "/plain").await);
+}
+
+async fn stored_packument(fixture: &Fixture, repository: &str, name: &str) -> Vec<u8> {
+    use futures_util::TryStreamExt;
+    let row = store::find(fixture.state.db().conn(), repository, &format!("/{name}"))
+        .await
+        .unwrap()
+        .unwrap();
+    let blobs = fixture.state.content().blob_stores();
+    let content = blobs
+        .get(&row.blob_store)
+        .await
+        .unwrap()
+        .read(row.blob_id.into())
+        .await
+        .unwrap()
+        .unwrap();
+    content
+        .stream
+        .try_collect::<Vec<_>>()
+        .await
+        .unwrap()
+        .concat()
+}
+
+async fn put_packument(fixture: &Fixture, repository: &str, name: &str, bytes: &[u8]) {
+    let ctx = trusted(fixture, repository).await;
+    let put = PutAsset {
+        kind: "packument".to_owned(),
+        content_type: Some("application/json".to_owned()),
+        ..PutAsset::cached(format!("/{name}"))
+    };
+    store::put(&ctx, put, content_of(bytes.to_vec()))
+        .await
+        .unwrap();
+}
+
+#[tokio::test]
+async fn a_failed_merge_leaves_no_new_tarball_in_the_target() {
+    let fixture = world().await;
+    npm_repositories(&fixture, &[("source", "ALLOW"), ("target", "ALLOW")]).await;
+    npm_publish(&fixture, "source", "plain", "2.0.0", "latest", "a").await;
+    npm_publish(&fixture, "target", "plain", "1.0.0", "latest", "a").await;
+    let good = stored_packument(&fixture, "target", "plain").await;
+    put_packument(&fixture, "target", "plain", b"{not json").await;
+    assert_eq!(
+        npm_promote(&fixture, "target", "plain", "2.0.0").await,
+        ["failed"]
+    );
+    assert!(!exists(&fixture, "target", &npm_tarball_path("plain", "2.0.0")).await);
+    put_packument(&fixture, "target", "plain", &good).await;
+    assert_eq!(
+        npm_promote(&fixture, "target", "plain", "2.0.0").await,
+        ["copied"]
+    );
+    assert!(npm_doc(&fixture, "target", "plain").await.json()["versions"]["2.0.0"].is_object());
+}
+
+#[tokio::test]
+async fn a_rerun_rewrites_a_packument_entry_that_no_longer_matches_the_replaced_tarball() {
+    let fixture = world().await;
+    npm_repositories(&fixture, &[("source", "ALLOW"), ("target", "ALLOW")]).await;
+    npm_publish(&fixture, "source", "plain", "1.0.0", "latest", "source").await;
+    npm_publish(&fixture, "target", "plain", "1.0.0", "latest", "target").await;
+    let stale = stored_packument(&fixture, "target", "plain").await;
+    put_packument(&fixture, "target", "plain", b"{not json").await;
+    let mut body = request("source", "target", vec![npm_item("plain", "1.0.0")]);
+    body["conflict"] = json!("replace");
+    assert_eq!(
+        statuses(&promote(&fixture, Auth::Admin, body).await),
+        ["failed"]
+    );
+    assert_eq!(
+        served(&fixture, "target", &npm_tarball_path("plain", "1.0.0"))
+            .await
+            .body,
+        npm_tarball("plain", "1.0.0", "source")
+    );
+    put_packument(&fixture, "target", "plain", &stale).await;
+    let mut dry = request("source", "target", vec![npm_item("plain", "1.0.0")]);
+    dry["dryRun"] = json!(true);
+    assert_eq!(
+        statuses(&promote(&fixture, Auth::Admin, dry).await),
+        ["copied"]
+    );
+    assert_eq!(
+        npm_promote(&fixture, "target", "plain", "1.0.0").await,
+        ["copied"]
+    );
+    let from = npm_doc(&fixture, "source", "plain").await.json();
+    let doc = npm_doc(&fixture, "target", "plain").await.json();
+    for field in ["shasum", "integrity"] {
+        assert_eq!(
+            doc["versions"]["1.0.0"]["dist"][field],
+            from["versions"]["1.0.0"]["dist"][field]
+        );
+    }
+    assert_eq!(
+        npm_promote(&fixture, "target", "plain", "1.0.0").await,
+        ["unchanged"]
+    );
+}
+
+#[tokio::test]
+async fn the_stored_entry_names_the_target_tarball_and_the_digests_the_target_kept() {
+    let fixture = world().await;
+    npm_repositories(&fixture, &[("source", "ALLOW"), ("target", "ALLOW")]).await;
+    npm_publish(&fixture, "source", "@team/tool", "1.0.0", "latest", "a").await;
+    assert_eq!(
+        npm_promote(&fixture, "target", "@team/tool", "1.0.0").await,
+        ["copied"]
+    );
+    let stored: Value =
+        serde_json::from_slice(&stored_packument(&fixture, "target", "@team/tool").await).unwrap();
+    let from = npm_doc(&fixture, "source", "@team/tool").await.json();
+    let dist = &stored["versions"]["1.0.0"]["dist"];
+    assert_eq!(
+        dist["tarball"],
+        "/repository/target/@team/tool/-/tool-1.0.0.tgz"
+    );
+    for field in ["shasum", "integrity"] {
+        assert_eq!(dist[field], from["versions"]["1.0.0"]["dist"][field]);
+    }
+}
+
+#[tokio::test]
+async fn a_caller_who_cannot_reach_an_npm_package_gets_the_answer_for_a_package_that_is_not_there()
+{
+    let fixture = world().await;
+    npm_repositories(&fixture, &[("source", "ALLOW"), ("target", "ALLOW")]).await;
+    npm_publish(&fixture, "source", "plain", "1.0.0", "latest", "a").await;
+    npm_publish(&fixture, "source", "other", "1.0.0", "latest", "a").await;
+    for (name, actions, path) in [
+        ("other-read", "READ", "/other/-/other-1.0.0.tgz"),
+        ("plain-browse", "BROWSE", "/plain/-/plain-1.0.0.tgz"),
+    ] {
+        for (path_url, body) in [
+            (
+                "/service/rest/v1/security/content-selectors",
+                json!({"name": name, "description": "", "expression": format!("format == \"npm\" and path == \"{path}\"")}),
+            ),
+            (
+                "/service/rest/v1/security/privileges/repository-content-selector",
+                json!({"name": format!("{name}-privilege"), "description": "", "actions": [actions], "format": "npm", "repository": "source", "contentSelector": name}),
+            ),
+            (
+                "/service/rest/v1/security/roles",
+                json!({"id": name, "name": name, "description": "", "privileges": [format!("{name}-privilege"), "as-repository-view-npm-target-add"], "roles": []}),
+            ),
+        ] {
+            let reply = fixture
+                .call(Method::POST, path_url, Auth::Admin, Some(body))
+                .await;
+            assert!(reply.status.is_success(), "{}", reply.text());
+        }
+        fixture.add_user(name, PASSWORD, &[name]).await;
+    }
+    let ask = |user: &'static str, package: &'static str| {
+        let fixture = &fixture;
+        async move {
+            let reply = promote(
+                fixture,
+                Auth::Basic(user, PASSWORD),
+                request("source", "target", vec![npm_item(package, "1.0.0")]),
+            )
+            .await;
+            assert_eq!(reply.status, StatusCode::OK, "{}", reply.text());
+            let result = reply.json()["results"][0].clone();
+            (result["status"].clone(), result["error"].clone())
+        }
+    };
+    let hidden = ask("other-read", "plain").await;
+    let missing = ask("other-read", "ghost").await;
+    assert_eq!(hidden, missing);
+    assert_eq!(hidden.0, "notFound");
+    let browse_only = ask("plain-browse", "plain").await;
+    assert_eq!(browse_only.0, "forbidden");
+    assert!(!exists(&fixture, "target", &npm_tarball_path("plain", "1.0.0")).await);
 }

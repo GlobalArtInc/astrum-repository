@@ -8,6 +8,7 @@ mod packument;
 mod path;
 mod reply;
 mod search;
+mod transfer;
 mod upload;
 
 use std::collections::HashMap;
@@ -15,6 +16,7 @@ use std::sync::{Arc, Mutex, Weak};
 
 use astrum_content::format::{SearchKey, SearchTarget};
 use astrum_content::store::PutAsset;
+use astrum_content::transfer::Transfer;
 use astrum_content::{
     Asset, BrowseLayout, ContentError, ContentRequest, Ctx, Format, Freshness, Serve, UploadForm,
     UploadSpec, View, serve,
@@ -268,5 +270,9 @@ impl Format for Npm {
 
     fn search_keys(&self) -> &'static [SearchKey] {
         SEARCH_KEYS
+    }
+
+    fn transfer(&self) -> Option<&dyn Transfer> {
+        Some(self)
     }
 }

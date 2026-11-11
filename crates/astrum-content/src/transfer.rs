@@ -83,6 +83,7 @@ pub struct Terms {
     pub conflict: Conflict,
     pub action: &'static str,
     pub dry_run: bool,
+    pub dist_tags: bool,
 }
 
 impl Terms {
@@ -91,11 +92,17 @@ impl Terms {
             conflict,
             action,
             dry_run: false,
+            dist_tags: true,
         }
     }
 
     pub fn dry_run(mut self) -> Self {
         self.dry_run = true;
+        self
+    }
+
+    pub fn with_dist_tags(mut self, dist_tags: bool) -> Self {
+        self.dist_tags = dist_tags;
         self
     }
 }

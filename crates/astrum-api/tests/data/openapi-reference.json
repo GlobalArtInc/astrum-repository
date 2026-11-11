@@ -16832,6 +16832,10 @@
       ],
       "type": "string"
      },
+     "distTags": {
+      "description": "npm: move the dist-tags that pointed at the version (default true). Other formats accept and ignore it",
+      "type": "boolean"
+     },
      "dryRun": {
       "description": "Report the plan and write nothing",
       "type": "boolean"
