@@ -352,6 +352,12 @@ async fn create(
     if model.users.contains_key(&user_id) {
         return Err(already_exists());
     }
+    if state.security().customer(&user_id).await?.is_some() {
+        return Err(ApiError::invalid(
+            "userId",
+            "a customer with this id exists",
+        ));
+    }
     check_grants(&model, &subject, &roles)?;
 
     let password_hash = hash(password).await?;

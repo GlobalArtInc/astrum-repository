@@ -1,6 +1,7 @@
 pub mod api_keys;
 pub mod bootstrap;
 pub mod catalogue;
+pub mod customers;
 pub mod format_tokens;
 pub mod ldap;
 pub mod model;

@@ -10,6 +10,7 @@ use serde_json::json;
 use uuid::Uuid;
 
 use super::INTERNAL;
+use crate::routes::customers::resolve_repositories;
 use crate::{ApiError, AppState, Caller, Json};
 
 pub fn routes() -> Router<AppState> {
@@ -29,6 +30,8 @@ struct TokenView {
     created_at: String,
     expires_at: Option<String>,
     last_used_at: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    repositories: Option<Vec<String>>,
 }
 
 impl From<TokenInfo> for TokenView {
@@ -42,6 +45,7 @@ impl From<TokenInfo> for TokenView {
             created_at: token.created_at.to_rfc3339(),
             expires_at: token.expires_at.map(|at| at.to_rfc3339()),
             last_used_at: token.last_used_at.map(|at| at.to_rfc3339()),
+            repositories: token.repositories,
         }
     }
 }
@@ -60,10 +64,21 @@ struct NewToken {
     scope: Scope,
     #[serde(default, deserialize_with = "given")]
     expires_in_days: Option<Option<i64>>,
+    repositories: Option<Vec<String>>,
 }
 
 fn given<'de, D: serde::Deserializer<'de>>(value: D) -> Result<Option<Option<i64>>, D::Error> {
     Option::<i64>::deserialize(value).map(Some)
+}
+
+fn audited(mut attributes: serde_json::Value, token: &TokenInfo) -> serde_json::Value {
+    if let Some(customer) = &token.customer {
+        attributes["customer"] = json!(customer);
+    }
+    if let Some(repositories) = &token.repositories {
+        attributes["repositories"] = json!(repositories);
+    }
+    attributes
 }
 
 fn owner(caller: &Caller) -> Result<&Subject, ApiError> {
@@ -111,12 +126,28 @@ async fn create(
             "give the number of days or null for no expiry",
         )
     })?;
+    let repositories = match body.repositories.as_deref() {
+        None => None,
+        Some(listed) => {
+            if body.scope != Scope::Read {
+                return Err(ApiError::invalid("scope", TokenError::Scope.to_string()));
+            }
+            let found = resolve_repositories(&state, listed).await?;
+            Some(
+                found
+                    .into_iter()
+                    .map(|repository| repository.name)
+                    .collect(),
+            )
+        }
+    };
     let created = state
         .security()
         .create_token(
             &subject.user_id,
             TokenDraft {
                 created_by: Some(subject.user_id.clone()),
+                repositories,
                 ..TokenDraft::personal(&body.name, body.scope, days)
             },
         )
@@ -132,11 +163,13 @@ async fn create(
                 TokenError::Days.to_string(),
             ));
         }
+        Err(TokenError::Repositories(message)) => {
+            return Err(ApiError::invalid("repositories", message));
+        }
         Err(
             error @ (TokenError::TooMany
             | TokenError::TooManyForCustomer
             | TokenError::Scope
-            | TokenError::Repositories(_)
             | TokenError::CustomerExpiry
             | TokenError::UnknownCustomer),
         ) => {
@@ -147,8 +180,10 @@ async fn create(
     state
         .audit(
             &caller,
-            Event::new("security.accesstoken", "created", &info.name)
-                .with(json!({"id": info.id, "user": info.user_id, "scope": info.scope})),
+            Event::new("security.accesstoken", "created", &info.name).with(audited(
+                json!({"id": info.id, "user": info.user_id, "scope": info.scope}),
+                &info,
+            )),
         )
         .await;
     let mut view = serde_json::to_value(TokenView::from(info)).map_err(ApiError::internal)?;
@@ -172,8 +207,10 @@ async fn remove(
     state
         .audit(
             &caller,
-            Event::new("security.accesstoken", "deleted", &token.name)
-                .with(json!({"id": token.id, "user": token.user_id})),
+            Event::new("security.accesstoken", "deleted", &token.name).with(audited(
+                json!({"id": token.id, "user": token.user_id}),
+                &token,
+            )),
         )
         .await;
     Ok(StatusCode::NO_CONTENT)

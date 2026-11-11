@@ -3,10 +3,12 @@ mod support;
 use astrum_db::entity::{access_token, customer};
 use astrum_security::catalogue::ADMIN_USER;
 use astrum_security::tokens::{MAX_PER_CUSTOMER, MAX_PER_USER};
-use astrum_security::{NewToken, Scope, TokenError};
+use astrum_security::{NewToken, Scope, Security, TokenError};
 use sea_orm::{
     ActiveValue, ColumnTrait, ConnectionTrait, EntityTrait, PaginatorTrait, QueryFilter,
+    TransactionTrait,
 };
+use std::time::Duration;
 use support::{customer_token, issue, world};
 
 #[tokio::test]
@@ -128,6 +130,34 @@ async fn concurrent_creations_cannot_pass_the_customer_limit() {
         .await
         .unwrap();
     assert_eq!(held, MAX_PER_CUSTOMER);
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn issuing_waits_for_a_repository_being_deleted_and_then_refuses_it() {
+    let world = world().await;
+    let deleting = world.db.conn().begin().await.unwrap();
+    deleting
+        .execute_unprepared("DELETE FROM repository WHERE name = 'raw-a'")
+        .await
+        .unwrap();
+    let other = Security::load(world.db.conn().clone()).await.unwrap();
+    let issuing = tokio::spawn(async move {
+        other
+            .create_token(ADMIN_USER, customer_token(&["raw-b", "raw-a"]))
+            .await
+    });
+    tokio::time::sleep(Duration::from_millis(500)).await;
+    assert!(!issuing.is_finished());
+    deleting.commit().await.unwrap();
+    match issuing.await.unwrap() {
+        Err(TokenError::Repositories(message)) => assert!(message.contains("raw-a"), "{message}"),
+        other => panic!("{other:?}"),
+    }
+    let held = access_token::Entity::find()
+        .count(world.db.conn())
+        .await
+        .unwrap();
+    assert_eq!(held, 0);
 }
 
 #[tokio::test]

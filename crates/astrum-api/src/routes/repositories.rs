@@ -13,6 +13,7 @@ use sea_orm::{DbBackend, FromQueryResult, Statement};
 use serde_json::{Value, json};
 
 use crate::error::{ApiError, FieldError};
+use crate::routes::customers;
 use crate::{AppState, Caller};
 
 pub const REPOSITORIES: &str = "/service/rest/v1/repositories";
@@ -234,9 +235,11 @@ async fn remove(
         .await
         .map_err(ApiError::internal)?;
     let deleted = writer.delete(&existing.name).await?;
-    state.content().forget_repository(&deleted.name);
+    state.content().forget_repository(&deleted.repository.name);
     state.content().purge_blobs(blobs).await;
-    changed(&state, &caller, "deleted", &deleted).await
+    customers::audit_released_tokens(&state, &caller, &deleted.repository.name, &deleted.tokens)
+        .await;
+    changed(&state, &caller, "deleted", &deleted.repository).await
 }
 
 async fn invalidate_cache(

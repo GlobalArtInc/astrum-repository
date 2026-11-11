@@ -1,3 +1,5 @@
+mod accounts;
+mod shop;
 mod support;
 mod ui_support;
 
@@ -217,6 +219,8 @@ async fn a_read_token_sees_only_the_reading_tools() {
         "list_users",
         "list_roles",
         "list_privileges",
+        "list_customers",
+        "get_customer_usage",
     ] {
         assert!(reading.contains(&name.to_owned()), "{name}: {reading:?}");
     }
@@ -227,6 +231,7 @@ async fn a_read_token_sees_only_the_reading_tools() {
         "create_role",
         "update_role",
         "set_user_roles",
+        "revoke_customer_tokens",
     ] {
         assert!(!reading.contains(&name.to_owned()), "{name}: {reading:?}");
     }
@@ -644,6 +649,90 @@ async fn roles_and_users_are_managed() {
     )
     .await;
     assert_eq!(taken["roles"], json!([]));
+}
+
+#[tokio::test]
+async fn customers_are_read_and_revoked_through_the_agent() {
+    let fixture = ready().await;
+    accounts::create_repository(&fixture, "files", "raw").await;
+    let (_, secret) = fixture.customer_token("acme", &["files"]).await;
+    let (token_id, _) = fixture.customer_token("acme", &["files"]).await;
+    shop::usage_row(&fixture, token_id, "acme", "files", 0, 4, 40).await;
+    let writing = token(&fixture, "WRITE").await;
+    let reading = token(&fixture, "READ").await;
+
+    let listed = ok(&fixture, &reading, "list_customers", json!({})).await;
+    assert_eq!(listed["customers"][0]["id"], "acme");
+    assert_eq!(listed["customers"][0]["tokens"], 2);
+    let usage = ok(
+        &fixture,
+        &reading,
+        "get_customer_usage",
+        json!({"customer": "acme", "days": 5}),
+    )
+    .await;
+    assert_eq!(usage["totals"], json!({"downloads": 4, "bytes": 40}));
+    assert!(
+        failed(
+            &fixture,
+            &reading,
+            "get_customer_usage",
+            json!({"customer": "nobody"})
+        )
+        .await
+        .contains("404")
+    );
+
+    let refused = rpc(
+        &fixture,
+        &reading,
+        "tools/call",
+        json!({"name": "revoke_customer_tokens", "arguments": {"customer": "acme"}}),
+    )
+    .await;
+    assert_eq!(refused["error"]["code"], -32602);
+    let still = fixture
+        .call(
+            Method::GET,
+            "/service/rest/v1/status",
+            Auth::Basic("acme", &secret),
+            None,
+        )
+        .await;
+    assert_ne!(still.status, StatusCode::UNAUTHORIZED);
+
+    let revoked = ok(
+        &fixture,
+        &writing,
+        "revoke_customer_tokens",
+        json!({"customer": "acme"}),
+    )
+    .await;
+    assert_eq!(revoked["revoked"], 2);
+    let gone = fixture
+        .call(
+            Method::GET,
+            "/service/rest/v1/status",
+            Auth::Basic("acme", &secret),
+            None,
+        )
+        .await;
+    assert_eq!(gone.status, StatusCode::UNAUTHORIZED);
+    let events = accounts::audit(&fixture, "security.customer").await;
+    assert_eq!(events[0].0, "revoked");
+    assert_eq!(events[0].3["via"], "mcp");
+    assert_eq!(events[0].3["count"], 2);
+
+    let all = names(&rpc(&fixture, &writing, "tools/list", json!({})).await);
+    for name in &all {
+        let issues = name.contains("issue") || name.starts_with("create_customer");
+        assert!(!issues, "{name}");
+        assert!(
+            !(name.contains("customer") && name.contains("token"))
+                || name == "revoke_customer_tokens",
+            "{name}"
+        );
+    }
 }
 
 #[tokio::test]

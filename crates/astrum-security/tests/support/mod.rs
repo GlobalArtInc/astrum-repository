@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use astrum_db::entity::customer;
+use astrum_db::entity::{customer, repository};
 use astrum_security::catalogue::ADMIN_USER;
 use astrum_security::{NewToken, Scope, Security, bootstrap};
 use astrum_testkit::TestDatabase;
@@ -30,6 +30,21 @@ pub async fn world() -> World {
     .exec(db.conn())
     .await
     .unwrap();
+    for name in ["raw-a", "raw-b"] {
+        repository::Entity::insert(repository::ActiveModel {
+            name: ActiveValue::Set(name.to_owned()),
+            format: ActiveValue::Set("raw".to_owned()),
+            kind: ActiveValue::Set("hosted".to_owned()),
+            online: ActiveValue::Set(true),
+            blob_store: ActiveValue::Set(None),
+            attributes: ActiveValue::Set(serde_json::json!({})),
+            created_at: ActiveValue::Set(now),
+            updated_at: ActiveValue::Set(now),
+        })
+        .exec(db.conn())
+        .await
+        .unwrap();
+    }
     let security = Security::load(db.conn().clone()).await.unwrap();
     World {
         _test: test,

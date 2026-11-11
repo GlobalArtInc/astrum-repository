@@ -150,6 +150,36 @@ const APPLICATION: &[Application] = &[
         "Upload components",
     ),
     (
+        "as-customers-all",
+        "customers",
+        &[Action::All],
+        "Every action on customers",
+    ),
+    (
+        "as-customers-create",
+        "customers",
+        &[Action::Add, Action::Read],
+        "Create customers and issue their tokens",
+    ),
+    (
+        "as-customers-delete",
+        "customers",
+        &[Action::Delete, Action::Read],
+        "Delete customers and revoke their tokens",
+    ),
+    (
+        "as-customers-read",
+        "customers",
+        &[Action::Read],
+        "Read customers, their tokens and their usage",
+    ),
+    (
+        "as-customers-update",
+        "customers",
+        &[Action::Edit, Action::Read],
+        "Change customers",
+    ),
+    (
         "as-datastores-all",
         "datastores",
         &[Action::All],
@@ -610,6 +640,8 @@ mod tests {
         for id in [
             "as-all",
             "as-users-read",
+            "as-customers-read",
+            "as-customers-delete",
             "as-userschangepw",
             "as-tasks-run",
             "as-repository-view-*-*-read",
@@ -624,7 +656,7 @@ mod tests {
             !ids.contains("as-healthcheck-read"),
             "the old server names it in the anonymous role but does not list it"
         );
-        assert_eq!(privileges.len(), 1 + 76 + 12 + 12);
+        assert_eq!(privileges.len(), 1 + 76 + 5 + 12 + 12);
         assert!(
             privileges
                 .iter()
@@ -700,6 +732,7 @@ mod tests {
         };
         let ours: Vec<serde_json::Value> = builtin_privileges(formats)
             .iter()
+            .filter(|privilege| !privilege.id.starts_with("as-customers-"))
             .map(|privilege| {
                 let mut value = privilege.kind.properties();
                 let map = value.as_object_mut().unwrap();

@@ -5,8 +5,8 @@ use astrum_db::entity::{access_token, customer};
 use astrum_repo::config::valid_name;
 use chrono::{DateTime, Duration, FixedOffset, Utc};
 use sea_orm::{
-    ActiveValue, ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder, QuerySelect,
-    TransactionTrait,
+    ActiveValue, ColumnTrait, Condition, ConnectionTrait, DatabaseTransaction, DbBackend,
+    EntityTrait, PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, Statement, TransactionTrait,
 };
 use sha2::{Digest, Sha256};
 use uuid::Uuid;
@@ -25,6 +25,8 @@ const MAX_REPOSITORY_NAME: usize = 200;
 pub const MIN_DAYS: i64 = 1;
 pub const MAX_DAYS: i64 = 3650;
 const TOUCH_EVERY: Duration = Duration::seconds(60);
+const LOCK_REPOSITORIES: &str =
+    "SELECT name FROM repository WHERE lower(name) = ANY($1) ORDER BY name FOR SHARE";
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TokenInfo {
@@ -158,6 +160,27 @@ fn normalise(repositories: &[String]) -> Result<Vec<String>, TokenError> {
     Ok(names.into_iter().collect())
 }
 
+async fn lock_repositories(txn: &DatabaseTransaction, listed: &[String]) -> Result<(), TokenError> {
+    let rows = txn
+        .query_all(Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            LOCK_REPOSITORIES,
+            [listed.to_vec().into()],
+        ))
+        .await?;
+    let mut found = BTreeSet::new();
+    for row in &rows {
+        let name: String = row.try_get("", "name")?;
+        found.insert(name.to_ascii_lowercase());
+    }
+    match listed.iter().find(|name| !found.contains(*name)) {
+        Some(missing) => Err(TokenError::Repositories(format!(
+            "the repository \"{missing}\" does not exist"
+        ))),
+        None => Ok(()),
+    }
+}
+
 impl Security {
     pub async fn create_token(
         &self,
@@ -188,6 +211,7 @@ impl Security {
                 return Err(TokenError::CustomerExpiry);
             }
         }
+        let now = Utc::now().fixed_offset();
         let txn = self.db.begin().await?;
         match new.customer.as_deref() {
             Some(customer_id) => {
@@ -198,6 +222,11 @@ impl Security {
                     .ok_or(TokenError::UnknownCustomer)?;
                 let held = access_token::Entity::find()
                     .filter(access_token::Column::Customer.eq(customer_id))
+                    .filter(
+                        Condition::any()
+                            .add(access_token::Column::ExpiresAt.is_null())
+                            .add(access_token::Column::ExpiresAt.gt(now)),
+                    )
                     .count(&txn)
                     .await?;
                 if held >= MAX_PER_CUSTOMER {
@@ -215,8 +244,10 @@ impl Security {
                 }
             }
         }
+        if let Some(listed) = &repositories {
+            lock_repositories(&txn, listed).await?;
+        }
         let token = generate();
-        let now = Utc::now().fixed_offset();
         let row = access_token::ActiveModel {
             id: ActiveValue::Set(Uuid::new_v4()),
             user_id: ActiveValue::Set(user_id.to_owned()),

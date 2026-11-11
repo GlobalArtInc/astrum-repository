@@ -3,6 +3,7 @@ pub mod capabilities;
 pub mod cleanup_policies;
 pub mod components;
 pub mod content;
+pub mod customers;
 pub mod email;
 pub(crate) mod html;
 pub mod internal;

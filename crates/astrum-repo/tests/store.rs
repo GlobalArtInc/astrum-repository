@@ -1,7 +1,7 @@
-use astrum_db::entity::{blob_store, repository};
+use astrum_db::entity::{access_token, blob_store, repository};
 use astrum_repo::{Repository, Request, Spec, WriteError, Writer, store};
 use astrum_testkit::TestDatabase;
-use sea_orm::{ActiveValue, DatabaseConnection, EntityTrait};
+use sea_orm::{ActiveValue, ConnectionTrait, DatabaseConnection, EntityTrait, QueryOrder};
 use serde_json::{Value, json};
 
 async fn ready() -> (TestDatabase, astrum_db::Database) {
@@ -101,7 +101,8 @@ async fn deleting_a_member_takes_it_out_of_every_group() {
         .delete("Releases")
         .await
         .unwrap();
-    assert_eq!(deleted.name, "releases");
+    assert_eq!(deleted.repository.name, "releases");
+    assert!(deleted.tokens.is_empty());
     let names: Vec<(String, Vec<String>)> = store::list(db.conn())
         .await
         .unwrap()
@@ -128,6 +129,56 @@ async fn deleting_a_member_takes_it_out_of_every_group() {
         .delete("releases")
         .await;
     assert!(matches!(missing, Err(WriteError::NotFound(_))));
+}
+
+#[tokio::test]
+async fn deleting_a_repository_takes_its_name_out_of_the_tokens_whatever_the_case() {
+    let (_test, db) = ready().await;
+    create(db.conn(), hosted("Releases")).await;
+    create(db.conn(), hosted("snapshots")).await;
+    for (number, listed) in [
+        (1, "ARRAY['releases','snapshots']"),
+        (2, "ARRAY['releases']"),
+        (3, "ARRAY['snapshots']"),
+        (4, "NULL::text[]"),
+    ] {
+        db.conn()
+            .execute_unprepared(&format!(
+                "INSERT INTO access_token (id, user_id, name, token_hash, token_hint, scope, expires_at, repositories) \
+                 VALUES ('00000000-0000-0000-0000-00000000000{number}', 'u', 'token-{number}', 'hash-{number}', 'hint', 'READ', now() + interval '1 day', {listed})"
+            ))
+            .await
+            .unwrap();
+    }
+    let deleted = Writer::begin(db.conn())
+        .await
+        .unwrap()
+        .delete("RELEASES")
+        .await
+        .unwrap();
+    let changes: Vec<(&str, bool)> = deleted
+        .tokens
+        .iter()
+        .map(|change| (change.name.as_str(), change.removed))
+        .collect();
+    assert_eq!(changes, [("token-1", false), ("token-2", true)]);
+    let kept: Vec<(String, Option<Vec<String>>)> = access_token::Entity::find()
+        .order_by_asc(access_token::Column::Name)
+        .all(db.conn())
+        .await
+        .unwrap()
+        .into_iter()
+        .map(|token| (token.name, token.repositories))
+        .collect();
+    let snapshots = Some(vec!["snapshots".to_owned()]);
+    assert_eq!(
+        kept,
+        [
+            ("token-1".to_owned(), snapshots.clone()),
+            ("token-3".to_owned(), snapshots),
+            ("token-4".to_owned(), None),
+        ]
+    );
 }
 
 #[tokio::test]
