@@ -147,6 +147,11 @@ pub const FORMATS: &[Format] = &[
         types: HPG,
     },
     Format {
+        id: "homebrew",
+        api_name: "homebrew",
+        types: &[P],
+    },
+    Format {
         id: "huggingface",
         api_name: "huggingface",
         types: &[P],
@@ -287,7 +292,7 @@ mod tests {
         sorted.sort_unstable();
         sorted.dedup();
         assert_eq!(ids, sorted);
-        assert_eq!(ids.len(), 43);
+        assert_eq!(ids.len(), 44);
     }
 
     #[test]

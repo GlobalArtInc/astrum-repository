@@ -540,6 +540,7 @@
   "repositories.formats.gitlfs": "Git Large File Storage for versioning large files.",
   "repositories.formats.helm": "Package manager for Kubernetes applications.",
   "repositories.formats.hex": "Packages for Elixir and Erlang, served to Mix and rebar3 with a signed registry.",
+  "repositories.formats.homebrew": "A caching proxy of the Homebrew formula index and the homebrew/core bottles, so that brew installs through this server in a closed network.",
   "repositories.formats.jetbrains": "Plugins for IntelliJ Platform IDEs such as IntelliJ IDEA, GoLand and RustRover, served as a custom plugin repository or in place of JetBrains Marketplace.",
   "repositories.formats.jsr": "A registry for Deno and TypeScript packages in the JSR layout: hosted packages published with deno publish, a proxy of jsr.io, and groups of both.",
   "repositories.formats.maven2": "The standard of Java development, with snapshots and releases.",

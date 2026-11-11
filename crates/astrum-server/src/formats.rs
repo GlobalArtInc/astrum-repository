@@ -25,6 +25,7 @@ pub fn register(content: &Content) {
     content.register(Arc::new(astrum_format_gradlecache::GradleCache));
     content.register(Arc::new(astrum_format_helm::Helm::default()));
     content.register(Arc::new(astrum_format_hex::Hex::default()));
+    content.register(Arc::new(astrum_format_homebrew::Homebrew::default()));
     content.register(Arc::new(astrum_format_huggingface::HuggingFace::default()));
     content.register(Arc::new(astrum_format_jetbrains::Jetbrains::default()));
     content.register(Arc::new(astrum_format_jsr::Jsr::default()));

@@ -129,10 +129,13 @@ mod tests {
 
     #[test]
     fn every_format_and_type_the_registry_offers_has_a_spec() {
-        assert_eq!(Spec::all().count(), 108);
+        assert_eq!(Spec::all().count(), 109);
         assert!(Spec::from_api("maven", "hosted").is_some());
         assert!(Spec::from_api("maven2", "hosted").is_none());
         assert!(Spec::from_api("apt", "group").is_none());
+        assert!(Spec::from_api("homebrew", "proxy").is_some());
+        assert!(Spec::from_api("homebrew", "hosted").is_none());
+        assert!(Spec::from_api("homebrew", "group").is_none());
         assert!(Spec::from_api("raw", "virtual").is_none());
         for spec in Spec::all() {
             assert_eq!(spec.presence(Section::Storage), Some(Presence::Required));

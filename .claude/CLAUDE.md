@@ -29,6 +29,12 @@ repository is public: never commit secrets.
   at `api/scopes/{scope}/packages/{name}/versions/{version}` (a gzipped tar, read with caps on its size, entries and paths;
   a published version is never replaced); publishing needs a repository domain with `ROOT` routing, because Deno calls `/api/`
   at the root of `JSR_URL`.
+  Also a Homebrew proxy (`homebrew`, `crates/astrum-format-homebrew`; proxy only, because brew verifies the signature of the
+  index): it passes `api/<name>.jws.json` and `api/internal/<name>.jws.json` from the remote URL (default
+  https://formulae.brew.sh/api) and the `homebrew/core` manifests and blobs at `v2/homebrew/core/<image>/...` from the fixed
+  origin https://ghcr.io with the anonymous pull token, checking the SHA-256 of a blob against its path before storing it;
+  every other path is 404 and never reaches an upstream. brew is pointed at it with `HOMEBREW_API_DOMAIN` and
+  `HOMEBREW_ARTIFACT_DOMAIN`, and sends no credentials for the index, so the repository must be readable anonymously.
   Also a hosted-only Buf Schema Registry for Protobuf modules (`protobuf`, `crates/astrum-format-protobuf`: Connect
   services `buf.registry.module.v1` and `buf.registry.owner.v1.OwnerService`, checked with buf 1.75.0; it needs a
   repository domain with `ROOT` routing because buf sends no path prefix, and has no proxy, group or `v1beta1`

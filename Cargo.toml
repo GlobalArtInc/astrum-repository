@@ -33,6 +33,7 @@ astrum-format-go = { path = "crates/astrum-format-go" }
 astrum-format-gradlecache = { path = "crates/astrum-format-gradlecache" }
 astrum-format-helm = { path = "crates/astrum-format-helm" }
 astrum-format-hex = { path = "crates/astrum-format-hex" }
+astrum-format-homebrew = { path = "crates/astrum-format-homebrew" }
 astrum-format-huggingface = { path = "crates/astrum-format-huggingface" }
 astrum-format-jetbrains = { path = "crates/astrum-format-jetbrains" }
 astrum-format-jsr = { path = "crates/astrum-format-jsr" }

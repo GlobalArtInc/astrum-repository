@@ -24,6 +24,7 @@ const FORMATS: [string, string][] = [
   ['gradlecache', 'Gradle build cache'],
   ['helm', 'Helm'],
   ['hex', 'Hex'],
+  ['homebrew', 'Homebrew'],
   ['huggingface', 'Hugging Face'],
   ['jetbrains', 'JetBrains plugins'],
   ['jsr', 'JSR (Deno and TypeScript)'],

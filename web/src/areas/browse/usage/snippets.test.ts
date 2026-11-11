@@ -1452,6 +1452,30 @@ describe('jsr usage', () => {
   });
 });
 
+describe('homebrew usage', () => {
+  it('points brew at the API and the bottles of a proxy, with the token for a private one', () => {
+    const snippets = usageSnippets(
+      context({
+        format: 'homebrew',
+        repositoryName: 'brew',
+        repositoryType: 'proxy',
+        component: { group: 'homebrew/core', name: 'jq', version: '1.7.1' },
+      }),
+    );
+    expect(ids(snippets)).toEqual(['environment', 'install', 'private']);
+    expect(code(snippets, 'environment')).toBe(
+      [
+        'export HOMEBREW_API_DOMAIN=https://repo.example.org/repository/brew/api',
+        'export HOMEBREW_ARTIFACT_DOMAIN=https://repo.example.org/repository/brew',
+        'export HOMEBREW_ARTIFACT_DOMAIN_NO_FALLBACK=1',
+      ].join('\n'),
+    );
+    expect(code(snippets, 'install')).toBe('brew install jq');
+    expect(code(snippets, 'private')).toContain('HOMEBREW_DOCKER_REGISTRY_TOKEN=<access token>');
+    expect(supportsUsage('homebrew')).toBe(true);
+  });
+});
+
 describe('sccache usage', () => {
   it('points sccache at the repository by environment variables, with read-only mode for developers', () => {
     const snippets = usageSnippets(context({ format: 'sccache', repositoryName: 'sccache-cache' }));

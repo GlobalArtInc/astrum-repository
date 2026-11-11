@@ -26,6 +26,7 @@ repositories themselves are in [repositories](../repositories/overview.md).
 | [Gradle build cache](gradlecache.md) | Gradle | ✓ | | |
 | [Helm](helm.md) | `helm` | ✓ | ✓ | ✓ |
 | [Hex](hex.md) | Mix, rebar3 | ✓ | ✓ | ✓ |
+| [Homebrew](homebrew.md) | `brew` | | ✓ | |
 | [Hugging Face](huggingface.md) | `huggingface_hub`, `transformers`, `hf` | | ✓ | |
 | [JetBrains plugins](jetbrains.md) | IntelliJ Platform IDEs | ✓ | ✓ | ✓ |
 | [JSR (Deno and TypeScript)](jsr.md) | `deno`, `deno publish` | ✓ | ✓ | ✓ |

@@ -7,6 +7,7 @@ import { chrome } from './chrome';
 import { firefox } from './firefox';
 import { gradlecache } from './gradlecache';
 import { hex } from './hex';
+import { homebrew } from './homebrew';
 import { huggingface } from './huggingface';
 import { jetbrains } from './jetbrains';
 import { jsr } from './jsr';
@@ -101,6 +102,7 @@ export const USAGE_FORMATS = [
   'sccache',
   'bazel',
   'jsr',
+  'homebrew',
   'jetbrains',
   'protobuf',
   'chrome',
@@ -1135,6 +1137,8 @@ const GENERATORS: Record<string, (context: UsageContext) => Snippet[]> = {
   firefox: (context) =>
     firefox(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   hex: (context) => hex(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
+  homebrew: (context) =>
+    homebrew(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   openvsx: (context) =>
     openvsx(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   pacman: (context) =>

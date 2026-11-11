@@ -22,6 +22,7 @@ export const FORMATS: Record<string, { name: string; color: Color; label?: strin
   gradlecache: { name: 'Gradle build cache', color: 'gray' },
   helm: { name: 'Helm', color: 'sky' },
   hex: { name: 'Hex', color: 'violet' },
+  homebrew: { name: 'Homebrew', color: 'orange' },
   huggingface: { name: 'Hugging Face', color: 'amber' },
   jetbrains: { name: 'JetBrains', color: 'pink' },
   jsr: { name: 'JSR', color: 'yellow' },

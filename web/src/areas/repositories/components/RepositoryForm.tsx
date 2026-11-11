@@ -170,6 +170,7 @@ const REMOTE_EXAMPLES: Record<string, string> = {
   firefox: 'https://addons.mozilla.org',
   helm: 'https://charts.helm.sh/stable/',
   hex: 'https://repo.hex.pm',
+  homebrew: 'https://formulae.brew.sh/api',
   huggingface: 'https://huggingface.co/',
   jetbrains: 'https://plugins.jetbrains.com',
   raw: 'https://example.org/files/',

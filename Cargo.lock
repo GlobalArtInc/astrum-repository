@@ -243,6 +243,7 @@ dependencies = [
  "astrum-format-gradlecache",
  "astrum-format-helm",
  "astrum-format-hex",
+ "astrum-format-homebrew",
  "astrum-format-huggingface",
  "astrum-format-jetbrains",
  "astrum-format-jsr",
@@ -869,6 +870,20 @@ dependencies = [
  "sha2 0.10.9",
  "tar",
  "thiserror",
+ "tokio",
+ "tracing",
+ "url",
+]
+
+[[package]]
+name = "astrum-format-homebrew"
+version = "3.0.4"
+dependencies = [
+ "astrum-content",
+ "astrum-repo",
+ "async-trait",
+ "axum",
+ "serde_json",
  "tokio",
  "tracing",
  "url",
@@ -1652,6 +1667,7 @@ dependencies = [
  "astrum-format-gradlecache",
  "astrum-format-helm",
  "astrum-format-hex",
+ "astrum-format-homebrew",
  "astrum-format-huggingface",
  "astrum-format-jetbrains",
  "astrum-format-jsr",

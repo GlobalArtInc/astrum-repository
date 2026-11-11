@@ -4463,6 +4463,87 @@
     ]
    }
   },
+  "/v1/repositories/homebrew/proxy": {
+   "post": {
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/HomebrewProxyRepositoryApiRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {},
+     "401": {},
+     "403": {}
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   }
+  },
+  "/v1/repositories/homebrew/proxy/{repositoryName}": {
+   "get": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "repositoryName",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AbstractApiRepository"
+        }
+       }
+      }
+     }
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   },
+   "put": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "repositoryName",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/HomebrewProxyRepositoryApiRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "204": {},
+     "400": {},
+     "401": {},
+     "403": {}
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   }
+  },
   "/v1/repositories/huggingface/proxy": {
    "post": {
     "requestBody": {
@@ -15938,6 +16019,56 @@
       "type": "string"
      }
     },
+    "type": "object"
+   },
+   "HomebrewProxyRepositoryApiRequest": {
+    "properties": {
+     "cleanup": {
+      "$ref": "#/components/schemas/CleanupPolicyAttributes"
+     },
+     "domain": {
+      "$ref": "#/components/schemas/DomainAttributes"
+     },
+     "firewall": {
+      "$ref": "#/components/schemas/FirewallAttributes"
+     },
+     "httpClient": {
+      "$ref": "#/components/schemas/HttpClientAttributes"
+     },
+     "name": {
+      "example": "internal",
+      "minLength": 1,
+      "pattern": "^[a-zA-Z0-9\\-]{1}[a-zA-Z0-9_\\-\\.]*$",
+      "type": "string"
+     },
+     "negativeCache": {
+      "$ref": "#/components/schemas/NegativeCacheAttributes"
+     },
+     "online": {
+      "example": true,
+      "type": "boolean"
+     },
+     "proxy": {
+      "$ref": "#/components/schemas/ProxyAttributes"
+     },
+     "replication": {
+      "$ref": "#/components/schemas/ReplicationAttributes"
+     },
+     "routingRuleName": {
+      "type": "string"
+     },
+     "storage": {
+      "$ref": "#/components/schemas/StorageAttributes"
+     }
+    },
+    "required": [
+     "httpClient",
+     "name",
+     "negativeCache",
+     "online",
+     "proxy",
+     "storage"
+    ],
     "type": "object"
    },
    "HostedStorageAttributes": {

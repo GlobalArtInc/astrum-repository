@@ -47,6 +47,7 @@ const FORMAT_TEXTS: Record<string, string> = {
   gradlecache: 'repositories.formats.gradlecache',
   helm: 'repositories.formats.helm',
   hex: 'repositories.formats.hex',
+  homebrew: 'repositories.formats.homebrew',
   jetbrains: 'repositories.formats.jetbrains',
   jsr: 'repositories.formats.jsr',
   maven2: 'repositories.formats.maven2',
