@@ -12,14 +12,15 @@ use chrono::{DateTime, FixedOffset, Utc};
 use futures_util::Stream;
 use sea_orm::sea_query::{Expr, OnConflict};
 use sea_orm::{
-    ActiveValue, ColumnTrait, ConnectionTrait, DbBackend, EntityTrait, PaginatorTrait, QueryFilter,
-    QueryOrder, QuerySelect, Statement, TransactionTrait,
+    ActiveValue, ColumnTrait, ConnectionTrait, DatabaseTransaction, DbBackend, EntityTrait,
+    PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, Statement, TransactionTrait,
 };
 use serde_json::Value;
 use uuid::Uuid;
 
 use crate::mime;
 use crate::transfer::{AssetOutcome, AssetStatus, Conflict, MAX_COMPONENTS, Outcome, Status};
+use crate::usage::Usage;
 use crate::{Content, ContentError, Ctx, holds};
 
 pub type Asset = asset::Model;
@@ -303,44 +304,87 @@ fn redeploy(repository: &str, path: &str) -> ContentError {
     ))
 }
 
+const ATTEMPTS: usize = 3;
+
+type Recorded = (Asset, Option<(String, Uuid)>);
+
 async fn record(
     ctx: &Ctx,
     put: &PutAsset,
     store_name: &str,
     written: &Written,
     content_type: &str,
-) -> Result<(Asset, Option<(String, Uuid)>), ContentError> {
+) -> Result<Recorded, ContentError> {
+    for _ in 0..ATTEMPTS {
+        let txn = ctx.db().begin().await?;
+        match record_once(ctx, &txn, put, store_name, written, content_type).await {
+            Ok(Some(recorded)) => {
+                txn.commit().await?;
+                return Ok(recorded);
+            }
+            Ok(None) => rolled_back(txn).await,
+            Err(error) => {
+                rolled_back(txn).await;
+                return Err(error);
+            }
+        }
+    }
+    Err(changed_meanwhile(ctx.name()))
+}
+
+async fn record_once(
+    ctx: &Ctx,
+    txn: &DatabaseTransaction,
+    put: &PutAsset,
+    store_name: &str,
+    written: &Written,
+    content_type: &str,
+) -> Result<Option<Recorded>, ContentError> {
     let repository = ctx.name();
     let format = ctx.format_id();
     let now = Utc::now().fixed_offset();
-    let txn = ctx.db().begin().await?;
-    let component_id = match &put.component {
-        Some(key) => Some(upsert_component(&txn, repository, format, key, now).await?),
+    if !lock_repository(txn, repository).await? {
+        return Err(missing_repository(repository));
+    }
+    let seen = find(txn, repository, &put.path).await?;
+    let seen_component = seen.as_ref().and_then(|found| found.component_id);
+    let new_component = match &put.component {
+        Some(key) => {
+            insert_component_if_absent(txn, repository, format, key, now).await?;
+            match find_component(txn, repository, key).await? {
+                Some(found) => Some(found.id),
+                None => return Ok(None),
+            }
+        }
         None => None,
     };
-    let previous = loop {
-        let seen = find(&txn, repository, &put.path).await?;
-        if let Some(old_component) = seen.as_ref().and_then(|seen| seen.component_id)
-            && Some(old_component) != component_id
-        {
-            lock_component(&txn, old_component).await?;
-        }
-        let locked = asset::Entity::find()
-            .filter(asset::Column::Repository.eq(repository))
-            .filter(asset::Column::Path.eq(&put.path))
-            .lock_exclusive()
-            .one(&txn)
-            .await?;
-        if locked.as_ref().map(|row| row.component_id) == seen.as_ref().map(|row| row.component_id)
-        {
-            break locked;
-        }
+    let wanted: Vec<i64> = new_component.into_iter().chain(seen_component).collect();
+    let locked = lock_components(txn, &wanted).await?;
+    if wanted.iter().any(|id| !locked.contains(id)) {
+        return Ok(None);
+    }
+    let component_id = match &put.component {
+        Some(key) => Some(upsert_component(txn, repository, format, key, now).await?),
+        None => None,
     };
+    if component_id != new_component {
+        return Ok(None);
+    }
+    lock_usage(txn, repository).await?;
+    let previous = asset::Entity::find()
+        .filter(asset::Column::Repository.eq(repository))
+        .filter(asset::Column::Path.eq(&put.path))
+        .lock_exclusive()
+        .one(txn)
+        .await?;
+    if previous.as_ref().and_then(|row| row.component_id) != seen_component {
+        return Ok(None);
+    }
     if previous.is_some() && put.write_policy == Some(WritePolicy::AllowOnce) {
         return Err(redeploy(repository, &put.path));
     }
     let stored = upsert_asset(
-        &txn,
+        txn,
         asset_row(
             ctx,
             put,
@@ -356,15 +400,14 @@ async fn record(
         && let Some(old_component) = previous.component_id
         && Some(old_component) != component_id
     {
-        drop_empty_component(&txn, old_component).await?;
+        drop_empty_component(txn, old_component).await?;
     }
-    txn.commit().await?;
     let replaced = previous
         .filter(|previous| {
             previous.blob_id != stored.blob_id || previous.blob_store != stored.blob_store
         })
         .map(|previous| (previous.blob_store, previous.blob_id));
-    Ok((stored, replaced))
+    Ok(Some((stored, replaced)))
 }
 
 fn asset_row(
@@ -529,14 +572,55 @@ async fn insert_component_if_absent(
     Ok(inserted > 0)
 }
 
-async fn lock_component(db: &impl ConnectionTrait, component_id: i64) -> Result<(), ContentError> {
-    db.execute(Statement::from_sql_and_values(
+async fn lock_components(
+    db: &impl ConnectionTrait,
+    ids: &[i64],
+) -> Result<HashSet<i64>, ContentError> {
+    if ids.is_empty() {
+        return Ok(HashSet::new());
+    }
+    db.query_all(Statement::from_sql_and_values(
         DbBackend::Postgres,
-        "SELECT 1 FROM component WHERE id = $1 FOR UPDATE",
-        [component_id.into()],
+        "SELECT id FROM component WHERE id = ANY($1) ORDER BY id FOR UPDATE",
+        [ids.to_vec().into()],
     ))
-    .await?;
-    Ok(())
+    .await?
+    .iter()
+    .map(|row| row.try_get::<i64>("", "id").map_err(ContentError::from))
+    .collect()
+}
+
+fn missing_repository(repository: &str) -> ContentError {
+    ContentError::not_found(format!("the repository {repository} does not exist"))
+}
+
+async fn lock_repository(
+    db: &impl ConnectionTrait,
+    repository: &str,
+) -> Result<bool, ContentError> {
+    Ok(db
+        .query_one(Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            "SELECT 1 AS present FROM repository WHERE name = $1 FOR KEY SHARE",
+            [repository.into()],
+        ))
+        .await?
+        .is_some())
+}
+
+async fn lock_usage(db: &impl ConnectionTrait, repository: &str) -> Result<Usage, ContentError> {
+    let row = db
+        .query_one(Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            "SELECT assets, bytes FROM repository_usage WHERE repository = $1 FOR UPDATE",
+            [repository.into()],
+        ))
+        .await?
+        .ok_or_else(|| missing_repository(repository))?;
+    Ok(Usage {
+        assets: row.try_get("", "assets")?,
+        bytes: row.try_get("", "bytes")?,
+    })
 }
 
 async fn drop_empty_component(
@@ -625,38 +709,116 @@ pub async fn delete(ctx: &Ctx, path: &str) -> Result<bool, ContentError> {
     Ok(true)
 }
 
+enum Removal {
+    Removed((String, Uuid)),
+    Gone,
+    Again,
+}
+
 pub async fn delete_asset(content: &Content, found: Asset) -> Result<(), ContentError> {
-    let txn = content.db().begin().await?;
-    let component_id = asset::Entity::find_by_id(found.id)
-        .one(&txn)
+    for _ in 0..ATTEMPTS {
+        let txn = content.db().begin().await?;
+        match remove_asset(&txn, &found).await {
+            Ok(Removal::Removed((store, id))) => {
+                txn.commit().await?;
+                discard(content.clone(), &store, id);
+                return Ok(());
+            }
+            Ok(Removal::Gone) => {
+                rolled_back(txn).await;
+                return Ok(());
+            }
+            Ok(Removal::Again) => rolled_back(txn).await,
+            Err(error) => {
+                rolled_back(txn).await;
+                return Err(error);
+            }
+        }
+    }
+    Err(changed_meanwhile(&found.repository))
+}
+
+async fn remove_asset(txn: &DatabaseTransaction, found: &Asset) -> Result<Removal, ContentError> {
+    if !lock_repository(txn, &found.repository).await? {
+        return Ok(Removal::Gone);
+    }
+    let Some(current) = by_id(txn, found.id).await? else {
+        return Ok(Removal::Gone);
+    };
+    if let Some(component_id) = current.component_id
+        && !lock_components(txn, &[component_id])
+            .await?
+            .contains(&component_id)
+    {
+        return Ok(Removal::Again);
+    }
+    lock_usage(txn, &current.repository).await?;
+    let Some(deleted) = txn
+        .query_one(Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            "DELETE FROM asset WHERE id = $1 AND component_id IS NOT DISTINCT FROM $2 RETURNING blob_store, blob_id",
+            [current.id.into(), current.component_id.into()],
+        ))
         .await?
-        .map_or(found.component_id, |current| current.component_id);
-    if let Some(component_id) = component_id {
-        lock_component(&txn, component_id).await?;
+    else {
+        return Ok(Removal::Again);
+    };
+    let blob = (
+        deleted.try_get::<String>("", "blob_store")?,
+        deleted.try_get::<Uuid>("", "blob_id")?,
+    );
+    if let Some(component_id) = current.component_id {
+        drop_empty_component(txn, component_id).await?;
     }
-    asset::Entity::delete_by_id(found.id).exec(&txn).await?;
-    if let Some(component_id) = component_id {
-        drop_empty_component(&txn, component_id).await?;
-    }
-    txn.commit().await?;
-    discard(content.clone(), &found.blob_store, found.blob_id);
-    Ok(())
+    Ok(Removal::Removed(blob))
 }
 
 pub async fn delete_component(content: &Content, component_id: i64) -> Result<bool, ContentError> {
-    let assets = assets_of(content.db(), component_id).await?;
+    let txn = content.db().begin().await?;
+    match remove_component(&txn, component_id).await {
+        Ok(Some(blobs)) => {
+            txn.commit().await?;
+            delete_blobs(content, blobs).await;
+            Ok(true)
+        }
+        Ok(None) => {
+            rolled_back(txn).await;
+            Ok(false)
+        }
+        Err(error) => {
+            rolled_back(txn).await;
+            Err(error)
+        }
+    }
+}
+
+async fn remove_component(
+    txn: &DatabaseTransaction,
+    component_id: i64,
+) -> Result<Option<Vec<(String, Uuid)>>, ContentError> {
+    let Some(found) = component_by_id(txn, component_id).await? else {
+        return Ok(None);
+    };
+    if !lock_repository(txn, &found.repository).await? {
+        return Ok(None);
+    }
+    if !lock_components(txn, &[component_id])
+        .await?
+        .contains(&component_id)
+    {
+        return Ok(None);
+    }
+    let assets = assets_of(txn, component_id).await?;
+    lock_usage(txn, &found.repository).await?;
     let deleted = component::Entity::delete_by_id(component_id)
-        .exec(content.db())
+        .exec(txn)
         .await?;
-    delete_blobs(
-        content,
+    Ok((deleted.rows_affected > 0).then(|| {
         assets
             .into_iter()
             .map(|asset| (asset.blob_store, asset.blob_id))
-            .collect(),
-    )
-    .await;
-    Ok(deleted.rows_affected > 0)
+            .collect()
+    }))
 }
 
 pub async fn blobs_of_repository(
@@ -1073,6 +1235,9 @@ async fn write_many(
     replaceable: Option<Replaceable<'_>>,
 ) -> Result<Executed, ContentError> {
     let repository = ctx.name();
+    if !lock_repository(txn, repository).await? {
+        return Err(missing_repository(repository));
+    }
     let new_blobs: Vec<(String, astrum_blob::BlobId)> = items
         .iter()
         .map(|(_, written)| (written.store.clone(), written.id))
@@ -1130,24 +1295,14 @@ async fn write_many(
             .values()
             .filter_map(|found| found.component_id),
     );
-    let locked: HashSet<i64> = match component_ids.is_empty() {
-        true => HashSet::new(),
-        false => component::Entity::find()
-            .filter(component::Column::Id.is_in(component_ids))
-            .order_by_asc(component::Column::Id)
-            .lock_exclusive()
-            .all(txn)
-            .await?
-            .into_iter()
-            .map(|found| found.id)
-            .collect(),
-    };
+    let locked = lock_components(txn, &component_ids.into_iter().collect::<Vec<i64>>()).await?;
     if resolved
         .iter()
         .any(|found| found.id.is_some_and(|id| !locked.contains(&id)))
     {
         return Err(changed_meanwhile(repository));
     }
+    lock_usage(txn, repository).await?;
     let existing: HashMap<String, Asset> = asset::Entity::find()
         .filter(asset::Column::Repository.eq(repository))
         .filter(asset::Column::Path.is_in(paths))
