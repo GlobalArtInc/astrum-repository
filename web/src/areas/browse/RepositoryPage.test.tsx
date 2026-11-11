@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ADMIN_STATE, fakeServer, jsonResponse, renderWithApp } from '../../test/render';
@@ -59,6 +59,27 @@ function server(extra: Record<string, () => Response> = {}) {
   });
   vi.stubGlobal('fetch', fake.fetch);
   return fake;
+}
+
+function searchWithTargets(targets: unknown[]) {
+  return server({
+    'GET /service/rest/v1/search?repository=files&q=two': () =>
+      jsonResponse({
+        items: [
+          {
+            id: 'c1',
+            repository: 'files',
+            format: 'raw',
+            group: '/a/b',
+            name: '/a/b/two.txt',
+            version: '',
+            assets: [{ path: '/a/b/two.txt' }],
+          },
+        ],
+        continuationToken: null,
+      }),
+    'GET /service/rest/internal/ui/promotion-targets?source=files': () => jsonResponse(targets),
+  });
 }
 
 function page(path: string) {
@@ -212,6 +233,32 @@ describe('the repository page', { timeout: 20_000 }, () => {
     const results = await screen.findByRole('list', { name: 'Search results' }, { timeout: 3000 });
     await userEvent.click(within(results).getByRole('button', { name: /two\.txt/ }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/browse/files/a/b/two.txt'));
+  });
+
+  it('shows no promotion checkboxes when the repository has no targets', async () => {
+    searchWithTargets([]);
+    page('/browse/files');
+    await userEvent.type(await screen.findByRole('searchbox', { name: 'Search in files' }), 'two');
+    const results = await screen.findByRole('list', { name: 'Search results' }, { timeout: 3000 });
+    expect(within(results).getByRole('button', { name: /two\.txt/ })).toBeInTheDocument();
+    expect(within(results).queryByRole('checkbox')).not.toBeInTheDocument();
+  });
+
+  it('keeps the search panel open while the promote dialog is open', async () => {
+    searchWithTargets([{ name: 'mirror-eu', format: 'raw', type: 'hosted' }]);
+    page('/browse/files');
+    await userEvent.type(await screen.findByRole('searchbox', { name: 'Search in files' }), 'two');
+    const results = await screen.findByRole('list', { name: 'Search results' }, { timeout: 3000 });
+    await userEvent.click(within(results).getByRole('checkbox'));
+    await userEvent.click(screen.getByRole('button', { name: 'Promote selected' }));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.mouseDown(dialog);
+    expect(screen.getByRole('list', { name: 'Search results', hidden: true })).toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    fireEvent.mouseDown(document.body);
+    await waitFor(() =>
+      expect(screen.queryByRole('list', { name: 'Search results' })).not.toBeInTheDocument(),
+    );
   });
 
   it('shows the tags of a docker image folder in a table, newest first', async () => {
