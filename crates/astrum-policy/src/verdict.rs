@@ -269,6 +269,19 @@ fn covers(exception: &Exception, target: &Target, finding: &Finding) -> bool {
         && same(&exception.version, &target.version)
 }
 
+pub fn exception_for<'a>(
+    exceptions: &'a [Exception],
+    policy: &str,
+    target: &Target,
+    finding: &Finding,
+    now: DateTime<Utc>,
+) -> Option<&'a Exception> {
+    exceptions
+        .iter()
+        .filter(|exception| applies(exception, policy, now))
+        .find(|exception| covers(exception, target, finding))
+}
+
 fn reaches(finding: &Finding, rule: &crate::policy::VulnerabilityRule) -> bool {
     (finding.malicious && rule.malicious == Malicious::Block)
         || rule
@@ -290,11 +303,13 @@ pub fn evaluate(input: &Input) -> Option<Verdict> {
         if max.is_none_or(|top| rank(finding.severity) > rank(top)) {
             max = Some(finding.severity);
         }
-        let excepted = input
-            .exceptions
-            .iter()
-            .filter(|exception| applies(exception, &input.policy.name, input.now))
-            .find(|exception| covers(exception, input.target, finding));
+        let excepted = exception_for(
+            input.exceptions,
+            &input.policy.name,
+            input.target,
+            finding,
+            input.now,
+        );
         let blocking = excepted.is_none() && reaches(finding, rule);
         if let Some(exception) = excepted {
             match used.iter_mut().find(|(known, _)| known.id == exception.id) {

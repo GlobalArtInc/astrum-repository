@@ -12,6 +12,7 @@ pub mod routes;
 pub mod space;
 
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, OnceLock};
 
 use astrum_blob::BlobStores;
@@ -63,6 +64,8 @@ struct Inner {
     matcher_metrics: Arc<astrum_scan::matcher::Metrics>,
     verdict_metrics: Arc<astrum_scan::verdict::Metrics>,
     policy_cache: Arc<astrum_policy::cache::Cache>,
+    selector_row_cap: AtomicUsize,
+    examine_cap: AtomicUsize,
     stars: github::Stars,
 }
 
@@ -107,6 +110,8 @@ impl AppState {
                 matcher_metrics: Arc::default(),
                 verdict_metrics: Arc::default(),
                 policy_cache: Arc::default(),
+                selector_row_cap: AtomicUsize::new(routes::findings::SELECTOR_ROW_CAP),
+                examine_cap: AtomicUsize::new(routes::findings::EXAMINE_CAP),
                 stars: github::Stars::default(),
             }),
         }
@@ -221,6 +226,22 @@ impl AppState {
         &self.inner.verdict_metrics
     }
 
+    pub fn selector_row_cap(&self) -> usize {
+        self.inner.selector_row_cap.load(Ordering::Relaxed)
+    }
+
+    pub fn examine_cap(&self) -> usize {
+        self.inner.examine_cap.load(Ordering::Relaxed)
+    }
+
+    pub fn set_examine_cap(&self, cap: usize) {
+        self.inner.examine_cap.store(cap, Ordering::Relaxed);
+    }
+
+    pub fn set_selector_row_cap(&self, cap: usize) {
+        self.inner.selector_row_cap.store(cap, Ordering::Relaxed);
+    }
+
     pub fn policy_cache(&self) -> &Arc<astrum_policy::cache::Cache> {
         &self.inner.policy_cache
     }
@@ -299,6 +320,7 @@ fn endpoints(extra: Router<AppState>) -> Router<AppState> {
         .merge(routes::advisories::routes())
         .merge(routes::policies::routes())
         .merge(routes::scan::routes())
+        .merge(routes::findings::routes())
         .merge(routes::support::routes())
         .merge(routes::capabilities::routes())
         .merge(routes::routing_rules::routes())
