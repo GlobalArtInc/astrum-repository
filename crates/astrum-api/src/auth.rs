@@ -80,6 +80,16 @@ pub fn client_address() -> Option<String> {
         .filter(|address| !address.is_empty())
 }
 
+pub(crate) async fn with_client_address<F: Future>(
+    address: Option<String>,
+    future: F,
+) -> F::Output {
+    match address {
+        Some(address) => CLIENT.scope(address, future).await,
+        None => future.await,
+    }
+}
+
 fn peer(request: &Request) -> String {
     let forwarded = crate::routes::internal::client_ip(request.headers());
     if !forwarded.is_empty() {

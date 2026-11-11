@@ -5,7 +5,7 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use astrum_content::transfer::{Conflict, LocalSource, Outcome, PROMOTED, Status, Terms, Transfer};
-use astrum_content::{ContentError, Ctx};
+use astrum_content::{ContentError, Ctx, store};
 use astrum_format_docker::transfer::{self as promotion, Options, TRANSFER};
 use astrum_security::ssrf::{SSRF_KEY, SsrfProtection};
 use astrum_security::{Action, ContentSelector, SecurityModel, Selector, SelectorGrant, Subject};
@@ -21,6 +21,8 @@ use sha2::{Digest as _, Sha256, Sha512};
 use support::{Auth, Fixture, Reply};
 use tower::ServiceExt;
 
+const PROMOTIONS: &str = "/service/rest/v1/promotions";
+const USER_PASSWORD: &str = "password-1234";
 const OCI_MANIFEST: &str = "application/vnd.oci.image.manifest.v1+json";
 const OCI_INDEX: &str = "application/vnd.oci.image.index.v1+json";
 const OCI_CONFIG: &str = "application/vnd.oci.image.config.v1+json";
@@ -46,6 +48,36 @@ fn basic(user: &str, password: &str) -> String {
 }
 
 impl Registry {
+    fn enable_promotion(&self) {
+        self.fixture
+            .state
+            .set_image_transfers(Arc::new(astrum_format_docker::transfer::Images));
+    }
+
+    async fn promote(&self, auth: Auth<'_>, body: Value) -> Reply {
+        self.fixture
+            .call(Method::POST, PROMOTIONS, auth, Some(body))
+            .await
+    }
+
+    async fn user(&self, user: &str, grants: &[(&str, &str)]) {
+        let privileges: Vec<String> = grants
+            .iter()
+            .map(|(repository, action)| format!("as-repository-view-docker-{repository}-{action}"))
+            .collect();
+        let role = self
+            .fixture
+            .call(
+                Method::POST,
+                "/service/rest/v1/security/roles",
+                Auth::Admin,
+                Some(json!({"id": user, "name": user, "description": "", "privileges": privileges, "roles": []})),
+            )
+            .await;
+        assert_eq!(role.status, StatusCode::OK, "{}", role.text());
+        self.fixture.add_user(user, USER_PASSWORD, &[user]).await;
+    }
+
     async fn new() -> Self {
         let fixture = Fixture::new().await;
         astrum_blob::bootstrap(fixture.state.db().conn(), fixture.data.path())
@@ -2827,4 +2859,629 @@ async fn a_strict_path_to_a_child_a_tag_index_skipped_is_still_refused() {
     let from = trusted(&registry, "dev").await;
     let refused = promotion::prepare(&from, "app", "1.0", &Options::default()).await;
     assert!(matches!(refused, Err(ContentError::NotFound(_))));
+}
+
+fn images(request: Value) -> Value {
+    let mut body = json!({"source": "dev", "target": "release"});
+    body["items"] = request;
+    body
+}
+
+fn rest_statuses(reply: &Reply) -> Vec<String> {
+    assert_eq!(reply.status, StatusCode::OK, "{}", reply.text());
+    reply.json()["results"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|result| result["status"].as_str().unwrap().to_owned())
+        .collect()
+}
+
+async fn missing(registry: &Registry, path: &str) -> bool {
+    registry.admin(Method::HEAD, path).await.status == StatusCode::NOT_FOUND
+}
+
+async fn audited(registry: &Registry) -> Vec<astrum_db::entity::audit_event::Model> {
+    use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
+    astrum_db::entity::audit_event::Entity::find()
+        .filter(astrum_db::entity::audit_event::Column::Domain.eq("repository.content"))
+        .all(registry.fixture.state.db().conn())
+        .await
+        .unwrap()
+}
+
+#[tokio::test]
+async fn rest_copies_an_image_to_two_new_tags_with_its_referrer() {
+    let registry = Registry::new().await;
+    registry.enable_promotion();
+    pair(&registry).await;
+    let prefix = "/v2/dev/app";
+    let (subject, subject_bytes) = registry.push_image(prefix, "1.0", b"rest layer").await;
+    let empty = registry.push_blob(prefix, b"{}").await;
+    let notary_layer = registry.push_blob(prefix, b"notary payload").await;
+    let notary = image_manifest(
+        &empty,
+        2,
+        &[(&notary_layer, "application/jose+json")],
+        Some("application/vnd.cncf.notary.signature"),
+        Some((&subject, subject_bytes.len())),
+    );
+    let notary_digest = sha256(&serde_json::to_vec(&notary).unwrap());
+    let pushed = registry
+        .push_manifest(prefix, &notary_digest, &notary)
+        .await;
+    assert_eq!(pushed.status, StatusCode::CREATED, "{}", pushed.text());
+    let reply = registry
+        .promote(
+            Auth::Admin,
+            images(json!([{"image": "app", "tag": "1.0", "targetTags": ["stable", "2.0"]}])),
+        )
+        .await;
+    assert_eq!(rest_statuses(&reply), ["copied"]);
+    let result = &reply.json()["results"][0];
+    assert!(result.get("warning").is_none());
+    assert_eq!(result["componentIds"].as_array().unwrap().len(), 2);
+    heads(&registry, "release", &["stable", "2.0"], &subject).await;
+    assert!(missing(&registry, "/v2/release/app/manifests/1.0").await);
+    let listed = pulled(&registry, &format!("/v2/release/app/referrers/{subject}"))
+        .await
+        .json();
+    assert_eq!(listed["manifests"][0]["digest"], notary_digest.as_str());
+    let rows = audited(&registry).await;
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0].kind, "promoted");
+    assert_eq!(rows[0].attributes["via"], "rest");
+    assert_eq!(rows[0].attributes["component"], ":app:stable");
+    let again = registry
+        .promote(
+            Auth::Admin,
+            images(json!([{"image": "app", "tag": "1.0", "targetTags": ["stable", "2.0"]}])),
+        )
+        .await;
+    assert_eq!(rest_statuses(&again), ["unchanged"]);
+}
+
+#[tokio::test]
+async fn a_docker_dry_run_reports_the_plan_and_writes_nothing() {
+    let registry = Registry::new().await;
+    registry.enable_promotion();
+    pair(&registry).await;
+    let (digest, _) = registry
+        .push_image("/v2/dev/app", "1.0", b"planned layer")
+        .await;
+    let mut body = images(json!([{"image": "app", "tag": "1.0"}]));
+    body["dryRun"] = json!(true);
+    let reply = registry.promote(Auth::Admin, body).await;
+    assert_eq!(rest_statuses(&reply), ["copied"]);
+    let result = &reply.json()["results"][0];
+    assert_eq!(reply.json()["dryRun"], true);
+    assert!(result["bytesCopied"].as_u64().unwrap() > 0);
+    assert!(missing(&registry, "/v2/release/app/manifests/1.0").await);
+    assert!(missing(&registry, &format!("/v2/release/app/manifests/{digest}")).await);
+    assert_eq!(
+        rows(
+            &registry,
+            "SELECT count(*) AS n FROM asset WHERE repository = 'release'"
+        )
+        .await,
+        0
+    );
+    assert!(audited(&registry).await.is_empty());
+}
+
+#[tokio::test]
+async fn a_docker_move_by_tag_deletes_only_the_tag() {
+    let registry = Registry::new().await;
+    registry.enable_promotion();
+    pair(&registry).await;
+    let (digest, _) = registry
+        .push_image("/v2/dev/app", "1.0", b"moved layer")
+        .await;
+    let mut body = images(json!([{"image": "app", "tag": "1.0"}]));
+    body["move"] = json!(true);
+    let reply = registry.promote(Auth::Admin, body).await;
+    assert_eq!(rest_statuses(&reply), ["copied"]);
+    assert_eq!(reply.json()["results"][0]["sourceKept"], false);
+    assert!(missing(&registry, "/v2/dev/app/manifests/1.0").await);
+    pulled(&registry, &format!("/v2/dev/app/manifests/{digest}")).await;
+    heads(&registry, "release", &["1.0"], &digest).await;
+    let rows = audited(&registry).await;
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0].kind, "moved");
+}
+
+#[tokio::test]
+async fn a_docker_move_of_an_unchanged_image_still_deletes_the_source_tag() {
+    let registry = Registry::new().await;
+    registry.enable_promotion();
+    pair(&registry).await;
+    let (digest, _) = registry
+        .push_image("/v2/dev/app", "1.0", b"half moved layer")
+        .await;
+    let copied = registry
+        .promote(Auth::Admin, images(json!([{"image": "app", "tag": "1.0"}])))
+        .await;
+    assert_eq!(rest_statuses(&copied), ["copied"]);
+    let mut body = images(json!([{"image": "app", "tag": "1.0"}]));
+    body["move"] = json!(true);
+    let reply = registry.promote(Auth::Admin, body).await;
+    assert_eq!(rest_statuses(&reply), ["unchanged"]);
+    assert_eq!(reply.json()["results"][0]["sourceKept"], false);
+    assert!(missing(&registry, "/v2/dev/app/manifests/1.0").await);
+    heads(&registry, "release", &["1.0"], &digest).await;
+}
+
+#[tokio::test]
+async fn a_docker_move_by_digest_is_refused_and_nothing_is_written() {
+    let registry = Registry::new().await;
+    registry.enable_promotion();
+    pair(&registry).await;
+    let (digest, _) = registry
+        .push_image("/v2/dev/app", "1.0", b"digest layer")
+        .await;
+    let mut body = images(json!([{"image": "app", "digest": digest}]));
+    body["move"] = json!(true);
+    let reply = registry.promote(Auth::Admin, body).await;
+    assert_eq!(rest_statuses(&reply), ["failed"]);
+    assert_eq!(reply.json()["results"][0]["sourceKept"], true);
+    assert!(missing(&registry, &format!("/v2/release/app/manifests/{digest}")).await);
+    pulled(&registry, "/v2/dev/app/manifests/1.0").await;
+}
+
+#[tokio::test]
+async fn an_untagged_digest_copy_carries_a_warning() {
+    let registry = Registry::new().await;
+    registry.enable_promotion();
+    pair(&registry).await;
+    let (digest, _) = registry
+        .push_image("/v2/dev/app", "1.0", b"untagged layer")
+        .await;
+    let reply = registry
+        .promote(
+            Auth::Admin,
+            images(json!([{"image": "app", "digest": digest}])),
+        )
+        .await;
+    assert_eq!(rest_statuses(&reply), ["copied"]);
+    assert!(
+        reply.json()["results"][0]["warning"]
+            .as_str()
+            .unwrap()
+            .contains("garbage collection")
+    );
+    pulled(&registry, &format!("/v2/release/app/manifests/{digest}")).await;
+}
+
+#[tokio::test]
+async fn docker_rights_are_checked_on_the_caller_and_nothing_is_written_when_missing() {
+    let registry = Registry::new().await;
+    registry.enable_promotion();
+    pair(&registry).await;
+    let (digest, _) = registry
+        .push_image("/v2/dev/app", "1.0", b"guarded layer")
+        .await;
+    registry
+        .user("reader", &[("dev", "read"), ("release", "read")])
+        .await;
+    registry
+        .user("adder", &[("dev", "read"), ("release", "add")])
+        .await;
+    registry.user("blind", &[("release", "add")]).await;
+    let body = images(json!([{"image": "app", "tag": "1.0"}]));
+    let reader = registry
+        .promote(Auth::Basic("reader", USER_PASSWORD), body.clone())
+        .await;
+    assert_eq!(rest_statuses(&reader), ["forbidden"]);
+    assert!(missing(&registry, "/v2/release/app/manifests/1.0").await);
+    assert_eq!(
+        rows(
+            &registry,
+            "SELECT count(*) AS n FROM asset WHERE repository = 'release'"
+        )
+        .await,
+        0
+    );
+    let blind = registry
+        .promote(Auth::Basic("blind", USER_PASSWORD), body.clone())
+        .await;
+    assert_eq!(blind.status, StatusCode::NOT_FOUND);
+    let mut moving = body.clone();
+    moving["move"] = json!(true);
+    let keeper = registry
+        .promote(Auth::Basic("adder", USER_PASSWORD), moving)
+        .await;
+    assert_eq!(rest_statuses(&keeper), ["forbidden"]);
+    assert!(
+        keeper.json()["results"][0]["error"]
+            .as_str()
+            .unwrap()
+            .contains("delete access")
+    );
+    assert!(missing(&registry, "/v2/release/app/manifests/1.0").await);
+    let adder = registry
+        .promote(Auth::Basic("adder", USER_PASSWORD), body)
+        .await;
+    assert_eq!(rest_statuses(&adder), ["copied"]);
+    heads(&registry, "release", &["1.0"], &digest).await;
+}
+
+#[tokio::test]
+async fn docker_items_are_unsupported_without_a_registered_implementation() {
+    let registry = Registry::new().await;
+    pair(&registry).await;
+    registry
+        .push_image("/v2/dev/app", "1.0", b"lonely layer")
+        .await;
+    let reply = registry
+        .promote(Auth::Admin, images(json!([{"image": "app", "tag": "1.0"}])))
+        .await;
+    assert_eq!(rest_statuses(&reply), ["unsupported"]);
+    assert!(missing(&registry, "/v2/release/app/manifests/1.0").await);
+    let listed = registry
+        .fixture
+        .call(
+            Method::GET,
+            "/service/rest/internal/ui/promotion-targets?source=dev",
+            Auth::Admin,
+            None,
+        )
+        .await;
+    assert_eq!(listed.json(), json!([]));
+}
+
+#[tokio::test]
+async fn docker_promotion_targets_list_the_repositories_the_caller_may_add_to() {
+    let registry = Registry::new().await;
+    registry.enable_promotion();
+    pair(&registry).await;
+    registry.hosted("sealed", "ALLOW").await;
+    registry
+        .user(
+            "adder",
+            &[("dev", "read"), ("release", "add"), ("sealed", "read")],
+        )
+        .await;
+    let listed = registry
+        .fixture
+        .call(
+            Method::GET,
+            "/service/rest/internal/ui/promotion-targets?source=dev",
+            Auth::Basic("adder", USER_PASSWORD),
+            None,
+        )
+        .await;
+    assert_eq!(listed.json().as_array().unwrap().len(), 1);
+    assert_eq!(listed.json()[0]["name"], "release");
+}
+
+#[tokio::test]
+async fn rest_reports_the_children_a_tag_index_named_but_the_source_lacks() {
+    let registry = Registry::new().await;
+    registry.enable_promotion();
+    pair(&registry).await;
+    let prefix = "/v2/dev/app";
+    let (subject, _) = registry.push_image(prefix, "1.0", b"stale subject").await;
+    let (kept, kept_bytes) = registry.push_image(prefix, "kept", b"kept child").await;
+    let (gone, gone_bytes) = registry.push_image(prefix, "gone", b"gone child").await;
+    let fallback = json!({
+        "schemaVersion": 2,
+        "mediaType": OCI_INDEX,
+        "manifests": [
+            {"mediaType": OCI_MANIFEST, "digest": kept, "size": kept_bytes.len()},
+            {"mediaType": OCI_MANIFEST, "digest": gone, "size": gone_bytes.len()},
+        ],
+    });
+    let pushed = registry
+        .push_manifest(prefix, &subject.replace(':', "-"), &fallback)
+        .await;
+    assert_eq!(pushed.status, StatusCode::CREATED, "{}", pushed.text());
+    registry
+        .fixture
+        .state
+        .db()
+        .conn()
+        .execute(Statement::from_string(
+            DbBackend::Postgres,
+            format!(
+                "DELETE FROM asset WHERE repository = 'dev' AND path = '/v2/app/manifests/{gone}'"
+            ),
+        ))
+        .await
+        .unwrap();
+    let reply = registry
+        .promote(Auth::Admin, images(json!([{"image": "app", "tag": "1.0"}])))
+        .await;
+    assert_eq!(rest_statuses(&reply), ["copied"]);
+    assert_eq!(reply.json()["results"][0]["skippedChildren"], 1);
+}
+
+async fn selector_user(
+    registry: &Registry,
+    user: &str,
+    expression: &str,
+    selected: &[(&str, &[&str])],
+    plain: &[(&str, &str)],
+) {
+    let selector = format!("{user}-paths");
+    let mut privileges: Vec<String> = plain
+        .iter()
+        .map(|(repository, action)| format!("as-repository-view-docker-{repository}-{action}"))
+        .collect();
+    let mut steps = vec![(
+        "/service/rest/v1/security/content-selectors".to_owned(),
+        json!({"name": selector, "description": "", "expression": format!("format == \"docker\" and {expression}")}),
+    )];
+    for (repository, actions) in selected {
+        let name = format!("{user}-{repository}");
+        steps.push((
+            "/service/rest/v1/security/privileges/repository-content-selector".to_owned(),
+            json!({"name": name, "description": "", "actions": actions, "format": "docker", "repository": repository, "contentSelector": selector}),
+        ));
+        privileges.push(name);
+    }
+    steps.push((
+        "/service/rest/v1/security/roles".to_owned(),
+        json!({"id": user, "name": user, "description": "", "privileges": privileges, "roles": []}),
+    ));
+    for (path, body) in steps {
+        let reply = registry
+            .fixture
+            .call(Method::POST, &path, Auth::Admin, Some(body))
+            .await;
+        assert!(reply.status.is_success(), "{path}: {}", reply.text());
+    }
+    registry
+        .fixture
+        .add_user(user, USER_PASSWORD, &[user])
+        .await;
+}
+
+async fn hold_tag_component(
+    registry: &Registry,
+    repository: &str,
+    path: &str,
+) -> sea_orm::DatabaseTransaction {
+    let found = store::find(registry.fixture.state.db().conn(), repository, path)
+        .await
+        .unwrap()
+        .unwrap();
+    support::hold_row(
+        &registry.fixture,
+        &format!(
+            "SELECT id FROM component WHERE id = {} FOR UPDATE",
+            found.component_id.unwrap()
+        ),
+    )
+    .await
+}
+
+#[tokio::test]
+async fn a_selector_on_the_image_path_is_enough_to_promote_that_image_and_no_other() {
+    let registry = Registry::new().await;
+    registry.enable_promotion();
+    pair(&registry).await;
+    let (digest, _) = registry
+        .push_image("/v2/dev/app", "1.0", b"selected layer")
+        .await;
+    registry
+        .push_image("/v2/dev/other", "1.0", b"unselected layer")
+        .await;
+    selector_user(
+        &registry,
+        "scoped",
+        "path =^ \"/v2/app/\"",
+        &[("release", &["ADD", "BROWSE"])],
+        &[("dev", "read")],
+    )
+    .await;
+    let allowed = registry
+        .promote(
+            Auth::Basic("scoped", USER_PASSWORD),
+            images(json!([{"image": "app", "tag": "1.0"}])),
+        )
+        .await;
+    assert_eq!(rest_statuses(&allowed), ["copied"]);
+    heads(&registry, "release", &["1.0"], &digest).await;
+    let refused = registry
+        .promote(
+            Auth::Basic("scoped", USER_PASSWORD),
+            images(json!([{"image": "other", "tag": "1.0"}])),
+        )
+        .await;
+    assert_eq!(rest_statuses(&refused), ["forbidden"]);
+    assert!(missing(&registry, "/v2/release/other/manifests/1.0").await);
+}
+
+#[tokio::test]
+async fn a_caller_without_add_rights_learns_nothing_about_the_target_from_a_dry_run() {
+    let registry = Registry::new().await;
+    registry.enable_promotion();
+    registry.hosted("dev", "ALLOW").await;
+    registry.hosted("release", "ALLOW_ONCE").await;
+    registry
+        .push_image("/v2/dev/app", "1.0", b"new layer")
+        .await;
+    let (old, _) = registry
+        .push_image("/v2/release/app", "1.0", b"old layer")
+        .await;
+    selector_user(
+        &registry,
+        "narrow",
+        "path =^ \"/v2/other/\"",
+        &[("release", &["ADD"])],
+        &[("dev", "read")],
+    )
+    .await;
+    let mut seen = Vec::new();
+    for dry_run in [true, false] {
+        let mut body = images(json!([{"image": "app", "tag": "1.0"}]));
+        body["conflict"] = json!("replace");
+        body["dryRun"] = json!(dry_run);
+        let reply = registry
+            .promote(Auth::Basic("narrow", USER_PASSWORD), body)
+            .await;
+        assert_eq!(rest_statuses(&reply), ["forbidden"], "{dry_run}");
+        seen.push(reply.json()["results"][0].clone());
+    }
+    assert_eq!(seen[0], seen[1]);
+    let text = seen[0]["error"].as_str().unwrap();
+    assert!(text.contains("add access"), "{text}");
+    for leak in ["exist", "redeploy", "different", "1.0"] {
+        assert!(!text.contains(leak), "{leak}: {text}");
+    }
+    heads(&registry, "release", &["1.0"], &old).await;
+}
+
+#[tokio::test]
+async fn an_image_the_caller_cannot_see_is_reported_like_one_that_does_not_exist() {
+    let registry = Registry::new().await;
+    registry.enable_promotion();
+    pair(&registry).await;
+    registry
+        .push_image("/v2/dev/app", "1.0", b"hidden layer")
+        .await;
+    selector_user(
+        &registry,
+        "partial",
+        "path =^ \"/v2/other/\"",
+        &[("dev", &["BROWSE", "READ"])],
+        &[("release", "add")],
+    )
+    .await;
+    let reply = registry
+        .promote(
+            Auth::Basic("partial", USER_PASSWORD),
+            images(json!([
+                {"image": "app", "tag": "1.0"},
+                {"image": "ghost", "tag": "1.0"}
+            ])),
+        )
+        .await;
+    assert_eq!(rest_statuses(&reply), ["notFound", "notFound"]);
+    let results = reply.json();
+    assert_eq!(
+        results["results"][0]["error"],
+        results["results"][1]["error"]
+    );
+    selector_user(
+        &registry,
+        "browsing",
+        "path =^ \"/v2/app/\"",
+        &[("dev", &["BROWSE"])],
+        &[("release", "add")],
+    )
+    .await;
+    let known = registry
+        .promote(
+            Auth::Basic("browsing", USER_PASSWORD),
+            images(json!([{"image": "app", "tag": "1.0"}])),
+        )
+        .await;
+    assert_eq!(rest_statuses(&known), ["forbidden"]);
+    assert!(missing(&registry, "/v2/release/app/manifests/1.0").await);
+}
+
+#[tokio::test]
+async fn a_tag_that_moved_to_another_image_during_the_transfer_is_not_deleted() {
+    let registry = Registry::new().await;
+    registry.enable_promotion();
+    pair(&registry).await;
+    let (first, _) = registry
+        .push_image("/v2/dev/app", "1.0", b"first layer")
+        .await;
+    let hold = support::hold_row(
+        &registry.fixture,
+        "SELECT repository FROM repository_usage WHERE repository = 'release' FOR UPDATE",
+    )
+    .await;
+    let mut body = images(json!([{"image": "app", "tag": "1.0"}]));
+    body["move"] = json!(true);
+    let (reply, second) = tokio::join!(registry.promote(Auth::Admin, body), async {
+        support::wait_for_waiters(&registry.fixture, 1).await;
+        let (second, _) = registry
+            .push_image("/v2/dev/app", "1.0", b"second layer")
+            .await;
+        hold.rollback().await.unwrap();
+        second
+    });
+    assert_eq!(rest_statuses(&reply), ["copied"]);
+    let result = &reply.json()["results"][0];
+    assert_eq!(result["sourceKept"], true);
+    assert!(
+        result["error"]
+            .as_str()
+            .unwrap()
+            .contains("tag changed while the transfer ran"),
+        "{result}"
+    );
+    heads(&registry, "release", &["1.0"], &first).await;
+    heads(&registry, "dev", &["1.0"], &second).await;
+}
+
+#[tokio::test]
+async fn a_tag_pushed_again_while_the_delete_waits_for_the_lock_is_not_deleted() {
+    let registry = Registry::new().await;
+    registry.enable_promotion();
+    pair(&registry).await;
+    let (first, _) = registry
+        .push_image("/v2/dev/app", "1.0", b"first layer")
+        .await;
+    let hold = hold_tag_component(&registry, "dev", "/v2/app/manifests/1.0").await;
+    let mut body = images(json!([{"image": "app", "tag": "1.0"}]));
+    body["move"] = json!(true);
+    let ((second, _), reply, ()) = tokio::join!(
+        registry.push_image("/v2/dev/app", "1.0", b"second layer"),
+        async {
+            support::wait_for_waiters(&registry.fixture, 1).await;
+            registry.promote(Auth::Admin, body).await
+        },
+        async {
+            support::wait_for_waiters(&registry.fixture, 2).await;
+            hold.rollback().await.unwrap();
+        },
+    );
+    assert_eq!(rest_statuses(&reply), ["copied"]);
+    assert_eq!(reply.json()["results"][0]["sourceKept"], true);
+    heads(&registry, "release", &["1.0"], &first).await;
+    heads(&registry, "dev", &["1.0"], &second).await;
+}
+
+#[tokio::test]
+async fn a_tag_deleted_and_pushed_again_while_the_delete_waits_for_the_lock_is_not_deleted() {
+    let registry = Registry::new().await;
+    registry.enable_promotion();
+    pair(&registry).await;
+    let (first, _) = registry
+        .push_image("/v2/dev/app", "1.0", b"first layer")
+        .await;
+    let hold = hold_tag_component(&registry, "dev", "/v2/app/manifests/1.0").await;
+    let mut body = images(json!([{"image": "app", "tag": "1.0"}]));
+    body["move"] = json!(true);
+    let (deleted, (second, _), reply, ()) = tokio::join!(
+        registry.admin(Method::DELETE, "/v2/dev/app/manifests/1.0"),
+        async {
+            support::wait_for_waiters(&registry.fixture, 1).await;
+            registry
+                .push_image("/v2/dev/app", "1.0", b"second layer")
+                .await
+        },
+        async {
+            support::wait_for_waiters(&registry.fixture, 2).await;
+            registry.promote(Auth::Admin, body).await
+        },
+        async {
+            support::wait_for_waiters(&registry.fixture, 3).await;
+            hold.rollback().await.unwrap();
+        },
+    );
+    assert!(deleted.status.is_success(), "{}", deleted.text());
+    assert_eq!(rest_statuses(&reply), ["copied"]);
+    let result = &reply.json()["results"][0];
+    assert_eq!(result["sourceKept"], true);
+    assert!(
+        result["error"].as_str().unwrap().contains("already gone"),
+        "{result}"
+    );
+    heads(&registry, "release", &["1.0"], &first).await;
+    heads(&registry, "dev", &["1.0"], &second).await;
 }

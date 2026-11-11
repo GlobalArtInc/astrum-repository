@@ -1,11 +1,12 @@
 use std::collections::{HashMap, HashSet};
 
+use astrum_api::images::{Admit, Approve, ImageError, ImageItem, ImageReport, ImageTransfers};
 use astrum_blob::{Digests, Written};
 use astrum_content::import::{Described, Imported};
-use astrum_content::store::{Asset, Component};
+use astrum_content::store::{self, Asset, Component};
 use astrum_content::transfer::{
     BlobSource, Bundle, BundleAsset, GenericTransfer, LocalSource, MAX_ASSETS, MAX_COMPONENTS,
-    Outcome, Sink, Terms, Transfer,
+    Outcome, Sink, Status, Terms, Transfer,
 };
 use astrum_content::{ContentError, Ctx, View};
 use astrum_repo::RepositoryType;
@@ -50,6 +51,8 @@ pub struct Prepared {
     bundle: Bundle,
     source: DockerSource,
     skipped: usize,
+    root: Digest,
+    untagged: bool,
 }
 
 impl Prepared {
@@ -59,6 +62,14 @@ impl Prepared {
 
     pub fn skipped_children(&self) -> usize {
         self.skipped
+    }
+
+    pub fn root(&self) -> String {
+        self.root.to_string()
+    }
+
+    pub fn untagged(&self) -> bool {
+        self.untagged
     }
 }
 
@@ -386,6 +397,7 @@ pub async fn prepare(
                 .collect()
         }
     };
+    let untagged = names.is_empty();
     for tag in &names {
         let path = storage::manifest_path(image, tag);
         closure.add_tag(&path, &root_asset, &by_digest)?;
@@ -424,6 +436,8 @@ pub async fn prepare(
             origins,
         },
         skipped,
+        root,
+        untagged,
     })
 }
 
@@ -560,5 +574,115 @@ impl DockerTransfer {
         self.generic
             .receive(target, &prepared.bundle, &prepared.source, terms)
             .await
+    }
+}
+
+pub struct Images;
+
+fn rights_path(image: &str, path: &str) -> String {
+    match path.strip_prefix(storage::BLOB_PATH_PREFIX) {
+        Some(digest) => format!("/v2/{image}/blobs/{digest}"),
+        None => path.to_owned(),
+    }
+}
+
+fn rights_view(image: &str, outcome: &Outcome) -> Outcome {
+    let mut view = outcome.clone();
+    for asset in &mut view.assets {
+        asset.path = rights_path(image, &asset.path);
+    }
+    view
+}
+
+#[async_trait]
+impl ImageTransfers for Images {
+    async fn transfer(
+        &self,
+        source: &Ctx,
+        target: &Ctx,
+        item: &ImageItem,
+        terms: Terms,
+        admit: Admit<'_>,
+        approve: Approve<'_>,
+    ) -> Result<ImageReport, ImageError> {
+        let options = Options {
+            referrers: item.referrers,
+            target_tags: item.target_tags.clone(),
+        };
+        let prepared = prepare(source, &item.image, &item.reference, &options)
+            .await
+            .map_err(ImageError::Plan)?;
+        let image = prepared.bundle().name.clone();
+        let paths: Vec<String> = prepared
+            .bundle()
+            .assets
+            .iter()
+            .map(|asset| rights_path(&image, &asset.path))
+            .collect();
+        admit(&paths).map_err(ImageError::Denied)?;
+        let planned = TRANSFER
+            .receive(
+                target,
+                &prepared,
+                Terms {
+                    dry_run: true,
+                    ..terms
+                },
+            )
+            .await
+            .map_err(ImageError::Plan)?;
+        let conflict = approve(&rights_view(&image, &planned)).map_err(ImageError::Denied)?;
+        let outcome = match terms.dry_run || planned.status != Status::Copied {
+            true => planned,
+            false => TRANSFER
+                .receive(
+                    target,
+                    &prepared,
+                    Terms {
+                        conflict,
+                        dry_run: false,
+                        ..terms
+                    },
+                )
+                .await
+                .map_err(ImageError::Run)?,
+        };
+        Ok(ImageReport {
+            outcome,
+            skipped_children: prepared.skipped_children(),
+            untagged: prepared.untagged(),
+            version: prepared.bundle().version.clone(),
+            digest: prepared.root(),
+        })
+    }
+
+    async fn remove_tag(
+        &self,
+        source: &Ctx,
+        image: &str,
+        tag: &str,
+        digest: &str,
+    ) -> Result<(), ContentError> {
+        if source.format_id() != ID || source.kind() != RepositoryType::Hosted {
+            return Err(ContentError::BadRequest(format!(
+                "{} is not a hosted Docker repository",
+                source.name()
+            )));
+        }
+        if let Some(problem) = reference::tag_problem(tag) {
+            return Err(ContentError::BadRequest(problem));
+        }
+        let path = storage::manifest_path(image, tag);
+        source.require(View::Delete, &path)?;
+        let found = storage::find(source, &path).await?.ok_or_else(|| {
+            ContentError::not_found(format!("{}{path} is already gone", source.name()))
+        })?;
+        if tag_digest(&found)?.to_string() != digest {
+            return Err(ContentError::Conflict(format!(
+                "{}{path} points at another image than the one that was copied",
+                source.name()
+            )));
+        }
+        store::delete_asset_if(&source.content, &found).await
     }
 }

@@ -198,6 +198,45 @@ impl Fixture {
     }
 }
 
+pub async fn hold_row(fixture: &Fixture, sql: &str) -> sea_orm::DatabaseTransaction {
+    use sea_orm::{ConnectionTrait, DbBackend, Statement, TransactionTrait};
+    let txn = fixture.state.db().conn().begin().await.unwrap();
+    let locked = txn
+        .query_one(Statement::from_string(DbBackend::Postgres, sql))
+        .await
+        .unwrap();
+    assert!(locked.is_some(), "{sql} locked no row");
+    txn
+}
+
+pub async fn wait_for_waiters(fixture: &Fixture, count: i64) {
+    use sea_orm::{ConnectionTrait, DbBackend, Statement};
+    let sql = "SELECT count(DISTINCT l.pid)::bigint AS n FROM pg_locks l \
+               JOIN pg_stat_activity a ON a.pid = l.pid \
+               WHERE NOT l.granted AND a.datname = current_database()";
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+    loop {
+        let waiting: i64 = fixture
+            .state
+            .db()
+            .conn()
+            .query_one(Statement::from_string(DbBackend::Postgres, sql))
+            .await
+            .unwrap()
+            .unwrap()
+            .try_get("", "n")
+            .unwrap();
+        if waiting >= count {
+            return;
+        }
+        assert!(
+            std::time::Instant::now() < deadline,
+            "only {waiting} of {count} backends ever waited for a lock"
+        );
+        tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+    }
+}
+
 pub async fn repository_ctx(fixture: &Fixture, name: &str) -> Ctx {
     let repository = fixture
         .state

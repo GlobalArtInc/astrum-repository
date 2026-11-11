@@ -44,8 +44,10 @@ pub fn may_move_tag(target: &Ctx, tag: &str) -> bool {
     }
 }
 
+pub const BLOB_PATH_PREFIX: &str = "/v2/-/blobs/";
+
 pub fn blob_path(digest: &Digest) -> String {
-    format!("/v2/-/blobs/{digest}")
+    format!("{BLOB_PATH_PREFIX}{digest}")
 }
 
 pub fn manifest_path(image: &str, reference: &str) -> String {

@@ -3,6 +3,7 @@ pub mod base_url;
 pub mod domains;
 pub mod error;
 pub mod github;
+pub mod images;
 pub mod json;
 pub mod limits;
 pub mod metrics;
@@ -56,6 +57,8 @@ struct Inner {
     node_id: uuid::Uuid,
     started_at: chrono::DateTime<chrono::FixedOffset>,
     application_port: OnceLock<u16>,
+    image_transfers: OnceLock<Arc<dyn images::ImageTransfers>>,
+    promotion_budget: OnceLock<std::time::Duration>,
     repository_changes: tokio::sync::Notify,
     limits: limits::Limiter,
     metrics: metrics::Registry,
@@ -96,6 +99,8 @@ impl AppState {
                 node_id: uuid::Uuid::new_v4(),
                 started_at: chrono::Utc::now().fixed_offset(),
                 application_port: OnceLock::new(),
+                image_transfers: OnceLock::new(),
+                promotion_budget: OnceLock::new(),
                 repository_changes: tokio::sync::Notify::new(),
                 limits: limits::Limiter::default(),
                 metrics: metrics::Registry::default(),
@@ -179,6 +184,26 @@ impl AppState {
 
     pub fn set_application_port(&self, port: u16) {
         let _ = self.inner.application_port.set(port);
+    }
+
+    pub fn set_image_transfers(&self, transfers: Arc<dyn images::ImageTransfers>) {
+        if self.inner.image_transfers.set(transfers).is_err() {
+            tracing::warn!("image transfers were registered twice; the first registration stays");
+        }
+    }
+
+    pub fn image_transfers(&self) -> Option<Arc<dyn images::ImageTransfers>> {
+        self.inner.image_transfers.get().cloned()
+    }
+
+    pub fn set_promotion_budget(&self, budget: std::time::Duration) {
+        if self.inner.promotion_budget.set(budget).is_err() {
+            tracing::warn!("the promotion time budget was set twice; the first value stays");
+        }
+    }
+
+    pub fn promotion_budget(&self) -> Option<std::time::Duration> {
+        self.inner.promotion_budget.get().copied()
     }
 
     pub fn application_port(&self) -> Option<u16> {
@@ -270,6 +295,7 @@ fn endpoints(extra: Router<AppState>) -> Router<AppState> {
         .merge(routes::content::routes())
         .merge(routes::legacy::routes())
         .merge(routes::components::routes())
+        .merge(routes::promotions::routes())
         .merge(routes::tasks::routes())
         .merge(routes::cleanup_policies::routes())
         .merge(routes::support::routes())

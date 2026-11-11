@@ -200,10 +200,9 @@ impl BlobSource for LocalSource {
             .await?;
         let content = origin.read(row.blob_id.into()).await?.ok_or_else(|| {
             ContentError::not_found(format!(
-                "the blob of {}{} is missing from the blob store {}",
+                "the content of {}{} is missing from the storage of the source repository",
                 self.source.name(),
-                asset.path,
-                row.blob_store
+                asset.path
             ))
         })?;
         Ok(sink.store.put(content.stream).await?)
