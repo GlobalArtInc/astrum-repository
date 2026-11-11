@@ -1,6 +1,7 @@
 pub mod auth;
 pub mod base_url;
 pub mod client;
+pub mod customer_expiry;
 pub mod domains;
 pub mod error;
 pub mod github;

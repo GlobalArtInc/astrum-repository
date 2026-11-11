@@ -1,5 +1,6 @@
 pub mod alerts;
 pub mod channel;
+pub mod customers;
 mod entity;
 pub mod mail;
 pub mod messages;

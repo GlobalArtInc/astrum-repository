@@ -504,7 +504,7 @@ async fn schedules_fire_when_due_and_abandoned_runs_fail() {
 async fn built_in_tasks_are_created_once_and_stay_editable() {
     let fixture = ready().await;
     let db = fixture.state.db().conn();
-    assert_eq!(astrum_tasks::bootstrap(db).await.unwrap(), 4);
+    assert_eq!(astrum_tasks::bootstrap(db).await.unwrap(), 5);
     assert_eq!(astrum_tasks::bootstrap(db).await.unwrap(), 0);
     let listed = call(&fixture, Method::GET, TASKS, None).await.json();
     let names: Vec<&str> = listed["items"]
@@ -519,7 +519,8 @@ async fn built_in_tasks_are_created_once_and_stay_editable() {
             "Cleanup service",
             "Compact blob stores",
             "Delete expired sessions and uploads",
-            "Delete unused Docker manifests and layers"
+            "Delete unused Docker manifests and layers",
+            "Notify about expiring customer tokens"
         ]
     );
     let cleanup = &listed["items"][0];

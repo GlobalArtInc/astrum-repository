@@ -8,6 +8,8 @@ use crate::store::{self, NewTask, StoreError};
 
 pub const PROVISIONED: &str = "tasks.provisioned";
 pub const DOCKER_GC: &str = "repository.docker.gc";
+pub const CUSTOMER_TOKEN_EXPIRY: &str = "customers.tokens.expiry";
+const CUSTOMER_TOKEN_EXPIRY_PROVISIONED: &str = "tasks.provisioned.customerTokenExpiry";
 
 fn properties(pairs: &[(&str, &str)]) -> Properties {
     pairs
@@ -56,12 +58,37 @@ pub fn builtin() -> Vec<NewTask> {
     ]
 }
 
-pub async fn bootstrap(db: &DatabaseConnection) -> Result<usize, astrum_db::Error> {
-    if setting::get::<bool>(db, PROVISIONED).await?.is_some() {
-        return Ok(0);
+fn customer_token_expiry() -> NewTask {
+    NewTask {
+        kind: CUSTOMER_TOKEN_EXPIRY.to_owned(),
+        name: "Notify about expiring customer tokens".to_owned(),
+        enabled: true,
+        schedule: Schedule::cron("0 0 8 * * ?").expect("built-in schedules are valid"),
+        alert_email: None,
+        notification_condition: crate::notification::FAILURE.to_owned(),
+        properties: properties(&[]),
     }
+}
+
+pub async fn bootstrap(db: &DatabaseConnection) -> Result<usize, astrum_db::Error> {
     let mut created = 0;
-    for task in builtin() {
+    if setting::get::<bool>(db, PROVISIONED).await?.is_none() {
+        for task in builtin() {
+            let name = task.name.clone();
+            match store::create(db, task).await {
+                Ok(_) => created += 1,
+                Err(StoreError::Duplicate(_)) => {}
+                Err(StoreError::Database(error)) => return Err(error.into()),
+            }
+            tracing::info!(task = %name, "created a built-in task");
+        }
+        setting::put(db, PROVISIONED, &true).await?;
+    }
+    if setting::get::<bool>(db, CUSTOMER_TOKEN_EXPIRY_PROVISIONED)
+        .await?
+        .is_none()
+    {
+        let task = customer_token_expiry();
         let name = task.name.clone();
         match store::create(db, task).await {
             Ok(_) => created += 1,
@@ -69,7 +96,7 @@ pub async fn bootstrap(db: &DatabaseConnection) -> Result<usize, astrum_db::Erro
             Err(StoreError::Database(error)) => return Err(error.into()),
         }
         tracing::info!(task = %name, "created a built-in task");
+        setting::put(db, CUSTOMER_TOKEN_EXPIRY_PROVISIONED, &true).await?;
     }
-    setting::put(db, PROVISIONED, &true).await?;
     Ok(created)
 }

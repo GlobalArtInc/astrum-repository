@@ -376,6 +376,9 @@ pub fn subject(channel: &Channel, rendered: &Rendered) -> String {
         None if crate::alerts::is_alert(&rendered.event) => {
             crate::alerts::title(channel, &rendered.event).to_owned()
         }
+        None if crate::customers::is_notice(&rendered.event) => {
+            crate::customers::title(&rendered.event).to_owned()
+        }
         None => texts.summary.replace("{}", "…"),
     }
 }

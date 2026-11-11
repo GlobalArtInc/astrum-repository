@@ -41,6 +41,9 @@ impl Server {
         state.security().ldap().set_cache_ttl(config.ldap_cache_ttl);
         crate::formats::register(state.content());
         crate::formats::register_tasks(state.tasks());
+        state.tasks().register(std::sync::Arc::new(
+            astrum_api::customer_expiry::CustomerTokenExpiry::new(state.notifier().clone()),
+        ));
         let listener = TcpListener::bind(config.listen)
             .await
             .with_context(|| format!("cannot listen on {}", config.listen))?;

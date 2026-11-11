@@ -78,6 +78,7 @@ impl Default for Branding {
 pub const PROMETHEUS_KEY: &str = "monitoring.prometheus";
 pub const SPACE_ALERT_KEY: &str = "monitoring.blobStoreSpace";
 pub const SPACE_ALERT_STATE_KEY: &str = "monitoring.blobStoreSpace.state";
+pub const CUSTOMER_EXPIRY_NOTICE_KEY: &str = "customers.expiryNotice";
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
@@ -120,6 +121,26 @@ impl Default for SpaceAlert {
             quota: true,
             unavailable: true,
             recovery: true,
+            channels: Vec::new(),
+            enabled: true,
+            notes: String::new(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct CustomerExpiryNotice {
+    pub days: Vec<u32>,
+    pub channels: Vec<String>,
+    pub enabled: bool,
+    pub notes: String,
+}
+
+impl Default for CustomerExpiryNotice {
+    fn default() -> Self {
+        Self {
+            days: vec![30, 7, 1],
             channels: Vec::new(),
             enabled: true,
             notes: String::new(),

@@ -44,7 +44,8 @@ async fn settings_appear_as_capabilities() {
             "rapture.settings",
             "rapture.branding",
             "metrics.prometheus",
-            "blobstores.space"
+            "blobstores.space",
+            "customers.expiryNotice"
         ]
     );
     assert_eq!(types[0]["formFields"][0]["id"], "url");
