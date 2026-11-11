@@ -296,7 +296,7 @@ async fn an_excepted_tag_moves_and_the_latest_policy_cannot_free_an_immutable_on
     assert_eq!(moved.status, Status::Copied);
     let refused = promote(&registry, "dev", "strict", "latest", Conflict::Replace).await;
     assert!(
-        matches!(refused, Err(ContentError::Conflict(_))),
+        matches!(refused, Err(ContentError::Protected(_))),
         "{refused:?}"
     );
     assert_eq!(
@@ -457,13 +457,16 @@ async fn a_promotion_that_would_replace_an_immutable_tag_is_refused_and_writes_n
         .count("SELECT count(*) AS n FROM asset WHERE repository = 'rel' AND kind = 'blob'")
         .await;
 
-    for conflict in [Conflict::Replace, Conflict::Fail] {
-        let refused = promote(&registry, "dev", "rel", "v1", conflict).await;
-        assert!(
-            matches!(refused, Err(ContentError::Conflict(_))),
-            "{refused:?}"
-        );
-    }
+    let refused = promote(&registry, "dev", "rel", "v1", Conflict::Replace).await;
+    assert!(
+        matches!(refused, Err(ContentError::Protected(_))),
+        "{refused:?}"
+    );
+    let refused = promote(&registry, "dev", "rel", "v1", Conflict::Fail).await;
+    assert!(
+        matches!(refused, Err(ContentError::Conflict(_))),
+        "{refused:?}"
+    );
     assert_eq!(
         registry
             .count("SELECT count(*) AS n FROM asset WHERE repository = 'rel'")
@@ -702,4 +705,117 @@ async fn a_stored_rule_that_does_not_compile_freezes_the_existing_tags_only() {
         .await;
     let (fixed, _) = registry.push("/v2/rel/app", "v1", b"two").await;
     assert_ne!(fixed, first);
+}
+
+async fn rest_ids(registry: &Registry, path: &str) -> (String, String) {
+    let components = registry
+        .rest(
+            Method::GET,
+            "/service/rest/v1/components?repository=rel",
+            None,
+        )
+        .await
+        .json();
+    for component in components["items"].as_array().unwrap() {
+        for asset in component["assets"].as_array().unwrap() {
+            if asset["path"] == path {
+                return (
+                    asset["id"].as_str().unwrap().to_owned(),
+                    component["id"].as_str().unwrap().to_owned(),
+                );
+            }
+        }
+    }
+    panic!("no asset {path} in rel");
+}
+
+#[tokio::test]
+async fn the_rest_delete_of_an_immutable_tag_answers_409_and_a_mutable_one_is_deleted() {
+    let registry = Registry::new().await;
+    registry.create(hosted("rel", "ALLOW", &["v*"], &[])).await;
+    registry.push("/v2/rel/app", "v1", b"one").await;
+    registry.push("/v2/rel/other", "dev", b"two").await;
+    registry.push("/v2/rel/third", "dev", b"three").await;
+    let assets = registry
+        .count("SELECT count(*) AS n FROM asset WHERE repository = 'rel'")
+        .await;
+
+    let (asset, component) = rest_ids(&registry, "/v2/app/manifests/v1").await;
+    for path in [
+        format!("/service/rest/v1/assets/{asset}"),
+        format!("/service/rest/v1/components/{component}"),
+    ] {
+        let reply = registry.rest(Method::DELETE, &path, None).await;
+        assert_eq!(reply.status, StatusCode::CONFLICT, "{}", reply.text());
+        assert_eq!(
+            reply.json()["message"],
+            "tag v1 of app is immutable in repository rel (rule v*)"
+        );
+    }
+    assert_eq!(
+        registry
+            .count("SELECT count(*) AS n FROM asset WHERE repository = 'rel'")
+            .await,
+        assets
+    );
+
+    let (asset, _) = rest_ids(&registry, "/v2/other/manifests/dev").await;
+    let deleted = registry
+        .rest(
+            Method::DELETE,
+            &format!("/service/rest/v1/assets/{asset}"),
+            None,
+        )
+        .await;
+    assert_eq!(deleted.status, StatusCode::NO_CONTENT, "{}", deleted.text());
+    let (_, component) = rest_ids(&registry, "/v2/third/manifests/dev").await;
+    let deleted = registry
+        .rest(
+            Method::DELETE,
+            &format!("/service/rest/v1/components/{component}"),
+            None,
+        )
+        .await;
+    assert_eq!(deleted.status, StatusCode::NO_CONTENT, "{}", deleted.text());
+}
+
+#[tokio::test]
+async fn a_folder_delete_keeps_immutable_tags_and_answers_409_when_only_they_are_left() {
+    let registry = Registry::new().await;
+    registry.create(hosted("rel", "ALLOW", &["v*"], &[])).await;
+    registry.push("/v2/rel/app", "v1", b"one").await;
+    registry.push("/v2/rel/app", "dev", b"two").await;
+    registry.push("/v2/rel/solo", "v1", b"three").await;
+
+    let mixed = registry
+        .rest(
+            Method::DELETE,
+            "/service/rest/internal/ui/browse/rel?path=app",
+            None,
+        )
+        .await;
+    assert_eq!(mixed.status, StatusCode::OK, "{}", mixed.text());
+    assert_eq!(
+        mixed.json(),
+        json!({"deletedAssets": 1, "deletedComponents": 1, "skippedAssets": 0, "protectedAssets": 1})
+    );
+    let audited = registry
+        .count("SELECT count(*) AS n FROM audit_event WHERE domain = 'asset' AND context = '/v2/app/manifests/v1'")
+        .await;
+    assert_eq!(audited, 0);
+    assert!(registry.pulls("/v2/rel/app/manifests/v1").await.is_some());
+
+    let solo = registry
+        .rest(
+            Method::DELETE,
+            "/service/rest/internal/ui/browse/rel?path=solo",
+            None,
+        )
+        .await;
+    assert_eq!(solo.status, StatusCode::CONFLICT, "{}", solo.text());
+    assert_eq!(
+        solo.json()["message"],
+        "1 protected asset not deleted in /solo/; first reason: tag v1 of solo is immutable in repository rel (rule v*)"
+    );
+    assert!(registry.pulls("/v2/rel/solo/manifests/v1").await.is_some());
 }

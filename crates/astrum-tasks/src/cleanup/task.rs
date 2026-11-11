@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 
+use astrum_content::ContentError;
 use astrum_db::audit::Event;
 use astrum_repo::RepositoryType;
 use async_trait::async_trait;
@@ -100,7 +101,15 @@ impl TaskKind for Cleanup {
         let components = counts.get("components").copied().unwrap_or(0);
         let assets = counts.get("assets").copied().unwrap_or(0);
         let bytes = counts.get("bytes").copied().unwrap_or(0);
-        Ok(match (examined, components) {
+        let protected = counts.get("protected").copied().unwrap_or(0);
+        let kept = match protected {
+            0 => String::new(),
+            _ => format!(
+                ", kept {} protected by immutable tag rules",
+                count(protected, "component", "components")
+            ),
+        };
+        let summary = match (examined, components) {
             (0, _) => "no repository has a cleanup policy".to_owned(),
             (_, 0) => format!(
                 "nothing matched the cleanup policies of {}",
@@ -113,7 +122,8 @@ impl TaskKind for Cleanup {
                 size(bytes),
                 count(examined as i64, "repository", "repositories")
             ),
-        })
+        };
+        Ok(format!("{summary}{kept}"))
     }
 }
 
@@ -127,7 +137,14 @@ async fn apply(run: &Run, matcher: &Matcher, policy: &str) -> Result<(i64, i64, 
             run.check()?;
             after = component.id;
             let deleted =
-                astrum_content::store::delete_component(run.content(), component.id).await?;
+                match astrum_content::store::delete_component(run.content(), component.id).await {
+                    Ok(deleted) => deleted,
+                    Err(ContentError::Protected(_)) => {
+                        run.count("protected", 1);
+                        continue;
+                    }
+                    Err(error) => return Err(error.into()),
+                };
             if !deleted {
                 continue;
             }

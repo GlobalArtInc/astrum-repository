@@ -57,7 +57,7 @@ async fn put(ctx: &Ctx, path: &str, body: &'static [u8]) -> Result<Asset, Conten
 
 fn refused(result: Result<impl std::fmt::Debug, ContentError>, path: &str) {
     match result {
-        Err(ContentError::Conflict(reason)) => {
+        Err(ContentError::Protected(reason)) => {
             assert_eq!(reason, format!("target keeps {path}"))
         }
         other => panic!("{other:?}"),

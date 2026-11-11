@@ -1527,3 +1527,99 @@ async fn held_duplicates_survive_compaction_that_runs_alongside_and_loose_ones_d
         held.len() as i64
     );
 }
+
+async fn protected_repository(fixture: &Fixture) {
+    let created = call(
+        fixture,
+        Method::POST,
+        "/service/rest/v1/repositories/docker/hosted",
+        Some(json!({
+            "name": "images",
+            "online": true,
+            "storage": {
+                "blobStoreName": "default",
+                "strictContentTypeValidation": true,
+                "writePolicy": "ALLOW",
+                "immutableTags": {"patterns": ["v*"], "exceptions": []}
+            },
+            "docker": {"v1Enabled": false, "forceBasicAuth": true},
+            "cleanup": {"policyNames": ["old-tags"]}
+        })),
+    )
+    .await;
+    assert_eq!(created.status, StatusCode::CREATED, "{}", created.text());
+}
+
+async fn run_protected_cleanup(fixture: &Fixture) -> Value {
+    let cleanup = create_task(
+        fixture,
+        json!({"type": "repository.cleanup", "name": "Cleanup"}),
+    )
+    .await;
+    let id = cleanup["id"].as_str().unwrap().to_owned();
+    let done = run_now(fixture, &id).await;
+    assert_eq!(done["lastRunResult"], "OK", "{done}");
+    last_run(fixture, &id).await
+}
+
+#[tokio::test]
+async fn docker_cleanup_keeps_old_immutable_tags_and_says_so() {
+    let fixture = ready().await;
+    tag_policy(
+        &fixture,
+        json!({"name": "old-tags", "format": "docker", "criteriaLastBlobUpdated": 35}),
+    )
+    .await;
+    protected_repository(&fixture).await;
+    push_tags(&fixture, "a", &["v1", "w1"]).await;
+    age_tags(&fixture, "c.name = 'a'", "50 days").await;
+
+    let run = run_protected_cleanup(&fixture).await;
+    assert_eq!(run["counts"]["components"], 1);
+    assert_eq!(run["counts"]["protected"], 1);
+    assert!(
+        run["message"]
+            .as_str()
+            .unwrap()
+            .ends_with("kept 1 component protected by immutable tag rules"),
+        "{run}"
+    );
+    let kept = count(
+        &fixture,
+        "SELECT count(*) AS n FROM component WHERE repository = 'images' AND version = 'v1'",
+    )
+    .await;
+    assert_eq!(kept, 1);
+    let deleted = count(
+        &fixture,
+        "SELECT count(*) AS n FROM component WHERE repository = 'images' AND version = 'w1'",
+    )
+    .await;
+    assert_eq!(deleted, 0);
+}
+
+#[tokio::test]
+async fn docker_cleanup_moves_past_more_protected_components_than_one_batch() {
+    let fixture = ready().await;
+    tag_policy(
+        &fixture,
+        json!({"name": "old-tags", "format": "docker", "criteriaLastBlobUpdated": 35}),
+    )
+    .await;
+    protected_repository(&fixture).await;
+    let tags: Vec<String> = (1..=201).map(|n| format!("v{n}")).collect();
+    let tags: Vec<&str> = tags.iter().map(String::as_str).collect();
+    push_tags(&fixture, "a", &tags).await;
+    push_tags(&fixture, "a", &["w1"]).await;
+    age_tags(&fixture, "c.name = 'a'", "50 days").await;
+
+    let run = run_protected_cleanup(&fixture).await;
+    assert_eq!(run["counts"]["components"], 1);
+    assert_eq!(run["counts"]["protected"], 201);
+    let left = count(
+        &fixture,
+        "SELECT count(*) AS n FROM component WHERE repository = 'images'",
+    )
+    .await;
+    assert_eq!(left, 201);
+}

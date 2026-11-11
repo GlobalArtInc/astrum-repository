@@ -389,7 +389,7 @@ async fn record_once(
             .eq_ignore_ascii_case(&written.digests.sha256)
         && let Some(reason) = protection(txn, &ctx.content, repository, &[previous]).await?
     {
-        return Err(ContentError::Conflict(reason));
+        return Err(ContentError::Protected(reason));
     }
     let stored = upsert_asset(
         txn,
@@ -676,7 +676,7 @@ async fn refuse_protected(
         .filter_map(|outcome| existing.get(&outcome.path))
         .collect();
     match protection(db, content, repository, &replaced).await? {
-        Some(reason) => Err(ContentError::Conflict(reason)),
+        Some(reason) => Err(ContentError::Protected(reason)),
         None => Ok(()),
     }
 }
@@ -865,7 +865,7 @@ async fn remove_asset(
     }
     lock_usage(txn, &current.repository).await?;
     if let Some(reason) = protection(txn, content, &current.repository, &[&current]).await? {
-        return Err(ContentError::Conflict(reason));
+        return Err(ContentError::Protected(reason));
     }
     let Some(deleted) = txn
         .query_one(Statement::from_sql_and_values(
@@ -990,7 +990,7 @@ async fn remove_component(
     )
     .await?
     {
-        return Err(ContentError::Conflict(reason));
+        return Err(ContentError::Protected(reason));
     }
     let deleted = component::Entity::delete_by_id(component_id)
         .exec(txn)

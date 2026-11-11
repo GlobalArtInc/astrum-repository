@@ -752,7 +752,7 @@ impl Docker {
             .iter()
             .find_map(|asset| storage::protected_tag(&ctx.repository, asset))
         {
-            return Err(ContentError::Conflict(reason));
+            return Err(ContentError::Protected(reason));
         }
         let deleted = !doomed.is_empty();
         for asset in doomed {

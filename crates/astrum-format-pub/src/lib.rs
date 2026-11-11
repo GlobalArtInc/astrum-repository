@@ -153,7 +153,7 @@ fn code_of(error: &ContentError) -> &'static str {
         ContentError::Forbidden => "InsufficientPermissions",
         ContentError::MethodNotAllowed { .. } => "MethodNotAllowed",
         ContentError::BadRequest(_) => "InvalidInput",
-        ContentError::Conflict(_) => "PackageRejected",
+        ContentError::Conflict(_) | ContentError::Protected(_) => "PackageRejected",
         ContentError::PreconditionFailed => "PreconditionFailed",
         ContentError::RangeNotSatisfiable(_) => "RangeNotSatisfiable",
         ContentError::Unavailable(_) | ContentError::BadGateway(_) => "ServiceUnavailable",

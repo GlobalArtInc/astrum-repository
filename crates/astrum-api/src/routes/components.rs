@@ -895,7 +895,7 @@ async fn delete_component(
     }
     store::delete_component(state.content(), component.id)
         .await
-        .map_err(ApiError::internal)?;
+        .map_err(protected_or_internal)?;
     audit(
         &state,
         &caller,
@@ -948,9 +948,16 @@ async fn delete_asset(
     let path = asset.path.clone();
     store::delete_asset(state.content(), asset)
         .await
-        .map_err(ApiError::internal)?;
+        .map_err(protected_or_internal)?;
     audit(&state, &caller, "asset", &path, &repository).await;
     Ok(StatusCode::NO_CONTENT)
+}
+
+fn protected_or_internal(error: ContentError) -> ApiError {
+    match error {
+        ContentError::Protected(reason) => ApiError::Conflict(reason),
+        other => ApiError::internal(other),
+    }
 }
 
 async fn delete_context(
@@ -1041,9 +1048,9 @@ pub(crate) async fn submit(ctx: Ctx, format: &dyn Format, form: UploadForm) -> R
     format.upload(ctx, form).await.map_err(|error| match error {
         ContentError::Unauthorized => Failure::Api(ApiError::Unauthorized),
         ContentError::Forbidden => Failure::Api(ApiError::forbidden()),
-        ContentError::BadRequest(message) | ContentError::Conflict(message) => {
-            Failure::Api(ApiError::BadRequest(message))
-        }
+        ContentError::BadRequest(message)
+        | ContentError::Conflict(message)
+        | ContentError::Protected(message) => Failure::Api(ApiError::BadRequest(message)),
         other => Failure::Content(other),
     })
 }

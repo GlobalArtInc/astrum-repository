@@ -107,7 +107,9 @@ fn sign_in_message(ctx: &Ctx) -> String {
 
 fn failure(ctx: &Ctx, erlang: bool, error: ContentError) -> Response {
     let status = match &error {
-        ContentError::BadRequest(_) | ContentError::Conflict(_) => StatusCode::UNPROCESSABLE_ENTITY,
+        ContentError::BadRequest(_) | ContentError::Conflict(_) | ContentError::Protected(_) => {
+            StatusCode::UNPROCESSABLE_ENTITY
+        }
         other => other.status(),
     };
     let message = match &error {
