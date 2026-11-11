@@ -1,6 +1,8 @@
 pub mod import;
 
+use astrum_content::import::{Described, Imported};
 use astrum_content::store::{self, ComponentKey, PutAsset};
+use astrum_content::transfer::{GenericTransfer, Transfer};
 use astrum_content::{
     Asset, ContentError, ContentRequest, Ctx, Format, Freshness, Serve, UploadField, UploadForm,
     UploadSpec, View, proxy, serve,
@@ -10,11 +12,22 @@ use astrum_repo::config::ContentDisposition;
 use async_trait::async_trait;
 use axum::http::{Method, StatusCode};
 use axum::response::{IntoResponse, Response};
+use futures_util::future::BoxFuture;
 
 pub const ID: &str = "raw";
 const ALLOW: &str = "GET,HEAD,PUT,DELETE";
 
 pub struct Raw;
+
+static TRANSFER: GenericTransfer = GenericTransfer {
+    plan: import::plan,
+    describe: describe_imported,
+    after: None,
+};
+
+fn describe_imported(file: &Imported) -> BoxFuture<'_, Result<Option<Described>, String>> {
+    Box::pin(import::describe(file))
+}
 
 fn component(path: &str) -> ComponentKey {
     let parent = match path.rfind('/') {
@@ -130,6 +143,10 @@ impl Format for Raw {
             PutAsset::cached(path).component(component(path))
         })
         .await
+    }
+
+    fn transfer(&self) -> Option<&dyn Transfer> {
+        Some(&TRANSFER)
     }
 
     fn upload_spec(&self) -> Option<UploadSpec> {

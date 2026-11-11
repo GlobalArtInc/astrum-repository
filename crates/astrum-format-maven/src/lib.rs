@@ -9,7 +9,9 @@ pub mod version;
 mod xml;
 
 use astrum_content::format::SearchTarget;
+use astrum_content::import::{Described, Imported};
 use astrum_content::store::{self, ComponentKey, PutAsset};
+use astrum_content::transfer::{GenericTransfer, Transfer};
 use astrum_content::{
     Asset, ContentError, ContentRequest, Ctx, Format, Freshness, SearchKey, Serve, UploadForm,
     UploadSpec, View, group, proxy, serve,
@@ -20,6 +22,7 @@ use async_trait::async_trait;
 use axum::http::{Method, StatusCode};
 use axum::response::{IntoResponse, Response};
 use chrono::{DateTime, Utc};
+use futures_util::future::BoxFuture;
 use serde_json::json;
 
 use crate::path::{Coordinates, Kind, MavenPath};
@@ -59,6 +62,16 @@ const SEARCH_KEYS: &[SearchKey] = &[
 ];
 
 pub struct Maven;
+
+static TRANSFER: GenericTransfer = GenericTransfer {
+    plan: import::plan,
+    describe: describe_imported,
+    after: None,
+};
+
+fn describe_imported(file: &Imported) -> BoxFuture<'_, Result<Option<Described>, String>> {
+    Box::pin(import::describe(file))
+}
 
 pub(crate) fn component_key(coordinates: &Coordinates) -> ComponentKey {
     ComponentKey {
@@ -499,5 +512,9 @@ impl Format for Maven {
 
     fn search_keys(&self) -> &'static [SearchKey] {
         SEARCH_KEYS
+    }
+
+    fn transfer(&self) -> Option<&dyn Transfer> {
+        Some(&TRANSFER)
     }
 }

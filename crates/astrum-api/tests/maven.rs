@@ -5,6 +5,7 @@ use std::hash::{DefaultHasher, Hash as _, Hasher};
 use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
 
+use astrum_content::transfer::{BundleAsset, Status};
 use astrum_format_maven::metadata::{self, Metadata};
 use astrum_security::ssrf::{SSRF_KEY, SsrfProtection};
 use axum::Router;
@@ -1710,4 +1711,61 @@ async fn content_permissions_cover_artifacts_metadata_and_checksums() {
         .call(Method::GET, "/repository/releases/org/", Auth::None, None)
         .await;
     assert_eq!(listing.status, StatusCode::UNAUTHORIZED);
+}
+
+#[tokio::test]
+async fn artifacts_are_promoted_without_copying_their_checksums() {
+    let fixture = ready().await;
+    create(
+        &fixture,
+        "hosted",
+        hosted("source", "RELEASE", "STRICT", "ALLOW"),
+    )
+    .await;
+    create(
+        &fixture,
+        "hosted",
+        hosted("target", "RELEASE", "STRICT", "ALLOW"),
+    )
+    .await;
+    deploy(&fixture, "source", "org.example", "lib", "1.0").await;
+    let jar = "/org/example/lib/1.0/lib-1.0.jar";
+    let checksum = format!("{jar}.sha1");
+    let format = astrum_format_maven::Maven;
+    let mut bundle = support::bundle_of(&fixture, &format, "source", jar).await;
+    let digest = sha1(JAR);
+    bundle.assets.push(BundleAsset {
+        path: checksum.clone(),
+        kind: "ARTIFACT".to_owned(),
+        content_type: "text/plain".to_owned(),
+        size: digest.len() as u64,
+        sha1: String::new(),
+        sha256: hex::encode(Sha256::digest(digest.as_bytes())),
+        sha512: String::new(),
+        md5: String::new(),
+        attributes: json!({}),
+    });
+    let outcome = support::receive(&fixture, &format, "source", "target", &bundle).await;
+    assert_eq!(outcome.status, Status::Copied);
+    assert!(
+        astrum_content::store::find(fixture.state.db().conn(), "target", &checksum)
+            .await
+            .unwrap()
+            .is_none()
+    );
+    let served = get(&fixture, &format!("/repository/target{jar}")).await;
+    assert_eq!(served.status, StatusCode::OK);
+    assert_eq!(served.body, JAR.to_vec());
+    let pom = get(
+        &fixture,
+        "/repository/target/org/example/lib/1.0/lib-1.0.pom",
+    )
+    .await;
+    assert_eq!(pom.status, StatusCode::OK);
+    let metadata = metadata_of(
+        &fixture,
+        "/repository/target/org/example/lib/maven-metadata.xml",
+    )
+    .await;
+    assert_eq!(versions(&metadata), ["1.0"]);
 }
