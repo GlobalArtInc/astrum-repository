@@ -35,6 +35,7 @@ repositories themselves are in [repositories](../repositories/overview.md).
 | [npm](npm.md) | npm, pnpm, Yarn | ✓ | ✓ | ✓ |
 | [NuGet](nuget.md) | `dotnet`, `nuget` | ✓ | ✓ | ✓ |
 | [Nx remote cache](nx.md) | Nx | ✓ | | |
+| [OPAM](opam.md) | `opam` | ✓ | ✓ | |
 | [Open VSX](openvsx.md) | VSCodium, code-server, `ovsx` | ✓ | ✓ | ✓ |
 | [P2](p2.md) | Eclipse | | ✓ | |
 | [pacman](pacman.md) | `pacman` | ✓ | ✓ | ✓ |

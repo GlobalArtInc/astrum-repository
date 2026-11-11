@@ -31,6 +31,7 @@ export const FORMATS: Record<string, { name: string; color: Color; label?: strin
   npm: { name: 'npm', color: 'red' },
   nuget: { name: 'NuGet', color: 'purple' },
   nx: { name: 'Nx', color: 'blue' },
+  opam: { name: 'OPAM', color: 'orange' },
   openvsx: { name: 'Open VSX', color: 'violet' },
   p2: { name: 'P2', color: 'gray' },
   pacman: { name: 'pacman', color: 'blue' },

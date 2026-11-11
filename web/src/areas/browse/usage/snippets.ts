@@ -13,6 +13,7 @@ import { jetbrains } from './jetbrains';
 import { jsr } from './jsr';
 import { nix } from './nix';
 import { nx } from './nx';
+import { opam } from './opam';
 import { openvsx } from './openvsx';
 import { p2 } from './p2';
 import { pacman } from './pacman';
@@ -103,6 +104,7 @@ export const USAGE_FORMATS = [
   'bazel',
   'jsr',
   'homebrew',
+  'opam',
   'jetbrains',
   'protobuf',
   'chrome',
@@ -1139,6 +1141,8 @@ const GENERATORS: Record<string, (context: UsageContext) => Snippet[]> = {
   hex: (context) => hex(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   homebrew: (context) =>
     homebrew(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
+  opam: (context) =>
+    opam(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   openvsx: (context) =>
     openvsx(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   pacman: (context) =>

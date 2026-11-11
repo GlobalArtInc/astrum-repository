@@ -549,6 +549,7 @@
   "repositories.formats.nuget": "Package manager for .NET development.",
   "repositories.formats.gradlecache": "A self-hosted build cache for Gradle: task outputs that Gradle uploads and restores instead of running the tasks again.",
   "repositories.formats.nx": "A self-hosted remote cache for Nx: task outputs that nx uploads and restores instead of running the tasks again.",
+  "repositories.formats.opam": "A repository for the OCaml package manager opam: hosted repositories that teams publish packages to with curl, and a proxy of opam.ocaml.org for closed networks.",
   "repositories.formats.openvsx": "VS Code extensions for VSCodium and other editors, served through the Open VSX and gallery APIs.",
   "repositories.formats.pacman": "The package manager of Arch Linux and the distributions built on it.",
   "repositories.formats.protobuf": "A Buf Schema Registry compatible registry of Protobuf modules for buf push, buf dep update and buf build. It answers on a domain of its own.",

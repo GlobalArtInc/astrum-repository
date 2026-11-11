@@ -55,6 +55,7 @@ const FORMAT_TEXTS: Record<string, string> = {
   npm: 'repositories.formats.npm',
   nuget: 'repositories.formats.nuget',
   nx: 'repositories.formats.nx',
+  opam: 'repositories.formats.opam',
   openvsx: 'repositories.formats.openvsx',
   pacman: 'repositories.formats.pacman',
   protobuf: 'repositories.formats.protobuf',

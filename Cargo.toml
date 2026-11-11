@@ -42,6 +42,7 @@ astrum-format-nix = { path = "crates/astrum-format-nix" }
 astrum-format-npm = { path = "crates/astrum-format-npm" }
 astrum-format-nuget = { path = "crates/astrum-format-nuget" }
 astrum-format-nx = { path = "crates/astrum-format-nx" }
+astrum-format-opam = { path = "crates/astrum-format-opam" }
 astrum-format-openvsx = { path = "crates/astrum-format-openvsx" }
 astrum-format-p2 = { path = "crates/astrum-format-p2" }
 astrum-format-pacman = { path = "crates/astrum-format-pacman" }

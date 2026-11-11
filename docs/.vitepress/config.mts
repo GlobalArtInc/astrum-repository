@@ -33,6 +33,7 @@ const FORMATS: [string, string][] = [
   ['npm', 'npm, pnpm, Yarn'],
   ['nuget', 'NuGet'],
   ['nx', 'Nx remote cache'],
+  ['opam', 'OPAM'],
   ['openvsx', 'Open VSX'],
   ['p2', 'P2'],
   ['pacman', 'pacman'],

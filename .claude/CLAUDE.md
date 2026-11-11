@@ -35,6 +35,12 @@ repository is public: never commit secrets.
   origin https://ghcr.io with the anonymous pull token, checking the SHA-256 of a blob against its path before storing it;
   every other path is 404 and never reaches an upstream. brew is pointed at it with `HOMEBREW_API_DOMAIN` and
   `HOMEBREW_ARTIFACT_DOMAIN`, and sends no credentials for the index, so the repository must be readable anonymously.
+  Also OPAM (`opam`, `crates/astrum-format-opam`; hosted and proxy, no group because opam ranks repositories itself): a hosted
+  repository takes `curl -T` at `packages/<n>/<n>.<v>/opam`, `packages/<n>/<n>.<v>/files/<path>` and
+  `cache/<sha256|sha512>/<xx>/<digest>` (the body must match its digest) and generates `repo` and `index.tar.gz`, which is
+  rebuilt after every write or delete of a `packages/` file under an advisory lock per repository (at most 50 000 entries);
+  a proxy of https://opam.ocaml.org passes `index.tar.gz`, `repo` and the digest-checked `cache/` files and answers 404
+  without asking the remote for anything else. Credentials in the URL are unverified with a real opam client.
   Also a hosted-only Buf Schema Registry for Protobuf modules (`protobuf`, `crates/astrum-format-protobuf`: Connect
   services `buf.registry.module.v1` and `buf.registry.owner.v1.OwnerService`, checked with buf 1.75.0; it needs a
   repository domain with `ROOT` routing because buf sends no path prefix, and has no proxy, group or `v1beta1`

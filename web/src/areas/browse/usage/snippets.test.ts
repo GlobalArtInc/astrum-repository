@@ -1452,6 +1452,38 @@ describe('jsr usage', () => {
   });
 });
 
+describe('opam usage', () => {
+  it('adds a hosted repository and offers the uploads', () => {
+    const snippets = usageSnippets(
+      context({
+        format: 'opam',
+        repositoryName: 'ocaml',
+        component: { group: '', name: 'hello', version: '1.0' },
+      }),
+    );
+    expect(ids(snippets)).toEqual(['add', 'upload']);
+    expect(code(snippets, 'add')).toBe(
+      'opam repo add ocaml https://repo.example.org/repository/ocaml --all-switches --set-default',
+    );
+    expect(code(snippets, 'upload')).toContain(
+      '-T opam https://repo.example.org/repository/ocaml/packages/hello/hello.1.0/opam',
+    );
+    expect(code(snippets, 'upload')).toContain('/cache/sha256/');
+    expect(supportsUsage('opam')).toBe(true);
+  });
+
+  it('adds a proxy and offers removing the default repository', () => {
+    const snippets = usageSnippets(
+      context({ format: 'opam', repositoryName: 'opam-proxy', repositoryType: 'proxy' }),
+    );
+    expect(ids(snippets)).toEqual(['add', 'remove']);
+    expect(code(snippets, 'add')).toBe(
+      'opam repo add opam-proxy https://repo.example.org/repository/opam-proxy --all-switches --set-default',
+    );
+    expect(code(snippets, 'remove')).toBe('opam repo remove default --all');
+  });
+});
+
 describe('homebrew usage', () => {
   it('points brew at the API and the bottles of a proxy, with the token for a private one', () => {
     const snippets = usageSnippets(

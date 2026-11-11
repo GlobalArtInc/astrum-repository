@@ -252,6 +252,7 @@ dependencies = [
  "astrum-format-npm",
  "astrum-format-nuget",
  "astrum-format-nx",
+ "astrum-format-opam",
  "astrum-format-openvsx",
  "astrum-format-p2",
  "astrum-format-pacman",
@@ -1089,6 +1090,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "astrum-format-opam"
+version = "3.0.4"
+dependencies = [
+ "astrum-blob",
+ "astrum-content",
+ "astrum-db",
+ "astrum-repo",
+ "async-trait",
+ "axum",
+ "flate2",
+ "futures-util",
+ "hex",
+ "sea-orm",
+ "serde_json",
+ "sha2 0.10.9",
+ "tar",
+ "tempfile",
+ "tokio",
+ "tokio-util",
+ "tracing",
+]
+
+[[package]]
 name = "astrum-format-openvsx"
 version = "3.0.4"
 dependencies = [
@@ -1676,6 +1700,7 @@ dependencies = [
  "astrum-format-npm",
  "astrum-format-nuget",
  "astrum-format-nx",
+ "astrum-format-opam",
  "astrum-format-openvsx",
  "astrum-format-p2",
  "astrum-format-pacman",
