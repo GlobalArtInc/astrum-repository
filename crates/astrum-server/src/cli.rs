@@ -58,4 +58,20 @@ pub enum Command {
     Check,
     #[command(about = "Print the version")]
     Version,
+    #[command(
+        name = "ip-allow",
+        about = "Manage the IP allow lists from the command line"
+    )]
+    IpAllow {
+        #[command(subcommand)]
+        action: IpAllowCommand,
+    },
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Subcommand)]
+pub enum IpAllowCommand {
+    #[command(
+        about = "Clear the management, content and agents lists directly in the database, so every address is allowed again; works while the server is stopped"
+    )]
+    Reset,
 }

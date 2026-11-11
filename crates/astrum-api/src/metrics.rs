@@ -341,6 +341,18 @@ pub async fn render(state: &AppState, settings: &Prometheus) -> String {
         );
     }
     out.family(
+        "astrum_ip_allow_denied_total",
+        "counter",
+        "Requests refused by the IP allow list since this server started, by surface.",
+    );
+    for (surface, count) in state.ip_allow_denials().counts() {
+        out.sample(
+            "astrum_ip_allow_denied_total",
+            &[("surface", surface.as_str())],
+            count,
+        );
+    }
+    out.family(
         "astrum_http_request_duration_seconds",
         "histogram",
         "Time until the response headers were ready, by area of the server.",

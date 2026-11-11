@@ -1,8 +1,10 @@
 use std::process::ExitCode;
 
-use astrum_server::cli::{Cli, Command};
+use astrum_server::cli::{Cli, Command, IpAllowCommand};
 use astrum_server::config::{self, Config};
-use astrum_server::{Server, check, migrate, shutdown_signal, telemetry, version_line};
+use astrum_server::{
+    Server, check, migrate, reset_ip_allow, shutdown_signal, telemetry, version_line,
+};
 use clap::Parser;
 
 #[tokio::main]
@@ -25,6 +27,20 @@ async fn main() -> ExitCode {
             Ok(()) => ExitCode::SUCCESS,
             Err(error) => {
                 eprintln!("astrum check: {error:#}");
+                ExitCode::FAILURE
+            }
+        },
+        Command::IpAllow {
+            action: IpAllowCommand::Reset,
+        } => match reset_ip_allow(&config).await {
+            Ok(()) => {
+                println!(
+                    "the IP allow lists were cleared: every address is allowed on every surface; running servers follow within a few seconds"
+                );
+                ExitCode::SUCCESS
+            }
+            Err(error) => {
+                eprintln!("astrum ip-allow reset: {error:#}");
                 ExitCode::FAILURE
             }
         },

@@ -144,6 +144,17 @@ pub async fn migrate(config: &Config) -> anyhow::Result<Vec<String>> {
     Ok(applied)
 }
 
+pub async fn reset_ip_allow(config: &Config) -> anyhow::Result<()> {
+    let db = connect(config).await?;
+    let reset = astrum_security::ip_allow::reset(db.conn()).await;
+    if let Err(error) = db.close().await {
+        eprintln!(
+            "astrum ip-allow reset: warning: the database connection did not close cleanly: {error}"
+        );
+    }
+    reset.context("the IP allow lists could not be cleared")
+}
+
 pub async fn shutdown_signal() {
     let interrupt = async {
         let _ = tokio::signal::ctrl_c().await;

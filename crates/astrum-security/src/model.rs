@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::Error;
 use crate::catalogue::{self, DEFAULT_SOURCE};
+use crate::ip_allow::{IpAllow, Problem};
 use crate::ldap::{self, LdapServer};
 use crate::oidc::{self, OidcSettings, OidcUser};
 use crate::permission::Permission;
@@ -123,6 +124,17 @@ pub struct SecurityModel {
     pub oidc: Option<OidcSettings>,
     pub oidc_users: BTreeMap<String, OidcUser>,
     pub default_role: Option<String>,
+    pub ip_allow: IpAllow,
+}
+
+fn stored_list_problems(problems: Vec<Problem>) -> Error {
+    Error::IpAllow(
+        problems
+            .iter()
+            .map(|problem| format!("{}: {}", problem.surface.as_str(), problem.message))
+            .collect::<Vec<_>>()
+            .join("; "),
+    )
 }
 
 async fn tolerant<T: serde::de::DeserializeOwned>(
@@ -246,6 +258,8 @@ impl SecurityModel {
             .await?
             .map(|default| default.role)
             .filter(|role| !role.is_empty());
+        let ip_allow = crate::ip_allow::stored(db).await?;
+        model.ip_allow = ip_allow.compile().map_err(stored_list_problems)?;
         for row in security_oidc_user::Entity::find().all(db).await? {
             model.oidc_users.insert(
                 row.user_id.clone(),

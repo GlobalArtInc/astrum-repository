@@ -117,6 +117,89 @@ async fn trusted_proxies_reach_the_running_state() {
     );
 }
 
+fn ip_allow_reset(data: &std::path::Path, url: Option<&str>) -> std::process::Output {
+    let mut command = std::process::Command::new(env!("CARGO_BIN_EXE_astrum"));
+    command
+        .env("ASTRUM_DATA_DIR", data)
+        .env_remove("ASTRUM_CONFIG")
+        .env_remove("ASTRUM_DATABASE_URL")
+        .args(["ip-allow", "reset"]);
+    if let Some(url) = url {
+        command.env("ASTRUM_DATABASE_URL", url);
+    }
+    command.output().unwrap()
+}
+
+#[tokio::test]
+async fn the_ip_allow_reset_command_reopens_a_stopped_server() {
+    use astrum_security::ip_allow::{IP_ALLOW_KEY, IpAllowSettings, Surface};
+    let test = TestDatabase::create().await;
+    let data = tempfile::tempdir().unwrap();
+    let config = config(&test, data.path().to_owned());
+    let server = Server::start(&config).await.unwrap();
+    let locked = IpAllowSettings {
+        management: vec!["192.0.2.1".to_owned()],
+        ..Default::default()
+    };
+    astrum_db::setting::put(server.state().db().conn(), IP_ALLOW_KEY, &locked)
+        .await
+        .unwrap();
+    server.state().security().changed().await.unwrap();
+    assert!(
+        server
+            .state()
+            .security()
+            .model()
+            .ip_allow
+            .restricts(Surface::Management)
+    );
+    let before =
+        astrum_db::revision::current(server.state().db().conn(), astrum_db::revision::SECURITY)
+            .await
+            .unwrap();
+    drop(server);
+
+    let url = test.url().expose().to_owned();
+    let output = ip_allow_reset(data.path(), Some(&url));
+    assert!(output.status.success(), "{output:?}");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("every address is allowed"), "{stdout}");
+
+    let server = Server::start(&config).await.unwrap();
+    let state = server.state();
+    assert!(
+        !state
+            .security()
+            .model()
+            .ip_allow
+            .restricts(Surface::Management)
+    );
+    let after = astrum_db::revision::current(state.db().conn(), astrum_db::revision::SECURITY)
+        .await
+        .unwrap();
+    assert!(after > before, "{after} {before}");
+    let stored: IpAllowSettings = astrum_db::setting::get(state.db().conn(), IP_ALLOW_KEY)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(stored, IpAllowSettings::default());
+}
+
+#[test]
+fn the_ip_allow_reset_command_fails_with_the_reason() {
+    let data = tempfile::tempdir().unwrap();
+    let output = ip_allow_reset(data.path(), None);
+    assert_eq!(output.status.code(), Some(1), "{output:?}");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("astrum ip-allow reset:"), "{stderr}");
+    assert!(stderr.contains("ASTRUM_DATABASE_URL"), "{stderr}");
+    let output = ip_allow_reset(data.path(), Some("postgres://nobody@127.0.0.1:1/none"));
+    assert_eq!(output.status.code(), Some(1), "{output:?}");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("astrum ip-allow reset:"), "{stderr}");
+    assert!(!String::from_utf8_lossy(&output.stdout).contains("cleared"));
+}
+
 #[test]
 fn the_version_line_names_the_product() {
     assert!(astrum_server::version_line().starts_with("Astrum Repository 3."));

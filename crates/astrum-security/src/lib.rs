@@ -2,6 +2,7 @@ pub mod api_keys;
 pub mod bootstrap;
 pub mod catalogue;
 pub mod format_tokens;
+pub mod ip_allow;
 pub mod ldap;
 pub mod model;
 pub mod oauth;
@@ -54,6 +55,10 @@ pub enum Error {
     Io(#[from] std::io::Error),
     #[error("a background job ended early: {0}")]
     Join(#[from] tokio::task::JoinError),
+    #[error(
+        "the stored IP allow list is invalid: {0}; stop the server and run `astrum ip-allow reset` to clear it"
+    )]
+    IpAllow(String),
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]

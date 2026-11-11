@@ -4,6 +4,7 @@ pub mod client;
 pub mod domains;
 pub mod error;
 pub mod github;
+pub mod ip_allow;
 pub mod json;
 pub mod limits;
 pub mod metrics;
@@ -62,6 +63,7 @@ struct Inner {
     limits: limits::Limiter,
     metrics: metrics::Registry,
     stars: github::Stars,
+    ip_allow_denials: ip_allow::Denials,
 }
 
 impl AppState {
@@ -103,6 +105,7 @@ impl AppState {
                 limits: limits::Limiter::default(),
                 metrics: metrics::Registry::default(),
                 stars: github::Stars::default(),
+                ip_allow_denials: ip_allow::Denials::default(),
             }),
         }
     }
@@ -218,6 +221,10 @@ impl AppState {
         &self.inner.metrics
     }
 
+    pub fn ip_allow_denials(&self) -> &ip_allow::Denials {
+        &self.inner.ip_allow_denials
+    }
+
     pub async fn audit(&self, caller: &Caller, event: Event) {
         let initiator = match auth::client_address() {
             Some(address) => format!("{}/{address}", caller.initiator()),
@@ -254,6 +261,10 @@ pub fn on_domains(state: AppState, app: Router) -> Router {
         .layer(middleware::from_fn_with_state(
             state.clone(),
             metrics::track,
+        ))
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            ip_allow::guard,
         ))
         .layer(middleware::from_fn_with_state(
             state.clone(),
