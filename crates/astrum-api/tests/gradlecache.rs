@@ -153,6 +153,33 @@ async fn a_second_upload_answers_ok_and_keeps_the_first_entry() {
 }
 
 #[tokio::test]
+async fn an_entry_is_served_as_octet_stream_whatever_its_bytes() {
+    let fixture = ready().await;
+    let writer = credentials(&fixture, Scope::Write).await;
+    let stored = gradle(
+        &fixture,
+        Method::PUT,
+        &format!("/{KEY}"),
+        Some(&writer),
+        b"<html><script>alert(1)</script></html>".to_vec(),
+    )
+    .await;
+    assert_eq!(stored.status, StatusCode::OK, "{}", stored.text());
+    let fetched = gradle(
+        &fixture,
+        Method::GET,
+        &format!("/{KEY}"),
+        Some(&writer),
+        vec![],
+    )
+    .await;
+    assert_eq!(
+        fetched.headers[header::CONTENT_TYPE],
+        "application/octet-stream"
+    );
+}
+
+#[tokio::test]
 async fn keys_are_stored_in_lower_case() {
     let fixture = ready().await;
     let writer = credentials(&fixture, Scope::Write).await;

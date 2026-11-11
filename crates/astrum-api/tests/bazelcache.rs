@@ -13,7 +13,7 @@ const KEY: &str = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abc
 const BLOB: &str = "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08";
 const OCTET_STREAM: &str = "application/octet-stream";
 
-async fn ready() -> Fixture {
+async fn booted() -> Fixture {
     let fixture = Fixture::new().await;
     astrum_blob::bootstrap(fixture.state.db().conn(), fixture.data.path())
         .await
@@ -22,19 +22,28 @@ async fn ready() -> Fixture {
         .state
         .content()
         .register(Arc::new(astrum_format_bazelcache::BazelCache));
+    fixture
+}
+
+async fn repository(fixture: &Fixture, name: &str, write_policy: &str) {
     let reply = fixture
         .call(
             Method::POST,
             "/service/rest/v1/repositories/bazelcache/hosted",
             Auth::Admin,
             Some(json!({
-                "name": REPOSITORY,
+                "name": name,
                 "online": true,
-                "storage": {"blobStoreName": "default", "strictContentTypeValidation": true, "writePolicy": "allow"},
+                "storage": {"blobStoreName": "default", "strictContentTypeValidation": true, "writePolicy": write_policy},
             })),
         )
         .await;
     assert_eq!(reply.status, StatusCode::CREATED, "{}", reply.text());
+}
+
+async fn ready() -> Fixture {
+    let fixture = booted().await;
+    repository(&fixture, REPOSITORY, "allow").await;
     fixture
 }
 
@@ -56,6 +65,17 @@ async fn bazel(
     authorization: Option<&str>,
     body: Vec<u8>,
 ) -> Reply {
+    bazel_in(fixture, REPOSITORY, method, path, authorization, body).await
+}
+
+async fn bazel_in(
+    fixture: &Fixture,
+    repository: &str,
+    method: Method,
+    path: &str,
+    authorization: Option<&str>,
+    body: Vec<u8>,
+) -> Reply {
     let mut headers = vec![("content-type", OCTET_STREAM)];
     if let Some(value) = authorization {
         headers.push(("authorization", value));
@@ -63,7 +83,7 @@ async fn bazel(
     fixture
         .send_body(
             method,
-            &format!("/repository/{REPOSITORY}{path}"),
+            &format!("/repository/{repository}{path}"),
             Auth::None,
             Body::from(body),
             &headers,
@@ -169,7 +189,40 @@ async fn a_blob_whose_sha256_is_not_its_key_is_refused_and_not_kept() {
 }
 
 #[tokio::test]
-async fn a_second_upload_answers_ok_and_keeps_the_first_bytes() {
+async fn a_second_cas_upload_answers_ok_and_keeps_the_first_bytes() {
+    let fixture = ready().await;
+    let writer = credentials(&fixture, Scope::Write).await;
+    let first = bazel(
+        &fixture,
+        Method::PUT,
+        &format!("/cas/{BLOB}"),
+        Some(&writer),
+        b"test".to_vec(),
+    )
+    .await;
+    assert_eq!(first.status, StatusCode::OK);
+    let again = bazel(
+        &fixture,
+        Method::PUT,
+        &format!("/cas/{BLOB}"),
+        Some(&writer),
+        b"other".to_vec(),
+    )
+    .await;
+    assert_eq!(again.status, StatusCode::OK, "{}", again.text());
+    let fetched = bazel(
+        &fixture,
+        Method::GET,
+        &format!("/cas/{BLOB}"),
+        Some(&writer),
+        vec![],
+    )
+    .await;
+    assert_eq!(fetched.body, b"test");
+}
+
+#[tokio::test]
+async fn a_second_action_result_replaces_the_first_when_writes_are_allowed() {
     let fixture = ready().await;
     let writer = credentials(&fixture, Scope::Write).await;
     let first = bazel(
@@ -198,7 +251,68 @@ async fn a_second_upload_answers_ok_and_keeps_the_first_bytes() {
         vec![],
     )
     .await;
+    assert_eq!(fetched.body, b"second");
+}
+
+#[tokio::test]
+async fn a_second_action_result_keeps_the_first_when_writes_are_allowed_once() {
+    let fixture = booted().await;
+    repository(&fixture, "bazel-cache-once", "allow_once").await;
+    let writer = credentials(&fixture, Scope::Write).await;
+    let first = bazel_in(
+        &fixture,
+        "bazel-cache-once",
+        Method::PUT,
+        &format!("/ac/{KEY}"),
+        Some(&writer),
+        b"first".to_vec(),
+    )
+    .await;
+    assert_eq!(first.status, StatusCode::OK);
+    let again = bazel_in(
+        &fixture,
+        "bazel-cache-once",
+        Method::PUT,
+        &format!("/ac/{KEY}"),
+        Some(&writer),
+        b"second".to_vec(),
+    )
+    .await;
+    assert_eq!(again.status, StatusCode::OK, "{}", again.text());
+    let fetched = bazel_in(
+        &fixture,
+        "bazel-cache-once",
+        Method::GET,
+        &format!("/ac/{KEY}"),
+        Some(&writer),
+        vec![],
+    )
+    .await;
     assert_eq!(fetched.body, b"first");
+}
+
+#[tokio::test]
+async fn an_action_result_is_served_as_octet_stream_whatever_its_bytes() {
+    let fixture = ready().await;
+    let writer = credentials(&fixture, Scope::Write).await;
+    let stored = bazel(
+        &fixture,
+        Method::PUT,
+        &format!("/ac/{KEY}"),
+        Some(&writer),
+        b"<html><script>alert(1)</script></html>".to_vec(),
+    )
+    .await;
+    assert_eq!(stored.status, StatusCode::OK, "{}", stored.text());
+    let fetched = bazel(
+        &fixture,
+        Method::GET,
+        &format!("/ac/{KEY}"),
+        Some(&writer),
+        vec![],
+    )
+    .await;
+    assert_eq!(fetched.headers[header::CONTENT_TYPE], OCTET_STREAM);
 }
 
 #[tokio::test]

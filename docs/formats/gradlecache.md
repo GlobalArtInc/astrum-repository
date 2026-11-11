@@ -33,7 +33,8 @@ CI passes `--build-cache` to Gradle and uploads with the same block, so that the
 ```
 
 Gradle sends the credentials as HTTP Basic. The password is an [access token](../configure/authentication.md#access-tokens),
-and the user name can be any name. Use a token with only the rights that the machine needs: a read token for developers
+and the user name must be the name of the user who owns the token; any other name, such as a made-up one, answers 401.
+Use a token with only the rights that the machine needs: a read token for developers
 restores outputs, a write token for CI also uploads them. A token that may not write gets a 403 on upload, and Gradle
 counts that answer as a failed upload.
 

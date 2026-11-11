@@ -1,10 +1,12 @@
 use astrum_content::store::{self, ComponentKey, PutAsset};
 use astrum_content::{Asset, ContentError, ContentRequest, Ctx, Format, Serve, View, serve};
 use astrum_repo::RepositoryType;
+use astrum_repo::config::WritePolicy;
 use async_trait::async_trait;
 use axum::body::Body;
 use axum::http::{Method, StatusCode, header};
 use axum::response::{IntoResponse, Response};
+use futures_util::TryStreamExt;
 
 pub const ID: &str = "bazelcache";
 const OCTET_STREAM: &str = "application/octet-stream";
@@ -65,6 +67,27 @@ fn plain(status: StatusCode, text: &str) -> Response {
         .expect("a plain answer is valid")
 }
 
+async fn drain(request: ContentRequest) -> Result<(), ContentError> {
+    let mut stream = request.into_stream();
+    while stream
+        .try_next()
+        .await
+        .map_err(ContentError::internal)?
+        .is_some()
+    {}
+    Ok(())
+}
+
+async fn store_as_is(
+    ctx: &Ctx,
+    put: PutAsset,
+    request: ContentRequest,
+) -> Result<(), ContentError> {
+    let written = store::write_blob(ctx, request.into_stream()).await?;
+    store::adopt(ctx, put, &written).await?;
+    Ok(())
+}
+
 async fn store_verified(
     ctx: &Ctx,
     put: PutAsset,
@@ -114,17 +137,25 @@ impl BazelCache {
     ) -> Result<Response, ContentError> {
         let path = stored_path(namespace, key);
         ctx.require(View::Add, &path)?;
-        if store::find(ctx.db(), ctx.name(), &path).await?.is_some() {
+        if matches!(namespace, Namespace::ContentAddressable)
+            && store::find(ctx.db(), ctx.name(), &path).await?.is_some()
+        {
+            drain(request).await?;
             return Ok(plain(StatusCode::OK, "Already stored"));
         }
         let mut put = PutAsset::hosted(ctx, path)
             .component(component(namespace, key))
             .content_type(OCTET_STREAM);
         put.check_content_type = false;
+        if put.write_policy == Some(WritePolicy::Deny) {
+            drain(request).await?;
+            return Err(ContentError::BadRequest(format!(
+                "the repository {} is read-only",
+                ctx.name()
+            )));
+        }
         let stored = match namespace {
-            Namespace::ActionCache => store::put(ctx, put, request.into_stream())
-                .await
-                .map(|_| ()),
+            Namespace::ActionCache => store_as_is(ctx, put, request).await,
             Namespace::ContentAddressable => store_verified(ctx, put, key, request).await,
         };
         match stored {

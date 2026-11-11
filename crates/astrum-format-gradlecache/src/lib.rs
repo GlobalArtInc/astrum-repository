@@ -5,6 +5,7 @@ use async_trait::async_trait;
 use axum::body::Body;
 use axum::http::{Method, StatusCode, header};
 use axum::response::{IntoResponse, Response};
+use futures_util::TryStreamExt;
 
 pub const ID: &str = "gradlecache";
 const OCTET_STREAM: &str = "application/octet-stream";
@@ -44,6 +45,17 @@ fn plain(status: StatusCode, text: &str) -> Response {
         .expect("a plain answer is valid")
 }
 
+async fn drain(request: ContentRequest) -> Result<(), ContentError> {
+    let mut stream = request.into_stream();
+    while stream
+        .try_next()
+        .await
+        .map_err(ContentError::internal)?
+        .is_some()
+    {}
+    Ok(())
+}
+
 impl GradleCache {
     async fn download(
         &self,
@@ -75,13 +87,15 @@ impl GradleCache {
         let path = stored_path(key);
         ctx.require(View::Add, &path)?;
         if store::find(ctx.db(), ctx.name(), &path).await?.is_some() {
+            drain(request).await?;
             return Ok(plain(StatusCode::OK, "Already stored"));
         }
         let mut put = PutAsset::hosted(ctx, path)
             .component(component(key))
             .content_type(OCTET_STREAM);
         put.check_content_type = false;
-        match store::put(ctx, put, request.into_stream()).await {
+        let written = store::write_blob(ctx, request.into_stream()).await?;
+        match store::adopt(ctx, put, &written).await {
             Ok(_) => Ok(plain(StatusCode::OK, "Uploaded")),
             Err(ContentError::Conflict(_)) => Ok(plain(StatusCode::OK, "Already stored")),
             Err(error) => Err(error),

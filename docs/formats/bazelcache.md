@@ -16,6 +16,10 @@ The header carries an [access token](../configure/authentication.md#access-token
 workspace, which is committed: put the header into `~/.bazelrc` on a developer machine, or into a secret of the CI
 pipeline.
 
+The token can also go in the address as Basic credentials, `https://<user>:<access token>@astrum.example.com/repository/bazel-cache`,
+for a client that cannot send a header. The user name must be the name of the user who owns the token; any other name
+answers 401.
+
 Developers use a token with the read right only, so their builds restore results from the cache, and they turn uploads
 off. CI uses a token with the write right and uploads its results:
 
@@ -42,13 +46,19 @@ A `<hash>` is the SHA-256 digest of the content, written as 64 hexadecimal chara
 Only SHA-256 is supported, which is the Bazel default; other digest functions are not.
 
 - A `GET` of a stored key answers 200 with the bytes, and a missing key answers 404.
-- A `PUT` answers 200 when the entry is stored. A key that already exists answers 200 as well and keeps the first
-  entry, because the entries are content-addressed and a non-2xx answer makes Bazel count a failure.
-- A `PUT` to `cas/<hash>` is verified: the body must hash to its key, or the answer is 400 and nothing is stored. The
-  bodies of `ac/` entries are not verified, since they are not content-addressed.
+- A `PUT` answers 200 when the entry is stored. The body of a refused repeat is read and dropped before the answer, so
+  Bazel, which counts any non-2xx answer as a failed upload, never sees a closed connection.
+- A `PUT` to `cas/<hash>` is verified: the body must hash to its key, or the answer is 400 and nothing is stored. A
+  key that already exists keeps its first blob, and a repeat of it answers 200 without checking the body.
+- A `PUT` to `ac/<hash>` is not verified, since action results are not content-addressed. A repeat replaces the entry
+  when the repository's write policy is `allow`, and keeps the first entry with a 200 answer when it is `allow_once`.
+  Use `allow`: an `ac/` entry can outlive the blob it names (see below), and only a replacing upload repairs it.
 - A key that is not 64 hexadecimal characters is 404 on `GET` and 400 on `PUT`, and a path under another first segment
   is 404.
 
 An entry is stored as `<repository>/ac/<hash>` or `<repository>/cas/<hash>` and is listed as the component
 `ac/<hash>` or `cas/<hash>`. An administrator can delete an entry, and the key can then be uploaded again; old entries
-go away with a cleanup policy on the time they were last downloaded. The format has no proxy or group repositories.
+go away with a cleanup policy on the time they were last downloaded. The two spaces are cleaned separately: a cleanup
+policy with an asset regex such as `ac/.*` clears action results only, and `cas/.*` clears blobs only. An `ac/` entry can name a blob that is already gone; Bazel then runs the action again and
+uploads a new blob, and with `allow` the new `ac/` entry replaces the old one. The format has no proxy or group
+repositories.

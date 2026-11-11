@@ -541,6 +541,7 @@ dependencies = [
  "astrum-repo",
  "async-trait",
  "axum",
+ "futures-util",
 ]
 
 [[package]]
@@ -806,6 +807,7 @@ dependencies = [
  "astrum-repo",
  "async-trait",
  "axum",
+ "futures-util",
 ]
 
 [[package]]

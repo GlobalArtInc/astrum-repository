@@ -10,3 +10,4 @@ astrum-content.workspace = true
 astrum-repo.workspace = true
 async-trait.workspace = true
 axum.workspace = true
+futures-util.workspace = true
