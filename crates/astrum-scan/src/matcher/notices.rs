@@ -1,20 +1,33 @@
 use std::collections::{BTreeSet, HashMap};
 
 use astrum_policy::exception::{self, Exception};
-use astrum_policy::policy::{self, Mode, Policy};
+use astrum_policy::policy::Policy;
 use astrum_policy::verdict::{self, Finding, Target};
-use sea_orm::{ConnectionTrait, DatabaseTransaction, DbBackend, DbErr, Statement};
+use sea_orm::{
+    ConnectionTrait, DatabaseTransaction, DbBackend, DbErr, Statement, TransactionTrait,
+};
 use serde_json::json;
 
 use super::store::Change;
 
 pub const NOTICE_ROWS: i64 = 2_000;
+pub const SCAN_ROWS: i64 = NOTICE_ROWS * 10;
+const PAGE: i64 = 1_000;
 const ACTION: &str = "vulnerability.found";
+
+const RANK: &str = "(CASE {} WHEN 'critical' THEN 4 WHEN 'high' THEN 3 \
+    WHEN 'medium' THEN 2 WHEN 'low' THEN 1 ELSE 0 END)";
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Queued {
     pub queued: u64,
     pub cut: bool,
+}
+
+#[derive(Clone, Copy)]
+pub enum Source<'a> {
+    Added(&'a [Change]),
+    Component(i64),
 }
 
 struct Hit {
@@ -32,79 +45,133 @@ fn custom(error: impl std::fmt::Display) -> DbErr {
     DbErr::Custom(error.to_string())
 }
 
-pub async fn queue(
+pub async fn announce(
     txn: &DatabaseTransaction,
-    added: &[Change],
+    source: Source<'_>,
     limit: i64,
 ) -> Result<Queued, DbErr> {
-    if added.is_empty() {
+    let nested = txn.begin().await?;
+    match queue(&nested, source, limit).await {
+        Ok(queued) => {
+            nested.commit().await?;
+            Ok(queued)
+        }
+        Err(error) => {
+            nested.rollback().await?;
+            tracing::warn!(%error, "new findings were not announced to the notification channels; the scan and the matches are kept");
+            Ok(Queued::default())
+        }
+    }
+}
+
+pub async fn queue(
+    txn: &DatabaseTransaction,
+    source: Source<'_>,
+    limit: i64,
+) -> Result<Queued, DbErr> {
+    queue_within(txn, source, limit, SCAN_ROWS).await
+}
+
+pub async fn queue_within(
+    txn: &DatabaseTransaction,
+    source: Source<'_>,
+    limit: i64,
+    examine: i64,
+) -> Result<Queued, DbErr> {
+    if matches!(source, Source::Added(added) if added.is_empty()) {
         return Ok(Queued::default());
     }
-    let mut hits = hits(txn, added, limit + 1).await?;
-    let cut = hits.len() as i64 > limit;
-    hits.truncate(limit as usize);
+    let mut policies: HashMap<String, Policy> = HashMap::new();
+    let mut exceptions: Option<Vec<Exception>> = None;
+    let mut now: Option<chrono::DateTime<chrono::Utc>> = None;
+    let mut components: Vec<i64> = Vec::new();
+    let mut details: Vec<String> = Vec::new();
+    let mut after: Option<(i64, String)> = None;
+    let mut cut = false;
+    let mut examined = 0i64;
+    'pages: loop {
+        let hits = hits(txn, source, after.as_ref(), PAGE).await?;
+        let full = hits.len() as i64 == PAGE;
+        if let Some(hit) = hits.last() {
+            after = Some((hit.component_id, hit.finding.advisory.clone()));
+        }
+        if hits.is_empty() {
+            break;
+        }
+        let missing: BTreeSet<&str> = hits
+            .iter()
+            .map(|hit| hit.policy.as_str())
+            .filter(|name| !policies.contains_key(*name))
+            .collect();
+        for name in missing {
+            match astrum_policy::policy::find(txn, name).await {
+                Ok(Some(found)) => {
+                    policies.insert(name.to_owned(), found);
+                }
+                Ok(None) => {}
+                Err(astrum_policy::Error::Database(error)) => return Err(error),
+                Err(error) => {
+                    tracing::warn!(policy = name, %error, "a content policy cannot be read, so its new matches are not announced");
+                }
+            }
+        }
+        if exceptions.is_none() {
+            exceptions = Some(
+                exception::list_readable(txn)
+                    .await
+                    .map_err(custom)?
+                    .exceptions,
+            );
+            now = Some(database_time(txn).await?);
+        }
+        let (exceptions, now) = (
+            exceptions.as_deref().unwrap_or_default(),
+            now.unwrap_or_default(),
+        );
+        for hit in hits {
+            if examined == examine {
+                cut = true;
+                break 'pages;
+            }
+            examined += 1;
+            let Some(policy) = policies.get(&hit.policy) else {
+                continue;
+            };
+            let target = Target {
+                format: hit.format.clone(),
+                namespace: hit.namespace.clone(),
+                name: hit.name.clone(),
+                version: hit.version.clone(),
+                digest: hit.digest.clone(),
+            };
+            if verdict::exception_for(exceptions, &policy.name, &target, &hit.finding, now)
+                .is_some()
+            {
+                continue;
+            }
+            if components.len() as i64 == limit {
+                cut = true;
+                break 'pages;
+            }
+            components.push(hit.component_id);
+            details.push(
+                json!({
+                    "policy": verdict::clean(&policy.name),
+                    "advisory": verdict::clean(&hit.finding.advisory),
+                    "severity": verdict::severity_name(hit.finding.severity),
+                })
+                .to_string(),
+            );
+        }
+        if !full {
+            break;
+        }
+    }
     if cut {
         tracing::warn!(
             limit,
-            "new matches reach more components than a batch notifies about, so the rest are not announced"
-        );
-    }
-    if hits.is_empty() {
-        return Ok(Queued { queued: 0, cut });
-    }
-    let names: BTreeSet<&str> = hits.iter().map(|hit| hit.policy.as_str()).collect();
-    let mut policies: HashMap<String, Policy> = HashMap::new();
-    for name in names {
-        match policy::find(txn, name).await {
-            Ok(Some(found)) if found.vulnerabilities.mode != Mode::Off => {
-                policies.insert(name.to_owned(), found);
-            }
-            Ok(_) => {}
-            Err(astrum_policy::Error::Database(error)) => return Err(error),
-            Err(error) => {
-                tracing::warn!(policy = name, %error, "a content policy cannot be read, so its new matches are not announced");
-            }
-        }
-    }
-    let exceptions: Vec<Exception> = exception::list_readable(txn)
-        .await
-        .map_err(custom)?
-        .exceptions;
-    let now = database_time(txn).await?;
-    let mut seen: BTreeSet<(i64, String)> = BTreeSet::new();
-    let mut components: Vec<i64> = Vec::new();
-    let mut details: Vec<String> = Vec::new();
-    for hit in hits {
-        let Some(policy) = policies.get(&hit.policy) else {
-            continue;
-        };
-        let Some(threshold) = policy.vulnerabilities.notify else {
-            continue;
-        };
-        if verdict::rank(hit.finding.severity) < verdict::rank(threshold) {
-            continue;
-        }
-        let target = Target {
-            format: hit.format.clone(),
-            namespace: hit.namespace.clone(),
-            name: hit.name.clone(),
-            version: hit.version.clone(),
-            digest: hit.digest.clone(),
-        };
-        if verdict::exception_for(&exceptions, &policy.name, &target, &hit.finding, now).is_some() {
-            continue;
-        }
-        if !seen.insert((hit.component_id, hit.finding.advisory.clone())) {
-            continue;
-        }
-        components.push(hit.component_id);
-        details.push(
-            json!({
-                "policy": verdict::clean(&policy.name),
-                "advisory": verdict::clean(&hit.finding.advisory),
-                "severity": verdict::severity_name(hit.finding.severity),
-            })
-            .to_string(),
+            examine,
+            "new matches reach more components than a batch announces or looks at, so the rest are not announced"
         );
     }
     if components.is_empty() {
@@ -114,7 +181,7 @@ pub async fn queue(
         .query_one(Statement::from_sql_and_values(
             DbBackend::Postgres,
             "SELECT notification_capture_events($1, $2::bigint[], $3::text[]) AS n",
-            [ACTION.into(), components.clone().into(), details.into()],
+            [ACTION.into(), components.into(), details.into()],
         ))
         .await?
         .ok_or_else(|| DbErr::RecordNotFound("the capture returned no row".to_owned()))?;
@@ -125,28 +192,71 @@ pub async fn queue(
     })
 }
 
-async fn hits(txn: &DatabaseTransaction, added: &[Change], limit: i64) -> Result<Vec<Hit>, DbErr> {
-    let packages: Vec<i64> = added.iter().map(|change| change.package_id).collect();
-    let advisories: Vec<String> = added
-        .iter()
-        .map(|change| change.advisory_id.clone())
-        .collect();
+async fn hits(
+    txn: &DatabaseTransaction,
+    source: Source<'_>,
+    after: Option<&(i64, String)>,
+    page: i64,
+) -> Result<Vec<Hit>, DbErr> {
+    let advisory_rank = RANK.replace("{}", "a.severity");
+    let notify_rank = RANK.replace("{}", "cp.vulnerabilities->>'notify'");
+    let (pairs, mut values): (&str, Vec<sea_orm::Value>) = match source {
+        Source::Added(added) => (
+            "unnest($1::bigint[], $2::text[]) AS added(package_id, advisory_id) \
+             JOIN sca_inventory_package ip ON ip.package_id = added.package_id \
+             JOIN component_scan cs ON cs.inventory_id = ip.inventory_id",
+            vec![
+                added
+                    .iter()
+                    .map(|change| change.package_id)
+                    .collect::<Vec<i64>>()
+                    .into(),
+                added
+                    .iter()
+                    .map(|change| change.advisory_id.clone())
+                    .collect::<Vec<String>>()
+                    .into(),
+            ],
+        ),
+        Source::Component(component_id) => (
+            "sca_match added \
+             JOIN sca_inventory_package ip ON ip.package_id = added.package_id \
+             JOIN component_scan cs ON cs.inventory_id = ip.inventory_id AND cs.component_id = $1",
+            vec![component_id.into()],
+        ),
+    };
+    let first = values.len() as i32 + 1;
+    values.push(after.map_or(0, |(component, _)| *component).into());
+    values.push(
+        after
+            .map_or_else(String::new, |(_, advisory)| advisory.clone())
+            .into(),
+    );
+    values.push(page.into());
+    let sql = format!(
+        "SELECT DISTINCT ON (cs.component_id, a.id) cs.component_id, c.format, c.namespace, c.name, \
+                c.version, cs.digest, cp.name AS policy, a.id AS advisory_id, a.aliases, a.severity, \
+                a.malicious, p.purl \
+         FROM {pairs} \
+         JOIN sca_package p ON p.id = added.package_id \
+         JOIN advisory a ON a.id = added.advisory_id AND a.withdrawn_at IS NULL \
+         JOIN component c ON c.id = cs.component_id \
+         JOIN repository r ON r.name = c.repository \
+         JOIN content_policy cp ON cp.name = r.attributes #>> '{{policy,name}}' \
+         WHERE COALESCE(cp.vulnerabilities->>'mode', 'off') <> 'off' \
+           AND cp.vulnerabilities->>'notify' IS NOT NULL \
+           AND {advisory_rank} >= {notify_rank} \
+           AND (cs.component_id, a.id) > (${first}::bigint, ${second}::text) \
+         ORDER BY cs.component_id, a.id, p.id \
+         LIMIT ${third}",
+        second = first + 1,
+        third = first + 2,
+    );
     let rows = txn
         .query_all(Statement::from_sql_and_values(
             DbBackend::Postgres,
-            "SELECT cs.component_id, c.format, c.namespace, c.name, c.version, cs.digest, \
-                    r.attributes #>> '{policy,name}' AS policy, \
-                    a.id AS advisory_id, a.aliases, a.severity, a.malicious, p.purl \
-             FROM unnest($1::bigint[], $2::text[]) AS added(package_id, advisory_id) \
-             JOIN sca_package p ON p.id = added.package_id \
-             JOIN advisory a ON a.id = added.advisory_id AND a.withdrawn_at IS NULL \
-             JOIN sca_inventory_package ip ON ip.package_id = added.package_id \
-             JOIN component_scan cs ON cs.inventory_id = ip.inventory_id \
-             JOIN component c ON c.id = cs.component_id \
-             JOIN repository r ON r.name = c.repository \
-             WHERE r.attributes #>> '{policy,name}' IS NOT NULL \
-             LIMIT $3",
-            [packages.into(), advisories.into(), limit.into()],
+            sql,
+            values,
         ))
         .await?;
     let mut hits = Vec::with_capacity(rows.len());

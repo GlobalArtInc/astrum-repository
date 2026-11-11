@@ -70,6 +70,7 @@ database pool are those of the node that served the scrape, the rest is the same
 | `astrum_data_directory_size_bytes`, `astrum_data_directory_free_bytes` | gauge | | The volume of the data directory |
 | `astrum_database_connections` | gauge | `state` | Connections to PostgreSQL, `idle` or `used` |
 | `astrum_notification_deliveries_pending` | gauge | | Notifications waiting to be sent or sent again |
+| `astrum_policy_gate_decisions_total` | counter | `result` | Download checks of repositories with a content policy on this node; `notice_failed` counts a refusal whose notification could not be written, besides its decision, and the refusal itself is not affected |
 | `astrum_scheduler_last_tick_timestamp_seconds` | gauge | | When the scheduler of the node last looked for due tasks |
 | `astrum_task_running` | gauge | `task`, `type` | 1 while a task runs or waits to run |
 | `astrum_task_last_run_success`, `astrum_task_last_run_timestamp_seconds` | gauge | `task`, `type` | Outcome and end of the last finished run |

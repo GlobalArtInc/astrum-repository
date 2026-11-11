@@ -11,7 +11,7 @@ use sea_orm::{
 };
 
 use super::{Claimed, EXTRACTOR, State};
-use crate::PACKAGE_LOCK;
+use crate::{PACKAGE_LOCK, matcher};
 
 const MAX_ERROR_CHARS: usize = 1000;
 
@@ -229,11 +229,31 @@ pub async fn record_inventory(
     let inventory_id = upsert_inventory(&txn, &inventory.key).await?;
     let package_ids = lock_packages(&txn, &packages).await?;
     replace_links(&txn, inventory_id, &package_ids).await?;
+    let first = !has_scan(&txn, component.id).await?;
     upsert_scan(&txn, component, Some(inventory_id), state).await?;
+    if first {
+        matcher::announce_notices(
+            &txn,
+            matcher::Source::Component(component.id),
+            matcher::NOTICE_ROWS,
+        )
+        .await?;
+    }
     mark_dirty(&txn, component.id).await?;
     dequeue(&txn, item).await?;
     txn.commit().await?;
     Ok(true)
+}
+
+async fn has_scan(txn: &DatabaseTransaction, component_id: i64) -> Result<bool, DbErr> {
+    Ok(txn
+        .query_one(Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            "SELECT 1 AS found FROM component_scan WHERE component_id = $1",
+            [component_id.into()],
+        ))
+        .await?
+        .is_some())
 }
 
 async fn begin_write(txn: &DatabaseTransaction, component_id: i64) -> Result<bool, DbErr> {

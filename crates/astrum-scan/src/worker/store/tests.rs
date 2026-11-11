@@ -477,3 +477,84 @@ async fn a_repository_delete_arriving_during_a_write_does_not_deadlock_with_it()
         );
     }
 }
+
+#[tokio::test]
+async fn the_first_scan_of_a_component_announces_matches_its_packages_already_had_and_later_scans_do_not()
+ {
+    let (_test, db, id) = setup().await;
+    db.execute_unprepared(
+        "INSERT INTO content_policy (name, vulnerabilities) \
+           VALUES ('watch', '{\"mode\":\"report\",\"notify\":\"high\"}'); \
+         UPDATE repository SET attributes = '{\"policy\":{\"name\":\"watch\"}}'; \
+         INSERT INTO notification_channel (id, name, type, recipients, events) \
+           VALUES (gen_random_uuid(), 'ops', 'email', '{ops@example.com}', '{vulnerability.found}'); \
+         INSERT INTO advisory (id, aliases, severity, modified_at, document) \
+           VALUES ('GHSA-1', '{}', 'high', now(), '{}'); \
+         INSERT INTO sca_package (id, ecosystem, name, version, purl, matched_at) \
+           VALUES (1, 'Maven', 'lib', '1', 'pkg:maven/lib@1', now()); \
+         INSERT INTO sca_match (package_id, advisory_id) VALUES (1, 'GHSA-1'); \
+         INSERT INTO sca_inventory (id, key, source, extractor) VALUES (1, 'pkg:maven/lib@1', 'metadata', 1); \
+         INSERT INTO sca_inventory_package (inventory_id, package_id) VALUES (1, 1); \
+         INSERT INTO component (id, repository, format, name, version) \
+           VALUES (900, 'releases', 'maven2', 'earlier', '1'); \
+         INSERT INTO component_scan (component_id, repository, inventory_id, state) \
+           VALUES (900, 'releases', 1, 'scanned')",
+    )
+    .await
+    .unwrap();
+    let component = astrum_content::store::component_by_id(&db, id)
+        .await
+        .unwrap()
+        .unwrap();
+    let found = format!(
+        "SELECT count(*) AS n FROM notification_change WHERE action = 'vulnerability.found' \
+         AND component_id = {id}"
+    );
+    let all = "SELECT count(*) AS n FROM notification_change WHERE action = 'vulnerability.found'";
+
+    let item = claim(&db, 10, LEASE).await.unwrap().remove(0);
+    assert!(
+        record_inventory(&db, item, &component, &inventory(), State::Scanned)
+            .await
+            .unwrap()
+    );
+    assert_eq!(scalar(&db, &found).await, 1);
+    assert_eq!(scalar(&db, all).await, 1);
+
+    db.execute_unprepared(&format!(
+        "INSERT INTO scan_queue (component_id, reason) VALUES ({id}, 'again') ON CONFLICT DO NOTHING"
+    ))
+    .await
+    .unwrap();
+    let item = claim(&db, 10, LEASE).await.unwrap().remove(0);
+    assert!(
+        record_inventory(&db, item, &component, &inventory(), State::Scanned)
+            .await
+            .unwrap()
+    );
+    db.execute_unprepared("UPDATE content_policy SET revision = revision + 1")
+        .await
+        .unwrap();
+    assert_eq!(scalar(&db, all).await, 1);
+
+    for step in 0..2 {
+        db.execute_unprepared(&format!(
+            "INSERT INTO scan_queue (component_id, reason) VALUES ({id}, 'chain') ON CONFLICT DO NOTHING"
+        ))
+        .await
+        .unwrap();
+        let item = claim(&db, 10, LEASE).await.unwrap().remove(0);
+        let recorded = match step {
+            0 => record_unsupported(&db, item, &component).await.unwrap(),
+            _ => record_inventory(&db, item, &component, &inventory(), State::Scanned)
+                .await
+                .unwrap(),
+        };
+        assert!(recorded);
+    }
+    assert_eq!(
+        scalar(&db, all).await,
+        1,
+        "scanned, unsupported and scanned again is not a first scan"
+    );
+}

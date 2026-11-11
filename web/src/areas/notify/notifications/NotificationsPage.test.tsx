@@ -68,4 +68,21 @@ describe('the notifications page', () => {
     expect(await screen.findByRole('cell', { name: '-100123' })).toBeInTheDocument();
     expect(screen.getByText('All hosted repositories')).toBeInTheDocument();
   }, 30_000);
+
+  it('says a channel without repositories also follows every kind of repository only when it listens for security events', async () => {
+    const fake = fakeServer({
+      [`GET ${CHANNELS}`]: () =>
+        jsonResponse([
+          CHANNEL,
+          { ...CHANNEL, id: 'c2', name: 'Security', events: ['published', 'policy.blocked'] },
+        ]),
+      'GET /service/rest/v1/repositories': () => jsonResponse([]),
+    });
+    vi.stubGlobal('fetch', fake.fetch);
+    renderWithApp(<NotificationsPage />);
+    expect(await screen.findByText('All hosted repositories')).toBeInTheDocument();
+    expect(
+      screen.getByText('All hosted repositories, and every kind for security events'),
+    ).toBeInTheDocument();
+  });
 });

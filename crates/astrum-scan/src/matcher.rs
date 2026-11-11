@@ -13,7 +13,10 @@ use tokio::task::JoinHandle;
 
 pub use evaluate::{Candidate, Evaluation, Found, evaluate, resolve};
 pub use metrics::{Metrics, Snapshot};
-pub use notices::{NOTICE_ROWS, Queued, queue as queue_notices};
+pub use notices::{
+    NOTICE_ROWS, Queued, SCAN_ROWS, Source, announce as announce_notices, queue as queue_notices,
+    queue_within as queue_notices_within,
+};
 pub use rejudge::{Rejudged, fan_out, sweep};
 pub use store::{Batch, Change, Marked, match_batch, match_batch_with, match_component};
 

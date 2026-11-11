@@ -14,6 +14,7 @@
   "notify.notifications.columns.enabled": "Enabled",
   "notify.notifications.columns.actions": "Actions",
   "notify.notifications.allHosted": "All hosted repositories",
+  "notify.notifications.allKinds": "All hosted repositories, and every kind for security events",
   "notify.notifications.moreRepositories": {
     "one": "+{count} more",
     "other": "+{count} more"
@@ -101,7 +102,7 @@
   "notify.notifications.repositories": "Repositories",
   "notify.notifications.repositoriesFilter": "Filter repositories",
   "notify.notifications.repositoriesEmpty": "No repositories found",
-  "notify.notifications.repositoriesHelp": "Leave all unchecked to follow every hosted repository.",
+  "notify.notifications.repositoriesHelp": "Leave all unchecked to follow every hosted repository. For the security events (vulnerability found, download blocked) a channel without repositories follows repositories of every kind, proxies included.",
   "notify.notifications.language": "Message Language",
   "notify.notifications.languages.ru": "Russian",
   "notify.notifications.languages.en": "English",

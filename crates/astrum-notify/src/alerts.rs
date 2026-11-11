@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use astrum_db::setting;
 use chrono::{DateTime, Duration, Utc};
-use sea_orm::{ConnectionTrait, DbBackend, DbErr, Statement};
+use sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, DbErr, Statement, TransactionTrait};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -197,6 +197,18 @@ fn custom(error: impl std::fmt::Display) -> DbErr {
 }
 
 pub async fn alert_stale(
+    db: &DatabaseConnection,
+    feeds: &[StaleFeed],
+    days: i64,
+    now: DateTime<Utc>,
+) -> Result<usize, DbErr> {
+    let txn = db.begin().await?;
+    let sent = alert_stale_in(&txn, feeds, days, now).await?;
+    txn.commit().await?;
+    Ok(sent)
+}
+
+async fn alert_stale_in(
     db: &impl ConnectionTrait,
     feeds: &[StaleFeed],
     days: i64,

@@ -28,6 +28,7 @@ const NOTICE_WINDOW: Duration = Duration::from_secs(24 * 3600);
 const NOTICE_CAP: usize = 10_000;
 const NOTICE_PERMITS: usize = 2;
 const NOTICE_BACKLOG: usize = 1_000;
+const NOTICE_LOG_EVERY: Duration = Duration::from_secs(10);
 const NOTICE_BUDGET: Duration = Duration::from_secs(5);
 const NOTICE_ACTION: &str = "policy.blocked";
 pub const BUCKETS: [f64; 14] = [
@@ -209,6 +210,32 @@ impl Dedupe {
     }
 }
 
+struct LogThrottle {
+    every: Duration,
+    last: Mutex<Option<Instant>>,
+    suppressed: AtomicU64,
+}
+
+impl LogThrottle {
+    fn new(every: Duration) -> Self {
+        Self {
+            every,
+            last: Mutex::new(None),
+            suppressed: AtomicU64::new(0),
+        }
+    }
+
+    fn pass(&self, now: Instant) -> Option<u64> {
+        let mut last = self.last.lock().unwrap_or_else(PoisonError::into_inner);
+        if last.is_some_and(|at| now.saturating_duration_since(at) < self.every) {
+            self.suppressed.fetch_add(1, Ordering::Relaxed);
+            return None;
+        }
+        *last = Some(now);
+        Some(self.suppressed.swap(0, Ordering::Relaxed))
+    }
+}
+
 struct Pending(Arc<AtomicUsize>);
 
 impl Drop for Pending {
@@ -371,6 +398,7 @@ pub struct PolicyGate {
     noticed: Arc<Dedupe>,
     notice_permits: Arc<Semaphore>,
     notice_backlog: Arc<AtomicUsize>,
+    notice_logs: Arc<LogThrottle>,
 }
 
 impl PolicyGate {
@@ -385,6 +413,7 @@ impl PolicyGate {
             noticed: Arc::new(Dedupe::new(NOTICE_WINDOW, NOTICE_CAP)),
             notice_permits: Arc::new(Semaphore::new(NOTICE_PERMITS)),
             notice_backlog: Arc::default(),
+            notice_logs: Arc::new(LogThrottle::new(NOTICE_LOG_EVERY)),
         }
     }
 
@@ -404,6 +433,10 @@ impl PolicyGate {
 
     pub fn available_permits(&self) -> usize {
         self.permits.available_permits()
+    }
+
+    pub fn notices_in_flight(&self) -> usize {
+        self.notice_backlog.load(Ordering::Relaxed)
     }
 
     pub fn flights_open(&self) -> usize {
@@ -617,7 +650,9 @@ impl PolicyGate {
             self.notice_backlog.fetch_sub(1, Ordering::Relaxed);
             self.noticed.forget(&asset.repository, component_id);
             self.metrics.count(Outcome::NoticeFailed);
-            tracing::warn!(repository = %asset.repository, component = component_id, backlog = NOTICE_BACKLOG, "a refusal was not announced because too many announcements are waiting to be written");
+            if let Some(suppressed) = self.notice_logs.pass(Instant::now()) {
+                tracing::warn!(repository = %asset.repository, component = component_id, backlog = NOTICE_BACKLOG, suppressed, "a refusal was not announced because too many announcements are waiting to be written");
+            }
             return;
         }
         let pending = Pending(self.notice_backlog.clone());
@@ -625,6 +660,7 @@ impl PolicyGate {
         let db = ctx.db().clone();
         let metrics = self.metrics.clone();
         let noticed = self.noticed.clone();
+        let logs = self.notice_logs.clone();
         let repository = asset.repository.clone();
         let detail = json!({ "policy": clean(&refusal.policy) }).to_string();
         tokio::spawn(async move {
@@ -645,7 +681,9 @@ impl PolicyGate {
             };
             noticed.forget(&repository, component_id);
             metrics.count(Outcome::NoticeFailed);
-            tracing::error!(%repository, component = component_id, error = %failure, "a refusal was not announced to the notification channels");
+            if let Some(suppressed) = logs.pass(Instant::now()) {
+                tracing::error!(%repository, component = component_id, error = %failure, suppressed, "a refusal was not announced to the notification channels");
+            }
         });
     }
 
@@ -890,6 +928,17 @@ mod tests {
         assert!(task.await.unwrap_err().is_panic());
         assert_eq!(flights.len(), 0);
         assert_eq!(finished(follower).await, Some(Finish::Failed));
+    }
+
+    #[test]
+    fn a_log_line_comes_once_an_interval_and_counts_what_it_swallowed() {
+        let throttle = LogThrottle::new(Duration::from_secs(10));
+        let start = Instant::now();
+        assert_eq!(throttle.pass(start), Some(0));
+        assert_eq!(throttle.pass(start + Duration::from_secs(1)), None);
+        assert_eq!(throttle.pass(start + Duration::from_secs(9)), None);
+        assert_eq!(throttle.pass(start + Duration::from_secs(10)), Some(2));
+        assert_eq!(throttle.pass(start + Duration::from_secs(11)), None);
     }
 
     #[test]

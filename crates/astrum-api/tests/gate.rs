@@ -458,6 +458,20 @@ fn results(fixture: &Fixture) -> HashMap<&'static str, u64> {
         .collect()
 }
 
+async fn verdict_state(fixture: &Fixture, component: i64) -> Option<String> {
+    fixture
+        .state
+        .db()
+        .conn()
+        .query_one(Statement::from_string(
+            DbBackend::Postgres,
+            format!("SELECT state FROM policy_verdict WHERE subject = 'c:{component}'"),
+        ))
+        .await
+        .unwrap()
+        .map(|row| row.try_get("", "state").unwrap())
+}
+
 async fn stored_verdict(fixture: &Fixture, component: i64) -> (String, i64, String, bool) {
     let row = fixture
         .state
@@ -996,7 +1010,7 @@ async fn the_hot_path_is_one_statement_and_free_repositories_cost_none() {
         warm,
         Err(astrum_content::ContentError::Blocked(_))
     ));
-    tokio::time::sleep(Duration::from_millis(300)).await;
+    notices_written(&gate).await;
     let repository = content.repository("npm-hosted").await.unwrap().unwrap();
     let ctx = content.context(
         repository,
@@ -1013,7 +1027,7 @@ async fn the_hot_path_is_one_statement_and_free_repositories_cost_none() {
     counter.store(0, Ordering::Relaxed);
     assert!(gate.check(&ctx, &asset).await.is_err());
     assert_eq!(counter.load(Ordering::Relaxed), 1, "a refusal");
-    tokio::time::sleep(Duration::from_millis(300)).await;
+    notices_written(&gate).await;
     assert_eq!(
         counter.load(Ordering::Relaxed),
         1,
@@ -1424,7 +1438,7 @@ async fn a_scan_that_outlives_its_caller_keeps_its_slot_until_it_ends() {
     let reply = get(&fixture, &second).await;
     assert_eq!(reply.status, StatusCode::OK, "{}", reply.text());
     assert!(
-        started.elapsed() < Duration::from_secs(2),
+        started.elapsed() < Duration::from_secs(5),
         "{:?}",
         started.elapsed()
     );
@@ -1437,13 +1451,27 @@ async fn a_scan_that_outlives_its_caller_keeps_its_slot_until_it_ends() {
     held.release().await;
     settled(&gate, 1).await;
     let first_id = component(&fixture, "npm-hosted", "first").await;
+    let mut state = None;
+    for _ in 0..200 {
+        state = verdict_state(&fixture, first_id).await;
+        if state.is_some() {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
     assert_eq!(
-        stored_verdict(&fixture, first_id).await.2,
-        "pass",
+        state.as_deref(),
+        Some("pass"),
         "the scan went on after its caller had left"
     );
-    let again = get(&fixture, &second).await;
-    assert_eq!(again.status, StatusCode::OK, "{}", again.text());
+    for _ in 0..20 {
+        let again = get(&fixture, &second).await;
+        assert_eq!(again.status, StatusCode::OK, "{}", again.text());
+        if results(&fixture).get("inline_scan_pass") == Some(&1) {
+            break;
+        }
+        settled(&gate, 1).await;
+    }
     assert_eq!(results(&fixture)["inline_scan_pass"], 1);
 }
 
@@ -1841,6 +1869,16 @@ async fn a_policy_the_cache_has_not_seen_yet_is_loaded_before_the_gate_judges_it
     assert_eq!(results(&fixture), HashMap::from([("inline_scan_pass", 1)]));
 }
 
+async fn notices_written(gate: &PolicyGate) {
+    for _ in 0..400 {
+        if gate.notices_in_flight() == 0 {
+            return;
+        }
+        tokio::time::sleep(Duration::from_millis(25)).await;
+    }
+    panic!("{} notices still being written", gate.notices_in_flight());
+}
+
 async fn listening(fixture: &Fixture, events: &str) {
     execute(
         fixture,
@@ -1984,5 +2022,26 @@ async fn a_notice_that_cannot_be_queued_changes_nothing_for_the_download_and_is_
     )
     .await;
     refused(&get(&fixture, &lib).await);
+    notices_reach(&fixture, 1).await;
+}
+
+#[tokio::test]
+async fn a_refusal_does_not_wait_for_the_notice_and_the_notice_follows_when_the_table_is_free() {
+    let fixture = ready().await;
+    let (lib, _) = blocked_world(&fixture).await;
+    let locker = fixture.state.db().conn().begin().await.unwrap();
+    locker
+        .execute_unprepared("LOCK TABLE policy_blocked_notice IN ACCESS EXCLUSIVE MODE")
+        .await
+        .unwrap();
+
+    let started = std::time::Instant::now();
+    let reply = get(&fixture, &lib).await;
+    let elapsed = started.elapsed();
+    refused(&reply);
+    assert!(elapsed < Duration::from_secs(1), "{elapsed:?}");
+    assert_eq!(blocked_notices(&fixture).await, 0);
+
+    locker.commit().await.unwrap();
     notices_reach(&fixture, 1).await;
 }

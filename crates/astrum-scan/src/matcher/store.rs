@@ -181,7 +181,12 @@ where
     for chunk in upsert.chunks(WRITE_CHUNK) {
         upsert_matches(&txn, chunk).await?;
     }
-    let notices = notices::queue(&txn, &batch.added, notices::NOTICE_ROWS).await?;
+    let notices = notices::announce(
+        &txn,
+        notices::Source::Added(&batch.added),
+        notices::NOTICE_ROWS,
+    )
+    .await?;
     batch.notices = notices.queued;
     batch.notices_cut = notices.cut;
     batch.marked = finish(&txn, &ids).await?;

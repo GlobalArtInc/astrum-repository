@@ -237,16 +237,28 @@ privileges for are shown, and **Settings** disappears from the menu when there a
 - **Notifications**: channels in Telegram, Slack, Mattermost, Rocket.Chat, email or your own webhook that
   hear about published, updated and deleted components, and receive the
   [blob store space alerts](../operate/monitoring.md#blob-store-space-alerts). Two more events are off for
-  a new channel: **Vulnerability found** (webhook event `vulnerability.found`) sends one message for a
-  component of a repository with a content policy and an advisory, when the advisory first matches it
-  at or above the `notify` severity of the policy and no exception covers it, and **Download blocked**
-  (`policy.blocked`) sends one message a day for each component whose download a policy refused. Both
-  name the component, the repository and the policy, and the first the advisory id and severity, never
-  the reasons or the text of an advisory. Unlike the component changes, a channel with no repositories
-  chosen hears these two events for every repository, proxy repositories included. `vulnerability.found`
-  comes when a package first matches an advisory: a component whose package already matched earlier does
-  not raise it, and with a policy in block mode `policy.blocked` tells about such a component when its
-  download is refused. A webhook receives each message as its own request, as for the other events.
+  a new channel:
+  - **Vulnerability found** (webhook event `vulnerability.found`) sends one message for a component of a
+    repository with a content policy and an advisory, when it learns that the component is affected: when
+    the advisory first matches a package of the component, and when a component is scanned for the first
+    time and its packages already matched. It needs the `notify` severity in the policy's vulnerability
+    rule, which is what turns these messages on: a policy without it sends none. Only findings at or above
+    that severity and not covered by an exception are sent. A repeated scan of a component that has been scanned before sends nothing again,
+    and neither does a change of the policy; a repeated scan that finds a new package already matched
+    with an advisory does not announce it either.
+  - **Download blocked** (`policy.blocked`) sends one message a day for each component whose download a
+    policy refused. A channel created after the first refusal hears about that component only after the
+    next day of its refusals, because each node announces a component once a day.
+
+  Both name the component, the repository and the policy, and the first the advisory id and severity,
+  never the reasons or the text of an advisory. Unlike the component changes, a channel with no
+  repositories chosen hears these two events for every repository, proxy repositories included. A webhook
+  receives each message as its own request, as for the other events, with the policy in `policy` and, for
+  a vulnerability, the advisory and severity in `vulnerability`. A channel gets one message per component
+  and advisory (duplicates from a race collapse in one window of the notification worker), so an advisory that affects many components makes a burst, which chats and email receive
+  as one summary and a webhook as the same requests as for any other burst of changes. A notice that could
+  not be written is counted in `astrum_policy_gate_decisions_total{result="notice_failed"}`, see
+  [monitoring](../operate/monitoring.md).
 - **Nodes**: the nodes of the installation and their state. See [nodes](../operate/nodes.md).
 
 The **Audit Log**, at `/audit`, lists security and configuration changes and downloads, with filters by

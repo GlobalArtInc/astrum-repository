@@ -239,13 +239,17 @@ async fn a_burst_is_cut_at_the_limit_and_says_so() {
         advisory_id: "GHSA-1".to_owned(),
     }];
     let txn = s.db.conn().begin().await.unwrap();
-    let queued = matcher::queue_notices(&txn, &added, 3).await.unwrap();
+    let queued = matcher::queue_notices(&txn, matcher::Source::Added(&added), 3)
+        .await
+        .unwrap();
     txn.commit().await.unwrap();
     assert_eq!((queued.queued, queued.cut), (3, true));
     assert_eq!(notices(&s).await, 3);
 
     let txn = s.db.conn().begin().await.unwrap();
-    let rest = matcher::queue_notices(&txn, &added, 10).await.unwrap();
+    let rest = matcher::queue_notices(&txn, matcher::Source::Added(&added), 10)
+        .await
+        .unwrap();
     txn.rollback().await.unwrap();
     assert_eq!((rest.queued, rest.cut), (5, false));
     assert_eq!(notices(&s).await, 3);
@@ -310,4 +314,193 @@ async fn channels_without_a_repository_list_hear_security_events_of_every_reposi
     )
     .await;
     assert_eq!(heard, "open:policy.blocked,open:vulnerability.found");
+}
+
+async fn shared(s: &Setup) {
+    execute(
+        s,
+        "INSERT INTO sca_package (id, ecosystem, name, version, purl) \
+           VALUES (1, 'npm', 'lib', '1.0.0', 'pkg:npm/lib@1.0.0'); \
+         INSERT INTO sca_inventory (id, key, source, extractor) VALUES (1, 'shared', 'metadata', 1); \
+         INSERT INTO sca_inventory_package (inventory_id, package_id) VALUES (1, 1); \
+         INSERT INTO sca_match (package_id, advisory_id) VALUES (1, 'GHSA-1')",
+    )
+    .await;
+}
+
+async fn crowd(s: &Setup, repository: &str, from: i64, to: i64, version: &str) {
+    execute(
+        s,
+        &format!(
+            "INSERT INTO component (id, repository, format, name, version) \
+               SELECT g, '{repository}', 'npm', 'c' || g, '{version}' FROM generate_series({from}, {to}) g; \
+             INSERT INTO component_scan (component_id, repository, inventory_id, state) \
+               SELECT g, '{repository}', 1, 'scanned' FROM generate_series({from}, {to}) g"
+        ),
+    )
+    .await;
+}
+
+fn all_added() -> [Change; 1] {
+    [Change {
+        package_id: 1,
+        advisory_id: "GHSA-1".to_owned(),
+    }]
+}
+
+#[tokio::test]
+async fn components_that_never_notify_do_not_use_up_the_budget_of_those_that_do() {
+    let s = setup().await;
+    world(&s, NOTIFY_HIGH).await;
+    execute(
+        &s,
+        "INSERT INTO content_policy (name, vulnerabilities) VALUES ('quiet', '{\"mode\":\"report\"}'); \
+         INSERT INTO repository (name, format, type, attributes) \
+           VALUES ('calm', 'npm', 'hosted', '{\"policy\":{\"name\":\"quiet\"}}')",
+    )
+    .await;
+    advisory(&s, "GHSA-1", "CVE-1", "high", "lib").await;
+    shared(&s).await;
+    crowd(&s, "calm", 1, 3000, "1").await;
+    crowd(&s, "one", 3001, 3005, "1").await;
+
+    let added = all_added();
+    let txn = s.db.conn().begin().await.unwrap();
+    let queued = matcher::queue_notices(&txn, matcher::Source::Added(&added), matcher::NOTICE_ROWS)
+        .await
+        .unwrap();
+    txn.commit().await.unwrap();
+
+    assert_eq!((queued.queued, queued.cut), (5, false));
+    assert_eq!(notices(&s).await, 5);
+}
+
+#[tokio::test]
+async fn components_covered_by_exceptions_do_not_use_up_the_budget_either() {
+    let s = setup().await;
+    world(&s, NOTIFY_HIGH).await;
+    advisory(&s, "GHSA-1", "CVE-1", "high", "lib").await;
+    shared(&s).await;
+    execute(
+        &s,
+        "INSERT INTO policy_exception (id, rule, advisory, version, reason, created_by) \
+           VALUES (gen_random_uuid(), 'vulnerability', 'GHSA-1', '1', 'accepted', 'sec')",
+    )
+    .await;
+    crowd(&s, "one", 1, 2500, "1").await;
+    crowd(&s, "one", 2501, 2505, "2").await;
+
+    let added = all_added();
+    let txn = s.db.conn().begin().await.unwrap();
+    let queued = matcher::queue_notices(&txn, matcher::Source::Added(&added), matcher::NOTICE_ROWS)
+        .await
+        .unwrap();
+    txn.commit().await.unwrap();
+
+    assert_eq!((queued.queued, queued.cut), (5, false));
+}
+
+#[tokio::test]
+async fn a_notice_that_cannot_be_queued_does_not_undo_the_matching() {
+    let s = setup().await;
+    world(&s, NOTIFY_HIGH).await;
+    advisory(&s, "GHSA-1", "CVE-1", "high", "lib").await;
+    component(&s, "one", 1, "lib").await;
+    execute(
+        &s,
+        "DROP FUNCTION notification_capture_events(text, bigint[], text[])",
+    )
+    .await;
+
+    let batch = run(&s).await;
+
+    assert_eq!((batch.added.len(), batch.notices), (1, 0));
+    assert_eq!(scalar(&s, "SELECT count(*) AS n FROM sca_match").await, 1);
+    assert_eq!(
+        scalar(
+            &s,
+            "SELECT count(*) AS n FROM sca_package WHERE matched_at IS NOT NULL"
+        )
+        .await,
+        1
+    );
+}
+
+#[tokio::test]
+async fn a_batch_looks_at_a_bounded_number_of_rows_even_when_every_one_is_excepted() {
+    let s = setup().await;
+    world(&s, NOTIFY_HIGH).await;
+    advisory(&s, "GHSA-1", "CVE-1", "high", "lib").await;
+    shared(&s).await;
+    execute(
+        &s,
+        "INSERT INTO policy_exception (id, rule, advisory, reason, created_by) \
+           VALUES (gen_random_uuid(), 'vulnerability', 'GHSA-1', 'accepted', 'sec')",
+    )
+    .await;
+    crowd(&s, "one", 1, 3000, "1").await;
+
+    let added = all_added();
+    let txn = s.db.conn().begin().await.unwrap();
+    let queued = matcher::queue_notices_within(
+        &txn,
+        matcher::Source::Added(&added),
+        matcher::NOTICE_ROWS,
+        1500,
+    )
+    .await
+    .unwrap();
+    txn.commit().await.unwrap();
+
+    assert_eq!((queued.queued, queued.cut), (0, true));
+    assert_eq!(matcher::SCAN_ROWS, matcher::NOTICE_ROWS * 10);
+}
+
+#[tokio::test]
+async fn every_pair_comes_exactly_once_across_the_pages_whatever_the_order_of_the_ids() {
+    let s = setup().await;
+    world(&s, NOTIFY_HIGH).await;
+    let ids = [
+        "GHSA-1", "GHSA-10", "GHSA-2", "ghsa-c", "CVE_y", "cve-1", "Éa-ü",
+    ];
+    for id in ids {
+        advisory(&s, id, "x", "high", "lib").await;
+    }
+    execute(
+        &s,
+        "INSERT INTO sca_package (id, ecosystem, name, version, purl) VALUES \
+           (1, 'npm', 'lib', '1.0.0', 'pkg:npm/lib@1.0.0'), (2, 'npm', 'twin', '1.0.0', 'pkg:npm/twin@1.0.0'); \
+         INSERT INTO sca_inventory (id, key, source, extractor) VALUES (1, 'shared', 'metadata', 1); \
+         INSERT INTO sca_inventory_package (inventory_id, package_id) VALUES (1, 1), (1, 2); \
+         INSERT INTO sca_match (package_id, advisory_id) \
+           SELECT p.id, a.id FROM sca_package p CROSS JOIN advisory a",
+    )
+    .await;
+    crowd(&s, "one", 1, 800, "1").await;
+    let added: Vec<Change> = [1, 2]
+        .into_iter()
+        .flat_map(|package_id| {
+            ids.iter().map(move |id| Change {
+                package_id,
+                advisory_id: (*id).to_owned(),
+            })
+        })
+        .collect();
+
+    let txn = s.db.conn().begin().await.unwrap();
+    let queued = matcher::queue_notices(&txn, matcher::Source::Added(&added), 10_000)
+        .await
+        .unwrap();
+    txn.commit().await.unwrap();
+
+    assert_eq!((queued.queued, queued.cut), (5600, false));
+    assert_eq!(
+        scalar(
+            &s,
+            "SELECT count(DISTINCT (component_id, detail->>'advisory')) AS n FROM notification_change \
+             WHERE action = 'vulnerability.found'"
+        )
+        .await,
+        5600
+    );
 }

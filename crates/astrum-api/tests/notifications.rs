@@ -672,3 +672,51 @@ async fn the_stale_alert_goes_once_a_day_to_channels_that_listen_for_vulnerabili
     assert_eq!(alert_stale(db, &[npm()], 7, next_day).await.unwrap(), 1);
     assert_eq!(deliveries(&fixture).await, 3);
 }
+
+#[tokio::test]
+async fn a_stale_alert_whose_state_cannot_be_saved_queues_nothing_so_the_next_run_does_not_repeat_it()
+ {
+    use astrum_notify::alerts::{StaleFeed, alert_stale};
+    let fixture = ready().await;
+    create(
+        &fixture,
+        slack(
+            "Chat",
+            "https://hooks.example.com/chat",
+            &["vulnerability.found"],
+        ),
+    )
+    .await;
+    let db = fixture.state.db().conn();
+    let feeds = [StaleFeed {
+        ecosystem: "npm".to_owned(),
+        synced_at: None,
+    }];
+    sea_orm::ConnectionTrait::execute_unprepared(
+        db,
+        "CREATE FUNCTION refuse_state() RETURNS trigger LANGUAGE plpgsql AS $$ \
+           BEGIN RAISE EXCEPTION 'refused'; END $$; \
+         CREATE TRIGGER refuse_state BEFORE INSERT OR UPDATE ON setting \
+           FOR EACH ROW EXECUTE FUNCTION refuse_state()",
+    )
+    .await
+    .unwrap();
+
+    assert!(
+        alert_stale(db, &feeds, 7, chrono::Utc::now())
+            .await
+            .is_err()
+    );
+    assert_eq!(deliveries(&fixture).await, 0);
+
+    sea_orm::ConnectionTrait::execute_unprepared(db, "DROP TRIGGER refuse_state ON setting")
+        .await
+        .unwrap();
+    assert_eq!(
+        alert_stale(db, &feeds, 7, chrono::Utc::now())
+            .await
+            .unwrap(),
+        1
+    );
+    assert_eq!(deliveries(&fixture).await, 1);
+}
