@@ -154,7 +154,7 @@ pub(crate) async fn dispatch(
         parts.headers,
         body,
     )?;
-    let rule_path = astrum_repo::routing::request_path(&path);
+    let rule_path = request.path.clone();
     if !state
         .content()
         .routing_allows(&ctx.repository, &rule_path)
