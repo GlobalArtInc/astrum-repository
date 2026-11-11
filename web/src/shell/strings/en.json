@@ -50,6 +50,13 @@
   "shell.search.placeholder": "Search for components or CVEs...",
   "shell.search.results": "Search suggestions",
   "shell.search.title": "Search",
+  "shell.securityBanner.codes": {
+    "one": "Only {count} recovery code is left.",
+    "other": "Only {count} recovery codes are left."
+  },
+  "shell.securityBanner.dismiss": "Dismiss",
+  "shell.securityBanner.enroll": "Set up two-factor authentication before {date}.",
+  "shell.securityBanner.open": "Open security settings",
   "shell.startup.failed": "Astrum Repository did not start",
   "shell.startup.loading": "Loading Astrum Repository",
   "shell.startup.progress": "Loading ...",

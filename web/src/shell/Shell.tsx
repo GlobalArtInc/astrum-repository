@@ -8,6 +8,7 @@ import { COMPACT, readStored, useMediaQuery, writeStored } from '../ui/hooks';
 import { BrandingSnippet, useConfiguredTitle } from './Branding';
 import { Header } from './Header';
 import { MobileDrawer } from './MobileDrawer';
+import { SecurityBanner } from './SecurityBanner';
 import styles from './Shell.module.css';
 import { SideMenu } from './SideMenu';
 import { useSearchShortcut } from './search';
@@ -57,6 +58,7 @@ export function Shell() {
       <div className={styles.body}>
         {!compact && <SideMenu collapsed={!sidebarOpen} version={state.version} />}
         <main id="main" tabIndex={-1} className={styles.main}>
+          <SecurityBanner />
           <Outlet />
         </main>
       </div>

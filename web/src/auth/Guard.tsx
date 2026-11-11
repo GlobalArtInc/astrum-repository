@@ -6,6 +6,7 @@ import { useT } from '../i18n';
 import { useDocumentTitle } from '../ui/hooks';
 import type { Need } from './permissions';
 import { loginPath } from './returnTo';
+import { SECURITY_PATH } from './session';
 import { useSession } from './state';
 
 export function NoAccess() {
@@ -36,11 +37,14 @@ export function Guard({
   requiresUser?: boolean;
   children: ReactNode;
 }) {
-  const { user, can } = useSession();
+  const { user, can, restricted } = useSession();
   const location = useLocation();
   const allowed = can(need);
   if (!user && (requiresUser || !allowed)) {
     return <Navigate to={loginPath(location.pathname + location.search + location.hash)} replace />;
+  }
+  if (restricted && location.pathname !== SECURITY_PATH) {
+    return <Navigate to={SECURITY_PATH} replace />;
   }
   if (!allowed) {
     return <NoAccess />;
