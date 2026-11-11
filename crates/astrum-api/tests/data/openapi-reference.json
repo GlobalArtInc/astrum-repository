@@ -10595,6 +10595,61 @@
     ]
    }
   },
+  "/v1/security/exceptions": {
+   "get": {
+    "tags": [
+     "Security management: exceptions"
+    ],
+    "responses": {
+     "200": {},
+     "401": {},
+     "403": {}
+    }
+   },
+   "post": {
+    "tags": [
+     "Security management: exceptions"
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {},
+     "400": {},
+     "401": {},
+     "403": {}
+    }
+   }
+  },
+  "/v1/security/exceptions/{id}": {
+   "delete": {
+    "tags": [
+     "Security management: exceptions"
+    ],
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "204": {},
+     "401": {},
+     "403": {},
+     "404": {}
+    }
+   }
+  },
   "/v1/security/jwt": {
    "put": {
     "responses": {
@@ -10604,6 +10659,172 @@
     "tags": [
      "Security management: JWT"
     ]
+   }
+  },
+  "/v1/security/keys": {
+   "get": {
+    "tags": [
+     "Security management: keys"
+    ],
+    "responses": {
+     "200": {},
+     "401": {},
+     "403": {}
+    }
+   },
+   "post": {
+    "tags": [
+     "Security management: keys"
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {},
+     "400": {},
+     "401": {},
+     "403": {},
+     "409": {}
+    }
+   }
+  },
+  "/v1/security/keys/{name}": {
+   "delete": {
+    "tags": [
+     "Security management: keys"
+    ],
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "204": {},
+     "401": {},
+     "403": {},
+     "404": {},
+     "409": {}
+    }
+   }
+  },
+  "/v1/security/policies": {
+   "get": {
+    "tags": [
+     "Security management: policies"
+    ],
+    "responses": {
+     "200": {},
+     "401": {},
+     "403": {}
+    }
+   },
+   "post": {
+    "tags": [
+     "Security management: policies"
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {},
+     "400": {},
+     "401": {},
+     "403": {},
+     "409": {}
+    }
+   }
+  },
+  "/v1/security/policies/{name}": {
+   "get": {
+    "tags": [
+     "Security management: policies"
+    ],
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {},
+     "401": {},
+     "403": {},
+     "404": {}
+    }
+   },
+   "put": {
+    "tags": [
+     "Security management: policies"
+    ],
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {},
+     "400": {},
+     "401": {},
+     "403": {},
+     "404": {}
+    }
+   },
+   "delete": {
+    "tags": [
+     "Security management: policies"
+    ],
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "204": {},
+     "401": {},
+     "403": {},
+     "404": {},
+     "409": {}
+    }
    }
   },
   "/v1/security/privileges": {

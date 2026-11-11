@@ -190,6 +190,38 @@ async fn a_policy_section_names_an_existing_content_policy() {
 }
 
 #[tokio::test]
+async fn the_writer_lists_the_users_of_a_content_policy_and_commits_what_it_changed() {
+    let (_test, db) = ready().await;
+    content_policy(db.conn(), "strict").await;
+    content_policy(db.conn(), "idle").await;
+    create(
+        db.conn(),
+        with_policy(
+            "maven",
+            "hosted",
+            json!({
+                "name": "releases", "online": true,
+                "storage": {"blobStoreName": "default", "strictContentTypeValidation": true, "writePolicy": "ALLOW"},
+                "maven": {"versionPolicy": "RELEASE", "layoutPolicy": "STRICT"},
+            }),
+            "strict",
+        ),
+    )
+    .await;
+    let writer = Writer::begin(db.conn()).await.unwrap();
+    assert_eq!(writer.content_policy_users("strict"), ["releases"]);
+    assert!(writer.content_policy_users("idle").is_empty());
+    content_policy::Entity::delete_by_id("idle".to_owned())
+        .exec(writer.transaction())
+        .await
+        .unwrap();
+    writer.commit().await.unwrap();
+    let left = content_policy::Entity::find().all(db.conn()).await.unwrap();
+    assert_eq!(left.len(), 1);
+    assert_eq!(left[0].name, "strict");
+}
+
+#[tokio::test]
 async fn groups_have_no_policy_of_their_own() {
     let (_test, db) = ready().await;
     content_policy(db.conn(), "strict").await;

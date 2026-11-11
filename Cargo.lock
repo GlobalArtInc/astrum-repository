@@ -268,6 +268,7 @@ dependencies = [
  "astrum-mcp",
  "astrum-notify",
  "astrum-outbound",
+ "astrum-policy",
  "astrum-repo",
  "astrum-scan",
  "astrum-security",
@@ -1508,13 +1509,17 @@ version = "3.0.4"
 dependencies = [
  "astrum-db",
  "astrum-testkit",
+ "base64 0.22.1",
  "chrono",
+ "hex",
  "sea-orm",
  "serde",
  "serde_json",
+ "sha2 0.10.9",
  "thiserror",
  "tokio",
  "uuid",
+ "x509-parser",
 ]
 
 [[package]]

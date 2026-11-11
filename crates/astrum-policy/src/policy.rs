@@ -224,4 +224,16 @@ mod tests {
         assert_eq!(licenses.mode, Mode::Off);
         assert_eq!(licenses.unknown, UnknownLicense::Report);
     }
+
+    #[test]
+    fn unknown_fields_of_a_newer_row_are_ignored_on_read() {
+        let vulnerabilities: VulnerabilityRule =
+            serde_json::from_str(r#"{"mode":"block","cooldown":{"days":3}}"#).unwrap();
+        assert_eq!(vulnerabilities.mode, Mode::Block);
+        let licenses: LicenseRule = serde_json::from_str(r#"{"mode":"report","extra":1}"#).unwrap();
+        assert_eq!(licenses.mode, Mode::Report);
+        let signatures: SignatureRule =
+            serde_json::from_str(r#"{"keys":["a"],"later":[]}"#).unwrap();
+        assert_eq!(signatures.keys, ["a"]);
+    }
 }

@@ -427,6 +427,32 @@ fn defs() -> Vec<Def> {
             idempotent: true,
         },
         Def {
+            name: "create_policy_exception",
+            title: "Create a policy exception",
+            description: "Let a component, advisory, licence or image digest through a content policy. Give the rule it applies to, at least one of advisory, license, name or digest, and the reason; an exception without policy applies to every policy. It records who granted it and is audited.",
+            schema: || {
+                schema(
+                    json!({
+                        "rule": string("vulnerability, license or signature"),
+                        "reason": string("Why the exception is justified"),
+                        "policy": string("Name of the content policy; omit for every policy"),
+                        "advisory": string("Advisory id or alias, such as GHSA-xxxx-xxxx-xxxx or CVE-2024-0001"),
+                        "license": string("SPDX licence id"),
+                        "format": string("Format of the component, such as npm or maven2"),
+                        "namespace": string("Namespace or group of the component"),
+                        "name": string("Name of the component"),
+                        "version": string("Version of the component"),
+                        "digest": string("Image digest, sha256: followed by 64 hexadecimal digits"),
+                        "expiresAt": string("When the exception ends, an RFC 3339 time in the future; omit for no end"),
+                    }),
+                    &["rule", "reason"],
+                )
+            },
+            need: Need::Permissions(&["astrum:policyexceptions:create"]),
+            write: true,
+            idempotent: false,
+        },
+        Def {
             name: "request_upload",
             title: "Upload a file by one-time URL",
             description: "Upload a file of any size to a hosted repository without passing it through this conversation: you get a one-time PUT URL and a curl command to run on the machine that holds the file. Use it for every file larger than a few KB and never paste file contents into the conversation. The URL works once, for five minutes, with your rights.",
@@ -588,6 +614,7 @@ impl Handler for AstrumTools {
             "create_role" => create_role(api, &arguments).await,
             "update_role" => update_role(api, &arguments).await,
             "set_user_roles" => set_user_roles(api, &arguments).await,
+            "create_policy_exception" => create_policy_exception(api, &arguments).await,
             "request_upload" => {
                 upload::request_upload(&self.state, &self.subject, &self.base, &arguments).await
             }
@@ -1434,6 +1461,36 @@ async fn create_role(api: &Loopback, arguments: &Map<String, Value>) -> Result<V
     Ok(role_view(&saved))
 }
 
+async fn create_policy_exception(
+    api: &Loopback,
+    arguments: &Map<String, Value>,
+) -> Result<Value, ToolError> {
+    let mut body = Map::new();
+    for key in [
+        "rule",
+        "reason",
+        "policy",
+        "advisory",
+        "license",
+        "format",
+        "namespace",
+        "name",
+        "version",
+        "digest",
+        "expiresAt",
+    ] {
+        if let Some(value) = text_argument(arguments, key) {
+            body.insert(key.to_owned(), Value::String(value));
+        }
+    }
+    api.json(
+        Method::POST,
+        crate::routes::policies::EXCEPTIONS,
+        Some(&Value::Object(body)),
+    )
+    .await
+}
+
 async fn update_role(api: &Loopback, arguments: &Map<String, Value>) -> Result<Value, ToolError> {
     let id = required_text(arguments, "id")?;
     let uri = format!("{ROLES}/{}", segment(&id));
@@ -1591,6 +1648,7 @@ mod tests {
                 "create_role",
                 "update_role",
                 "set_user_roles",
+                "create_policy_exception",
                 "request_upload",
                 "upload_component"
             ]

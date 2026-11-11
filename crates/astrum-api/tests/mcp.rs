@@ -1,7 +1,9 @@
 mod support;
 mod ui_support;
 
+use astrum_db::entity::audit_event;
 use axum::http::{Method, StatusCode, header};
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use serde_json::{Value, json};
 use support::{Auth, Fixture, Reply};
 use ui_support::*;
@@ -644,6 +646,79 @@ async fn roles_and_users_are_managed() {
     )
     .await;
     assert_eq!(taken["roles"], json!([]));
+}
+
+#[tokio::test]
+async fn a_policy_exception_is_created_through_the_agent_and_the_audit_says_via_mcp() {
+    let fixture = ready().await;
+    user_with(&fixture, "security", &["as-policyexceptions-create"]).await;
+    user_with(&fixture, "editor", &["as-policies-update"]).await;
+    let admin = token(&fixture, "WRITE").await;
+    let read = token(&fixture, "READ").await;
+    let user_token = |user: &'static str| {
+        let fixture = &fixture;
+        async move {
+            let reply = fixture
+                .call(
+                    Method::POST,
+                    TOKENS,
+                    Auth::Basic(user, "password-1"),
+                    Some(json!({"name": "mcp", "scope": "WRITE", "expiresInDays": 30})),
+                )
+                .await;
+            assert_eq!(reply.status, StatusCode::CREATED, "{}", reply.text());
+            reply.json()["token"].as_str().unwrap().to_owned()
+        }
+    };
+    let security = user_token("security").await;
+    let editor = user_token("editor").await;
+    for (bearer, sees) in [
+        (&admin, true),
+        (&security, true),
+        (&editor, false),
+        (&read, false),
+    ] {
+        let listed = names(&rpc(&fixture, bearer, "tools/list", json!({})).await);
+        assert_eq!(
+            listed.contains(&"create_policy_exception".to_owned()),
+            sees,
+            "{listed:?}"
+        );
+    }
+
+    let arguments = json!({
+        "rule": "license", "license": "MIT", "reason": "reviewed by security",
+        "expiresAt": "2999-01-01T00:00:00Z"
+    });
+    let created = ok(&fixture, &security, "create_policy_exception", arguments).await;
+    assert_eq!(created["license"], "MIT");
+    assert_eq!(created["createdBy"], "security");
+    let refused = failed(
+        &fixture,
+        &security,
+        "create_policy_exception",
+        json!({"rule": "license", "reason": "no target"}),
+    )
+    .await;
+    assert!(
+        refused.contains("advisory, license, name or digest"),
+        "{refused}"
+    );
+
+    let rows = audit_event::Entity::find()
+        .filter(audit_event::Column::Domain.eq("policyException"))
+        .all(fixture.state.db().conn())
+        .await
+        .unwrap();
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0].kind, "created");
+    assert_eq!(rows[0].attributes["via"], "mcp");
+    assert_eq!(rows[0].attributes["client"], "access token");
+    assert!(
+        rows[0].initiator.starts_with("security"),
+        "{}",
+        rows[0].initiator
+    );
 }
 
 #[tokio::test]

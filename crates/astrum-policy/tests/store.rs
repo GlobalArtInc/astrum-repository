@@ -1,3 +1,4 @@
+use astrum_db::entity::content_policy;
 use astrum_policy::Error;
 use astrum_policy::exception::{self, Exception, Rule};
 use astrum_policy::key::{self, TrustedKey};
@@ -7,6 +8,8 @@ use astrum_policy::policy::{
 };
 use astrum_testkit::TestDatabase;
 use chrono::{SubsecRound, TimeDelta, Utc};
+use sea_orm::EntityTrait;
+use sea_orm::sea_query::Expr;
 use uuid::Uuid;
 
 fn strict(name: &str) -> Policy {
@@ -273,4 +276,23 @@ async fn deleting_a_policy_takes_its_exceptions_but_keeps_the_global_ones() {
     exception::create(conn, &global).await.unwrap();
     assert!(policy::delete(conn, "strict").await.unwrap());
     assert_eq!(exception::list(conn).await.unwrap(), vec![global]);
+}
+
+#[tokio::test]
+async fn a_row_with_fields_of_a_newer_version_is_still_readable() {
+    let test = TestDatabase::create().await;
+    let db = test.migrated().await;
+    let conn = db.conn();
+    policy::create(conn, &strict("strict")).await.unwrap();
+    content_policy::Entity::update_many()
+        .col_expr(
+            content_policy::Column::Vulnerabilities,
+            Expr::value(serde_json::json!({"mode": "block", "cooldown": {"days": 3}})),
+        )
+        .exec(conn)
+        .await
+        .unwrap();
+    let found = policy::find(conn, "strict").await.unwrap().unwrap();
+    assert_eq!(found.vulnerabilities.mode, Mode::Block);
+    assert_eq!(policy::list(conn).await.unwrap().len(), 1);
 }

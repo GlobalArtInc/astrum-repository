@@ -15,6 +15,7 @@ astrum-mail.workspace = true
 astrum-mcp.workspace = true
 astrum-notify.workspace = true
 astrum-outbound.workspace = true
+astrum-policy.workspace = true
 astrum-repo.workspace = true
 astrum-scan.workspace = true
 astrum-security.workspace = true

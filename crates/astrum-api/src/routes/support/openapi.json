@@ -17449,6 +17449,249 @@
         ]
       }
     },
+    "/v1/security/exceptions": {
+      "get": {
+        "operationId": "getV1SecurityExceptions",
+        "responses": {
+          "200": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "List security exceptions",
+        "tags": [
+          "Security management: exceptions"
+        ]
+      },
+      "post": {
+        "operationId": "postV1SecurityExceptions",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {},
+          "400": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "Create security exceptions",
+        "tags": [
+          "Security management: exceptions"
+        ]
+      }
+    },
+    "/v1/security/exceptions/{id}": {
+      "delete": {
+        "operationId": "deleteV1SecurityExceptionsId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {},
+          "401": {},
+          "403": {},
+          "404": {}
+        },
+        "summary": "Delete security exceptions",
+        "tags": [
+          "Security management: exceptions"
+        ]
+      }
+    },
+    "/v1/security/keys": {
+      "get": {
+        "operationId": "getV1SecurityKeys",
+        "responses": {
+          "200": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "List security keys",
+        "tags": [
+          "Security management: keys"
+        ]
+      },
+      "post": {
+        "operationId": "postV1SecurityKeys",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {},
+          "400": {},
+          "401": {},
+          "403": {},
+          "409": {}
+        },
+        "summary": "Create security keys",
+        "tags": [
+          "Security management: keys"
+        ]
+      }
+    },
+    "/v1/security/keys/{name}": {
+      "delete": {
+        "operationId": "deleteV1SecurityKeysName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {},
+          "401": {},
+          "403": {},
+          "404": {},
+          "409": {}
+        },
+        "summary": "Delete security keys",
+        "tags": [
+          "Security management: keys"
+        ]
+      }
+    },
+    "/v1/security/policies": {
+      "get": {
+        "operationId": "getV1SecurityPolicies",
+        "responses": {
+          "200": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "List security policies",
+        "tags": [
+          "Security management: policies"
+        ]
+      },
+      "post": {
+        "operationId": "postV1SecurityPolicies",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {},
+          "400": {},
+          "401": {},
+          "403": {},
+          "409": {}
+        },
+        "summary": "Create security policies",
+        "tags": [
+          "Security management: policies"
+        ]
+      }
+    },
+    "/v1/security/policies/{name}": {
+      "delete": {
+        "operationId": "deleteV1SecurityPoliciesName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {},
+          "401": {},
+          "403": {},
+          "404": {},
+          "409": {}
+        },
+        "summary": "Delete security policies",
+        "tags": [
+          "Security management: policies"
+        ]
+      },
+      "get": {
+        "operationId": "getV1SecurityPoliciesName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {},
+          "401": {},
+          "403": {},
+          "404": {}
+        },
+        "summary": "Get security policies",
+        "tags": [
+          "Security management: policies"
+        ]
+      },
+      "put": {
+        "operationId": "updateV1SecurityPoliciesName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {},
+          "400": {},
+          "401": {},
+          "403": {},
+          "404": {}
+        },
+        "summary": "Update security policies",
+        "tags": [
+          "Security management: policies"
+        ]
+      }
+    },
     "/v1/security/privileges": {
       "get": {
         "operationId": "getV1SecurityPrivileges",
@@ -18881,6 +19124,15 @@
     },
     {
       "name": "Security management: advisories"
+    },
+    {
+      "name": "Security management: exceptions"
+    },
+    {
+      "name": "Security management: keys"
+    },
+    {
+      "name": "Security management: policies"
     },
     {
       "name": "Security management: privileges"

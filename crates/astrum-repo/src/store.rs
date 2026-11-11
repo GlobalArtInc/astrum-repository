@@ -379,6 +379,30 @@ impl Writer {
         Ok(Some(changed))
     }
 
+    pub fn content_policy_users(&self, policy: &str) -> Vec<String> {
+        self.repositories
+            .iter()
+            .filter(|repository| {
+                repository
+                    .attributes
+                    .policy
+                    .as_ref()
+                    .and_then(|attached| attached.name.as_deref())
+                    == Some(policy)
+            })
+            .map(|repository| repository.name.clone())
+            .collect()
+    }
+
+    pub fn transaction(&self) -> &DatabaseTransaction {
+        &self.txn
+    }
+
+    pub async fn commit(self) -> Result<(), Error> {
+        self.txn.commit().await?;
+        Ok(())
+    }
+
     pub fn rule_users(&self, rule: &str) -> Vec<String> {
         self.repositories
             .iter()
