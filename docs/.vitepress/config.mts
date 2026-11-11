@@ -26,6 +26,7 @@ const FORMATS: [string, string][] = [
   ['hex', 'Hex'],
   ['huggingface', 'Hugging Face'],
   ['jetbrains', 'JetBrains plugins'],
+  ['jsr', 'JSR (Deno and TypeScript)'],
   ['maven', 'Maven and Gradle'],
   ['nix', 'Nix'],
   ['npm', 'npm, pnpm, Yarn'],

@@ -9,6 +9,7 @@ import { gradlecache } from './gradlecache';
 import { hex } from './hex';
 import { huggingface } from './huggingface';
 import { jetbrains } from './jetbrains';
+import { jsr } from './jsr';
 import { nix } from './nix';
 import { nx } from './nx';
 import { openvsx } from './openvsx';
@@ -99,6 +100,7 @@ export const USAGE_FORMATS = [
   'bazelcache',
   'sccache',
   'bazel',
+  'jsr',
   'jetbrains',
   'protobuf',
   'chrome',
@@ -1124,6 +1126,7 @@ const GENERATORS: Record<string, (context: UsageContext) => Snippet[]> = {
     bazelcache(repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   bazel: (context) =>
     bazel(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
+  jsr: (context) => jsr(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   jetbrains: (context) =>
     jetbrains(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   protobuf: (context) => protobuf(context),

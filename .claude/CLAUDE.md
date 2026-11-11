@@ -24,6 +24,11 @@ repository is public: never commit secrets.
   (`jetbrains`, `crates/astrum-format-jetbrains`; hosted, proxy and group: hosted ones generate `updatePlugins.xml`, take
   `POST api/updates/upload` and PUT, and all three answer the `idea.plugins.host` requests `plugins/list`, `pluginManager`
   and `plugin/download`, so a proxy of https://plugins.jetbrains.com can replace Marketplace in a closed network).
+  Also a JSR registry for Deno and TypeScript packages (`jsr`, `crates/astrum-format-jsr`; hosted, proxy of https://jsr.io and
+  group): it serves `@scope/name/meta.json`, `<version>_meta.json` and the files of a version, and takes `deno publish --token`
+  at `api/scopes/{scope}/packages/{name}/versions/{version}` (a gzipped tar, read with caps on its size, entries and paths;
+  a published version is never replaced); publishing needs a repository domain with `ROOT` routing, because Deno calls `/api/`
+  at the root of `JSR_URL`.
   Also a hosted-only Buf Schema Registry for Protobuf modules (`protobuf`, `crates/astrum-format-protobuf`: Connect
   services `buf.registry.module.v1` and `buf.registry.owner.v1.OwnerService`, checked with buf 1.75.0; it needs a
   repository domain with `ROOT` routing because buf sends no path prefix, and has no proxy, group or `v1beta1`

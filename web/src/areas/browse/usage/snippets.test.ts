@@ -1423,6 +1423,35 @@ describe('bazelcache usage', () => {
   });
 });
 
+describe('jsr usage', () => {
+  it('points Deno at the registry, imports a package by name and publishes with a token', () => {
+    const snippets = usageSnippets(
+      context({
+        format: 'jsr',
+        repositoryName: 'jsr-hosted',
+        component: { group: '@acme', name: 'hello', version: '0.1.0' },
+      }),
+    );
+    expect(ids(snippets)).toEqual(['environment', 'imports', 'publish']);
+    expect(code(snippets, 'environment')).toBe(
+      'export JSR_URL=https://repo.example.org/repository/jsr-hosted/',
+    );
+    expect(JSON.parse(code(snippets, 'imports'))).toEqual({
+      imports: { '@acme/hello': 'jsr:@acme/hello@0.1.0' },
+    });
+    expect(code(snippets, 'publish')).toBe('deno publish --token <access token>');
+    expect(supportsUsage('jsr')).toBe(true);
+  });
+
+  it('offers no publish step for a proxy or a group', () => {
+    const snippets = usageSnippets(
+      context({ format: 'jsr', repositoryName: 'jsr-proxy', repositoryType: 'proxy' }),
+    );
+    expect(ids(snippets)).toEqual(['environment', 'imports']);
+    expect(code(snippets, 'imports')).toContain('jsr:@<scope>/<package>');
+  });
+});
+
 describe('sccache usage', () => {
   it('points sccache at the repository by environment variables, with read-only mode for developers', () => {
     const snippets = usageSnippets(context({ format: 'sccache', repositoryName: 'sccache-cache' }));

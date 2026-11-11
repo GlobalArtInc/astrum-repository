@@ -28,6 +28,7 @@ repositories themselves are in [repositories](../repositories/overview.md).
 | [Hex](hex.md) | Mix, rebar3 | ✓ | ✓ | ✓ |
 | [Hugging Face](huggingface.md) | `huggingface_hub`, `transformers`, `hf` | | ✓ | |
 | [JetBrains plugins](jetbrains.md) | IntelliJ Platform IDEs | ✓ | ✓ | ✓ |
+| [JSR (Deno and TypeScript)](jsr.md) | `deno`, `deno publish` | ✓ | ✓ | ✓ |
 | [Maven](maven.md) | Maven, Gradle | ✓ | ✓ | ✓ |
 | [Nix](nix.md) | `nix` | ✓ | ✓ | ✓ |
 | [npm](npm.md) | npm, pnpm, Yarn | ✓ | ✓ | ✓ |

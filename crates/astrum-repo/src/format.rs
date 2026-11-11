@@ -157,6 +157,11 @@ pub const FORMATS: &[Format] = &[
         types: HPG,
     },
     Format {
+        id: "jsr",
+        api_name: "jsr",
+        types: HPG,
+    },
+    Format {
         id: "maven2",
         api_name: "maven",
         types: HPG,
@@ -282,7 +287,7 @@ mod tests {
         sorted.sort_unstable();
         sorted.dedup();
         assert_eq!(ids, sorted);
-        assert_eq!(ids.len(), 42);
+        assert_eq!(ids.len(), 43);
     }
 
     #[test]

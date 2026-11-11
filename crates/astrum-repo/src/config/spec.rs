@@ -15,7 +15,7 @@ pub struct Spec {
     pub kind: RepositoryType,
 }
 
-const WRITABLE_MEMBER: &[&str] = &["cargo", "docker", "swift"];
+const WRITABLE_MEMBER: &[&str] = &["cargo", "docker", "jsr", "swift"];
 const PROXY_WRITE_POLICY: &[&str] = &["maven2", "npm", "raw"];
 
 impl Spec {
@@ -129,7 +129,7 @@ mod tests {
 
     #[test]
     fn every_format_and_type_the_registry_offers_has_a_spec() {
-        assert_eq!(Spec::all().count(), 105);
+        assert_eq!(Spec::all().count(), 108);
         assert!(Spec::from_api("maven", "hosted").is_some());
         assert!(Spec::from_api("maven2", "hosted").is_none());
         assert!(Spec::from_api("apt", "group").is_none());
@@ -241,6 +241,7 @@ mod tests {
         assert!(spec("docker", "group").has_writable_member());
         assert!(spec("cargo", "group").has_writable_member());
         assert!(spec("swift", "group").has_writable_member());
+        assert!(spec("jsr", "group").has_writable_member());
         assert!(!spec("npm", "group").has_writable_member());
         assert!(spec("maven", "proxy").has_preemptive_authentication());
         assert!(!spec("raw", "proxy").has_preemptive_authentication());

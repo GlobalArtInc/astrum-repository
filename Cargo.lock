@@ -245,6 +245,7 @@ dependencies = [
  "astrum-format-hex",
  "astrum-format-huggingface",
  "astrum-format-jetbrains",
+ "astrum-format-jsr",
  "astrum-format-maven",
  "astrum-format-nix",
  "astrum-format-npm",
@@ -918,6 +919,34 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
+]
+
+[[package]]
+name = "astrum-format-jsr"
+version = "3.0.4"
+dependencies = [
+ "astrum-blob",
+ "astrum-content",
+ "astrum-db",
+ "astrum-repo",
+ "async-trait",
+ "axum",
+ "bytes",
+ "chrono",
+ "flate2",
+ "futures-util",
+ "hex",
+ "sea-orm",
+ "semver",
+ "serde_json",
+ "sha2 0.10.9",
+ "tar",
+ "tempfile",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "url",
+ "uuid",
 ]
 
 [[package]]
@@ -1625,6 +1654,7 @@ dependencies = [
  "astrum-format-hex",
  "astrum-format-huggingface",
  "astrum-format-jetbrains",
+ "astrum-format-jsr",
  "astrum-format-maven",
  "astrum-format-nix",
  "astrum-format-npm",
