@@ -11572,6 +11572,40 @@
     ]
    }
   },
+  "/v1/security/scan": {
+   "post": {
+    "tags": [
+     "Security management: scan"
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "required": [
+         "repository"
+        ],
+        "properties": {
+         "repository": {
+          "type": "string"
+         },
+         "componentId": {
+          "type": "string"
+         }
+        }
+       }
+      }
+     }
+    },
+    "responses": {
+     "202": {},
+     "400": {},
+     "401": {},
+     "403": {},
+     "404": {}
+    }
+   }
+  },
   "/v1/security/ssrf-protection": {
    "get": {
     "responses": {

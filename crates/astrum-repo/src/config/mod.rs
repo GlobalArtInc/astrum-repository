@@ -291,6 +291,13 @@ impl Repository {
             .and_then(|storage| storage.blob_store_name.as_deref())
     }
 
+    pub fn policy_name(&self) -> Option<&str> {
+        self.attributes
+            .policy
+            .as_ref()
+            .and_then(|policy| policy.name.as_deref())
+    }
+
     pub fn group(&self) -> Option<&Group> {
         self.attributes.group.as_ref()
     }

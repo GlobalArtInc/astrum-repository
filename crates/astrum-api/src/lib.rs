@@ -59,6 +59,7 @@ struct Inner {
     repository_changes: tokio::sync::Notify,
     limits: limits::Limiter,
     metrics: metrics::Registry,
+    scan_metrics: Arc<astrum_scan::worker::Metrics>,
     stars: github::Stars,
 }
 
@@ -99,6 +100,7 @@ impl AppState {
                 repository_changes: tokio::sync::Notify::new(),
                 limits: limits::Limiter::default(),
                 metrics: metrics::Registry::default(),
+                scan_metrics: Arc::default(),
                 stars: github::Stars::default(),
             }),
         }
@@ -201,6 +203,10 @@ impl AppState {
         &self.inner.metrics
     }
 
+    pub fn scan_metrics(&self) -> &Arc<astrum_scan::worker::Metrics> {
+        &self.inner.scan_metrics
+    }
+
     pub async fn audit(&self, caller: &Caller, event: Event) {
         let initiator = match auth::client_address() {
             Some(address) => format!("{}/{address}", caller.initiator()),
@@ -274,6 +280,7 @@ fn endpoints(extra: Router<AppState>) -> Router<AppState> {
         .merge(routes::cleanup_policies::routes())
         .merge(routes::advisories::routes())
         .merge(routes::policies::routes())
+        .merge(routes::scan::routes())
         .merge(routes::support::routes())
         .merge(routes::capabilities::routes())
         .merge(routes::routing_rules::routes())

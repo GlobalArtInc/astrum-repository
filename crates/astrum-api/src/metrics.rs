@@ -220,6 +220,7 @@ struct Collected {
     pending: Option<i64>,
     disk: Option<(u64, u64)>,
     alerts: Vec<(String, String)>,
+    scan: Option<astrum_scan::queue::Depth>,
 }
 
 async fn tasks(
@@ -262,7 +263,7 @@ async fn disk(state: &AppState) -> Option<(u64, u64)> {
 }
 
 async fn collect(state: &AppState) -> Collected {
-    let (stores, checks, repositories, tasks, pending, disk, alerts) = tokio::join!(
+    let (stores, checks, repositories, tasks, pending, disk, alerts, scan) = tokio::join!(
         async { measure_all(state).await.ok() },
         health::run(state),
         async { astrum_repo::store::list(state.db().conn()).await.ok() },
@@ -270,6 +271,7 @@ async fn collect(state: &AppState) -> Collected {
         pending(state),
         disk(state),
         crate::space::tracked(state),
+        async { astrum_scan::queue::depth(state.db().conn()).await.ok() },
     );
     Collected {
         stores,
@@ -279,6 +281,7 @@ async fn collect(state: &AppState) -> Collected {
         pending,
         disk,
         alerts,
+        scan,
     }
 }
 
@@ -557,6 +560,47 @@ pub async fn render(state: &AppState, settings: &Prometheus) -> String {
         );
         out.sample("astrum_notification_deliveries_pending", &[], pending);
     }
+
+    if let Some(depth) = &collected.scan {
+        out.family(
+            "astrum_scan_queue_depth",
+            "gauge",
+            "Components waiting to be scanned, on every node together.",
+        );
+        out.sample("astrum_scan_queue_depth", &[], depth.queued);
+        out.family(
+            "astrum_scan_queue_oldest_seconds",
+            "gauge",
+            "Age of the oldest component in the scan queue, 0 when it is empty.",
+        );
+        out.sample(
+            "astrum_scan_queue_oldest_seconds",
+            &[],
+            depth.oldest_seconds,
+        );
+    }
+    let scans = state.scan_metrics().snapshot();
+    out.family(
+        "astrum_scan_seconds",
+        "histogram",
+        "Time this node took to scan one component, failed attempts included.",
+    );
+    for (bound, count) in astrum_scan::worker::BUCKETS.iter().zip(scans.buckets) {
+        out.sample(
+            "astrum_scan_seconds_bucket",
+            &[("le", &bound.to_string())],
+            count,
+        );
+    }
+    out.sample("astrum_scan_seconds_bucket", &[("le", "+Inf")], scans.count);
+    out.sample("astrum_scan_seconds_sum", &[], scans.sum);
+    out.sample("astrum_scan_seconds_count", &[], scans.count);
+    out.family(
+        "astrum_scan_failures_total",
+        "counter",
+        "Scan attempts of this node that failed, retried ones included.",
+    );
+    out.sample("astrum_scan_failures_total", &[], scans.failures);
 
     if let Some(at) = state.tasks().last_tick() {
         out.family(

@@ -41,6 +41,9 @@ impl Server {
         state.tasks().register(std::sync::Arc::new(
             astrum_tasks::kinds::advisories::AdvisorySync::new(config.data_dir.join("tmp")),
         ));
+        state.tasks().register(std::sync::Arc::new(
+            astrum_tasks::kinds::scan::ScanRepository,
+        ));
         let listener = TcpListener::bind(config.listen)
             .await
             .with_context(|| format!("cannot listen on {}", config.listen))?;
@@ -76,6 +79,11 @@ impl Server {
         let revisions =
             astrum_api::revisions::spawn(self.state.clone(), astrum_api::revisions::INTERVAL);
         let space = astrum_api::space::spawn(self.state.clone());
+        let scan = astrum_scan::worker::spawn(
+            self.state.content().clone(),
+            astrum_scan::worker::Config::load(self.state.db().conn()).await,
+            self.state.scan_metrics().clone(),
+        );
         match crate::web::installed(&self.web_dir) {
             true => tracing::info!(dir = %self.web_dir.display(), "serving the user interface"),
             false => tracing::warn!(
@@ -112,6 +120,7 @@ impl Server {
         heartbeat.abort();
         revisions.abort();
         space.abort();
+        scan.abort();
         astrum_api::nodes::leave(&self.state).await;
         if let Err(error) = self.state.content().flush_downloads().await {
             tracing::warn!(%error, "download counts were not saved");

@@ -3,6 +3,7 @@ pub mod compact;
 pub mod expired;
 pub mod purge_unused;
 pub mod reconcile;
+pub mod scan;
 
 use std::sync::Arc;
 

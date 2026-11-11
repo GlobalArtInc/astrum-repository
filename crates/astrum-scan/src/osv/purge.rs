@@ -1,4 +1,6 @@
-use sea_orm::{ConnectionTrait, DbBackend, DbErr, Statement};
+use sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, DbErr, Statement, TransactionTrait};
+
+use crate::PACKAGE_LOCK;
 
 const GRACE: &str = "1 hour";
 
@@ -16,21 +18,7 @@ async fn delete(db: &impl ConnectionTrait, sql: &str) -> Result<u64, DbErr> {
         .rows_affected())
 }
 
-pub async fn run(db: &impl ConnectionTrait) -> Result<Purged, DbErr> {
-    let inventories = delete(
-        db,
-        &format!(
-            "DELETE FROM sca_inventory i WHERE i.extracted_at < now() - interval '{GRACE}' \
-             AND NOT EXISTS (SELECT 1 FROM component_scan s WHERE s.inventory_id = i.id)"
-        ),
-    )
-    .await?;
-    let packages = delete(
-        db,
-        "DELETE FROM sca_package p WHERE NOT EXISTS \
-         (SELECT 1 FROM sca_inventory_package ip WHERE ip.package_id = p.id)",
-    )
-    .await?;
+pub async fn run(db: &DatabaseConnection) -> Result<Purged, DbErr> {
     let layer_facts = delete(
         db,
         &format!(
@@ -40,6 +28,24 @@ pub async fn run(db: &impl ConnectionTrait) -> Result<Purged, DbErr> {
         ),
     )
     .await?;
+    let txn = db.begin().await?;
+    txn.execute_unprepared(&format!("SELECT pg_advisory_xact_lock({PACKAGE_LOCK})"))
+        .await?;
+    let inventories = delete(
+        &txn,
+        &format!(
+            "DELETE FROM sca_inventory i WHERE i.extracted_at < now() - interval '{GRACE}' \
+             AND NOT EXISTS (SELECT 1 FROM component_scan s WHERE s.inventory_id = i.id)"
+        ),
+    )
+    .await?;
+    let packages = delete(
+        &txn,
+        "DELETE FROM sca_package p WHERE NOT EXISTS \
+         (SELECT 1 FROM sca_inventory_package ip WHERE ip.package_id = p.id)",
+    )
+    .await?;
+    txn.commit().await?;
     Ok(Purged {
         inventories,
         packages,

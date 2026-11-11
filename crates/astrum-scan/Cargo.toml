@@ -25,4 +25,5 @@ uuid.workspace = true
 [dev-dependencies]
 astrum-blob.workspace = true
 astrum-testkit.workspace = true
+axum.workspace = true
 tempfile.workspace = true

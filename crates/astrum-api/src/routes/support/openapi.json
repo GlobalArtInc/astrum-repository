@@ -18485,6 +18485,42 @@
         ]
       }
     },
+    "/v1/security/scan": {
+      "post": {
+        "operationId": "postV1SecurityScan",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "componentId": {
+                    "type": "string"
+                  },
+                  "repository": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "repository"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {},
+          "400": {},
+          "401": {},
+          "403": {},
+          "404": {}
+        },
+        "summary": "Create security scan",
+        "tags": [
+          "Security management: scan"
+        ]
+      }
+    },
     "/v1/security/ssrf-protection": {
       "get": {
         "operationId": "getV1SecuritySsrfProtection",
@@ -19142,6 +19178,9 @@
     },
     {
       "name": "Security management: roles"
+    },
+    {
+      "name": "Security management: scan"
     },
     {
       "name": "Security management: users"
