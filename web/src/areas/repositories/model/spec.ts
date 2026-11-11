@@ -29,6 +29,7 @@ export function formatFromUrl(segment: string, formats: readonly UiFormat[] = []
 export const sections = {
   writePolicy: (spec: Spec) => spec.type === 'hosted',
   latestPolicy: (spec: Spec) => spec.format === 'docker' && spec.type === 'hosted',
+  immutableTags: (spec: Spec) => spec.format === 'docker' && spec.type === 'hosted',
   proxy: (spec: Spec) => spec.type === 'proxy',
   group: (spec: Spec) => spec.type === 'group',
   writableMember: (spec: Spec) => spec.type === 'group' && WRITABLE_MEMBER.has(spec.format),

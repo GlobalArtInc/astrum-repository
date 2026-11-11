@@ -19,6 +19,8 @@ export interface RepositoryValues {
   strictContentTypeValidation: boolean;
   writePolicy: string;
   latestPolicy: boolean;
+  immutableTagPatterns: string;
+  immutableTagExceptions: string;
   remoteUrl: string;
   contentMaxAge: number | null;
   metadataMaxAge: number | null;
@@ -115,6 +117,8 @@ export const FIELDS: readonly FieldDef[] = [
   { key: 'strictContentTypeValidation', path: ['storage', 'strictContentTypeValidation'], kind: 'bool' },
   { key: 'writePolicy', path: ['storage', 'writePolicy'], kind: 'enum' },
   { key: 'latestPolicy', path: ['storage', 'latestPolicy'], kind: 'bool' },
+  { key: 'immutableTagPatterns', path: ['storage', 'immutableTags', 'patterns'], kind: 'lines' },
+  { key: 'immutableTagExceptions', path: ['storage', 'immutableTags', 'exceptions'], kind: 'lines' },
   { key: 'remoteUrl', path: ['proxy', 'remoteUrl'], kind: 'text' },
   { key: 'contentMaxAge', path: ['proxy', 'contentMaxAge'], kind: 'int' },
   { key: 'metadataMaxAge', path: ['proxy', 'metadataMaxAge'], kind: 'int' },
@@ -581,6 +585,10 @@ const SIGNING_FIELDS: Record<string, readonly [FieldKey, FieldKey]> = {
 
 export function formField(id: string, spec: Spec): FieldKey | null {
   const name = id.replace(/^PARAMETER\s+/, '').trim();
+  const immutable = /immutableTags\.(patterns|exceptions)(\[\d+\])?$/.exec(name);
+  if (immutable) {
+    return immutable[1] === 'patterns' ? 'immutableTagPatterns' : 'immutableTagExceptions';
+  }
   const last = name.split('.').pop() ?? name;
   switch (last) {
     case 'enabled':

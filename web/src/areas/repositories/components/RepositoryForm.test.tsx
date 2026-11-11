@@ -139,6 +139,19 @@ describe('the repository form', () => {
     }
   });
 
+  it('offers the immutable tag lists to Docker hosted repositories only', () => {
+    const first = renderForm({ document: BY_KEY['docker/hosted/max'] as RepositoryDocument });
+    expect(screen.getByRole('textbox', { name: /Immutable tags/ })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: /Mutable exceptions/ })).toBeInTheDocument();
+    first.unmount();
+    for (const key of ['docker/proxy/max', 'raw/hosted/max']) {
+      const { unmount } = renderForm({ document: BY_KEY[key] as RepositoryDocument });
+      expect(screen.queryByRole('textbox', { name: /Immutable tags/ })).toBeNull();
+      expect(screen.queryByRole('textbox', { name: /Mutable exceptions/ })).toBeNull();
+      unmount();
+    }
+  });
+
   it('orders group members with the arrows and offers only repositories of the format', async () => {
     const document = structuredClone(BY_KEY['raw/group/min'] as RepositoryDocument);
     (document.group as Record<string, unknown>).memberNames = ['a', 'b', 'c'];
