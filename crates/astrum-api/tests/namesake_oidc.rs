@@ -149,3 +149,54 @@ async fn an_oidc_user_without_a_local_namesake_signs_in_but_keeps_no_credentials
         "{body}"
     );
 }
+
+async fn grants_with(fixture: &Fixture, callback: &Reply) -> Reply {
+    let (cookies, csrf) = session(callback);
+    fixture
+        .send(
+            Method::GET,
+            "/service/rest/internal/ui/oauth/grants",
+            Auth::None,
+            None,
+            &[("cookie", &cookies), ("x-astrum-csrf", &csrf)],
+        )
+        .await
+}
+
+#[tokio::test]
+async fn an_oidc_session_ends_when_a_local_namesake_appears() {
+    let (fixture, provider) = setup().await;
+    provider.sign_in_as(json!({"sub": "u-2", "preferred_username": "rita"}));
+    let callback = sign_in(&fixture).await;
+    assert_eq!(
+        grants_with(&fixture, &callback).await.status,
+        StatusCode::OK
+    );
+    fixture
+        .add_user("rita", "local-rita-password", &["as-admin"])
+        .await;
+    let reply = grants_with(&fixture, &callback).await;
+    assert_eq!(reply.status, StatusCode::UNAUTHORIZED, "{}", reply.text());
+}
+
+#[tokio::test]
+async fn an_oidc_session_without_a_namesake_lives_on() {
+    let (fixture, provider) = setup().await;
+    provider.sign_in_as(json!({"sub": "u-3", "preferred_username": "sam"}));
+    let callback = sign_in(&fixture).await;
+    assert_eq!(
+        grants_with(&fixture, &callback).await.status,
+        StatusCode::OK
+    );
+    fixture
+        .add_user("dora", "local-dora-password", &["as-admin"])
+        .await;
+    assert_eq!(
+        grants_with(&fixture, &callback).await.status,
+        StatusCode::OK
+    );
+    assert_eq!(
+        grants_with(&fixture, &callback).await.status,
+        StatusCode::OK
+    );
+}

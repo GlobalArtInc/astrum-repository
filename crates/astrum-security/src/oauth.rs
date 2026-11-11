@@ -105,7 +105,7 @@ pub struct TokenSet {
     pub scope: String,
 }
 
-fn granted_in(source: &str) -> Condition {
+pub(crate) fn granted_in(source: &str) -> Condition {
     let column = oauth_grant::Column::Realm;
     match source {
         ldap::SOURCE => Condition::all().add(column.eq(realm::LDAP)),

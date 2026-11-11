@@ -28,7 +28,7 @@ pub struct Session {
 
 pub struct World {
     pub fixture: Fixture,
-    _directory: LdapTestServer,
+    pub directory: LdapTestServer,
 }
 
 fn server(port: u16) -> Value {
@@ -105,10 +105,7 @@ pub async fn setup_bare(realms: Value) -> World {
         )
         .await;
     }
-    World {
-        fixture,
-        _directory: directory,
-    }
+    World { fixture, directory }
 }
 
 pub async fn setup_with(realms: Value) -> World {

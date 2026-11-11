@@ -1,6 +1,7 @@
 pub mod api_keys;
 pub mod bootstrap;
 pub mod catalogue;
+pub mod credentials;
 pub mod format_tokens;
 pub mod ldap;
 pub mod model;
@@ -61,6 +62,13 @@ pub struct Profile {
     pub first_name: String,
     pub last_name: String,
     pub email: String,
+}
+
+#[derive(Debug)]
+pub enum OidcSignIn {
+    Accepted(Subject),
+    Reserved,
+    RealmInactive,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -307,12 +315,21 @@ impl Security {
         user_id: &str,
     ) -> Result<Option<Subject>, ldap::LdapServerError> {
         let model = self.model();
-        if !model.realm_active(realm::LDAP) {
+        if !model.realm_active(realm::LDAP) || model.local_id_taken(user_id) {
             return Ok(None);
         }
-        Ok(self.ldap_user(user_id).await?.map(|user| {
-            model.external_subject(&user.username, ldap::SOURCE, realm::LDAP, &user.groups)
-        }))
+        let Some(user) = self.ldap_user(user_id).await? else {
+            return Ok(None);
+        };
+        if model.local_id_taken(&user.username) {
+            return Ok(None);
+        }
+        Ok(Some(model.external_subject(
+            &user.username,
+            ldap::SOURCE,
+            realm::LDAP,
+            &user.groups,
+        )))
     }
 
     pub fn profile(&self, subject: &Subject) -> Profile {
@@ -355,7 +372,11 @@ impl Security {
         }
     }
 
-    pub async fn oidc_sign_in(&self, user: &oidc::OidcUser) -> Result<Option<Subject>, Error> {
+    pub async fn oidc_sign_in(&self, user: &oidc::OidcUser) -> Result<OidcSignIn, Error> {
+        if self.model().local_id_taken(&user.user_id) {
+            tracing::info!(user = %user.user_id, "an OpenID Connect sign-in was not accepted");
+            return Ok(OidcSignIn::Reserved);
+        }
         let now = chrono::Utc::now().fixed_offset();
         astrum_db::entity::security_oidc_user::Entity::insert(
             astrum_db::entity::security_oidc_user::ActiveModel {
@@ -386,7 +407,10 @@ impl Security {
         .exec(&self.db)
         .await?;
         self.changed().await?;
-        Ok(self.model().oidc_subject(&user.user_id))
+        Ok(match self.model().oidc_subject(&user.user_id) {
+            Some(subject) => OidcSignIn::Accepted(subject),
+            None => OidcSignIn::RealmInactive,
+        })
     }
 
     async fn rehash(&self, user_id: &str, password: &str) -> Result<(), Error> {

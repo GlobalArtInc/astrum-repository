@@ -13,6 +13,12 @@ fn carol() -> Auth<'static> {
     Auth::Basic("carol", "carol-secret")
 }
 
+fn sorted<const N: usize>(ids: [uuid::Uuid; N]) -> Vec<String> {
+    let mut ids: Vec<String> = ids.iter().map(ToString::to_string).collect();
+    ids.sort();
+    ids
+}
+
 fn ids(listed: &Value) -> Vec<String> {
     let mut ids: Vec<String> = listed
         .as_array()
@@ -28,33 +34,35 @@ fn ids(listed: &Value) -> Vec<String> {
 async fn grants_are_seen_and_revoked_only_in_their_own_realm() {
     let world = setup_bare(local_first()).await;
     let directory = world.session("bob", DIRECTORY_PASSWORD).await;
+    let mine = world.local_grant().await;
+    let theirs = world.grant("bob", "LdapRealm").await;
+    let spare = world.grant("bob", "LdapRealm").await;
+    let ok = StatusCode::OK;
+    let other = world.within(ok, Method::GET, GRANTS, &directory).await;
+    assert_eq!(ids(&other.json()), sorted([theirs, spare]));
+    let missing = StatusCode::NOT_FOUND;
+    let path = format!("{GRANTS}/{mine}");
+    world
+        .within(missing, Method::DELETE, &path, &directory)
+        .await;
+    let gone = StatusCode::NO_CONTENT;
+    let path = format!("{GRANTS}/{spare}");
+    world.within(gone, Method::DELETE, &path, &directory).await;
+
     world
         .fixture
         .add_user("bob", LOCAL_PASSWORD, &["as-admin"])
         .await;
-    let mine = world.local_grant().await;
-    let theirs = world.grant("bob", "LdapRealm").await;
-    let ok = StatusCode::OK;
     let own = world.answer(ok, Method::GET, GRANTS, local(), None).await;
     assert_eq!(ids(&own.json()), [mine.to_string()]);
-    let other = world.within(ok, Method::GET, GRANTS, &directory).await;
-    assert_eq!(ids(&other.json()), [theirs.to_string()]);
-
-    let missing = StatusCode::NOT_FOUND;
     let path = format!("{GRANTS}/{theirs}");
     world
         .answer(missing, Method::DELETE, &path, local(), None)
         .await;
     let path = format!("{GRANTS}/{mine}");
     world
-        .within(missing, Method::DELETE, &path, &directory)
-        .await;
-    let gone = StatusCode::NO_CONTENT;
-    world
         .answer(gone, Method::DELETE, &path, local(), None)
         .await;
-    let path = format!("{GRANTS}/{theirs}");
-    world.within(gone, Method::DELETE, &path, &directory).await;
 }
 
 #[tokio::test]
