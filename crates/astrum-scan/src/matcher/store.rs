@@ -9,6 +9,7 @@ use sea_orm::{
 
 use super::Config;
 use super::evaluate::{self, Candidate, Evaluation, Found};
+use super::notices;
 use crate::version::Ecosystem;
 
 const IMPORT_LOCK: &str = "SELECT pg_advisory_xact_lock_shared(hashtext('advisories.import'))";
@@ -33,6 +34,8 @@ pub struct Batch {
     pub removed: Vec<Change>,
     pub updated: Vec<Change>,
     pub marked: Vec<Marked>,
+    pub notices: u64,
+    pub notices_cut: bool,
     pub skipped_advisories: u64,
     pub unresolved_packages: u64,
     pub truncated_packages: u64,
@@ -178,6 +181,9 @@ where
     for chunk in upsert.chunks(WRITE_CHUNK) {
         upsert_matches(&txn, chunk).await?;
     }
+    let notices = notices::queue(&txn, &batch.added, notices::NOTICE_ROWS).await?;
+    batch.notices = notices.queued;
+    batch.notices_cut = notices.cut;
     batch.marked = finish(&txn, &ids).await?;
     txn.commit().await?;
     Ok(batch)

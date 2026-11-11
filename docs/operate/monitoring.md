@@ -99,6 +99,13 @@ last check and the problems that last; the metric `astrum_blobstore_space_alert`
 Messages follow the language of the channel. A webhook receives the events `blobstore.alert` and
 `blobstore.recovered` with the message in `text`; `repository` and `component` are `null`.
 
+## Vulnerability data alert
+
+When the task **Security - Synchronize vulnerability data** ends and the data of an ecosystem is older
+than its **Stale after days**, or was never synced, it sends one message a day for as long as that lasts
+to the notification channels that listen to **Vulnerability found**. A webhook receives the event
+`advisories.stale` with the message in `text`; `repository` and `component` are `null`.
+
 ## What to watch
 
 With the Prometheus metrics above, alert on `astrum_blobstore_up == 0`,

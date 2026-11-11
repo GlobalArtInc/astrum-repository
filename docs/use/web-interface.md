@@ -236,7 +236,17 @@ privileges for are shown, and **Settings** disappears from the menu when there a
   blob stores. See [capabilities](../configure/capabilities.md).
 - **Notifications**: channels in Telegram, Slack, Mattermost, Rocket.Chat, email or your own webhook that
   hear about published, updated and deleted components, and receive the
-  [blob store space alerts](../operate/monitoring.md#blob-store-space-alerts).
+  [blob store space alerts](../operate/monitoring.md#blob-store-space-alerts). Two more events are off for
+  a new channel: **Vulnerability found** (webhook event `vulnerability.found`) sends one message for a
+  component of a repository with a content policy and an advisory, when the advisory first matches it
+  at or above the `notify` severity of the policy and no exception covers it, and **Download blocked**
+  (`policy.blocked`) sends one message a day for each component whose download a policy refused. Both
+  name the component, the repository and the policy, and the first the advisory id and severity, never
+  the reasons or the text of an advisory. Unlike the component changes, a channel with no repositories
+  chosen hears these two events for every repository, proxy repositories included. `vulnerability.found`
+  comes when a package first matches an advisory: a component whose package already matched earlier does
+  not raise it, and with a policy in block mode `policy.blocked` tells about such a component when its
+  download is refused. A webhook receives each message as its own request, as for the other events.
 - **Nodes**: the nodes of the installation and their state. See [nodes](../operate/nodes.md).
 
 The **Audit Log**, at `/audit`, lists security and configuration changes and downloads, with filters by

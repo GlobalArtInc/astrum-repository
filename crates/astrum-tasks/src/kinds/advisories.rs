@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use astrum_db::audit::Event;
+use astrum_notify::alerts::{self, StaleFeed};
 use astrum_scan::osv::{
     self, DEFAULT_BASE_URL, DEFAULT_ECOSYSTEMS, DEFAULT_STALE_AFTER_DAYS, HttpDump, Outcome, Stale,
     SyncError,
@@ -64,6 +65,30 @@ pub fn announce_stale(run: &Run, stale: &[Stale], days: i64) {
                 feed.ecosystem
             )),
         }
+    }
+}
+
+pub async fn alert_stale(run: &Run, stale: &[Stale], days: i64) {
+    let feeds: Vec<StaleFeed> = stale
+        .iter()
+        .map(|feed| StaleFeed {
+            ecosystem: feed.ecosystem.clone(),
+            synced_at: feed.synced_at,
+        })
+        .collect();
+    match alerts::alert_stale(run.db(), &feeds, days, Utc::now()).await {
+        Ok(0) => {}
+        Ok(channels) => run.info(format!(
+            "told {} the advisory data is out of date",
+            count(
+                channels as i64,
+                "notification channel",
+                "notification channels"
+            )
+        )),
+        Err(error) => run.error(format!(
+            "the alert that the advisory data is out of date was not queued: {error}"
+        )),
     }
 }
 
@@ -168,6 +193,7 @@ impl TaskKind for AdvisorySync {
         ));
         let stale = osv::stale(run.db(), &wanted, days, Utc::now()).await?;
         announce_stale(run, &stale, days);
+        alert_stale(run, &stale, days).await;
         if !failed.is_empty() {
             return Err(TaskError::Failed(format!(
                 "{} of {} failed: {}",

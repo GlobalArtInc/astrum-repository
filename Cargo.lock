@@ -1690,6 +1690,7 @@ dependencies = [
  "astrum-content",
  "astrum-db",
  "astrum-mail",
+ "astrum-notify",
  "astrum-repo",
  "astrum-scan",
  "astrum-security",

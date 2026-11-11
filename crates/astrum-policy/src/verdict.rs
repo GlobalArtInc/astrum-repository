@@ -127,7 +127,7 @@ pub fn parse_severity(text: &str) -> Severity {
     }
 }
 
-fn rank(severity: Severity) -> u8 {
+pub fn rank(severity: Severity) -> u8 {
     match severity {
         Severity::Critical => 4,
         Severity::High => 3,

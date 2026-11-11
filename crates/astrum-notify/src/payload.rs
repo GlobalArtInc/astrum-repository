@@ -80,6 +80,15 @@ pub fn body(message: &Message) -> Vec<u8> {
             .as_deref()
             .map(non_empty)
             .unwrap_or(Value::Null);
+        if let Some(detail) = &notice.detail {
+            body["policy"] = json!(detail.policy);
+            if detail.advisory.is_some() {
+                body["vulnerability"] = json!({
+                    "advisory": detail.advisory,
+                    "severity": detail.severity,
+                });
+            }
+        }
         body["url"] = json!(envelope.url);
         body["dockerPull"] = json!(envelope.docker_pull);
     }
@@ -110,6 +119,7 @@ mod tests {
             action: Action::Published,
             initiator: Some("admin".into()),
             component_id: Some(42),
+            detail: None,
         };
         let links = Links {
             base_url: Some("https://repo.example.com".into()),

@@ -514,3 +514,161 @@ async fn email_channels_use_the_mail_sender() {
         mails[0].text
     );
 }
+
+const FOUND: &str = r#"{"policy":"strict","advisory":"GHSA-1","severity":"high"}"#;
+const BLOCKED: &str = r#"{"policy":"strict"}"#;
+
+fn slack(name: &str, url: &str, events: &[&str]) -> Value {
+    json!({"name": name, "type": "slack", "secret": url, "events": events, "language": "en"})
+}
+
+async fn capture(fixture: &Fixture, action: &str, wanted: &str, detail: &str) {
+    sea_orm::ConnectionTrait::execute_unprepared(
+        fixture.state.db().conn(),
+        &format!(
+            "SELECT notification_capture_events('{action}', \
+               ARRAY(SELECT id FROM component WHERE name LIKE '{wanted}' ORDER BY id), \
+               ARRAY(SELECT '{detail}' FROM component WHERE name LIKE '{wanted}' ORDER BY id))"
+        ),
+    )
+    .await
+    .unwrap();
+}
+
+async fn components(fixture: &Fixture, count: usize) {
+    sea_orm::ConnectionTrait::execute_unprepared(
+        fixture.state.db().conn(),
+        &format!(
+            "INSERT INTO component (repository, format, name, version) \
+             SELECT 'files', 'raw', 'part-' || g, '1' FROM generate_series(1, {count}) g"
+        ),
+    )
+    .await
+    .unwrap();
+}
+
+#[tokio::test]
+async fn security_events_reach_a_webhook_under_their_own_names() {
+    let fixture = ready().await;
+    allow_loopback(&fixture).await;
+    hosted(&fixture, "files").await;
+    components(&fixture, 2).await;
+    let (url, receiver) = start_receiver().await;
+    let mut body = hook("Hook", &format!("{url}/hook"));
+    body["events"] = json!(["vulnerability.found", "policy.blocked"]);
+    create(&fixture, body).await;
+    let refused = fixture
+        .call(
+            Method::POST,
+            CHANNELS,
+            Auth::Admin,
+            Some({
+                let mut body = hook("Other", &format!("{url}/other"));
+                body["events"] = json!(["policy.allowed"]);
+                body
+            }),
+        )
+        .await;
+    assert_eq!(refused.status, StatusCode::BAD_REQUEST);
+
+    capture(&fixture, "vulnerability.found", "part-1", FOUND).await;
+    capture(&fixture, "policy.blocked", "part-2", BLOCKED).await;
+    fixture.state.notifier().flush_now().await.unwrap();
+
+    let mut received = receiver.taken();
+    received.sort_by_key(|(_, body)| body["event"].as_str().unwrap().to_owned());
+    assert_eq!(received.len(), 2);
+    assert_eq!(received[0].0["x-astrum-event"], "policy.blocked");
+    assert_eq!(received[0].1["policy"], "strict");
+    assert_eq!(received[0].1["vulnerability"], Value::Null);
+    assert_eq!(received[1].0["x-astrum-event"], "vulnerability.found");
+    assert_eq!(
+        received[1].1["vulnerability"],
+        json!({"advisory": "GHSA-1", "severity": "high"})
+    );
+    assert_eq!(received[1].1["component"]["name"], "part-1");
+}
+
+#[tokio::test]
+async fn an_import_that_matches_hundreds_of_components_sends_one_summary_to_a_chat() {
+    let fixture = ready().await;
+    allow_loopback(&fixture).await;
+    hosted(&fixture, "files").await;
+    components(&fixture, 600).await;
+    let (url, receiver) = start_receiver().await;
+    create(
+        &fixture,
+        slack("Chat", &format!("{url}/chat"), &["vulnerability.found"]),
+    )
+    .await;
+
+    capture(&fixture, "vulnerability.found", "part-%", FOUND).await;
+    fixture.state.notifier().flush_now().await.unwrap();
+
+    let received = receiver.taken();
+    assert_eq!(received.len(), 1);
+    let text = received[0].1["text"].as_str().unwrap();
+    assert!(text.starts_with("📋 *Security notices: 600*"), "{text}");
+    assert!(text.contains("…and 580 more"), "{text}");
+    assert!(text.lines().count() <= 24, "{text}");
+}
+
+#[tokio::test]
+async fn the_stale_alert_goes_once_a_day_to_channels_that_listen_for_vulnerabilities() {
+    use astrum_notify::alerts::{StaleFeed, alert_stale};
+    let fixture = ready().await;
+    create(
+        &fixture,
+        slack(
+            "Chat",
+            "https://hooks.example.com/chat",
+            &["vulnerability.found"],
+        ),
+    )
+    .await;
+    create(
+        &fixture,
+        slack("Quiet", "https://hooks.example.com/quiet", &["published"]),
+    )
+    .await;
+    let db = fixture.state.db().conn();
+    let now = chrono::Utc::now();
+    let npm = || StaleFeed {
+        ecosystem: "npm".to_owned(),
+        synced_at: None,
+    };
+
+    assert_eq!(alert_stale(db, &[npm()], 7, now).await.unwrap(), 1);
+    assert_eq!(deliveries(&fixture).await, 1);
+    let text: String = sea_orm::ConnectionTrait::query_one(
+        db,
+        sea_orm::Statement::from_string(
+            sea_orm::DbBackend::Postgres,
+            "SELECT event || ' ' || text AS n FROM notification_delivery".to_owned(),
+        ),
+    )
+    .await
+    .unwrap()
+    .unwrap()
+    .try_get("", "n")
+    .unwrap();
+    assert!(
+        text.starts_with("advisories.stale ⚠️ *Vulnerability data is out of date*"),
+        "{text}"
+    );
+    assert!(text.contains("`npm`: has never been synced"), "{text}");
+
+    let later = now + chrono::Duration::hours(2);
+    assert_eq!(alert_stale(db, &[npm()], 7, later).await.unwrap(), 0);
+    assert_eq!(deliveries(&fixture).await, 1);
+
+    let recovered = now + chrono::Duration::hours(3);
+    assert_eq!(alert_stale(db, &[], 7, recovered).await.unwrap(), 0);
+    let again = now + chrono::Duration::hours(4);
+    assert_eq!(alert_stale(db, &[npm()], 7, again).await.unwrap(), 1);
+    assert_eq!(deliveries(&fixture).await, 2);
+
+    let next_day = again + chrono::Duration::hours(25);
+    assert_eq!(alert_stale(db, &[npm()], 7, next_day).await.unwrap(), 1);
+    assert_eq!(deliveries(&fixture).await, 3);
+}

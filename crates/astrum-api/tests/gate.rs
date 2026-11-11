@@ -996,6 +996,7 @@ async fn the_hot_path_is_one_statement_and_free_repositories_cost_none() {
         warm,
         Err(astrum_content::ContentError::Blocked(_))
     ));
+    tokio::time::sleep(Duration::from_millis(300)).await;
     let repository = content.repository("npm-hosted").await.unwrap().unwrap();
     let ctx = content.context(
         repository,
@@ -1012,6 +1013,12 @@ async fn the_hot_path_is_one_statement_and_free_repositories_cost_none() {
     counter.store(0, Ordering::Relaxed);
     assert!(gate.check(&ctx, &asset).await.is_err());
     assert_eq!(counter.load(Ordering::Relaxed), 1, "a refusal");
+    tokio::time::sleep(Duration::from_millis(300)).await;
+    assert_eq!(
+        counter.load(Ordering::Relaxed),
+        1,
+        "a refusal of a subject announced today costs no more"
+    );
 
     seed(&fixture, "npm-hosted", id, "pass", false, json!([])).await;
     counter.store(0, Ordering::Relaxed);
@@ -1832,4 +1839,150 @@ async fn a_policy_the_cache_has_not_seen_yet_is_loaded_before_the_gate_judges_it
 
     assert_eq!(reply.status, StatusCode::OK, "{}", reply.text());
     assert_eq!(results(&fixture), HashMap::from([("inline_scan_pass", 1)]));
+}
+
+async fn listening(fixture: &Fixture, events: &str) {
+    execute(
+        fixture,
+        &format!(
+            "INSERT INTO notification_channel (id, name, type, recipients, events) \
+             VALUES (gen_random_uuid(), 'ops', 'email', '{{ops@example.com}}', '{{{events}}}')"
+        ),
+    )
+    .await;
+}
+
+async fn blocked_notices(fixture: &Fixture) -> i64 {
+    number(
+        fixture,
+        "SELECT count(*) AS n FROM notification_change WHERE action = 'policy.blocked'",
+    )
+    .await
+}
+
+async fn notices_reach(fixture: &Fixture, wanted: i64) {
+    for _ in 0..200 {
+        if blocked_notices(fixture).await >= wanted {
+            return;
+        }
+        tokio::time::sleep(Duration::from_millis(25)).await;
+    }
+    panic!(
+        "{} notices after 5 s, wanted {wanted}",
+        blocked_notices(fixture).await
+    );
+}
+
+async fn blocked_world(fixture: &Fixture) -> (String, String) {
+    strict(fixture).await;
+    repository(fixture, "npm", "hosted", "npm-hosted", Some("strict")).await;
+    let first = npm_path(fixture, "npm-hosted", "lib").await;
+    let second = npm_path(fixture, "npm-hosted", "other").await;
+    for name in ["lib", "other"] {
+        let id = component(fixture, "npm-hosted", name).await;
+        seed(fixture, "npm-hosted", id, "block", true, finding("GHSA-1")).await;
+    }
+    listening(fixture, "policy.blocked").await;
+    (first, second)
+}
+
+#[tokio::test]
+async fn a_subject_refused_again_the_same_day_queues_one_notice_and_another_subject_its_own() {
+    let fixture = ready().await;
+    let (lib, other) = blocked_world(&fixture).await;
+
+    refused(&get(&fixture, &lib).await);
+    notices_reach(&fixture, 1).await;
+    refused(&get(&fixture, &lib).await);
+    refused(&get(&fixture, &lib).await);
+    tokio::time::sleep(Duration::from_millis(300)).await;
+    assert_eq!(blocked_notices(&fixture).await, 1);
+
+    refused(&get(&fixture, &other).await);
+    notices_reach(&fixture, 2).await;
+    let id = component(&fixture, "npm-hosted", "lib").await;
+    assert_eq!(
+        number(
+            &fixture,
+            &format!(
+                "SELECT count(*) AS n FROM notification_change WHERE action = 'policy.blocked' \
+                 AND component_id = {id} AND repository = 'npm-hosted' \
+                 AND detail = '{{\"policy\": \"strict\"}}'::jsonb"
+            )
+        )
+        .await,
+        1
+    );
+    assert!(!blocked_detail(&fixture).await.contains("GHSA-1"));
+}
+
+async fn blocked_detail(fixture: &Fixture) -> String {
+    fixture
+        .state
+        .db()
+        .conn()
+        .query_one(Statement::from_string(
+            DbBackend::Postgres,
+            "SELECT string_agg(detail::text, ' ') AS n FROM notification_change WHERE action = 'policy.blocked'"
+                .to_owned(),
+        ))
+        .await
+        .unwrap()
+        .unwrap()
+        .try_get("", "n")
+        .unwrap()
+}
+
+#[tokio::test]
+async fn another_node_does_not_repeat_a_notice_of_the_same_day_but_does_on_the_next_one() {
+    let fixture = ready().await;
+    let (lib, _) = blocked_world(&fixture).await;
+
+    refused(&get(&fixture, &lib).await);
+    notices_reach(&fixture, 1).await;
+
+    install_gate(&fixture, 2000);
+    refused(&get(&fixture, &lib).await);
+    tokio::time::sleep(Duration::from_millis(300)).await;
+    assert_eq!(blocked_notices(&fixture).await, 1);
+
+    execute(
+        &fixture,
+        "UPDATE policy_blocked_notice SET noticed_at = now() - interval '25 hours'",
+    )
+    .await;
+    install_gate(&fixture, 2000);
+    refused(&get(&fixture, &lib).await);
+    notices_reach(&fixture, 2).await;
+}
+
+#[tokio::test]
+async fn a_notice_that_cannot_be_queued_changes_nothing_for_the_download_and_is_counted() {
+    let fixture = ready().await;
+    let (lib, _) = blocked_world(&fixture).await;
+    execute(
+        &fixture,
+        "ALTER TABLE policy_blocked_notice RENAME TO policy_blocked_notice_away",
+    )
+    .await;
+
+    let reply = get(&fixture, &lib).await;
+    refused(&reply);
+    for _ in 0..200 {
+        if results(&fixture).get("notice_failed") == Some(&1) {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(25)).await;
+    }
+    assert_eq!(results(&fixture).get("notice_failed"), Some(&1));
+    assert_eq!(results(&fixture).get("blocked"), Some(&1));
+    assert_eq!(blocked_notices(&fixture).await, 0);
+
+    execute(
+        &fixture,
+        "ALTER TABLE policy_blocked_notice_away RENAME TO policy_blocked_notice",
+    )
+    .await;
+    refused(&get(&fixture, &lib).await);
+    notices_reach(&fixture, 1).await;
 }

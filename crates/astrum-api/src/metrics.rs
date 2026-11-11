@@ -798,7 +798,7 @@ pub async fn render(state: &AppState, settings: &Prometheus) -> String {
     out.family(
         "astrum_policy_gate_decisions_total",
         "counter",
-        "Download checks of repositories with a content policy on this node, by result. pass, blocked and would_block follow the stored verdict; unguarded means the repository of the asset has no policy; inline_scan_pass, inline_scan_blocked and inline_scan_unscanned mean the component was scanned at download (the last one: the scan left it unscanned and the policy lets it pass); inline_scan_timeout and inline_scan_error mean the scan did not finish or failed, so the unscanned setting applied; mark_failed counts a component without a verdict that could not be queued for the workers, besides its decision; error means the check failed and the download was refused.",
+        "Download checks of repositories with a content policy on this node, by result. pass, blocked and would_block follow the stored verdict; unguarded means the repository of the asset has no policy; inline_scan_pass, inline_scan_blocked and inline_scan_unscanned mean the component was scanned at download (the last one: the scan left it unscanned and the policy lets it pass); inline_scan_timeout and inline_scan_error mean the scan did not finish or failed, so the unscanned setting applied; mark_failed counts a component without a verdict that could not be queued for the workers, besides its decision; notice_failed counts a refusal whose notification could not be written or queued, besides its decision; error means the check failed and the download was refused.",
     );
     for (outcome, count) in crate::gate::Outcome::ALL.iter().zip(gate.results) {
         out.sample(

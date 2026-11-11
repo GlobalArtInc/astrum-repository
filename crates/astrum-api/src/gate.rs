@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::time::{Duration, Instant};
 
@@ -24,6 +24,12 @@ const MARK_BUDGET: Duration = Duration::from_millis(500);
 const INLINE_PERMITS: usize = 8;
 const AUDIT_WINDOW: Duration = Duration::from_secs(3600);
 const AUDIT_CAP: usize = 10_000;
+const NOTICE_WINDOW: Duration = Duration::from_secs(24 * 3600);
+const NOTICE_CAP: usize = 10_000;
+const NOTICE_PERMITS: usize = 2;
+const NOTICE_BACKLOG: usize = 1_000;
+const NOTICE_BUDGET: Duration = Duration::from_secs(5);
+const NOTICE_ACTION: &str = "policy.blocked";
 pub const BUCKETS: [f64; 14] = [
     0.0005, 0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.0, 2.5, 5.0,
 ];
@@ -43,11 +49,12 @@ pub enum Outcome {
     InlineTimeout,
     InlineError,
     MarkFailed,
+    NoticeFailed,
     Error,
 }
 
 impl Outcome {
-    pub const ALL: [Outcome; 11] = [
+    pub const ALL: [Outcome; 12] = [
         Outcome::Pass,
         Outcome::Blocked,
         Outcome::WouldBlock,
@@ -58,6 +65,7 @@ impl Outcome {
         Outcome::InlineTimeout,
         Outcome::InlineError,
         Outcome::MarkFailed,
+        Outcome::NoticeFailed,
         Outcome::Error,
     ];
 
@@ -73,6 +81,7 @@ impl Outcome {
             Outcome::InlineTimeout => "inline_scan_timeout",
             Outcome::InlineError => "inline_scan_error",
             Outcome::MarkFailed => "mark_failed",
+            Outcome::NoticeFailed => "notice_failed",
             Outcome::Error => "error",
         }
     }
@@ -197,6 +206,14 @@ impl Dedupe {
             .lock()
             .expect("the audit dedupe lock is never poisoned")
             .remove(&(repository.to_owned(), component_id));
+    }
+}
+
+struct Pending(Arc<AtomicUsize>);
+
+impl Drop for Pending {
+    fn drop(&mut self) {
+        self.0.fetch_sub(1, Ordering::Relaxed);
     }
 }
 
@@ -351,6 +368,9 @@ pub struct PolicyGate {
     permits: Arc<Semaphore>,
     flights: Arc<Flights>,
     audited: Dedupe,
+    noticed: Arc<Dedupe>,
+    notice_permits: Arc<Semaphore>,
+    notice_backlog: Arc<AtomicUsize>,
 }
 
 impl PolicyGate {
@@ -362,6 +382,9 @@ impl PolicyGate {
             permits: Arc::new(Semaphore::new(INLINE_PERMITS)),
             flights: Arc::default(),
             audited: Dedupe::new(AUDIT_WINDOW, AUDIT_CAP),
+            noticed: Arc::new(Dedupe::new(NOTICE_WINDOW, NOTICE_CAP)),
+            notice_permits: Arc::new(Semaphore::new(NOTICE_PERMITS)),
+            notice_backlog: Arc::default(),
         }
     }
 
@@ -583,6 +606,49 @@ impl PolicyGate {
         })
     }
 
+    fn notify(&self, ctx: &Ctx, asset: &Asset, component_id: i64, refusal: &Refusal) {
+        if !self
+            .noticed
+            .first(&asset.repository, component_id, Instant::now())
+        {
+            return;
+        }
+        if self.notice_backlog.fetch_add(1, Ordering::Relaxed) >= NOTICE_BACKLOG {
+            self.notice_backlog.fetch_sub(1, Ordering::Relaxed);
+            self.noticed.forget(&asset.repository, component_id);
+            self.metrics.count(Outcome::NoticeFailed);
+            tracing::warn!(repository = %asset.repository, component = component_id, backlog = NOTICE_BACKLOG, "a refusal was not announced because too many announcements are waiting to be written");
+            return;
+        }
+        let pending = Pending(self.notice_backlog.clone());
+        let permits = self.notice_permits.clone();
+        let db = ctx.db().clone();
+        let metrics = self.metrics.clone();
+        let noticed = self.noticed.clone();
+        let repository = asset.repository.clone();
+        let detail = json!({ "policy": clean(&refusal.policy) }).to_string();
+        tokio::spawn(async move {
+            let _pending = pending;
+            let work = async {
+                let _permit = permits
+                    .acquire()
+                    .await
+                    .map_err(|error| format!("the announcement slots are closed: {error}"))?;
+                enqueue_notice(&db, component_id, &detail)
+                    .await
+                    .map_err(|error| error.to_string())
+            };
+            let failure = match tokio::time::timeout(NOTICE_BUDGET, work).await {
+                Ok(Ok(_)) => return,
+                Ok(Err(error)) => error,
+                Err(_) => format!("it was not written within {} s", NOTICE_BUDGET.as_secs()),
+            };
+            noticed.forget(&repository, component_id);
+            metrics.count(Outcome::NoticeFailed);
+            tracing::error!(%repository, component = component_id, error = %failure, "a refusal was not announced to the notification channels");
+        });
+    }
+
     async fn audit(&self, ctx: &Ctx, asset: &Asset, component_id: i64, refusal: &Refusal) {
         if !self
             .audited
@@ -612,6 +678,38 @@ impl PolicyGate {
             tracing::error!(%error, "a refused download was not recorded in the audit log");
         }
     }
+}
+
+async fn enqueue_notice(
+    db: &DatabaseConnection,
+    component_id: i64,
+    detail: &str,
+) -> Result<u64, DbErr> {
+    let row = db
+        .query_one(Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            "WITH claim AS (\
+               INSERT INTO policy_blocked_notice (component_id, noticed_at) \
+               SELECT $1::bigint, now() \
+               WHERE EXISTS (SELECT 1 FROM notification_channel ch \
+                             WHERE ch.enabled AND $3::text = ANY (ch.events)) \
+               ON CONFLICT (component_id) DO UPDATE SET noticed_at = now() \
+                 WHERE policy_blocked_notice.noticed_at <= now() - make_interval(secs => $4::float8) \
+               RETURNING component_id) \
+             SELECT COALESCE(sum(notification_capture_events($3::text, ARRAY[claim.component_id], \
+                                                             ARRAY[$2::text])), 0)::bigint AS n \
+             FROM claim",
+            [
+                component_id.into(),
+                detail.into(),
+                NOTICE_ACTION.into(),
+                NOTICE_WINDOW.as_secs_f64().into(),
+            ],
+        ))
+        .await?
+        .ok_or_else(|| DbErr::RecordNotFound("the notice claim returned no row".to_owned()))?;
+    let queued: i64 = row.try_get("", "n")?;
+    Ok(queued.max(0) as u64)
 }
 
 fn unreadable(policy: &str) -> Judgement {
@@ -671,6 +769,7 @@ impl Gate for PolicyGate {
             Ok(Judgement::Refused(outcome, refusal)) => {
                 self.metrics.count(outcome);
                 self.audit(ctx, asset, component_id, &refusal).await;
+                self.notify(ctx, asset, component_id, &refusal);
                 Err(refusal.error)
             }
             Err(error) => {
