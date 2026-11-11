@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ADMIN_STATE, fakeServer, jsonResponse, renderWithApp } from '../../../test/render';
@@ -138,5 +138,92 @@ describe('the user page', () => {
     await waitFor(() =>
       expect(server.calls.find((call) => call.method === 'PUT')?.body).toMatchObject({ status: 'disabled' }),
     );
+  });
+});
+
+const STATUS = {
+  userId: 'jack',
+  enrolled: true,
+  totp: true,
+  recoveryCodesLeft: 2,
+  requirement: 'policy',
+  requirementSource: 'policy',
+  required: true,
+  enrollBy: null,
+  lockedUntil: null,
+};
+const JACK = {
+  ...JANE,
+  userId: 'jack',
+  roles: [],
+  twoFactor: { enrolled: true, required: true, requirement: 'policy' },
+};
+const ADMIN_FACTOR = { ...JACK, userId: 'admin' };
+
+function serveFactor(extra = {}) {
+  return serve({
+    'GET /service/rest/v1/security/users?source=default&userId=jack': () => jsonResponse([JACK]),
+    'GET /service/rest/v1/security/users/jack/two-factor': () => jsonResponse(STATUS),
+    ...extra,
+  });
+}
+
+describe('the second factor panel of the user page', () => {
+  it('shows the factor status of a user who has one', async () => {
+    serveFactor();
+    renderWithApp(null, { path: '/admin/security/users/jack', routes: ROUTES, state: ADMIN_STATE });
+    expect(await screen.findByText('2 recovery codes left')).toBeInTheDocument();
+    expect(screen.getByText('Server policy')).toBeInTheDocument();
+    expect(screen.getByText('Required')).toBeInTheDocument();
+  });
+
+  it('hides the panel for a user without a second factor', async () => {
+    serve();
+    renderWithApp(null, { path: '/admin/security/users/jane', routes: ROUTES, state: ADMIN_STATE });
+    expect(await screen.findByRole('heading', { name: 'Edit Jane Doe', level: 1 })).toBeInTheDocument();
+    expect(screen.queryByText('Second factor')).toBeNull();
+  });
+
+  it('sends the chosen requirement and shows the server refusal', async () => {
+    const server = serveFactor({
+      'PUT /service/rest/v1/security/users/jack/requirement': () =>
+        jsonResponse(
+          { id: '*', message: 'only an administrator may exempt a user from the second factor' },
+          403,
+        ),
+    });
+    renderWithApp(null, { path: '/admin/security/users/jack', routes: ROUTES, state: ADMIN_STATE });
+    await userEvent.click(await screen.findByRole('combobox', { name: 'Requirement' }));
+    await userEvent.click(await screen.findByRole('option', { name: 'Exempt' }));
+    expect(
+      await screen.findByText(
+        'The server refused: only an administrator may exempt a user from the second factor',
+      ),
+    ).toBeInTheDocument();
+    expect(server.calls.find((call) => call.method === 'PUT')?.body).toEqual({ requirement: 'exempt' });
+  });
+
+  it('resets the second factor only after the confirmation', async () => {
+    const server = serveFactor({
+      'DELETE /service/rest/v1/security/users/jack/two-factor': () => new Response(null, { status: 204 }),
+    });
+    renderWithApp(null, { path: '/admin/security/users/jack', routes: ROUTES, state: ADMIN_STATE });
+    await userEvent.click(await screen.findByRole('button', { name: 'Reset Second Factor' }));
+    const dialog = await screen.findByRole('alertdialog');
+    expect(within(dialog).getByText(/signed out everywhere/)).toBeInTheDocument();
+    expect(server.calls.some((call) => call.method === 'DELETE')).toBe(false);
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Reset Second Factor' }));
+    await waitFor(() => expect(server.calls.filter((call) => call.method === 'DELETE')).toHaveLength(1));
+  });
+
+  it('does not offer the reset for the signed-in user', async () => {
+    serveFactor({
+      'GET /service/rest/v1/security/users?source=default&userId=admin': () => jsonResponse([ADMIN_FACTOR]),
+      'GET /service/rest/v1/security/users/admin/two-factor': () =>
+        jsonResponse({ ...STATUS, userId: 'admin' }),
+    });
+    renderWithApp(null, { path: '/admin/security/users/admin', routes: ROUTES, state: ADMIN_STATE });
+    expect(await screen.findByText('2 recovery codes left')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Reset Second Factor' })).toBeNull();
   });
 });

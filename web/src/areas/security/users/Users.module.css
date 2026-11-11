@@ -43,3 +43,14 @@
 .passwordRow {
   margin-top: 16px;
 }
+
+.factor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.factorReset {
+  align-self: flex-start;
+}

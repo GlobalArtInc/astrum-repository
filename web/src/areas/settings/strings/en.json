@@ -41,6 +41,8 @@
   "settings.tile.anonymousText": "What callers without credentials may do",
   "settings.tile.sslCertificates": "SSL Certificates",
   "settings.tile.sslCertificatesText": "Certificates this server trusts",
+  "settings.tile.twoFactor": "Two-factor authentication",
+  "settings.tile.twoFactorText": "Who must use a second factor, the grace period and the methods",
   "settings.tile.systemInformation": "System Information",
   "settings.tile.systemInformationText": "Version, environment and diagnostics of this server",
   "settings.tile.logs": "Logs",

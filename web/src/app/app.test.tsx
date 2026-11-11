@@ -4,6 +4,7 @@ import { Activity, Search, Sparkles } from 'lucide-react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { UiState } from '../api';
 import { dashboardArea } from '../areas/dashboard';
+import { securityArea } from '../areas/security';
 import { settingsArea } from '../areas/settings';
 import { GITHUB_URL } from '../shell/GithubLink';
 import { TRANSLATE_URL } from '../shell/HeaderMenus';
@@ -379,6 +380,30 @@ describe('the settings hub', () => {
     app('/settings', { ...ADMIN_STATE, permissions: ['astrum:users:read'] });
     expect(await screen.findByRole('region', { name: 'Security' })).toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Repository' })).toBeNull();
+  });
+
+  it('offers the two-factor policy to administrators only', async () => {
+    const areas = [settingsArea, securityArea];
+    const admin = renderWithApp(null, {
+      path: '/settings',
+      state: ADMIN_STATE,
+      areas,
+      routes: buildRoutes(areas),
+    });
+    const security = await screen.findByRole('region', { name: 'Security' });
+    expect(within(security).getByRole('link', { name: /Two-factor authentication/ })).toHaveAttribute(
+      'href',
+      '/admin/security/two-factor',
+    );
+    admin.unmount();
+    renderWithApp(null, {
+      path: '/settings',
+      state: { ...ADMIN_STATE, permissions: ['astrum:users:read', 'astrum:roles:read'] },
+      areas,
+      routes: buildRoutes(areas),
+    });
+    expect(await screen.findByRole('region', { name: 'Security' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Two-factor authentication/ })).toBeNull();
   });
 
   it('says so when nothing can be changed', async () => {

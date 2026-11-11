@@ -6,7 +6,7 @@ import { useApi, withQuery } from '../../../api';
 import { useCan } from '../../../auth/state';
 import { useT } from '../../../i18n';
 import { ErrorState, Page } from '../../../ui';
-import { DEFAULT_SOURCE, USER_SOURCES, USERS, type User, type UserSource } from '../api';
+import { DEFAULT_SOURCE, USER_SOURCES, USERS, type UserSource } from '../api';
 import {
   countBy,
   DOCS,
@@ -22,12 +22,48 @@ import {
 } from '../shared/AdminList';
 import list from '../shared/AdminList.module.css';
 import { userHref } from '../shared/links';
+import type { UserWithSecondFactor } from '../two-factor/api';
+import { type SecondFactorBadge, secondFactorBadge } from '../two-factor/model';
 import { fullName, sourceLabel } from './model';
 
 const ACTIVE = 'active';
 const INACTIVE = 'inactive';
 
-export function filterUsers(users: readonly User[], filters: FilterState, query: string): User[] {
+export interface SecondFactorBadgeProps {
+  badge: SecondFactorBadge | null;
+}
+
+function SecondFactorBadgeCell({ badge }: SecondFactorBadgeProps) {
+  const t = useT();
+  if (badge === 'setUp') {
+    return (
+      <Badge color="green" variant="soft">
+        {t('security.twoFactor.badgeSetUp')}
+      </Badge>
+    );
+  }
+  if (badge === 'required') {
+    return (
+      <Badge color="amber" variant="soft">
+        {t('security.twoFactor.badgeRequired')}
+      </Badge>
+    );
+  }
+  if (badge === 'exempt') {
+    return (
+      <Badge color="gray" variant="soft">
+        {t('security.twoFactor.badgeExempt')}
+      </Badge>
+    );
+  }
+  return null;
+}
+
+export function filterUsers<T extends UserWithSecondFactor>(
+  users: readonly T[],
+  filters: FilterState,
+  query: string,
+): T[] {
   const words = query.trim().toLowerCase();
   const sources = filters.source ?? [];
   const statuses = filters.status ?? [];
@@ -55,8 +91,8 @@ export default function UsersPage() {
   });
   const external = (filters.source ?? []).find((source) => source !== DEFAULT_SOURCE);
   const known = useApi<UserSource[]>(USER_SOURCES);
-  const local = useApi<User[]>(withQuery(USERS, { source: DEFAULT_SOURCE }));
-  const others = useApi<User[]>(external ? withQuery(USERS, { source: external }) : null);
+  const local = useApi<UserWithSecondFactor[]>(withQuery(USERS, { source: DEFAULT_SOURCE }));
+  const others = useApi<UserWithSecondFactor[]>(external ? withQuery(USERS, { source: external }) : null);
   const data = useMemo(
     () => (local.data ? [...local.data, ...(external ? (others.data ?? []) : [])] : undefined),
     [local.data, others.data, external],
@@ -95,7 +131,7 @@ export default function UsersPage() {
       ],
     },
   ];
-  const columns: ListColumn<User>[] = [
+  const columns: ListColumn<UserWithSecondFactor>[] = [
     {
       id: 'userId',
       header: t('security.users.userId'),
@@ -141,6 +177,12 @@ export default function UsersPage() {
             {t('security.users.statusInactive')}
           </Badge>
         ),
+    },
+    {
+      id: 'secondFactor',
+      header: t('security.twoFactor.column'),
+      sortValue: (row) => secondFactorBadge(row.twoFactor) ?? '',
+      cell: (row) => <SecondFactorBadgeCell badge={secondFactorBadge(row.twoFactor)} />,
     },
   ];
   const column = columns.find((candidate) => candidate.id === sort.column);
