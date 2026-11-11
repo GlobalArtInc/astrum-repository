@@ -2,7 +2,7 @@ import { configure, fireEvent, screen, waitFor, within } from '@testing-library/
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../../../api';
-import { fakeServer, jsonResponse, renderWithApp } from '../../../test/render';
+import { ADMIN_STATE, fakeServer, jsonResponse, renderWithApp } from '../../../test/render';
 import type { UiRepository } from '../api';
 import { canonical, getPath, type RepositoryDocument } from '../model/document';
 import { template } from '../model/form';
@@ -270,6 +270,59 @@ describe('the repository form', () => {
   it('has no cleanup for group repositories', () => {
     renderForm({ document: BY_KEY['raw/group/max'] as RepositoryDocument });
     expect(screen.queryByRole('listbox', { name: 'Available Policies' })).not.toBeInTheDocument();
+  });
+
+  it('offers the content policies to a proxy and saves the one chosen', async () => {
+    const server = fakeServer({
+      'GET /service/rest/v1/security/policies': () => jsonResponse([{ name: 'strict' }, { name: 'loose' }]),
+    });
+    vi.stubGlobal('fetch', server.fetch);
+    const { onSubmit } = renderForm({ document: BY_KEY['raw/proxy/min'] as RepositoryDocument });
+    await waitFor(() =>
+      expect(server.calls.some((call) => call.path.endsWith('/security/policies'))).toBe(true),
+    );
+    await userEvent.click(screen.getByRole('combobox', { name: 'Policy' }));
+    expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual([
+      'None',
+      'strict',
+      'loose',
+    ]);
+    await userEvent.click(screen.getByRole('option', { name: 'strict' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    expect(getPath(onSubmit.mock.calls[0]?.[0] as RepositoryDocument, ['policy', 'name'])).toBe('strict');
+  });
+
+  it('has no content policy for a group', () => {
+    renderForm({ document: BY_KEY['raw/group/max'] as RepositoryDocument });
+    expect(screen.queryByRole('combobox', { name: 'Policy' })).not.toBeInTheDocument();
+  });
+
+  it('keeps the attached policy when the user cannot list the policies', async () => {
+    const server = fakeServer({});
+    vi.stubGlobal('fetch', server.fetch);
+    const document = { ...(BY_KEY['raw/proxy/min'] as RepositoryDocument), policy: { name: 'strict' } };
+    const onSubmit = vi.fn(async (_: RepositoryDocument) => {});
+    renderWithApp(
+      <RepositoryForm
+        spec={specOf(document)}
+        creating={false}
+        repositories={[]}
+        blobStores={null}
+        submitLabel="Save"
+        onSubmit={onSubmit}
+        document={document}
+      />,
+      { state: { ...ADMIN_STATE, permissions: ['astrum:repository-view:*:*:browse,read'] } },
+    );
+    expect(screen.queryByRole('combobox', { name: 'Policy' })).not.toBeInTheDocument();
+    const remote = screen.getByRole('textbox', { name: /Remote Storage/ });
+    await userEvent.clear(remote);
+    await userEvent.type(remote, 'https://other.example.org/');
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    expect(getPath(onSubmit.mock.calls[0]?.[0] as RepositoryDocument, ['policy', 'name'])).toBe('strict');
+    expect(server.calls.some((call) => call.path.endsWith('/security/policies'))).toBe(false);
   });
 
   it('offers the routing rules with their modes to proxies', async () => {
