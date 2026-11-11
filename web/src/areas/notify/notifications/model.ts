@@ -7,11 +7,11 @@ export const UPDATE = 'astrum:settings:update';
 export type ChannelType = 'telegram' | 'slack' | 'webhook' | 'email';
 export type ProxyMode = 'global' | 'none' | 'custom';
 export type ProxyType = 'http' | 'socks5';
-export type EventId = 'published' | 'updated' | 'deleted';
+export type EventId = 'published' | 'promoted' | 'updated' | 'deleted';
 export type Language = 'ru' | 'en';
 
 export const TYPES: ChannelType[] = ['telegram', 'slack', 'webhook', 'email'];
-export const EVENTS: EventId[] = ['published', 'updated', 'deleted'];
+export const EVENTS: EventId[] = ['published', 'promoted', 'updated', 'deleted'];
 
 export const TYPE_LABELS: Record<ChannelType, string> = {
   telegram: 'notify.notifications.types.telegram',
@@ -22,12 +22,14 @@ export const TYPE_LABELS: Record<ChannelType, string> = {
 
 export const EVENT_LABELS: Record<EventId, string> = {
   published: 'notify.notifications.eventNames.published',
+  promoted: 'notify.notifications.eventNames.promoted',
   updated: 'notify.notifications.eventNames.updated',
   deleted: 'notify.notifications.eventNames.deleted',
 };
 
 export const EVENT_HELP: Record<EventId, string> = {
   published: 'notify.notifications.eventHelp.published',
+  promoted: 'notify.notifications.eventHelp.promoted',
   updated: 'notify.notifications.eventHelp.updated',
   deleted: 'notify.notifications.eventHelp.deleted',
 };

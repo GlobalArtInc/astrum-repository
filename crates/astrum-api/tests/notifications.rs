@@ -3,6 +3,9 @@ mod support;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
+use astrum_content::store::{self, ComponentKey, PutAsset};
+use astrum_content::transfer::{Conflict, PROMOTED};
+use astrum_content::{Ctx, holds};
 use astrum_db::system::{BASE_URL_KEY, BaseUrl};
 use astrum_notify::{Mail, MailError, MailSender, Timing};
 use astrum_security::ssrf::{SSRF_KEY, SsrfProtection};
@@ -333,6 +336,119 @@ async fn component_changes_reach_a_signed_webhook() {
     assert_eq!(received[0].1["event"], "component.deleted");
     assert_eq!(received[0].1["url"], Value::Null);
     assert_eq!(deliveries(&fixture).await, 0);
+}
+
+fn shared() -> ComponentKey {
+    ComponentKey {
+        namespace: "g".to_owned(),
+        name: "lib".to_owned(),
+        version: "1".to_owned(),
+        ..Default::default()
+    }
+}
+
+async fn upload_files(ctx: &Ctx, bodies: [&'static str; 3]) {
+    for (path, body) in ["/g/a.txt", "/g/b.txt", "/g/c.txt"].into_iter().zip(bodies) {
+        store::put(
+            ctx,
+            PutAsset::hosted(ctx, path).component(shared()),
+            astrum_blob::content_of(body.as_bytes()),
+        )
+        .await
+        .unwrap();
+    }
+}
+
+async fn promote_files(ctx: &Ctx, bodies: [&'static str; 3]) {
+    let mut items = Vec::new();
+    for (path, body) in ["/g/a.txt", "/g/b.txt", "/g/c.txt"].into_iter().zip(bodies) {
+        let blobs = ctx.content.blob_stores().get("default").await.unwrap();
+        let written = blobs
+            .put(astrum_blob::content_of(body.as_bytes()))
+            .await
+            .unwrap();
+        holds::hold(
+            ctx.db(),
+            &written.store,
+            written.id,
+            Duration::from_secs(600),
+        )
+        .await
+        .unwrap();
+        items.push((PutAsset::hosted(ctx, path).component(shared()), written));
+    }
+    store::record_many(ctx, items, Conflict::Replace, PROMOTED)
+        .await
+        .unwrap();
+}
+
+async fn watched(fixture: &Fixture) -> Receiver {
+    allow_loopback(fixture).await;
+    hosted(fixture, "target").await;
+    let (url, receiver) = start_receiver().await;
+    let mut channel = hook("Hook", &format!("{url}/hook"));
+    channel["events"] = json!(["published", "promoted", "updated", "deleted"]);
+    create(fixture, channel).await;
+    receiver
+}
+
+fn events(received: Vec<(HeaderMap, Value)>) -> Vec<String> {
+    received
+        .into_iter()
+        .map(|(_, body)| body["event"].as_str().unwrap().to_owned())
+        .collect()
+}
+
+#[tokio::test]
+async fn a_promotion_reaches_a_webhook_as_one_promoted_notice_for_a_new_and_an_existing_component()
+{
+    let fixture = ready().await;
+    let receiver = watched(&fixture).await;
+    let target = support::repository_ctx(&fixture, "target").await;
+    promote_files(&target, ["alpha", "bravo", "charlie"]).await;
+    fixture.state.notifier().flush_now().await.unwrap();
+    assert_eq!(events(receiver.taken()), ["component.promoted"]);
+
+    promote_files(&target, ["alpha 2", "bravo 2", "charlie 2"]).await;
+    fixture.state.notifier().flush_now().await.unwrap();
+    assert_eq!(events(receiver.taken()), ["component.promoted"]);
+}
+
+#[tokio::test]
+async fn a_promoted_component_deleted_in_the_same_window_is_reported_as_deleted() {
+    let fixture = ready().await;
+    let receiver = watched(&fixture).await;
+    let target = support::repository_ctx(&fixture, "target").await;
+    upload_files(&target, ["alpha", "bravo", "charlie"]).await;
+    fixture.state.notifier().flush_now().await.unwrap();
+    assert_eq!(events(receiver.taken()), ["component.published"]);
+    promote_files(&target, ["alpha 2", "bravo 2", "charlie 2"]).await;
+    let component = store::find(target.db(), "target", "/g/a.txt")
+        .await
+        .unwrap()
+        .unwrap()
+        .component_id
+        .unwrap();
+    assert!(
+        store::delete_component(&target.content, component)
+            .await
+            .unwrap()
+    );
+    fixture.state.notifier().flush_now().await.unwrap();
+    assert_eq!(events(receiver.taken()), ["component.deleted"]);
+}
+
+#[tokio::test]
+async fn a_replacement_by_hand_still_reaches_a_webhook_as_updated() {
+    let fixture = ready().await;
+    let receiver = watched(&fixture).await;
+    let target = support::repository_ctx(&fixture, "target").await;
+    upload_files(&target, ["alpha", "bravo", "charlie"]).await;
+    fixture.state.notifier().flush_now().await.unwrap();
+    assert_eq!(events(receiver.taken()), ["component.published"]);
+    upload_files(&target, ["alpha 2", "bravo 2", "charlie 2"]).await;
+    fixture.state.notifier().flush_now().await.unwrap();
+    assert_eq!(events(receiver.taken()), ["component.updated"]);
 }
 
 #[tokio::test]

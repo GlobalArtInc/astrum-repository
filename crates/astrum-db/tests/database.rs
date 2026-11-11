@@ -207,3 +207,84 @@ async fn the_old_default_title_loses_globalart_and_own_titles_stay() {
     }
     assert_eq!(astrum_db::system::DEFAULT_TITLE, "Astrum Repository");
 }
+
+async fn function_definitions(db: &astrum_db::Database) -> Vec<String> {
+    db.conn()
+        .query_all(Statement::from_string(
+            DbBackend::Postgres,
+            "SELECT pg_get_functiondef(p.oid) AS def FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = current_schema() AND p.proname IN ('notification_asset_stored', 'notification_component_changed') ORDER BY p.proname",
+        ))
+        .await
+        .unwrap()
+        .into_iter()
+        .map(|row| row.try_get::<String>("", "def").unwrap())
+        .collect()
+}
+
+async fn events_of(db: &astrum_db::Database, name: &str) -> Vec<String> {
+    db.conn()
+        .query_one(Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            "SELECT events FROM notification_channel WHERE name = $1",
+            [name.into()],
+        ))
+        .await
+        .unwrap()
+        .unwrap()
+        .try_get::<Vec<String>>("", "events")
+        .unwrap()
+}
+
+#[tokio::test]
+async fn the_promoted_notification_migration_restores_the_old_functions_and_channels() {
+    let test = TestDatabase::create().await;
+    let db = test.migrated().await;
+    let conn = db.conn();
+    let all = MIGRATIONS.all().unwrap();
+    let since = all.len()
+        - all
+            .iter()
+            .position(|migration| migration.name.starts_with("NotifyPromotedAction"))
+            .unwrap();
+    let current = function_definitions(&db).await;
+    MIGRATIONS.revert(conn, since).await.unwrap();
+    let original = include_str!("../migrations/1791914370285-create-notifications.up.sql");
+    let from = original
+        .find("CREATE FUNCTION notification_component_changed")
+        .unwrap();
+    let to = original
+        .find("CREATE TRIGGER notification_component_created")
+        .unwrap();
+    let before = function_definitions(&db).await;
+    assert_ne!(before, current);
+    conn.execute_unprepared(
+        &original[from..to].replace("CREATE FUNCTION", "CREATE OR REPLACE FUNCTION"),
+    )
+    .await
+    .unwrap();
+    assert_eq!(function_definitions(&db).await, before);
+
+    conn.execute_unprepared(
+        "INSERT INTO notification_channel (id, name, type, events) VALUES \
+         (gen_random_uuid(), 'all three', 'webhook', ARRAY['published', 'updated', 'deleted']), \
+         (gen_random_uuid(), 'one', 'webhook', ARRAY['published'])",
+    )
+    .await
+    .unwrap();
+    assert_eq!(db.migrate().await.unwrap().len(), since);
+    assert_eq!(function_definitions(&db).await, current);
+    assert_eq!(
+        events_of(&db, "all three").await,
+        ["published", "updated", "deleted", "promoted"]
+    );
+    assert_eq!(events_of(&db, "one").await, ["published"]);
+
+    MIGRATIONS.revert(conn, since).await.unwrap();
+    assert_eq!(function_definitions(&db).await, before);
+    assert_eq!(
+        events_of(&db, "all three").await,
+        ["published", "updated", "deleted"]
+    );
+    assert_eq!(db.migrate().await.unwrap().len(), since);
+    assert_eq!(function_definitions(&db).await, current);
+}

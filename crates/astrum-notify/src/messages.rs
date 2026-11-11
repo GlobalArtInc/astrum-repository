@@ -26,6 +26,7 @@ const COMPONENT: &AsciiSet = &NON_ALPHANUMERIC
 
 struct Texts {
     published: &'static str,
+    promoted: &'static str,
     updated: &'static str,
     deleted: &'static str,
     repository: &'static str,
@@ -40,6 +41,7 @@ struct Texts {
 
 const RU: Texts = Texts {
     published: "Опубликован компонент",
+    promoted: "Продвинут компонент",
     updated: "Обновлён компонент",
     deleted: "Удалён компонент",
     repository: "Репозиторий",
@@ -54,6 +56,7 @@ const RU: Texts = Texts {
 
 const EN: Texts = Texts {
     published: "Component published",
+    promoted: "Component promoted",
     updated: "Component updated",
     deleted: "Component deleted",
     repository: "Repository",
@@ -233,6 +236,7 @@ fn emoji(notice: &Notice) -> &'static str {
     match notice.action {
         Action::Published if notice.format == "docker" => "🐳",
         Action::Published => "📦",
+        Action::Promoted => "🚀",
         Action::Updated => "🔄",
         Action::Deleted => "🗑️",
     }
@@ -241,6 +245,7 @@ fn emoji(notice: &Notice) -> &'static str {
 fn title(texts: &Texts, action: Action) -> &'static str {
     match action {
         Action::Published => texts.published,
+        Action::Promoted => texts.promoted,
         Action::Updated => texts.updated,
         Action::Deleted => texts.deleted,
     }
@@ -443,6 +448,66 @@ mod tests {
             slack,
             "📦 *Component published*\n`org.example:demo:1.0`\nRepository: `releases` · maven2\nBy: jane"
         );
+    }
+
+    #[test]
+    fn a_promoted_component_is_titled_in_every_markup_and_language() {
+        let mut promoted = notice("maven2", "org.example", "demo", "1.0");
+        promoted.action = Action::Promoted;
+        let cases = [
+            (
+                ChannelType::Telegram,
+                "ru",
+                "🚀 <b>Продвинут компонент</b>\n<b>org.example:demo:1.0</b>\nРепозиторий: <code>releases</code> · maven2\nАвтор: jane",
+            ),
+            (
+                ChannelType::Telegram,
+                "en",
+                "🚀 <b>Component promoted</b>\n<b>org.example:demo:1.0</b>\nRepository: <code>releases</code> · maven2\nBy: jane",
+            ),
+            (
+                ChannelType::Slack,
+                "ru",
+                "🚀 *Продвинут компонент*\n`org.example:demo:1.0`\nРепозиторий: `releases` · maven2\nАвтор: jane",
+            ),
+            (
+                ChannelType::Slack,
+                "en",
+                "🚀 *Component promoted*\n`org.example:demo:1.0`\nRepository: `releases` · maven2\nBy: jane",
+            ),
+            (
+                ChannelType::Email,
+                "ru",
+                "🚀 Продвинут компонент\norg.example:demo:1.0\nРепозиторий: releases · maven2\nАвтор: jane",
+            ),
+            (
+                ChannelType::Email,
+                "en",
+                "🚀 Component promoted\norg.example:demo:1.0\nRepository: releases · maven2\nBy: jane",
+            ),
+        ];
+        for (kind, language, expected) in cases {
+            let channel = channel(kind, language);
+            assert_eq!(single(&channel, &Links::default(), &promoted), expected);
+            let rendered = Rendered {
+                event: "component.promoted".into(),
+                text: String::new(),
+                notice: Some(promoted.clone()),
+            };
+            let title = if language == "en" {
+                "Component promoted: org.example:demo:1.0"
+            } else {
+                "Продвинут компонент: org.example:demo:1.0"
+            };
+            assert_eq!(subject(&channel, &rendered), title);
+        }
+        let hooks = render(
+            &channel(ChannelType::Webhook, "en"),
+            &Links::default(),
+            &[promoted],
+            0,
+        );
+        assert_eq!(hooks[0].event, "component.promoted");
     }
 
     #[test]

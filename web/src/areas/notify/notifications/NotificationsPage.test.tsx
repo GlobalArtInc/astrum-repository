@@ -62,7 +62,7 @@ describe('the notifications page', () => {
       type: 'telegram',
       secret: '123:abc',
       chatId: '-100123',
-      events: ['published', 'updated', 'deleted'],
+      events: ['published', 'promoted', 'updated', 'deleted'],
       repositories: [],
     });
     expect(await screen.findByRole('cell', { name: '-100123' })).toBeInTheDocument();

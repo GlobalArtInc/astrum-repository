@@ -6,16 +6,23 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "lowercase")]
 pub enum Action {
     Published,
+    Promoted,
     Updated,
     Deleted,
 }
 
 impl Action {
-    pub const ALL: [Action; 3] = [Action::Published, Action::Updated, Action::Deleted];
+    pub const ALL: [Action; 4] = [
+        Action::Published,
+        Action::Promoted,
+        Action::Updated,
+        Action::Deleted,
+    ];
 
     pub fn id(self) -> &'static str {
         match self {
             Action::Published => "published",
+            Action::Promoted => "promoted",
             Action::Updated => "updated",
             Action::Deleted => "deleted",
         }
@@ -54,6 +61,8 @@ impl Notice {
         let action = match self.action {
             Action::Published if later.action == Action::Deleted => return None,
             Action::Published => Action::Published,
+            Action::Promoted if later.action == Action::Deleted => Action::Deleted,
+            Action::Promoted => Action::Promoted,
             Action::Updated => later.action,
             Action::Deleted if later.action == Action::Deleted => Action::Deleted,
             Action::Deleted => Action::Updated,
@@ -147,6 +156,10 @@ mod tests {
         assert_eq!(deleted.merge(&published).unwrap().action, Action::Updated);
         assert_eq!(deleted.merge(&deleted).unwrap().action, Action::Deleted);
         assert_eq!(updated.merge(&deleted).unwrap().action, Action::Deleted);
+        let promoted = notice("demo", Action::Promoted);
+        assert_eq!(promoted.merge(&updated).unwrap().action, Action::Promoted);
+        assert_eq!(promoted.merge(&deleted).unwrap().action, Action::Deleted);
+        assert_eq!(updated.merge(&promoted).unwrap().action, Action::Promoted);
     }
 
     #[test]
