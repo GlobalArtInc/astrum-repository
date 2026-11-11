@@ -21,6 +21,7 @@ pub fn register(content: &Content) {
     content.register(Arc::new(astrum_format_firefox::Firefox::default()));
     content.register(Arc::new(astrum_format_gitlfs::GitLfs));
     content.register(Arc::new(astrum_format_go::Go));
+    content.register(Arc::new(astrum_format_gradlecache::GradleCache));
     content.register(Arc::new(astrum_format_helm::Helm::default()));
     content.register(Arc::new(astrum_format_hex::Hex::default()));
     content.register(Arc::new(astrum_format_huggingface::HuggingFace::default()));

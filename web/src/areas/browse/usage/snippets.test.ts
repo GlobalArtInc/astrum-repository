@@ -1409,3 +1409,16 @@ describe('protobuf usage', () => {
     expect(code(snippets, 'module')).toContain('name: <registry host>/<owner>/<module>');
   });
 });
+
+describe('gradlecache usage', () => {
+  it('points Gradle at the cache by settings, properties and CI', () => {
+    const snippets = usageSnippets(context({ format: 'gradlecache', repositoryName: 'gradle-cache' }));
+    expect(ids(snippets)).toEqual(['settings', 'properties', 'ci']);
+    expect(code(snippets, 'settings')).toContain(
+      'url = uri("https://repo.example.org/repository/gradle-cache/")',
+    );
+    expect(code(snippets, 'properties')).toBe('org.gradle.caching=true');
+    expect(code(snippets, 'ci')).toBe('./gradlew build --build-cache');
+    expect(supportsUsage('gradlecache')).toBe(true);
+  });
+});

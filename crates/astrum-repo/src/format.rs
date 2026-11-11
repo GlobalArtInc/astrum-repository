@@ -127,6 +127,11 @@ pub const FORMATS: &[Format] = &[
         types: HPG,
     },
     Format {
+        id: "gradlecache",
+        api_name: "gradlecache",
+        types: &[H],
+    },
+    Format {
         id: "helm",
         api_name: "helm",
         types: HPG,
@@ -267,7 +272,7 @@ mod tests {
         sorted.sort_unstable();
         sorted.dedup();
         assert_eq!(ids, sorted);
-        assert_eq!(ids.len(), 39);
+        assert_eq!(ids.len(), 40);
     }
 
     #[test]

@@ -18,6 +18,7 @@ export const FORMATS: Record<string, { name: string; color: Color; label?: strin
   firefox: { name: 'Firefox Add-ons', color: 'orange' },
   gitlfs: { name: 'Git LFS', color: 'orange', label: 'git-lfs' },
   go: { name: 'Go', color: 'cyan' },
+  gradlecache: { name: 'Gradle build cache', color: 'gray' },
   helm: { name: 'Helm', color: 'sky' },
   hex: { name: 'Hex', color: 'violet' },
   huggingface: { name: 'Hugging Face', color: 'amber' },

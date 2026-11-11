@@ -43,6 +43,7 @@ const FORMAT_TEXTS: Record<string, string> = {
   firefox: 'repositories.formats.firefox',
   gitlfs: 'repositories.formats.gitlfs',
   go: 'repositories.formats.go',
+  gradlecache: 'repositories.formats.gradlecache',
   helm: 'repositories.formats.helm',
   hex: 'repositories.formats.hex',
   jetbrains: 'repositories.formats.jetbrains',

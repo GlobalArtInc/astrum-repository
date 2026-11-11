@@ -239,6 +239,7 @@ dependencies = [
  "astrum-format-firefox",
  "astrum-format-gitlfs",
  "astrum-format-go",
+ "astrum-format-gradlecache",
  "astrum-format-helm",
  "astrum-format-hex",
  "astrum-format-huggingface",
@@ -784,6 +785,16 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
+]
+
+[[package]]
+name = "astrum-format-gradlecache"
+version = "3.0.4"
+dependencies = [
+ "astrum-content",
+ "astrum-repo",
+ "async-trait",
+ "axum",
 ]
 
 [[package]]
@@ -1579,6 +1590,7 @@ dependencies = [
  "astrum-format-firefox",
  "astrum-format-gitlfs",
  "astrum-format-go",
+ "astrum-format-gradlecache",
  "astrum-format-helm",
  "astrum-format-hex",
  "astrum-format-huggingface",

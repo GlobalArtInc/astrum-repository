@@ -4,6 +4,7 @@ import { bazel } from './bazel';
 import { chef } from './chef';
 import { chrome } from './chrome';
 import { firefox } from './firefox';
+import { gradlecache } from './gradlecache';
 import { hex } from './hex';
 import { huggingface } from './huggingface';
 import { jetbrains } from './jetbrains';
@@ -92,6 +93,7 @@ export const USAGE_FORMATS = [
   'pacman',
   'turbo',
   'nx',
+  'gradlecache',
   'bazel',
   'jetbrains',
   'protobuf',
@@ -1111,6 +1113,8 @@ const GENERATORS: Record<string, (context: UsageContext) => Snippet[]> = {
   nix: (context) => nix(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   turbo: (context) => turbo(repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   nx: (context) => nx(repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
+  gradlecache: (context) =>
+    gradlecache(repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   bazel: (context) =>
     bazel(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   jetbrains: (context) =>

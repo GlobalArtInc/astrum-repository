@@ -20,6 +20,7 @@ const FORMATS: [string, string][] = [
   ['firefox', 'Firefox add-ons'],
   ['gitlfs', 'Git LFS'],
   ['go', 'Go'],
+  ['gradlecache', 'Gradle build cache'],
   ['helm', 'Helm'],
   ['hex', 'Hex'],
   ['huggingface', 'Hugging Face'],

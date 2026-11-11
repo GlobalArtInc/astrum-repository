@@ -29,6 +29,7 @@ astrum-format-docker = { path = "crates/astrum-format-docker" }
 astrum-format-firefox = { path = "crates/astrum-format-firefox" }
 astrum-format-gitlfs = { path = "crates/astrum-format-gitlfs" }
 astrum-format-go = { path = "crates/astrum-format-go" }
+astrum-format-gradlecache = { path = "crates/astrum-format-gradlecache" }
 astrum-format-helm = { path = "crates/astrum-format-helm" }
 astrum-format-hex = { path = "crates/astrum-format-hex" }
 astrum-format-huggingface = { path = "crates/astrum-format-huggingface" }

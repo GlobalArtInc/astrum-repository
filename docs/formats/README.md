@@ -22,6 +22,7 @@ repositories themselves are in [repositories](../repositories/overview.md).
 | [Firefox add-ons](firefox.md) | Firefox | ✓ | ✓ | ✓ |
 | [Git LFS](gitlfs.md) | `git lfs` | ✓ | | |
 | [Go](go.md) | `go` | ✓ | ✓ | ✓ |
+| [Gradle build cache](gradlecache.md) | Gradle | ✓ | | |
 | [Helm](helm.md) | `helm` | ✓ | ✓ | ✓ |
 | [Hex](hex.md) | Mix, rebar3 | ✓ | ✓ | ✓ |
 | [Hugging Face](huggingface.md) | `huggingface_hub`, `transformers`, `hf` | | ✓ | |
