@@ -13,12 +13,13 @@ fn unsafe_in_text(ch: char) -> bool {
         || matches!(
             ch,
             '\u{061C}'
-                | '\u{200E}'
-                | '\u{200F}'
-                | '\u{202A}'..='\u{202E}'
-                | '\u{2066}'..='\u{2069}'
-                | '\u{2028}'
-                | '\u{2029}'
+                | '\u{180E}'
+                | '\u{200B}'..='\u{200F}'
+                | '\u{2028}'..='\u{202E}'
+                | '\u{2060}'..='\u{206F}'
+                | '\u{FEFF}'
+                | '\u{FFF9}'..='\u{FFFB}'
+                | '\u{E0000}'..='\u{E007F}'
         )
 }
 
@@ -668,6 +669,37 @@ mod tests {
     }
 
     #[test]
+    fn reason_text_loses_invisible_format_characters_and_keeps_their_neighbours() {
+        let hidden = [
+            '\u{180E}',
+            '\u{200B}',
+            '\u{200C}',
+            '\u{200D}',
+            '\u{2060}',
+            '\u{2064}',
+            '\u{206F}',
+            '\u{FEFF}',
+            '\u{FFF9}',
+            '\u{FFFA}',
+            '\u{FFFB}',
+            '\u{E0000}',
+            '\u{E0041}',
+            '\u{E007F}',
+        ];
+        for character in hidden {
+            assert_eq!(
+                clean(&format!("a{character}b")),
+                "ab",
+                "U+{:04X}",
+                character as u32
+            );
+        }
+        assert_eq!(clean(&hidden.iter().collect::<String>()), "");
+        let visible = "\u{180D}\u{200A}\u{2010}\u{2070}\u{FFF8}\u{FFFC}\u{E0080}";
+        assert_eq!(clean(visible), visible);
+    }
+
+    #[test]
     fn reason_text_is_cut_at_a_character_count_with_an_ellipsis() {
         let exact = "x".repeat(MAX_REASON_TEXT);
         assert_eq!(clean(&exact), exact);
@@ -692,11 +724,35 @@ mod tests {
         let mut hit = finding("A", Severity::High);
         hit.package = "npm/li\u{202E}b@1\n".to_owned();
         hit.fixed = Some(format!("1.0\r\n{}", "9".repeat(300)));
-        let verdict = judge(&block, Scan::Scanned, &[hit], std::slice::from_ref(&held)).unwrap();
+        let mut open = finding("GHSA-2", Severity::Critical);
+        open.advisory = "GH\nSA-\u{200B}2".to_owned();
+        open.aliases = vec![
+            "CVE-\u{202E}2\r".to_owned(),
+            format!("CVE-{}", "7".repeat(300)),
+        ];
+        let verdict = judge(
+            &block,
+            Scan::Scanned,
+            &[hit, open],
+            std::slice::from_ref(&held),
+        )
+        .unwrap();
         let texts = serde_json::to_string(&verdict.reasons).unwrap();
         assert!(!texts.contains("\\n") && !texts.contains("\\r") && !texts.contains("202e"));
+        let mut listed_open = 0;
         for reason in &verdict.reasons {
             match reason {
+                Reason::Vulnerability {
+                    advisory,
+                    aliases,
+                    blocking: true,
+                    ..
+                } => {
+                    listed_open += 1;
+                    assert_eq!(advisory, "GHSA-2");
+                    assert_eq!(aliases[0], "CVE-2");
+                    assert_eq!(aliases[1].chars().count(), MAX_REASON_TEXT);
+                }
                 Reason::Vulnerability {
                     package,
                     fixed,
@@ -713,6 +769,7 @@ mod tests {
                 _ => {}
             }
         }
+        assert_eq!(listed_open, 1);
         let broken = failed(1, format!("bad\n{}", "m".repeat(500)));
         match &broken.reasons[0] {
             Reason::PolicyError { message } => {

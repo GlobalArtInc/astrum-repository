@@ -867,3 +867,36 @@ async fn a_policy_or_exception_change_reaches_the_policy_cache_at_once() {
     assert_eq!(removed.status, StatusCode::NO_CONTENT);
     assert!(cache.get(conn).await.unwrap().exceptions.is_empty());
 }
+
+#[tokio::test]
+async fn creating_and_deleting_a_policy_reach_the_policy_cache_at_once() {
+    let fixture = Fixture::new().await;
+    let cache = fixture.state.policy_cache();
+    let conn = fixture.state.db().conn();
+    assert!(cache.get(conn).await.unwrap().policies.is_empty());
+
+    made(
+        &fixture,
+        POLICIES,
+        json!({"name": "strict", "vulnerabilities": {"mode": "block"}}),
+    )
+    .await;
+    assert!(
+        cache
+            .get(conn)
+            .await
+            .unwrap()
+            .policies
+            .contains_key("strict")
+    );
+
+    let removed = admin(
+        &fixture,
+        Method::DELETE,
+        &format!("{POLICIES}/strict"),
+        json!(null),
+    )
+    .await;
+    assert_eq!(removed.status, StatusCode::NO_CONTENT, "{}", removed.text());
+    assert!(cache.get(conn).await.unwrap().policies.is_empty());
+}

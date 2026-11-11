@@ -739,3 +739,56 @@ async fn every_sweeper_page_marks_in_component_order_so_it_cannot_deadlock_with_
         );
     }
 }
+
+#[tokio::test]
+async fn a_repository_deleted_while_a_sweep_page_is_queued_is_skipped_not_failed() {
+    for (label, prepare) in [
+        ("stale", ""),
+        ("findings", CROSSING_VERDICTS),
+        (
+            "expired",
+            &format!("{CROSSING_EXCEPTION}; {CROSSING_VERDICTS}"),
+        ),
+    ] {
+        let s = setup().await;
+        crossing_world(&s).await;
+        if !prepare.is_empty() {
+            execute(&s, prepare).await;
+        }
+        let holder = s.db.conn().begin().await.unwrap();
+        holder
+            .execute_unprepared("DELETE FROM repository WHERE name = 'a'")
+            .await
+            .unwrap();
+        let sweeping = {
+            let db = s.db.conn().clone();
+            tokio::spawn(
+                async move { verdict::sweep(&db, &config(), &mut SweepState::default()).await },
+            )
+        };
+        tokio::time::timeout(Duration::from_secs(30), async {
+            while scalar(&s, WAITING_TRANSACTIONS).await == 0 {
+                tokio::time::sleep(Duration::from_millis(10)).await;
+            }
+        })
+        .await
+        .unwrap_or_else(|_| panic!("{label}: the sweeper never waited on the repository"));
+
+        holder.commit().await.unwrap();
+        let swept = tokio::time::timeout(Duration::from_secs(30), sweeping)
+            .await
+            .unwrap_or_else(|_| panic!("{label}: the sweep hung"))
+            .unwrap()
+            .unwrap_or_else(|error| panic!("{label}: the sweep failed: {error}"));
+        assert_eq!(swept, Swept::Done { marked: 1 }, "{label}");
+        assert_eq!(
+            text(
+                &s,
+                "SELECT string_agg(repository || '/' || subject, ',') AS n FROM policy_dirty"
+            )
+            .await,
+            "b/c:10",
+            "{label}"
+        );
+    }
+}

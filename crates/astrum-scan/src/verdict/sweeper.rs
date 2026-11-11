@@ -93,9 +93,13 @@ async fn mark_expired(
                      AND NOT EXISTS (SELECT 1 FROM policy_dirty d \
                                      WHERE d.repository = v.repository AND d.subject = v.subject) \
                    ORDER BY v.repository, v.subject LIMIT $3), \
+                 live AS (\
+                   SELECT name FROM repository WHERE name IN (SELECT repository FROM page) \
+                   ORDER BY name FOR KEY SHARE), \
                  queued AS (\
-                   INSERT INTO policy_dirty (repository, subject) SELECT repository, subject FROM page \
-                   ORDER BY component_id, subject ON CONFLICT (repository, subject) DO NOTHING RETURNING 1) \
+                   INSERT INTO policy_dirty (repository, subject) \
+                   SELECT p.repository, p.subject FROM page p JOIN live l ON l.name = p.repository \
+                   ORDER BY p.component_id, p.subject ON CONFLICT (repository, subject) DO NOTHING RETURNING 1) \
                  SELECT count(*) AS n, (SELECT count(*) FROM queued) AS queued, NULL::text AS last_repository, NULL::text AS last_subject FROM page",
                 [from.into(), to.into(), chunk.into()],
             ))
@@ -151,10 +155,14 @@ async fn mark_stale(db: &DatabaseConnection, chunk: i64) -> Result<u64, DbErr> {
              AND ((v.subject IS NULL AND (p.vulnerabilities ->> 'mode') IS DISTINCT FROM 'off') \
                OR (v.subject IS NOT NULL AND (v.policy_revision <> p.revision OR v.policy <> p.name))) \
            ORDER BY cs.repository, cs.component_id LIMIT $3), \
+         live AS (\
+           SELECT name FROM repository WHERE name IN (SELECT repository FROM page) \
+           ORDER BY name FOR KEY SHARE), \
          queued AS (\
            INSERT INTO policy_dirty (repository, subject) \
-           SELECT repository, '{COMPONENT_PREFIX}' || component_id FROM page \
-           ORDER BY component_id ON CONFLICT (repository, subject) DO NOTHING RETURNING 1) \
+           SELECT p.repository, '{COMPONENT_PREFIX}' || p.component_id \
+           FROM page p JOIN live l ON l.name = p.repository \
+           ORDER BY p.component_id ON CONFLICT (repository, subject) DO NOTHING RETURNING 1) \
          SELECT count(*) AS n, (SELECT count(*) FROM queued) AS queued, \
            (array_agg(repository ORDER BY repository DESC, component_id DESC))[1] AS last_repository, \
            (array_agg(component_id ORDER BY repository DESC, component_id DESC))[1]::text AS last_subject \
@@ -171,9 +179,13 @@ async fn mark_with_findings(db: &DatabaseConnection, chunk: i64) -> Result<u64, 
            SELECT v.repository, v.subject, v.component_id FROM policy_verdict v \
            WHERE v.max_severity IS NOT NULL AND (v.repository, v.subject) > ($1, $2) \
            ORDER BY v.repository, v.subject LIMIT $3), \
+         live AS (\
+           SELECT name FROM repository WHERE name IN (SELECT repository FROM page) \
+           ORDER BY name FOR KEY SHARE), \
          queued AS (\
-           INSERT INTO policy_dirty (repository, subject) SELECT repository, subject FROM page \
-           ORDER BY component_id, subject ON CONFLICT (repository, subject) DO NOTHING RETURNING 1) \
+           INSERT INTO policy_dirty (repository, subject) \
+           SELECT p.repository, p.subject FROM page p JOIN live l ON l.name = p.repository \
+           ORDER BY p.component_id, p.subject ON CONFLICT (repository, subject) DO NOTHING RETURNING 1) \
          SELECT count(*) AS n, (SELECT count(*) FROM queued) AS queued, \
            (array_agg(repository ORDER BY repository DESC, subject DESC))[1] AS last_repository, \
            (array_agg(subject ORDER BY repository DESC, subject DESC))[1] AS last_subject FROM page",

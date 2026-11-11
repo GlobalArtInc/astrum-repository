@@ -6,7 +6,7 @@ use astrum_db::revision;
 use astrum_policy::cache::Cache;
 use astrum_policy::policy::{self, LicenseRule, Mode, Policy, SignatureRule, VulnerabilityRule};
 use astrum_testkit::TestDatabase;
-use sea_orm::ConnectionTrait;
+use sea_orm::{ConnectionTrait, DbBackend, Statement, TransactionTrait};
 
 fn policy_in(mode: Mode) -> Policy {
     Policy {
@@ -157,4 +157,61 @@ async fn an_exception_that_cannot_be_read_is_skipped_and_counted_not_fatal() {
     assert_eq!(snapshot.exceptions[0].reason, "fine");
     assert_eq!(snapshot.unreadable_exceptions, 1);
     assert_eq!(cache.unreadable_exceptions(), 1);
+}
+
+#[tokio::test]
+async fn a_refresh_that_started_before_invalidate_is_not_taken_for_fresh() {
+    let test = TestDatabase::create().await;
+    let db = test.migrated().await;
+    let conn = db.conn();
+    policy::create(conn, &policy_in(Mode::Report))
+        .await
+        .unwrap();
+    revision::bump(conn, revision::POLICIES).await.unwrap();
+    let cache = Arc::new(Cache::new(Duration::from_secs(3600)));
+
+    let holder = conn.begin().await.unwrap();
+    holder
+        .execute_unprepared("LOCK TABLE content_policy IN ACCESS EXCLUSIVE MODE")
+        .await
+        .unwrap();
+    policy::update(&holder, &policy_in(Mode::Block))
+        .await
+        .unwrap();
+    revision::bump(&holder, revision::POLICIES).await.unwrap();
+    let reading = {
+        let (cache, conn) = (cache.clone(), conn.clone());
+        tokio::spawn(async move { cache.get(&conn).await.unwrap().revision })
+    };
+    tokio::time::timeout(Duration::from_secs(20), async {
+        loop {
+            let waiting = conn
+                .query_one(Statement::from_string(
+                    DbBackend::Postgres,
+                    "SELECT count(*) AS n FROM pg_locks l \
+                     JOIN pg_stat_activity a ON a.pid = l.pid \
+                     WHERE l.locktype = 'relation' AND NOT l.granted \
+                       AND a.datname = current_database()",
+                ))
+                .await
+                .unwrap()
+                .unwrap()
+                .try_get::<i64>("", "n")
+                .unwrap();
+            if waiting > 0 {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+    })
+    .await
+    .expect("the refresh never waited on the policy table");
+
+    cache.invalidate();
+    holder.commit().await.unwrap();
+    let stale = reading.await.unwrap();
+
+    let after = cache.get(conn).await.unwrap();
+    assert!(after.revision > stale);
+    assert_eq!(after.policies["base"].revision, 2);
 }
