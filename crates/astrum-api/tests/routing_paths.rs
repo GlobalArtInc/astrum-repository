@@ -399,6 +399,7 @@ async fn open_vsx_rules_judge_the_decoded_normalised_path() {
             ("/repository/vsx-proxy/api/secret/verify-pat", true),
             ("/repository/vsx-proxy//api/secret/verify-pat", true),
             ("/repository/vsx-proxy/api/%73ecret/verify-pat", true),
+            ("/repository/vsx-proxy/api/%2fsecret/verify-pat", true),
             ("/repository/vsx%2Dproxy/api/secret/verify-pat", true),
             ("/repository/vsx-proxy/api/other/verify-pat", false),
             ("/repository/vsx%2Dproxy/api/other/verify-pat", false),

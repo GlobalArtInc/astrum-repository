@@ -1,4 +1,4 @@
-use astrum_api::routes::content::context;
+use astrum_api::routes::content::{context, handle_judged};
 use astrum_api::{AppState, Caller};
 use astrum_content::{ContentError, ContentRequest};
 use astrum_db::audit::Event;
@@ -146,8 +146,7 @@ async fn token(
             Ok(request) => request,
             Err(error) => return error.into_response(),
         };
-        return format
-            .handle(ctx, request)
+        return handle_judged(&state, ctx, format.as_ref(), request)
             .await
             .unwrap_or_else(IntoResponse::into_response);
     }

@@ -154,16 +154,24 @@ pub(crate) async fn dispatch(
         parts.headers,
         body,
     )?;
-    let rule_path = request.path.clone();
+    handle_judged(&state, ctx, format.as_ref(), request).await
+}
+
+pub async fn handle_judged(
+    state: &AppState,
+    ctx: Ctx,
+    format: &dyn astrum_content::Format,
+    request: ContentRequest,
+) -> Result<Response, ContentError> {
     if !state
         .content()
-        .routing_allows(&ctx.repository, &rule_path)
+        .routing_allows(&ctx.repository, &request.path)
         .await?
     {
         return Ok(blocked());
     }
     format
-        .handle(ctx.with_request_path(&rule_path), request)
+        .handle(ctx.with_request_path(&request.path), request)
         .await
 }
 
