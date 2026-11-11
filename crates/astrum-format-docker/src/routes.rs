@@ -53,6 +53,10 @@ pub fn routes() -> Router<AppState> {
         )
 }
 
+fn v2_rule_path(request: &ContentRequest) -> String {
+    format!("/v2{}", request.path)
+}
+
 fn path_enabled(repository: &astrum_repo::config::Repository) -> bool {
     repository.format.id == ID
         && repository
@@ -238,17 +242,6 @@ async fn routed(
             );
         }
     };
-    let rule_path = format!("/v2/{remainder}");
-    match state
-        .content()
-        .routing_allows(&ctx.repository, &rule_path)
-        .await
-    {
-        Ok(true) => {}
-        Ok(false) => return astrum_api::routes::content::blocked(),
-        Err(error) => return RegistryError::from(error).into_response(),
-    }
-    let ctx = ctx.with_request_path(&rule_path);
     let request = match ContentRequest::new(
         parts.method,
         &format!("/{remainder}"),
@@ -266,6 +259,17 @@ async fn routed(
             );
         }
     };
+    let rule_path = v2_rule_path(&request);
+    match state
+        .content()
+        .routing_allows(&ctx.repository, &rule_path)
+        .await
+    {
+        Ok(true) => {}
+        Ok(false) => return astrum_api::routes::content::blocked(),
+        Err(error) => return RegistryError::from(error).into_response(),
+    }
+    let ctx = ctx.with_request_path(&rule_path);
     docker.serve(ctx, request, mount).await
 }
 
@@ -383,4 +387,48 @@ async fn catalog(
     .await;
     let response = result.unwrap_or_else(IntoResponse::into_response);
     auth::with_challenge(response, &model, &base, Some("registry:catalog:*"))
+}
+
+#[cfg(test)]
+mod tests {
+    use axum::http::Method;
+
+    use super::*;
+
+    fn rule_path_for(remainder: &str) -> String {
+        let request = ContentRequest::new(
+            Method::GET,
+            &format!("/{remainder}"),
+            None,
+            HeaderMap::new(),
+            axum::body::Body::empty(),
+        )
+        .unwrap();
+        v2_rule_path(&request)
+    }
+
+    #[test]
+    fn well_formed_registry_paths_keep_their_rule_path() {
+        for remainder in [
+            "",
+            "_catalog",
+            "library/alpine/manifests/latest",
+            "library/alpine/manifests/sha256:0123abcd",
+            "team/app/blobs/sha256:0123abcd",
+            "team/app/blobs/uploads/",
+            "team/app/blobs/uploads/6f1c2b0e-7f6b-4a43-9f43-1c0b0cf4ac2d",
+            "team/app/tags/list",
+            "team/app/referrers/sha256:0123abcd",
+        ] {
+            assert_eq!(rule_path_for(remainder), format!("/v2/{remainder}"));
+        }
+    }
+
+    #[test]
+    fn doubled_slashes_leave_the_rule_path() {
+        assert_eq!(
+            rule_path_for("/library//alpine/manifests/latest"),
+            "/v2/library/alpine/manifests/latest"
+        );
+    }
 }

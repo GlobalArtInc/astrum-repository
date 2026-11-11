@@ -43,16 +43,11 @@ impl Format for Recording {
     }
 }
 
-async fn ready() -> (Fixture, Seen) {
+async fn prepared() -> Fixture {
     let fixture = Fixture::new().await;
     astrum_blob::bootstrap(fixture.state.db().conn(), fixture.data.path())
         .await
         .unwrap();
-    let seen = Seen::default();
-    fixture.state.content().register(Arc::new(Recording {
-        inner: astrum_format_raw::Raw,
-        seen: seen.clone(),
-    }));
     astrum_db::setting::put(
         fixture.state.db().conn(),
         SSRF_KEY,
@@ -64,6 +59,16 @@ async fn ready() -> (Fixture, Seen) {
     )
     .await
     .unwrap();
+    fixture
+}
+
+async fn ready() -> (Fixture, Seen) {
+    let fixture = prepared().await;
+    let seen = Seen::default();
+    fixture.state.content().register(Arc::new(Recording {
+        inner: astrum_format_raw::Raw,
+        seen: seen.clone(),
+    }));
     (fixture, seen)
 }
 
@@ -112,10 +117,14 @@ fn hosted(name: &str) -> Value {
 }
 
 async fn create_repository(fixture: &Fixture, kind: &str, body: Value) {
+    create_in(fixture, "raw", kind, body).await;
+}
+
+async fn create_in(fixture: &Fixture, format: &str, kind: &str, body: Value) {
     let reply = fixture
         .call(
             Method::POST,
-            &format!("/service/rest/v1/repositories/raw/{kind}"),
+            &format!("/service/rest/v1/repositories/{format}/{kind}"),
             Auth::Admin,
             Some(body),
         )
@@ -324,4 +333,127 @@ async fn formats_see_the_normalised_request_path() {
         (Some("/dir/sub/".to_owned()), "/dir/sub/".to_owned()),
     ];
     assert_eq!(seen, expected);
+}
+
+async fn blocked_by_the_rule(fixture: &Fixture, app: &Router, path: &str) -> bool {
+    use http_body_util::BodyExt;
+    use tower::ServiceExt;
+    let credentials = base64::Engine::encode(
+        &base64::engine::general_purpose::STANDARD,
+        format!("admin:{}", fixture.admin_password),
+    );
+    let response = app
+        .clone()
+        .oneshot(
+            axum::http::Request::get(path)
+                .header("authorization", format!("Basic {credentials}"))
+                .body(axum::body::Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let status = response.status();
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+    status == StatusCode::FORBIDDEN && body == astrum_content::routing::BLOCKED.as_bytes()
+}
+
+async fn check_blocking(fixture: &Fixture, app: &Router, cases: &[(&str, bool)]) {
+    let mut wrong = Vec::new();
+    for (path, blocked) in cases {
+        if blocked_by_the_rule(fixture, app, path).await != *blocked {
+            wrong.push(format!("{path}: blocked should be {blocked}"));
+        }
+    }
+    assert!(wrong.is_empty(), "{wrong:#?}");
+}
+
+#[tokio::test]
+async fn open_vsx_rules_judge_the_decoded_normalised_path() {
+    let fixture = prepared().await;
+    fixture
+        .state
+        .content()
+        .register(Arc::new(astrum_format_openvsx::OpenVsx));
+    create_rule(&fixture, "no-secret", "BLOCK", &["/api/secret/.*"]).await;
+    let remote = upstream().await;
+    create_in(
+        &fixture,
+        "openvsx",
+        "proxy",
+        json!({
+            "name": "vsx-proxy",
+            "online": true,
+            "storage": {"blobStoreName": "default", "strictContentTypeValidation": true},
+            "proxy": {"remoteUrl": remote, "contentMaxAge": 1440, "metadataMaxAge": 1440},
+            "negativeCache": {"enabled": true, "timeToLive": 1440},
+            "httpClient": {"blocked": false, "autoBlock": true},
+            "routingRuleName": "no-secret",
+        }),
+    )
+    .await;
+    let app = astrum_api::router_with(fixture.state.clone(), astrum_format_openvsx::routes());
+    check_blocking(
+        &fixture,
+        &app,
+        &[
+            ("/repository/vsx-proxy/api/secret/verify-pat", true),
+            ("/repository/vsx-proxy//api/secret/verify-pat", true),
+            ("/repository/vsx-proxy/api/%73ecret/verify-pat", true),
+            ("/repository/vsx%2Dproxy/api/secret/verify-pat", true),
+            ("/repository/vsx-proxy/api/other/verify-pat", false),
+            ("/repository/vsx%2Dproxy/api/other/verify-pat", false),
+        ],
+    )
+    .await;
+}
+
+#[tokio::test]
+async fn docker_rules_judge_the_v2_form_of_the_normalised_path() {
+    let fixture = prepared().await;
+    fixture
+        .state
+        .content()
+        .register(Arc::new(astrum_format_docker::Docker::default()));
+    create_rule(
+        &fixture,
+        "no-library",
+        "BLOCK",
+        &["/v2/library/.*", "/v2/exact/manifests/latest"],
+    )
+    .await;
+    let remote = upstream().await;
+    create_in(
+        &fixture,
+        "docker",
+        "proxy",
+        json!({
+            "name": "hub",
+            "online": true,
+            "storage": {"blobStoreName": "default", "strictContentTypeValidation": true},
+            "proxy": {"remoteUrl": remote, "contentMaxAge": 1440, "metadataMaxAge": 1440},
+            "negativeCache": {"enabled": false, "timeToLive": 1},
+            "httpClient": {"blocked": false, "autoBlock": false},
+            "routingRuleName": "no-library",
+            "docker": {"v1Enabled": false, "forceBasicAuth": true, "pathEnabled": true},
+            "dockerProxy": {"indexType": "REGISTRY"}
+        }),
+    )
+    .await;
+    let app = astrum_api::router_with(fixture.state.clone(), astrum_format_docker::routes());
+    check_blocking(
+        &fixture,
+        &app,
+        &[
+            ("/v2/hub/library/alpine/manifests/latest", true),
+            ("/v2/hub//library/alpine/manifests/latest", true),
+            ("/v2/hub///library/alpine/manifests/latest", true),
+            ("/v2/hub/library//alpine/manifests/latest", true),
+            ("/v2/hub/exact/manifests/latest", true),
+            ("/v2/hub//exact/manifests/latest", true),
+            ("/v2/hub/exact//manifests/latest", true),
+            ("/v2/hub/team/app/manifests/latest", false),
+            ("/v2/hub//team//app/manifests/latest", false),
+        ],
+    )
+    .await;
 }
