@@ -10,6 +10,7 @@ use axum::http::{Method, Request, StatusCode, header};
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
 use http_body_util::BodyExt;
+use sea_orm::EntityTrait;
 use serde_json::{Value, json};
 use sha2::{Digest as _, Sha256, Sha512};
 use support::{Auth, Fixture, Reply};
@@ -1535,4 +1536,52 @@ async fn a_customer_pulls_listed_images_after_docker_login_and_is_refused_the_re
         )
         .await;
     assert_eq!(stranger.status, StatusCode::UNAUTHORIZED);
+}
+
+#[tokio::test]
+async fn a_blob_pulled_with_a_customer_token_counts_one_download_for_the_token() {
+    let registry = Registry::new().await;
+    astrum_db::setting::put(
+        registry.fixture.state.db().conn(),
+        astrum_security::model::REALMS_KEY,
+        &[
+            "AstrumAuthenticatingRealm",
+            "AccessTokenRealm",
+            "DockerToken",
+        ],
+    )
+    .await
+    .unwrap();
+    registry.fixture.state.security().changed().await.unwrap();
+    registry.hosted("onprem", "ALLOW").await;
+    registry
+        .push_image("/v2/onprem/app", "1.0", b"listed")
+        .await;
+    let (id, token) = registry.fixture.customer_token("acme", &["onprem"]).await;
+    let pulled = registry
+        .send(
+            Method::GET,
+            &format!("/v2/onprem/app/blobs/{}", sha256(b"listed")),
+            Some(&format!("Bearer {token}")),
+            &[],
+            Vec::new(),
+        )
+        .await;
+    assert_eq!(pulled.status, StatusCode::OK, "{}", pulled.text());
+    registry
+        .fixture
+        .state
+        .content()
+        .flush_downloads()
+        .await
+        .unwrap();
+    let rows = astrum_db::entity::token_download_day::Entity::find()
+        .all(registry.fixture.state.db().conn())
+        .await
+        .unwrap();
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0].token_id, id);
+    assert_eq!(rows[0].customer.as_deref(), Some("acme"));
+    assert_eq!(rows[0].repository, "onprem");
+    assert_eq!((rows[0].downloads, rows[0].bytes), (1, 6));
 }

@@ -209,6 +209,14 @@ pub async fn serve(
         tracing::error!(repository = %asset.repository, path = %asset.path, blob = %asset.blob_id, "an asset's blob is missing from its store");
         return Err(ContentError::not_found(asset.path.clone()));
     };
+    if options.count_download {
+        ctx.content.note_token_download(
+            ctx.subject.as_ref(),
+            &asset.repository,
+            offset == 0,
+            length,
+        );
+    }
     if options.count_download && offset == 0 {
         ctx.content.note_download(asset.id);
         ctx.content.audit_download(asset, &ctx.uploader()).await;

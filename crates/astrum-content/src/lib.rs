@@ -166,6 +166,20 @@ impl Content {
         self.inner.downloads.note(asset_id);
     }
 
+    pub fn note_token_download(
+        &self,
+        subject: Option<&Subject>,
+        repository: &str,
+        counted: bool,
+        bytes: u64,
+    ) {
+        if let Some(token) = subject.and_then(|subject| subject.token.as_ref()) {
+            self.inner
+                .downloads
+                .note_token(token, repository, counted, bytes);
+        }
+    }
+
     pub async fn audit_download(&self, asset: &Asset, initiator: &str) {
         let last = asset
             .last_downloaded_at
@@ -198,6 +212,10 @@ impl Content {
         downloads::Downloads::prune(self.db()).await
     }
 
+    pub async fn prune_token_download_days(&self) -> Result<u64, ContentError> {
+        downloads::Downloads::prune_tokens(self.db()).await
+    }
+
     pub fn spawn_background(&self) {
         let content = self.clone();
         tokio::spawn(async move {
@@ -212,6 +230,11 @@ impl Content {
                     && let Err(error) = content.prune_download_days().await
                 {
                     tracing::warn!(%error, "old download days were not deleted");
+                }
+                if ticks.is_multiple_of(DOWNLOAD_DAYS_PRUNE)
+                    && let Err(error) = content.prune_token_download_days().await
+                {
+                    tracing::warn!(%error, "old token download days were not deleted");
                 }
                 ticks = ticks.wrapping_add(1);
             }
