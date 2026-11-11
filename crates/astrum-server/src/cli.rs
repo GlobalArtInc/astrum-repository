@@ -48,7 +48,7 @@ pub struct Cli {
     pub command: Option<Command>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Subcommand)]
+#[derive(Clone, Debug, PartialEq, Eq, Subcommand)]
 pub enum Command {
     #[command(about = "Bring the database schema up to date and serve requests (the default)")]
     Serve,
@@ -58,4 +58,26 @@ pub enum Command {
     Check,
     #[command(about = "Print the version")]
     Version,
+    #[command(
+        name = "two-factor",
+        about = "Manage second factors from the command line"
+    )]
+    TwoFactor {
+        #[command(subcommand)]
+        action: TwoFactorCommand,
+    },
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Subcommand)]
+pub enum TwoFactorCommand {
+    #[command(
+        about = "Remove the authenticator, passkeys and recovery codes of a user, and close the user's sessions"
+    )]
+    Reset {
+        #[arg(
+            value_name = "USER_ID",
+            help = "Id of the user whose second factor is reset"
+        )]
+        user_id: String,
+    },
 }

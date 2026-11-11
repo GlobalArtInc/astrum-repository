@@ -1,9 +1,12 @@
 use std::collections::HashMap;
 
+use astrum_db::audit::Event;
 use astrum_db::entity::{user_passkey, user_second_factor};
+use astrum_db::system::{BASE_URL_KEY, BaseUrl};
 use chrono::{DateTime, Duration, FixedOffset, Utc};
-use sea_orm::{ConnectionTrait, EntityTrait, QuerySelect};
+use sea_orm::{ConnectionTrait, DbErr, EntityTrait, QuerySelect};
 use serde::{Deserialize, Serialize};
+use url::{Host, Url};
 
 use crate::catalogue::DEFAULT_SOURCE;
 use crate::model::{SecurityModel, tolerant};
@@ -13,10 +16,33 @@ pub mod qr;
 pub mod store;
 
 pub const POLICY_KEY: &str = "security.twoFactor";
+pub const POLICY_LOCK: i64 = i64::from_be_bytes(*b"astr2fpl");
+pub const AUDIT_DOMAIN: &str = "security.twofactor";
 pub const FAILURE_VERIFY: &str = "SECOND_FACTOR_REQUIRED";
 pub const FAILURE_ENROLL: &str = "SECOND_FACTOR_ENROLLMENT_REQUIRED";
 pub const FAILURE_WRONG_PASSWORD: &str = "INCORRECT_CREDENTIALS";
 const ADMINISTRATORS: &str = "astrum:*";
+
+pub async fn lock_policy(db: &impl ConnectionTrait) -> Result<(), DbErr> {
+    db.execute_unprepared(&format!("SELECT pg_advisory_xact_lock({POLICY_LOCK})"))
+        .await?;
+    Ok(())
+}
+
+pub async fn methods_in(db: &impl ConnectionTrait) -> Result<Methods, Error> {
+    let policy = tolerant::<TwoFactorPolicy>(db, POLICY_KEY)
+        .await?
+        .unwrap_or_default();
+    let base = tolerant::<BaseUrl>(db, BASE_URL_KEY)
+        .await?
+        .filter(|base| base.enabled && !base.url.trim().is_empty())
+        .map(|base| base.url.trim().trim_end_matches('/').to_owned());
+    Ok(policy.methods(base.as_deref()))
+}
+
+pub fn reset_event(user_id: &str) -> Event {
+    Event::new(AUDIT_DOMAIN, "reset", user_id).with(serde_json::json!({"target": user_id}))
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Requirement {
@@ -128,6 +154,34 @@ impl Default for TwoFactorPolicy {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Methods {
+    Available,
+    NoneEnabled,
+    PasskeysWithoutId,
+}
+
+impl TwoFactorPolicy {
+    pub fn methods(&self, base_url: Option<&str>) -> Methods {
+        match (self.totp, self.passkeys) {
+            (true, _) => Methods::Available,
+            (false, false) => Methods::NoneEnabled,
+            (false, true) if self.relying_party_id_known(base_url) => Methods::Available,
+            (false, true) => Methods::PasskeysWithoutId,
+        }
+    }
+
+    fn relying_party_id_known(&self, base_url: Option<&str>) -> bool {
+        self.relying_party
+            .id
+            .as_deref()
+            .is_some_and(|id| !id.is_empty())
+            || base_url
+                .and_then(|base| Url::parse(base).ok())
+                .is_some_and(|url| matches!(url.host(), Some(Host::Domain(_))))
+    }
+}
+
 pub struct Loaded {
     pub policy: TwoFactorPolicy,
     pub factors: HashMap<String, FactorSummary>,
@@ -219,20 +273,24 @@ impl SecurityModel {
         }
     }
 
+    pub fn is_administrator(&self, user_id: &str) -> bool {
+        self.subject(user_id, DEFAULT_SOURCE, realm::LOCAL)
+            .is_permitted(ADMINISTRATORS)
+    }
+
     fn policy_requires(&self, user_id: &str) -> bool {
         let required = &self.two_factor.required;
-        if required.everyone {
+        if required.everyone || (required.administrators && self.is_administrator(user_id)) {
             return true;
         }
-        if !required.administrators && required.roles.is_empty() {
+        if required.roles.is_empty() {
             return false;
         }
         let subject = self.subject(user_id, DEFAULT_SOURCE, realm::LOCAL);
-        (required.administrators && subject.is_permitted(ADMINISTRATORS))
-            || required
-                .roles
-                .iter()
-                .any(|role| subject.roles.contains(role))
+        required
+            .roles
+            .iter()
+            .any(|role| subject.roles.contains(role))
     }
 
     fn enroll_deadline(

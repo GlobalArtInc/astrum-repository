@@ -9,7 +9,7 @@ use serde_json::Value as Json;
 use sha2::{Digest, Sha256};
 use zeroize::Zeroizing;
 
-use super::{Requirement, qr};
+use super::{Methods, Requirement, lock_policy, methods_in, qr};
 use crate::secrets::SecretBox;
 use crate::tokens::hex;
 use crate::totp::{self, TotpSecret};
@@ -47,6 +47,8 @@ pub enum StoreError {
     InvalidLabel,
     #[error("the requirement cannot be set to this value")]
     InvalidRequirement,
+    #[error("no second factor method can be enrolled, so nobody can be required to use one")]
+    NoMethodAvailable,
     #[error("the QR code cannot be drawn: {0}")]
     Qr(#[from] qr::QrError),
     #[error("a recovery code could not be hashed")]
@@ -881,6 +883,10 @@ impl Security {
             return Err(StoreError::InvalidRequirement);
         }
         let txn = self.db().begin().await?;
+        lock_policy(&txn).await?;
+        if requirement == Requirement::Required && methods_in(&txn).await? != Methods::Available {
+            return Err(StoreError::NoMethodAvailable);
+        }
         txn.execute(statement(
             "INSERT INTO user_second_factor (user_id, requirement) VALUES ($1, $2) \
              ON CONFLICT (user_id) DO UPDATE SET requirement = EXCLUDED.requirement, updated_at = now()",
@@ -919,12 +925,18 @@ impl Security {
             [user_id.into(), required.into()],
         ))
         .await?;
+        let closed = txn
+            .execute(statement(
+                "DELETE FROM user_session WHERE user_id = $1",
+                [user_id.into()],
+            ))
+            .await?
+            .rows_affected();
         let revision = revision::bump(&txn, revision::SECURITY).await?;
         txn.commit().await?;
-        let closed = self.close_sessions_of(user_id).await;
         self.follow(revision).await;
         Ok(ResetOutcome {
-            sessions_closed: closed?,
+            sessions_closed: closed,
         })
     }
 
