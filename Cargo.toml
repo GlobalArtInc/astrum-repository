@@ -49,6 +49,7 @@ astrum-format-puppet = { path = "crates/astrum-format-puppet" }
 astrum-format-pypi = { path = "crates/astrum-format-pypi" }
 astrum-format-r = { path = "crates/astrum-format-r" }
 astrum-format-raw = { path = "crates/astrum-format-raw" }
+astrum-format-sccache = { path = "crates/astrum-format-sccache" }
 astrum-format-swift = { path = "crates/astrum-format-swift" }
 astrum-format-terraform = { path = "crates/astrum-format-terraform" }
 astrum-format-turbo = { path = "crates/astrum-format-turbo" }

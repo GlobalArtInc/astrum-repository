@@ -1423,6 +1423,19 @@ describe('bazelcache usage', () => {
   });
 });
 
+describe('sccache usage', () => {
+  it('points sccache at the repository by environment variables, with read-only mode for developers', () => {
+    const snippets = usageSnippets(context({ format: 'sccache', repositoryName: 'sccache-cache' }));
+    expect(ids(snippets)).toEqual(['environment', 'rust', 'cc', 'developers']);
+    expect(code(snippets, 'environment')).toContain(
+      'SCCACHE_WEBDAV_ENDPOINT=https://repo.example.org/repository/sccache-cache\n',
+    );
+    expect(code(snippets, 'rust')).toBe('RUSTC_WRAPPER=sccache cargo build');
+    expect(code(snippets, 'developers')).toBe('SCCACHE_WEBDAV_RW_MODE=READ_ONLY');
+    expect(supportsUsage('sccache')).toBe(true);
+  });
+});
+
 describe('gradlecache usage', () => {
   it('points Gradle at the cache by settings, properties and CI', () => {
     const snippets = usageSnippets(context({ format: 'gradlecache', repositoryName: 'gradle-cache' }));

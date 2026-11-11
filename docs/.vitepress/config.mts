@@ -41,6 +41,7 @@ const FORMATS: [string, string][] = [
   ['r', 'R'],
   ['raw', 'Raw files'],
   ['rubygems', 'RubyGems'],
+  ['sccache', 'sccache remote cache'],
   ['swift', 'Swift'],
   ['terraform', 'Terraform'],
   ['turbo', 'Turborepo remote cache'],

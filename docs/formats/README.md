@@ -43,6 +43,7 @@ repositories themselves are in [repositories](../repositories/overview.md).
 | [R](r.md) | `install.packages` | ✓ | ✓ | ✓ |
 | [Raw files](raw.md) | `curl` and any HTTP client | ✓ | ✓ | ✓ |
 | [RubyGems](rubygems.md) | `gem`, Bundler | ✓ | ✓ | ✓ |
+| [sccache remote cache](sccache.md) | `sccache` | ✓ | | |
 | [Swift](swift.md) | Swift Package Manager | ✓ | ✓ | ✓ |
 | [Terraform](terraform.md) | `terraform` | ✓ | ✓ | ✓ |
 | [Turborepo remote cache](turbo.md) | `turbo` | ✓ | | |

@@ -17,6 +17,7 @@ import { pacman } from './pacman';
 import { protobuf } from './protobuf';
 import { pub } from './pub';
 import { puppet } from './puppet';
+import { sccache } from './sccache';
 import { swift } from './swift';
 import { terraform } from './terraform';
 import { turbo } from './turbo';
@@ -96,6 +97,7 @@ export const USAGE_FORMATS = [
   'nx',
   'gradlecache',
   'bazelcache',
+  'sccache',
   'bazel',
   'jetbrains',
   'protobuf',
@@ -1117,6 +1119,7 @@ const GENERATORS: Record<string, (context: UsageContext) => Snippet[]> = {
   nx: (context) => nx(repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   gradlecache: (context) =>
     gradlecache(repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
+  sccache: (context) => sccache(repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   bazelcache: (context) =>
     bazelcache(repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   bazel: (context) =>

@@ -232,6 +232,11 @@ pub const FORMATS: &[Format] = &[
         types: HPG,
     },
     Format {
+        id: "sccache",
+        api_name: "sccache",
+        types: &[H],
+    },
+    Format {
         id: "swift",
         api_name: "swift",
         types: HPG,
@@ -277,7 +282,7 @@ mod tests {
         sorted.sort_unstable();
         sorted.dedup();
         assert_eq!(ids, sorted);
-        assert_eq!(ids.len(), 41);
+        assert_eq!(ids.len(), 42);
     }
 
     #[test]

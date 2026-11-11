@@ -12,7 +12,7 @@ See [users, realms and sign-in](../configure/authentication.md) for the realms t
 The formats this server supports are Alpine, Ansible Galaxy, APT, Bazel, Cargo, Chef Supermarket, Chromium extensions, CocoaPods, Composer,
 Conan, Conda, Docker and other OCI artifacts, Firefox add-ons, Git LFS, Go, Helm, Hex, Hugging Face, JetBrains plugins, Maven, Nix, npm, NuGet,
 Open VSX, P2, pacman, Protobuf, pub, Puppet Forge, PyPI, R, RubyGems, Swift, Terraform, Vagrant, Yum and raw files,
-and remote caches for Bazel, Gradle, Nx and Turborepo.
+and remote caches for Bazel, Gradle, Nx, sccache and Turborepo.
 
 That address belongs to the clients and has no page of its own: a browser opening it gets a page that
 links to the HTML index of the repository at `https://<host>/service/rest/repository/browse/<repository

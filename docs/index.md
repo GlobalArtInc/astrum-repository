@@ -20,8 +20,8 @@ hero:
       link: https://github.com/GlobalArtInc/astrum-repository
 
 features:
-  - title: 41 formats
-    details: Maven, npm, Docker and OCI, PyPI, Cargo, Go, Helm, NuGet, Terraform, APT, Yum, Hugging Face, browser extensions and more, plus remote caches for Bazel, Gradle, Nx and Turborepo.
+  - title: 42 formats
+    details: Maven, npm, Docker and OCI, PyPI, Cargo, Go, Helm, NuGet, Terraform, APT, Yum, Hugging Face, browser extensions and more, plus remote caches for Bazel, Gradle, Nx, sccache and Turborepo.
     link: /formats/
     linkText: All formats
   - title: Hosted, proxy and group

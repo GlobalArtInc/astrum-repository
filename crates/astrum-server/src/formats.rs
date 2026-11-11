@@ -41,6 +41,7 @@ pub fn register(content: &Content) {
     content.register(Arc::new(astrum_format_pypi::PyPi));
     content.register(Arc::new(astrum_format_r::R::default()));
     content.register(Arc::new(astrum_format_raw::Raw));
+    content.register(Arc::new(astrum_format_sccache::Sccache));
     content.register(Arc::new(astrum_format_swift::Swift));
     content.register(Arc::new(astrum_format_terraform::Terraform::default()));
     content.register(Arc::new(astrum_format_rubygems::Rubygems));

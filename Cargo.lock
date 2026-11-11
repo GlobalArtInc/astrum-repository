@@ -260,6 +260,7 @@ dependencies = [
  "astrum-format-r",
  "astrum-format-raw",
  "astrum-format-rubygems",
+ "astrum-format-sccache",
  "astrum-format-swift",
  "astrum-format-terraform",
  "astrum-format-turbo",
@@ -1306,6 +1307,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "astrum-format-sccache"
+version = "3.0.4"
+dependencies = [
+ "astrum-content",
+ "astrum-db",
+ "astrum-repo",
+ "async-trait",
+ "axum",
+ "chrono",
+ "futures-util",
+ "httpdate",
+ "sea-orm",
+]
+
+[[package]]
 name = "astrum-format-swift"
 version = "3.0.4"
 dependencies = [
@@ -1624,6 +1640,7 @@ dependencies = [
  "astrum-format-r",
  "astrum-format-raw",
  "astrum-format-rubygems",
+ "astrum-format-sccache",
  "astrum-format-swift",
  "astrum-format-terraform",
  "astrum-format-turbo",

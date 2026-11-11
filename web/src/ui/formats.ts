@@ -39,6 +39,7 @@ export const FORMATS: Record<string, { name: string; color: Color; label?: strin
   r: { name: 'R', color: 'sky' },
   raw: { name: 'Raw', color: 'gray' },
   rubygems: { name: 'RubyGems', color: 'red' },
+  sccache: { name: 'sccache remote cache', color: 'amber' },
   swift: { name: 'Swift', color: 'orange' },
   terraform: { name: 'Terraform', color: 'purple' },
   turbo: { name: 'Turborepo', color: 'red' },

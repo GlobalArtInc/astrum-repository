@@ -198,6 +198,13 @@ describe('new repositories', () => {
     expect(write('raw')).toBe('ALLOW_ONCE');
   });
 
+  it('start a hosted sccache repository with allow, so entries are replaced', () => {
+    const write = (format: string) =>
+      getPath(template({ format, type: 'hosted' }, 'default'), ['storage', 'writePolicy']);
+    expect(write('sccache')).toBe('ALLOW');
+    expect(write('raw')).toBe('ALLOW_ONCE');
+  });
+
   it.each(specs)('a filled $format $type form becomes a complete request', (spec) => {
     const document = template(spec, 'default');
     const values: RepositoryValues = {
