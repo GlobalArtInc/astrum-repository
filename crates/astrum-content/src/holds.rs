@@ -1,10 +1,13 @@
 use std::collections::HashSet;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use astrum_blob::BlobId;
 use sea_orm::{
     ConnectionTrait, DatabaseConnection, DbBackend, FromQueryResult, Statement, TransactionTrait,
 };
+use tokio::task::JoinHandle;
 use uuid::Uuid;
 
 use crate::ContentError;
@@ -21,12 +24,13 @@ const EXTEND: &str = "UPDATE blob_hold \
 
 const RELEASE: &str = "DELETE FROM blob_hold WHERE blob_store = $1 AND blob_id = $2";
 
-const HELD: &str = "SELECT blob_id FROM blob_hold WHERE blob_store = ANY($1) AND blob_id = ANY($2)";
-
 const TAKE_EXPIRED: &str = "DELETE FROM blob_hold WHERE (blob_store, blob_id) IN ( \
      SELECT blob_store, blob_id FROM blob_hold WHERE held_until <= now() \
      ORDER BY held_until LIMIT $1 FOR UPDATE SKIP LOCKED) \
      RETURNING blob_store, blob_id";
+
+const CONSUME: &str = "DELETE FROM blob_hold WHERE (blob_store, blob_id) IN ( \
+     SELECT * FROM unnest($1::text[], $2::uuid[])) RETURNING 1 AS taken";
 
 const NAMED: &str = "SELECT DISTINCT blob_id FROM asset WHERE blob_id = ANY($1)";
 
@@ -123,21 +127,100 @@ pub async fn release(
     Ok(released.rows_affected() > 0)
 }
 
-pub async fn held(
+pub async fn consume(
     db: &impl ConnectionTrait,
-    stores: &[String],
-    ids: &[Uuid],
-) -> Result<HashSet<Uuid>, ContentError> {
-    Ok(Reference::find_by_statement(Statement::from_sql_and_values(
-        DbBackend::Postgres,
-        HELD,
-        [stores.to_vec().into(), ids.to_vec().into()],
-    ))
-    .all(db)
-    .await?
-    .into_iter()
-    .map(|found| found.blob_id)
-    .collect())
+    blobs: &[(String, BlobId)],
+) -> Result<u64, ContentError> {
+    let stores: Vec<String> = blobs.iter().map(|(store, _)| store.clone()).collect();
+    let ids: Vec<Uuid> = blobs.iter().map(|(_, id)| id.uuid()).collect();
+    let taken = db
+        .query_all(Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            CONSUME,
+            [stores.into(), ids.into()],
+        ))
+        .await?;
+    Ok(taken.len() as u64)
+}
+
+pub struct Keeper {
+    blobs: Arc<Mutex<Vec<(String, BlobId)>>>,
+    lost: Arc<AtomicBool>,
+    task: JoinHandle<()>,
+}
+
+impl Keeper {
+    pub fn start(db: DatabaseConnection, ttl: Duration, period: Duration) -> Self {
+        let blobs: Arc<Mutex<Vec<(String, BlobId)>>> = Arc::default();
+        let lost = Arc::new(AtomicBool::new(false));
+        let task = tokio::spawn(Self::run(db, ttl, period, blobs.clone(), lost.clone()));
+        Self { blobs, lost, task }
+    }
+
+    async fn run(
+        db: DatabaseConnection,
+        ttl: Duration,
+        period: Duration,
+        blobs: Arc<Mutex<Vec<(String, BlobId)>>>,
+        lost: Arc<AtomicBool>,
+    ) {
+        let mut ticker = tokio::time::interval_at(tokio::time::Instant::now() + period, period);
+        loop {
+            ticker.tick().await;
+            let snapshot = blobs
+                .lock()
+                .expect("the keeper list is never poisoned")
+                .clone();
+            for (store, id) in snapshot {
+                match extend(&db, &store, id, ttl).await {
+                    Ok(true) => {}
+                    Ok(false) => {
+                        let tracked = blobs
+                            .lock()
+                            .expect("the keeper list is never poisoned")
+                            .iter()
+                            .any(|(held, held_id)| *held == store && *held_id == id);
+                        if tracked {
+                            tracing::warn!(store, blob = %id, "a hold lapsed before its transfer ended");
+                            lost.store(true, Ordering::SeqCst);
+                        }
+                    }
+                    Err(error) => {
+                        tracing::warn!(%error, store, blob = %id, "a hold could not be extended; the next round tries again");
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn add(&self, store: &str, id: BlobId) {
+        self.blobs
+            .lock()
+            .expect("the keeper list is never poisoned")
+            .push((store.to_owned(), id));
+    }
+
+    pub fn remove(&self, store: &str, id: BlobId) {
+        self.blobs
+            .lock()
+            .expect("the keeper list is never poisoned")
+            .retain(|(held, held_id)| !(held == store && *held_id == id));
+    }
+
+    pub fn check(&self) -> Result<(), ContentError> {
+        match self.lost.load(Ordering::SeqCst) {
+            true => Err(ContentError::Conflict(
+                "a blob of the transfer lost its hold; the transfer was abandoned".to_owned(),
+            )),
+            false => Ok(()),
+        }
+    }
+}
+
+impl Drop for Keeper {
+    fn drop(&mut self) {
+        self.task.abort();
+    }
 }
 
 pub async fn take_expired(

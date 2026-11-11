@@ -1,9 +1,11 @@
-use std::time::Duration;
+use std::collections::HashSet;
+use std::time::{Duration, Instant};
 
 use astrum_blob::BlobId;
 use astrum_content::holds::{self, Expired, HoldError};
 use astrum_testkit::TestDatabase;
 use sea_orm::{ConnectionTrait, DbBackend, Statement};
+use uuid::Uuid;
 
 async fn count(conn: &impl ConnectionTrait, sql: &str) -> i64 {
     conn.query_one(Statement::from_string(DbBackend::Postgres, sql))
@@ -14,8 +16,20 @@ async fn count(conn: &impl ConnectionTrait, sql: &str) -> i64 {
         .unwrap()
 }
 
-fn stores(names: &[&str]) -> Vec<String> {
-    names.iter().map(|name| (*name).to_owned()).collect()
+async fn held(conn: &impl ConnectionTrait, store: &str, ids: &[Uuid]) -> HashSet<Uuid> {
+    let wanted: Vec<String> = ids.iter().map(|id| format!("'{id}'")).collect();
+    conn.query_all(Statement::from_string(
+        DbBackend::Postgres,
+        format!(
+            "SELECT blob_id FROM blob_hold WHERE blob_store = '{store}' AND blob_id IN ({})",
+            wanted.join(", ")
+        ),
+    ))
+    .await
+    .unwrap()
+    .iter()
+    .map(|row| row.try_get::<Uuid>("", "blob_id").unwrap())
+    .collect()
 }
 
 async fn lapse(conn: &impl ConnectionTrait, id: BlobId) {
@@ -48,15 +62,12 @@ async fn a_second_hold_on_the_same_blob_is_refused() {
 
     let other = BlobId::new();
     let ids = [id.uuid(), other.uuid()];
-    let found = holds::held(conn, &stores(&["files", "group"]), &ids)
-        .await
-        .unwrap();
-    assert_eq!(found, [id.uuid()].into_iter().collect());
+    assert_eq!(
+        held(conn, "files", &ids).await,
+        [id.uuid()].into_iter().collect()
+    );
     assert!(
-        holds::held(conn, &stores(&["nowhere"]), &ids)
-            .await
-            .unwrap()
-            .is_empty(),
+        held(conn, "nowhere", &ids).await.is_empty(),
         "a hold belongs to the store it names"
     );
 }
@@ -126,12 +137,7 @@ async fn a_released_hold_is_gone_once() {
 
     assert!(holds::release(conn, "files", id).await.unwrap());
     assert!(!holds::release(conn, "files", id).await.unwrap());
-    assert!(
-        holds::held(conn, &stores(&["files"]), &[id.uuid()])
-            .await
-            .unwrap()
-            .is_empty()
-    );
+    assert!(held(conn, "files", &[id.uuid()]).await.is_empty());
 }
 
 #[tokio::test]
@@ -149,8 +155,7 @@ async fn a_lapsed_hold_still_protects_until_the_sweep_takes_it() {
     lapse(conn, old).await;
 
     let ids = [old.uuid(), live.uuid()];
-    let found = holds::held(conn, &stores(&["files"]), &ids).await.unwrap();
-    assert_eq!(found, ids.into_iter().collect());
+    assert_eq!(held(conn, "files", &ids).await, ids.into_iter().collect());
 
     let taken = holds::take_expired(conn, 10).await.unwrap();
     assert_eq!(
@@ -162,8 +167,10 @@ async fn a_lapsed_hold_still_protects_until_the_sweep_takes_it() {
         }]
     );
     assert!(holds::take_expired(conn, 10).await.unwrap().is_empty());
-    let found = holds::held(conn, &stores(&["files"]), &ids).await.unwrap();
-    assert_eq!(found, [live.uuid()].into_iter().collect());
+    assert_eq!(
+        held(conn, "files", &ids).await,
+        [live.uuid()].into_iter().collect()
+    );
     holds::hold(conn, "files", old, Duration::from_secs(60))
         .await
         .unwrap();
@@ -187,4 +194,43 @@ async fn expired_holds_are_taken_a_batch_at_a_time() {
     assert_eq!(holds::take_expired(conn, 2).await.unwrap().len(), 2);
     assert_eq!(holds::take_expired(conn, 2).await.unwrap().len(), 1);
     assert_eq!(count(conn, "SELECT count(*) AS n FROM blob_hold").await, 0);
+}
+
+async fn until(mut done: impl AsyncFnMut() -> bool) {
+    let deadline = Instant::now() + Duration::from_secs(20);
+    while !done().await {
+        assert!(Instant::now() < deadline, "the condition never held");
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+}
+
+#[tokio::test]
+async fn a_keeper_extends_its_holds_and_notices_one_that_is_gone() {
+    let test = TestDatabase::create().await;
+    let db = test.migrated().await;
+    let conn = db.conn();
+    let (kept, gone) = (BlobId::new(), BlobId::new());
+    holds::hold(conn, "files", kept, Duration::from_secs(5))
+        .await
+        .unwrap();
+    let keeper = holds::Keeper::start(
+        conn.clone(),
+        Duration::from_secs(3600),
+        Duration::from_millis(20),
+    );
+    keeper.add("files", kept);
+    until(async || {
+        count(
+            conn,
+            "SELECT count(*) AS n FROM blob_hold WHERE held_until > now() + interval '30 minutes'",
+        )
+        .await
+            == 1
+    })
+    .await;
+    keeper.check().unwrap();
+
+    keeper.add("files", gone);
+    until(async || keeper.check().is_err()).await;
+    drop(keeper);
 }
