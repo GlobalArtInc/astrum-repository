@@ -966,11 +966,7 @@ impl Security {
     }
 
     fn effectively_required(&self, requirement: Requirement, user_id: &str) -> bool {
-        match requirement {
-            Requirement::Required | Requirement::Unreadable => true,
-            Requirement::Exempt => false,
-            Requirement::Policy => self.model().policy_requires(user_id),
-        }
+        self.model().requires_second_factor(requirement, user_id)
     }
 }
 

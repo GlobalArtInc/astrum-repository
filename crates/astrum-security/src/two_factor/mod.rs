@@ -59,6 +59,12 @@ pub struct FactorSummary {
     pub enroll_by: Option<DateTime<FixedOffset>>,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Standing {
+    pub required: bool,
+    pub enroll_by: Option<DateTime<Utc>>,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Gate {
     Open,
@@ -180,6 +186,29 @@ impl SecurityModel {
             Requirement::Required => Self::after(now, deadline()),
             Requirement::Policy if self.policy_requires(user_id) => Self::after(now, deadline()),
             Requirement::Policy => Gate::Open,
+        }
+    }
+
+    pub fn requires_second_factor(&self, requirement: Requirement, user_id: &str) -> bool {
+        match requirement {
+            Requirement::Required | Requirement::Unreadable => true,
+            Requirement::Exempt => false,
+            Requirement::Policy => self.policy_requires(user_id),
+        }
+    }
+
+    pub fn second_factor_standing(&self, user_id: &str) -> Standing {
+        let summary = self.second_factor.get(user_id);
+        let requirement = summary.map_or(Requirement::Policy, |summary| summary.requirement);
+        let required = self.requires_second_factor(requirement, user_id);
+        let enroll_by = self
+            .users
+            .get(user_id)
+            .filter(|_| required)
+            .and_then(|user| self.enroll_deadline(user.created_at, summary));
+        Standing {
+            required,
+            enroll_by,
         }
     }
 

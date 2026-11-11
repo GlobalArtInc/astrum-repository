@@ -41,7 +41,7 @@ pub use sessions::{ActiveSession, NewSession};
 pub use ssrf::SsrfProtection;
 pub use subject::{Scope, Subject};
 pub use tokens::{TokenError, TokenInfo};
-pub use two_factor::{FactorSummary, Gate, Pending, TwoFactorPolicy};
+pub use two_factor::{FactorSummary, Gate, Pending, Standing, TwoFactorPolicy};
 
 const VERIFIED_FOR: Duration = Duration::from_secs(300);
 const VERIFIED_LIMIT: usize = 10_000;

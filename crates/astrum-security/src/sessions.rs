@@ -7,7 +7,7 @@ use astrum_db::entity::user_session as session;
 use chrono::{DateTime, Duration, FixedOffset, Utc};
 use rand::RngCore;
 use sea_orm::sea_query::Expr;
-use sea_orm::{ActiveValue, ColumnTrait, EntityTrait, QueryFilter};
+use sea_orm::{ActiveValue, ColumnTrait, EntityTrait, QueryFilter, TransactionTrait};
 use sha2::{Digest, Sha256};
 
 use crate::catalogue::DEFAULT_SOURCE;
@@ -384,6 +384,28 @@ impl Security {
                 .await?;
         }
         Ok(others.exec(&self.db).await?.rows_affected)
+    }
+
+    pub async fn settle_after_enrollment(
+        &self,
+        user_id: &str,
+        keep: Option<&str>,
+    ) -> Result<u64, Error> {
+        let txn = self.db.begin().await?;
+        let mut others = session::Entity::delete_many().filter(session::Column::UserId.eq(user_id));
+        if let Some(token) = keep {
+            let hash = token_hash(token);
+            session::Entity::update_many()
+                .col_expr(session::Column::Restricted, Expr::value(false))
+                .filter(session::Column::TokenHash.eq(hash.clone()))
+                .filter(session::Column::UserId.eq(user_id))
+                .exec(&txn)
+                .await?;
+            others = others.filter(session::Column::TokenHash.ne(hash));
+        }
+        let closed = others.exec(&txn).await?.rows_affected;
+        txn.commit().await?;
+        Ok(closed)
     }
 
     pub fn sign_in_blocked(&self, user_id: &str) -> bool {

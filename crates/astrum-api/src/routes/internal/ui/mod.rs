@@ -16,6 +16,7 @@ mod repositories;
 mod search;
 mod selectors;
 mod tasks;
+mod two_factor;
 mod usage;
 mod versions;
 
@@ -38,6 +39,7 @@ pub fn routes() -> Router<AppState> {
         .merge(blobstores::routes())
         .merge(selectors::routes())
         .merge(account::routes())
+        .merge(two_factor::routes())
         .merge(privileges::routes())
         .merge(audit::routes())
         .merge(identity::routes())
