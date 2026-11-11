@@ -16916,11 +16916,11 @@
       "$ref": "#/components/schemas/PromotionItemXO"
      },
      "retryable": {
-      "description": "Set on a conflict and on a failure that a repeat may fix. True: the target changed while the transfer ran, or the request time budget ran out before this item started, so a repeat may succeed. False: the target holds different content, which a repeat does not change",
+      "description": "Set on a conflict, on a failure, and on a copied or unchanged item whose source the immutable tags rule keeps. True: the content changed while the transfer ran, or the request time budget ran out before this item started, so a repeat may succeed. False: the target holds different content, or the immutable tags rule keeps the source or causes the conflict; a repeat does not change that until the rule is changed",
       "type": "boolean"
      },
      "sourceKept": {
-      "description": "Set when a move was asked for: true when the source component was not deleted",
+      "description": "Set when a move was asked for: true when the source component was not deleted, including when the immutable tags rule protects it or it changed while the move ran",
       "type": "boolean"
      },
      "status": {
