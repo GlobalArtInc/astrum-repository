@@ -37,6 +37,7 @@ tokio-util = { workspace = true, features = ["codec"] }
 tracing.workspace = true
 url.workspace = true
 uuid.workspace = true
+zeroize.workspace = true
 
 [dev-dependencies]
 astrum-testkit.workspace = true

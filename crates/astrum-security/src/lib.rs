@@ -10,6 +10,7 @@ pub mod password;
 pub mod permission;
 pub mod privilege;
 pub mod realm;
+pub mod recovery_codes;
 pub mod secrets;
 pub mod selector;
 pub mod sessions;
@@ -17,6 +18,7 @@ pub mod ssrf;
 pub mod subject;
 pub mod tls;
 pub mod tokens;
+pub mod totp;
 pub mod two_factor;
 
 use std::collections::HashMap;
