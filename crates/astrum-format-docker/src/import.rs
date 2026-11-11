@@ -7,12 +7,12 @@ use crate::manifest;
 use crate::reference::Digest;
 use crate::storage;
 
-enum Stored {
+pub(crate) enum Stored {
     Blob(Digest),
     Manifest { image: String, reference: String },
 }
 
-fn classify(path: &str) -> Option<Stored> {
+pub(crate) fn classify(path: &str) -> Option<Stored> {
     if let Some(digest) = path.strip_prefix("/v2/-/blobs/") {
         return Digest::parse(digest).map(Stored::Blob);
     }

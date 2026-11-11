@@ -6,6 +6,7 @@ mod manifest;
 mod reference;
 mod routes;
 mod storage;
+pub mod transfer;
 mod upload;
 mod upstream;
 
@@ -377,15 +378,6 @@ impl Docker {
         }
     }
 
-    fn writable_policy(target: &Ctx) -> Option<WritePolicy> {
-        target
-            .repository
-            .attributes
-            .storage
-            .as_ref()
-            .and_then(|storage| storage.write_policy)
-    }
-
     async fn writable(&self, ctx: &Ctx, path: &str) -> Result<Ctx, RegistryError> {
         if !ctx.allowed(View::Add, path) && !ctx.allowed(View::Edit, path) {
             ctx.require(View::Add, path)?;
@@ -408,7 +400,7 @@ impl Docker {
                 )));
             }
         };
-        if Self::writable_policy(&target) == Some(WritePolicy::Deny) {
+        if storage::write_policy(&target) == Some(WritePolicy::Deny) {
             return Err(RegistryError::refused(format!(
                 "the repository {} is read-only",
                 target.name()
@@ -586,10 +578,8 @@ impl Docker {
         };
         tags.dedup();
         for tag in &tags {
-            if !reference::valid_tag(tag) {
-                return Err(RegistryError::manifest_invalid(format!(
-                    "{tag} is not a valid tag"
-                )));
+            if let Some(problem) = reference::tag_problem(tag) {
+                return Err(RegistryError::manifest_invalid(problem));
             }
         }
         for blob in &parsed.blobs {
@@ -617,7 +607,7 @@ impl Docker {
             match storage::find(&target, &tag_path).await? {
                 Some(existing) if storage::digest_of(&existing).as_ref() == Some(&digest) => {}
                 Some(_) => {
-                    if !self.may_move_tag(&target, tag) {
+                    if !storage::may_move_tag(&target, tag) {
                         return Err(RegistryError::refused(format!(
                             "repository {} does not allow updating tag {tag} of {image}",
                             target.name()
@@ -649,23 +639,6 @@ impl Docker {
             insert(response.headers_mut(), "oci-tag", &tags.join(", "));
         }
         Ok(response)
-    }
-
-    fn may_move_tag(&self, target: &Ctx, tag: &str) -> bool {
-        match Self::writable_policy(target) {
-            Some(WritePolicy::AllowOnce) => {
-                tag == "latest"
-                    && target
-                        .repository
-                        .attributes
-                        .storage
-                        .as_ref()
-                        .and_then(|storage| storage.latest_policy)
-                        .unwrap_or(false)
-            }
-            Some(WritePolicy::Deny) => false,
-            _ => true,
-        }
     }
 
     async fn store_manifest(
@@ -1380,6 +1353,10 @@ impl Format for Docker {
             }
             _ => self.leaf_get(ctx, path).await,
         }
+    }
+
+    fn transfer(&self) -> Option<&dyn astrum_content::transfer::Transfer> {
+        Some(&transfer::TRANSFER)
     }
 
     fn browse_layout(&self) -> BrowseLayout {

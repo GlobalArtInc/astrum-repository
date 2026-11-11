@@ -5,7 +5,7 @@ use std::sync::Arc;
 use astrum_api::{AppState, router};
 use astrum_content::store;
 use astrum_content::transfer::{Bundle, Conflict, LocalSource, Outcome, PROMOTED, Terms};
-use astrum_content::{Ctx, Format};
+use astrum_content::{ContentError, Ctx, Format};
 use astrum_security::catalogue::ADMIN_USER;
 use astrum_security::{SecretBox, SecurityModel};
 use astrum_testkit::TestDatabase;
@@ -228,13 +228,13 @@ pub async fn bundle_of(fixture: &Fixture, format: &dyn Format, source: &str, pat
     transfer.bundle(&from, &component).await.unwrap()
 }
 
-pub async fn receive(
+pub async fn try_receive(
     fixture: &Fixture,
     format: &dyn Format,
     source: &str,
     target: &str,
     bundle: &Bundle,
-) -> Outcome {
+) -> Result<Outcome, ContentError> {
     let from = repository_ctx(fixture, source).await;
     let to = repository_ctx(fixture, target).await;
     let transfer = format
@@ -247,6 +247,17 @@ pub async fn receive(
             &LocalSource::new(from),
             Terms::new(Conflict::Fail, PROMOTED),
         )
+        .await
+}
+
+pub async fn receive(
+    fixture: &Fixture,
+    format: &dyn Format,
+    source: &str,
+    target: &str,
+    bundle: &Bundle,
+) -> Outcome {
+    try_receive(fixture, format, source, target, bundle)
         .await
         .unwrap()
 }

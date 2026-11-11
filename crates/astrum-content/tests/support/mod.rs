@@ -167,6 +167,7 @@ pub fn transfer_of(describe: DescribeFn) -> GenericTransfer {
         after: None,
         admit: None,
         replaceable: None,
+        check_content_type: true,
     }
 }
 

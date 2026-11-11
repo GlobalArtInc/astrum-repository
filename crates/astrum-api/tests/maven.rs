@@ -2009,3 +2009,43 @@ async fn snapshot_components_are_promoted_whole() {
         }
     }
 }
+
+#[tokio::test]
+async fn a_promoted_artifact_must_match_its_extension_as_an_upload_does() {
+    let fixture = ready().await;
+    let mut loose = hosted("loose", "MIXED", "PERMISSIVE", "ALLOW");
+    loose["storage"]["strictContentTypeValidation"] = json!(false);
+    create(&fixture, "hosted", loose).await;
+    create(
+        &fixture,
+        "hosted",
+        hosted("strict", "MIXED", "PERMISSIVE", "ALLOW"),
+    )
+    .await;
+    let jar = "/org/example/lib/1.0/lib-1.0.jar";
+    let uploaded = put(
+        &fixture,
+        &format!("/repository/loose{jar}"),
+        b"plain text".to_vec(),
+        Auth::Admin,
+    )
+    .await;
+    assert_eq!(uploaded.status, StatusCode::CREATED, "{}", uploaded.text());
+    let format = astrum_format_maven::Maven;
+    let bundle = support::bundle_of(&fixture, &format, "loose", jar).await;
+    match support::try_receive(&fixture, &format, "loose", "strict", &bundle).await {
+        Err(ContentError::BadRequest(message)) => {
+            assert!(
+                message.contains("expected [application/java-archive]"),
+                "{message}"
+            );
+        }
+        other => panic!("expected a refusal, got {other:?}"),
+    }
+    assert_eq!(
+        get(&fixture, &format!("/repository/strict{jar}"))
+            .await
+            .status,
+        StatusCode::NOT_FOUND
+    );
+}

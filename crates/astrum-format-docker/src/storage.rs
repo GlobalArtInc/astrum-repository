@@ -2,6 +2,7 @@ use astrum_blob::{ContentStream, Written};
 use astrum_content::store::{self, Asset, ComponentKey, PutAsset};
 use astrum_content::{ContentError, Ctx};
 use astrum_db::entity::asset;
+use astrum_repo::config::WritePolicy;
 use futures_util::TryStreamExt;
 use sea_orm::{
     ConnectionTrait, DbBackend, EntityTrait, FromQueryResult, Statement, Value as SqlValue,
@@ -16,6 +17,32 @@ pub const MANIFEST: &str = "manifest";
 pub const TAG: &str = "tag";
 pub const OCTET_STREAM: &str = "application/octet-stream";
 const ANNOTATIONS_KEPT: usize = 16 * 1024;
+
+pub fn write_policy(target: &Ctx) -> Option<WritePolicy> {
+    target
+        .repository
+        .attributes
+        .storage
+        .as_ref()
+        .and_then(|storage| storage.write_policy)
+}
+
+pub fn may_move_tag(target: &Ctx, tag: &str) -> bool {
+    match write_policy(target) {
+        Some(WritePolicy::AllowOnce) => {
+            tag == "latest"
+                && target
+                    .repository
+                    .attributes
+                    .storage
+                    .as_ref()
+                    .and_then(|storage| storage.latest_policy)
+                    .unwrap_or(false)
+        }
+        Some(WritePolicy::Deny) => false,
+        _ => true,
+    }
+}
 
 pub fn blob_path(digest: &Digest) -> String {
     format!("/v2/-/blobs/{digest}")
@@ -114,6 +141,48 @@ pub async fn referrers(
         vec![ctx.name().into(), image.into(), subject.to_string().into()],
     )
     .await
+}
+
+pub async fn referrer_digests(
+    ctx: &Ctx,
+    image: &str,
+    subject: &Digest,
+    max: usize,
+) -> Result<Vec<Digest>, ContentError> {
+    #[derive(FromQueryResult)]
+    struct Referrer {
+        digest: Option<String>,
+    }
+    let limit = max
+        .checked_add(1)
+        .and_then(|limit| i64::try_from(limit).ok())
+        .ok_or_else(|| {
+            ContentError::internal(std::io::Error::other("the referrer limit is out of range"))
+        })?;
+    let found = Referrer::find_by_statement(Statement::from_sql_and_values(
+        DbBackend::Postgres,
+        "SELECT attributes #>> '{docker,digest}' AS digest FROM asset \
+         WHERE format = 'docker' AND repository = $1 AND kind = 'manifest' \
+         AND attributes #>> '{docker,name}' = $2 AND attributes #>> '{docker,subject}' = $3 \
+         ORDER BY path LIMIT $4",
+        vec![
+            ctx.name().into(),
+            image.into(),
+            subject.to_string().into(),
+            limit.into(),
+        ],
+    ))
+    .all(ctx.db())
+    .await?;
+    if found.len() > max {
+        return Err(ContentError::BadRequest(format!(
+            "the image {image} has more than the {max} referrers of {subject} that one transfer takes"
+        )));
+    }
+    Ok(found
+        .into_iter()
+        .filter_map(|row| row.digest.as_deref().and_then(Digest::parse))
+        .collect())
 }
 
 pub async fn has_image(ctx: &Ctx, image: &str) -> Result<bool, ContentError> {
