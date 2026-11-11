@@ -109,6 +109,26 @@ describe('editing a document', () => {
     expect(differences(document, saved)).toEqual(['negativeCache.timeToLive']);
   });
 
+  it('attaches a content policy by its name and detaches it with null', () => {
+    const saved = edit(rawProxy, { policyName: 'strict' });
+    expect(differences(rawProxy, saved)).toEqual(['policy']);
+    expect(getPath(saved, ['policy', 'name'])).toBe('strict');
+    expect(getPath(edit(saved, { policyName: '' }), ['policy', 'name'])).toBeNull();
+  });
+
+  it('keeps an attached policy when the form does not change it', () => {
+    const document = clone(rawProxy);
+    document.policy = { name: 'strict' };
+    expect(fromDocument(document).policyName).toBe('strict');
+    expect(getPath(edit(document, { timeToLive: 5 }), ['policy', 'name'])).toBe('strict');
+  });
+
+  it('offers a policy to every repository but a group', () => {
+    expect(sections.policy({ format: 'raw', type: 'proxy' })).toBe(true);
+    expect(sections.policy({ format: 'docker', type: 'hosted' })).toBe(true);
+    expect(sections.policy({ format: 'raw', type: 'group' })).toBe(false);
+  });
+
   it('writes the applied cleanup policies, also into a document without cleanup', () => {
     const document = clone(rawProxy);
     document.cleanup = null;
