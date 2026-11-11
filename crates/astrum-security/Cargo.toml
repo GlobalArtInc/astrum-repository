@@ -17,6 +17,7 @@ hmac.workspace = true
 ldap3_proto.workspace = true
 md-5.workspace = true
 percent-encoding.workspace = true
+qrcode.workspace = true
 rand.workspace = true
 regex.workspace = true
 regex-syntax.workspace = true

@@ -98,6 +98,7 @@ multer = "3"
 percent-encoding = "2"
 pgp = { version = "0.21", default-features = false }
 prost = "0.14"
+qrcode = { version = "0.14", default-features = false, features = ["svg"] }
 quick-xml = "0.42"
 rand = "0.9"
 rand_core06 = { package = "rand_core", version = "0.6", features = ["getrandom"] }

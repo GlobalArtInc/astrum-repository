@@ -9,6 +9,9 @@ use crate::catalogue::DEFAULT_SOURCE;
 use crate::model::{SecurityModel, tolerant};
 use crate::{Error, realm};
 
+pub mod qr;
+pub mod store;
+
 pub const POLICY_KEY: &str = "security.twoFactor";
 pub const FAILURE_VERIFY: &str = "SECOND_FACTOR_REQUIRED";
 pub const FAILURE_ENROLL: &str = "SECOND_FACTOR_ENROLLMENT_REQUIRED";

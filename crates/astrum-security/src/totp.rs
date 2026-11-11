@@ -85,7 +85,14 @@ pub fn step_at(unix_seconds: u64) -> u64 {
     unix_seconds / PERIOD_SECONDS
 }
 
+#[cfg(test)]
+thread_local! {
+    pub(crate) static HMAC_CALLS: std::cell::Cell<u32> = const { std::cell::Cell::new(0) };
+}
+
 fn truncated(secret: &TotpSecret, step: u64) -> u32 {
+    #[cfg(test)]
+    HMAC_CALLS.with(|calls| calls.set(calls.get() + 1));
     let mut mac = <Hmac<Sha1> as Mac>::new_from_slice(&secret.bytes)
         .expect("HMAC accepts keys of any length");
     mac.update(&step.to_be_bytes());
