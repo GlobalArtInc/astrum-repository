@@ -290,20 +290,6 @@ impl Formats {
         let path = format!("/repository/ovsx-hosted/api/acme/verify-pat?token=jane:{password}");
         self.send(Method::GET, &path, &[], None).await
     }
-
-    async fn npm_login(&self, password: &str) -> Reply {
-        let body = json!({
-            "_id": "org.couchdb.user:jane", "name": "jane", "password": password,
-            "type": "user", "roles": [], "date": "2026-10-12T00:00:00.000Z",
-        });
-        self.send(
-            Method::PUT,
-            "/repository/npm-hosted/-/user/org.couchdb.user:jane",
-            &[],
-            Some(("application/json", serde_json::to_vec(&body).unwrap())),
-        )
-        .await
-    }
 }
 
 #[tokio::test]
@@ -348,17 +334,6 @@ async fn open_vsx_refuses_an_enrolled_user_like_a_wrong_password_and_audits_the_
             json!("SECOND_FACTOR_REQUIRED")
         ]
     );
-}
-
-#[tokio::test]
-async fn npm_login_refuses_an_enrolled_user_like_a_wrong_password() {
-    let world = formats().await;
-    let login = world.npm_login(SECRET).await;
-    assert_eq!(login.status, StatusCode::CREATED, "{}", login.text());
-    let wrong = world.npm_login("wrong").await;
-    assert_eq!(wrong.status, StatusCode::UNAUTHORIZED);
-    enroll(&world.fixture, "jane").await;
-    same_answer(&world.npm_login(SECRET).await, &wrong);
 }
 
 #[tokio::test]

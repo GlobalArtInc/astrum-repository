@@ -10,6 +10,7 @@ pub mod metrics;
 mod notify_mail;
 pub mod revisions;
 pub mod routes;
+pub mod second_factor;
 pub mod space;
 
 use std::path::{Path, PathBuf};
