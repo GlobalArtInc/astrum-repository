@@ -28,6 +28,10 @@ Open http://localhost:8081 and sign in as `admin` with that password.
 Installation, configuration, operations and client setup are covered in the documentation at
 https://astrum.globalart.dev, whose source is [`docs/`](docs/README.md).
 
+## One-Click Deploy
+
+[![Deploy on RepoCloud](https://d16t0pc4846x52.cloudfront.net/deploylobe.svg)](https://repocloud.io/details/Astrum%20Repository/)
+
 ## Build
 
 Requirements:
