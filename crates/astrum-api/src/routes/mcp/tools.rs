@@ -472,6 +472,48 @@ fn defs() -> Vec<Def> {
             write: true,
             idempotent: false,
         },
+        Def {
+            name: "promote_components",
+            title: "Promote components between repositories",
+            description: "Copy components from one hosted repository to another, or move them with move: true, which deletes each source after it is copied. This WRITES to the server. dryRun: true previews the result and writes nothing. conflict decides what happens when the target already holds different content: fail (the default) refuses that item, skip leaves it, replace overwrites it. The answer has one status per item in results.",
+            schema: || {
+                schema(
+                    json!({
+                        "source": string("Hosted repository to copy from"),
+                        "target": string("Hosted repository to copy into: the same format, and not the source"),
+                        "items": {
+                            "type": "array",
+                            "description": "Components to promote, at most 100: componentId as search_components returns it, or namespace, name and version, or for Docker image with tag or digest and optional targetTags",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "componentId": string("Id of a component in the source"),
+                                    "namespace": string("Group or namespace; empty when the format has none"),
+                                    "name": string("Component name"),
+                                    "version": string("Component version"),
+                                    "image": string("Docker: image name"),
+                                    "tag": string("Docker: tag of the image"),
+                                    "digest": string("Docker: digest of the image"),
+                                    "targetTags": { "type": "array", "items": { "type": "string" }, "description": "Docker: tags the image gets in the target" },
+                                },
+                            },
+                        },
+                        "move": { "type": "boolean", "description": "true deletes each source after it is copied; the default only copies" },
+                        "conflict": {
+                            "type": "string",
+                            "enum": ["fail", "skip", "replace"],
+                            "description": "What to do when the target holds the same path with other content: fail (the default) refuses the item, skip leaves the target as it is, replace overwrites it",
+                        },
+                        "dryRun": { "type": "boolean", "description": "true previews the result and writes nothing" },
+                        "referrers": { "type": "boolean", "description": "Docker: take the referrers of the image along; the default is true" },
+                    }),
+                    &["source", "target", "items"],
+                )
+            },
+            need: Need::AddContent,
+            write: true,
+            idempotent: true,
+        },
     ]
 }
 
@@ -588,6 +630,14 @@ impl Handler for AstrumTools {
             "create_role" => create_role(api, &arguments).await,
             "update_role" => update_role(api, &arguments).await,
             "set_user_roles" => set_user_roles(api, &arguments).await,
+            "promote_components" => {
+                api.json(
+                    Method::POST,
+                    "/service/rest/v1/promotions",
+                    Some(&Value::Object(arguments)),
+                )
+                .await
+            }
             "request_upload" => {
                 upload::request_upload(&self.state, &self.subject, &self.base, &arguments).await
             }
@@ -1592,7 +1642,8 @@ mod tests {
                 "update_role",
                 "set_user_roles",
                 "request_upload",
-                "upload_component"
+                "upload_component",
+                "promote_components"
             ]
         );
     }
