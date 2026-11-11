@@ -19,7 +19,7 @@ use astrum_content::{
     BrowseLayout, ContentError, ContentRequest, Ctx, Format, SearchKey, Serve, View, group, serve,
 };
 use astrum_repo::RepositoryType;
-use astrum_repo::config::WritePolicy;
+use astrum_repo::config::{Repository, WritePolicy};
 use async_trait::async_trait;
 use axum::body::Body;
 use axum::http::{HeaderMap, HeaderValue, Method, StatusCode, header};
@@ -607,6 +607,9 @@ impl Docker {
             match storage::find(&target, &tag_path).await? {
                 Some(existing) if storage::digest_of(&existing).as_ref() == Some(&digest) => {}
                 Some(_) => {
+                    if let Some(reason) = storage::immutable_tag(&target.repository, image, tag) {
+                        return Err(RegistryError::refused(reason));
+                    }
                     if !storage::may_move_tag(&target, tag) {
                         return Err(RegistryError::refused(format!(
                             "repository {} does not allow updating tag {tag} of {image}",
@@ -684,6 +687,9 @@ impl Docker {
             Some(Reference::Tag(tag)) => {
                 match storage::find(ctx, &storage::manifest_path(image, &tag)).await? {
                     Some(found) => {
+                        if let Some(reason) = storage::protected_tag(&ctx.repository, &found) {
+                            return Err(RegistryError::refused(reason));
+                        }
                         store::delete_asset(&ctx.content, found).await?;
                         true
                     }
@@ -707,7 +713,8 @@ impl Docker {
     ) -> Result<bool, ContentError> {
         let mut queue = vec![digest.clone()];
         let mut seen = HashSet::new();
-        let mut deleted = false;
+        let mut known = HashSet::new();
+        let mut doomed: Vec<Asset> = Vec::new();
         while let Some(current) = queue.pop() {
             if !seen.insert(current.clone()) {
                 continue;
@@ -723,26 +730,33 @@ impl Docker {
                     queue.push(next);
                 }
             }
-            let mut doomed = storage::tags_pointing_at(ctx, image, &current).await?;
+            let mut found = storage::tags_pointing_at(ctx, image, &current).await?;
             let schema = current.referrers_tag();
             for suffix in ["", ".sig", ".att", ".sbom"] {
                 let path = storage::manifest_path(image, &format!("{schema}{suffix}"));
-                if let Some(found) = storage::find(ctx, &path).await?
-                    && !doomed.iter().any(|known| known.id == found.id)
+                if let Some(tagged) = storage::find(ctx, &path).await?
+                    && !found.iter().any(|other| other.id == tagged.id)
                 {
-                    if let Some(target) = storage::digest_of(&found) {
+                    if let Some(target) = storage::digest_of(&tagged) {
                         queue.push(target);
                     }
-                    doomed.push(found);
+                    found.push(tagged);
                 }
             }
             if let Some(own) = own {
-                doomed.push(own);
+                found.push(own);
             }
-            for asset in doomed {
-                store::delete_asset(&ctx.content, asset).await?;
-                deleted = true;
-            }
+            doomed.extend(found.into_iter().filter(|asset| known.insert(asset.id)));
+        }
+        if let Some(reason) = doomed
+            .iter()
+            .find_map(|asset| storage::protected_tag(&ctx.repository, asset))
+        {
+            return Err(ContentError::Conflict(reason));
+        }
+        let deleted = !doomed.is_empty();
+        for asset in doomed {
+            store::delete_asset(&ctx.content, asset).await?;
         }
         Ok(deleted)
     }
@@ -1357,6 +1371,14 @@ impl Format for Docker {
 
     fn transfer(&self) -> Option<&dyn astrum_content::transfer::Transfer> {
         Some(&transfer::TRANSFER)
+    }
+
+    fn can_protect(&self, asset: &Asset) -> bool {
+        asset.kind == storage::TAG
+    }
+
+    fn protected(&self, repository: &Repository, asset: &Asset) -> Option<String> {
+        storage::protected_tag(repository, asset)
     }
 
     fn browse_layout(&self) -> BrowseLayout {

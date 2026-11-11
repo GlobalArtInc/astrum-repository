@@ -2,7 +2,7 @@ use astrum_blob::{ContentStream, Written};
 use astrum_content::store::{self, Asset, ComponentKey, PutAsset};
 use astrum_content::{ContentError, Ctx};
 use astrum_db::entity::asset;
-use astrum_repo::config::WritePolicy;
+use astrum_repo::config::{Repository, WritePolicy};
 use futures_util::TryStreamExt;
 use sea_orm::{
     ConnectionTrait, DbBackend, EntityTrait, FromQueryResult, Statement, Value as SqlValue,
@@ -45,6 +45,35 @@ pub fn may_move_tag(target: &Ctx, tag: &str) -> bool {
 }
 
 pub const BLOB_PATH_PREFIX: &str = "/v2/-/blobs/";
+
+pub fn immutable_tag(repository: &Repository, image: &str, tag: &str) -> Option<String> {
+    let rules = repository
+        .attributes
+        .storage
+        .as_ref()?
+        .immutable_tags
+        .as_ref()
+        .filter(|rules| !rules.patterns.is_empty())?;
+    let reason = match rules.matcher() {
+        Ok(matcher) => matcher.reason(tag)?,
+        Err(error) => format!("the immutable tag rules cannot be applied: {error}"),
+    };
+    Some(format!(
+        "tag {tag} of {image} is immutable in repository {} ({reason})",
+        repository.name
+    ))
+}
+
+pub fn protected_tag(repository: &Repository, asset: &Asset) -> Option<String> {
+    if asset.kind != TAG {
+        return None;
+    }
+    let (image, tag) = asset
+        .path
+        .strip_prefix("/v2/")?
+        .rsplit_once("/manifests/")?;
+    immutable_tag(repository, image, tag)
+}
 
 pub fn blob_path(digest: &Digest) -> String {
     format!("{BLOB_PATH_PREFIX}{digest}")
@@ -372,4 +401,80 @@ pub async fn adopt_blob(
 
 pub fn discard(ctx: &Ctx, written: &Written) {
     store::discard(ctx.content.clone(), &written.store, written.id.uuid());
+}
+
+#[cfg(test)]
+mod tests {
+    use astrum_repo::RepositoryType;
+    use chrono::DateTime;
+    use serde_json::json;
+    use uuid::Uuid;
+
+    use super::*;
+
+    fn repository() -> Repository {
+        Repository {
+            name: "rel".to_owned(),
+            format: astrum_repo::format("docker").unwrap(),
+            kind: RepositoryType::Hosted,
+            online: true,
+            attributes: serde_json::from_value(json!({
+                "storage": {"immutableTags": {"patterns": ["v*"]}}
+            }))
+            .unwrap(),
+        }
+    }
+
+    fn asset(kind: &str, path: &str) -> Asset {
+        let now = DateTime::parse_from_rfc3339("2026-11-11T00:00:00Z").unwrap();
+        Asset {
+            id: 1,
+            repository: "rel".to_owned(),
+            format: "docker".to_owned(),
+            path: path.to_owned(),
+            kind: kind.to_owned(),
+            component_id: None,
+            blob_store: "default".to_owned(),
+            blob_id: Uuid::nil(),
+            size: 0,
+            content_type: OCTET_STREAM.to_owned(),
+            sha1: String::new(),
+            sha256: String::new(),
+            sha512: String::new(),
+            md5: String::new(),
+            attributes: json!({}),
+            uploader: String::new(),
+            uploader_ip: String::new(),
+            created_at: now,
+            blob_updated_at: now,
+            last_downloaded_at: None,
+            download_count: 0,
+            last_verified_at: None,
+            remote_etag: None,
+            remote_last_modified: None,
+        }
+    }
+
+    #[test]
+    fn protected_tag_takes_the_image_and_the_tag_from_the_path() {
+        let repository = repository();
+        let reason = |path: &str| protected_tag(&repository, &asset(TAG, path));
+        let message = |image: &str| {
+            Some(format!(
+                "tag v1 of {image} is immutable in repository rel (rule v*)"
+            ))
+        };
+        assert_eq!(reason("/v2/app/manifests/v1"), message("app"));
+        assert_eq!(reason("/v2/team/app/manifests/v1"), message("team/app"));
+        assert_eq!(
+            reason("/v2/a/manifests/b/manifests/v1"),
+            message("a/manifests/b")
+        );
+        assert_eq!(reason("/v2/app/manifests/dev"), None);
+        assert_eq!(reason("/v2/app"), None);
+        assert_eq!(
+            protected_tag(&repository, &asset(BLOB, "/v2/-/blobs/sha256:abc")),
+            None
+        );
+    }
 }
