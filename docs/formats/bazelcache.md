@@ -52,7 +52,8 @@ Only SHA-256 is supported, which is the Bazel default; other digest functions ar
   key that already exists keeps its first blob, and a repeat of it answers 200 without checking the body.
 - A `PUT` to `ac/<hash>` is not verified, since action results are not content-addressed. A repeat replaces the entry
   when the repository's write policy is `allow`, and keeps the first entry with a 200 answer when it is `allow_once`.
-  Use `allow`: an `ac/` entry can outlive the blob it names (see below), and only a replacing upload repairs it.
+  Use `allow`: an `ac/` entry can outlive the blob it names (see below), and only a replacing upload repairs it. The
+  creation wizard sets `allow` by default for this format; a repository created through REST must set `"writePolicy": "ALLOW"` itself.
 - A key that is not 64 hexadecimal characters is 404 on `GET` and 400 on `PUT`, and a path under another first segment
   is 404.
 
