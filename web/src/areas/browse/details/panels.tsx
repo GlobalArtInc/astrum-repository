@@ -24,6 +24,7 @@ import { AssetSummary } from './AssetSummary';
 import { DeleteButton } from './DeleteButton';
 import styles from './Details.module.css';
 import { FilePreview } from './FilePreview';
+import { ShareButton } from './ShareButton';
 import { VersionsTable } from './VersionsTable';
 import { isVersionNode } from './versions';
 
@@ -254,15 +255,18 @@ export function FolderPanel({ repository, node, onNavigate }: PanelProps & { nod
           path={shownPath(node.path)}
           title={node.name}
           actions={
-            deletable && (
-              <DeleteButton
-                label={t('browse.details.deleteFolder')}
-                title={t('browse.details.deleteFolderTitle')}
-                description={t('browse.details.deleteFolderText', { name: node.name })}
-                repository={repository.name}
-                onConfirm={remove}
-              />
-            )
+            <>
+              <ShareButton repository={repository} path={node.path} prefix />
+              {deletable && (
+                <DeleteButton
+                  label={t('browse.details.deleteFolder')}
+                  title={t('browse.details.deleteFolderTitle')}
+                  description={t('browse.details.deleteFolderText', { name: node.name })}
+                  repository={repository.name}
+                  onConfirm={remove}
+                />
+              )}
+            </>
           }
         />
         {deletable && (
@@ -614,6 +618,7 @@ function StoredAssetPanel({ repository, node, onNavigate }: PanelProps & { node:
                   {t('browse.details.download')}
                 </a>
               </Button>
+              <ShareButton repository={repository} path={details.path} prefix={false} />
               {details.canDelete && (
                 <DeleteButton
                   label={t('browse.details.deleteAsset')}

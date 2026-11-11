@@ -13,6 +13,7 @@ import {
   HardDrive,
   Info,
   KeyRound,
+  Link2,
   Lock,
   LogIn,
   type LucideIcon,
@@ -176,6 +177,15 @@ export const CATALOG: CatalogTile[] = [
     FileKey,
     'settings.tile.sslCertificates',
     'settings.tile.sslCertificatesText',
+  ),
+  tile(
+    'share-links',
+    'security',
+    90,
+    '/admin/security/share-links',
+    Link2,
+    'settings.tile.shareLinks',
+    'settings.tile.shareLinksText',
   ),
   tile(
     'system-information',

@@ -85,12 +85,16 @@ counted per client address.
 | `upload_component` | Uploads a file of up to 64 KiB given inline as base64 | the right to add to some repository |
 | `list_users`, `list_roles`, `list_privileges` | Users with their roles; roles with their privileges and the roles they include; privileges, filtered by repository, format or name | `astrum:users:read`, `astrum:roles:read`, `astrum:privileges:read` |
 | `create_role`, `update_role` | Creates a role, or adds and takes away its privileges and included roles; built-in roles stay as they are | `astrum:roles:create`, `astrum:roles:update` |
+| `create_share_link` | Creates a link that downloads one file, or the files of a folder, without an account until it expires; the address is in this answer only ([Share links](share-links.md)) | `astrum:sharelinks:create` and read access to the path |
+| `list_share_links` | Your share links with their expiry and downloads, never the address; `all` lists everyone's | a token; `all` needs `astrum:sharelinks:read` |
+| `revoke_share_link` | Revokes a link at once: your own, or anyone's with the right to delete links | a token; links of others need `astrum:sharelinks:delete` |
 | `set_user_roles` | Gives roles to a user or takes them away, keeping the other details of the user | `astrum:users:update`, and the right to grant the roles |
 
 The tools that change the server are only offered to Write tokens, and every tool is only listed when the
 user holds the rights it needs; the server checks those rights again on every call. The only tools that
 add components are the two upload tools; nothing deletes components, repositories, blob stores or users,
 and nothing touches security settings.
+The two share tools only add and remove share links.
 
 The server also offers two prompts: `diagnose_space`, which walks the agent through finding where the
 space went and what to do about it, and `find_artifact`, which finds a package and how to use its latest
