@@ -85,7 +85,7 @@ async fn mark_expired(
                 DbBackend::Postgres,
                 "WITH page AS (\
                    SELECT DISTINCT v.repository, v.subject, v.component_id FROM policy_exception e \
-                   JOIN policy_verdict v ON v.max_severity IS NOT NULL \
+                   JOIN policy_verdict v ON v.reasons <> '[]'::jsonb \
                      AND v.computed_at < e.expires_at \
                      AND v.reasons @> jsonb_build_array(\
                        jsonb_build_object('kind', 'exception', 'id', e.id::text)) \
@@ -152,7 +152,8 @@ async fn mark_stale(db: &DatabaseConnection, chunk: i64) -> Result<u64, DbErr> {
            LEFT JOIN policy_verdict v \
              ON v.repository = cs.repository AND v.subject = '{COMPONENT_PREFIX}' || cs.component_id \
            WHERE (cs.repository, cs.component_id) > ($1, $2::bigint) \
-             AND ((v.subject IS NULL AND (p.vulnerabilities ->> 'mode') IS DISTINCT FROM 'off') \
+             AND ((v.subject IS NULL AND ((p.vulnerabilities ->> 'mode') IS DISTINCT FROM 'off' \
+                                       OR (p.licenses ->> 'mode') IS DISTINCT FROM 'off')) \
                OR (v.subject IS NOT NULL AND (v.policy_revision <> p.revision OR v.policy <> p.name))) \
            ORDER BY cs.repository, cs.component_id LIMIT $3), \
          live AS (\
@@ -177,7 +178,8 @@ async fn mark_with_findings(db: &DatabaseConnection, chunk: i64) -> Result<u64, 
         chunk,
         "WITH page AS (\
            SELECT v.repository, v.subject, v.component_id FROM policy_verdict v \
-           WHERE v.max_severity IS NOT NULL AND (v.repository, v.subject) > ($1, $2) \
+           WHERE (v.max_severity IS NOT NULL OR v.reasons @> '[{\"kind\":\"license\"}]'::jsonb) \
+             AND (v.repository, v.subject) > ($1, $2) \
            ORDER BY v.repository, v.subject LIMIT $3), \
          live AS (\
            SELECT name FROM repository WHERE name IN (SELECT repository FROM page) \

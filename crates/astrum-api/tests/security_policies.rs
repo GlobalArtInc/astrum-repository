@@ -292,6 +292,69 @@ async fn a_policy_is_created_changed_and_audited_under_a_new_revision() {
 }
 
 #[tokio::test]
+async fn a_licenses_block_is_created_read_back_changed_and_a_bad_id_is_refused_by_field() {
+    let fixture = Fixture::new().await;
+    let created = made(
+        &fixture,
+        POLICIES,
+        json!({"name": "lic", "licenses": {"mode": "block", "ids": ["GPL-3.0-only", "GPL-2.0", "LicenseRef-Own"]}}),
+    )
+    .await;
+    let wanted = json!({
+        "mode": "block", "list": "deny", "unknown": "report",
+        "ids": ["GPL-3.0-only", "GPL-2.0", "LicenseRef-Own"],
+    });
+    assert_eq!(created["licenses"], wanted);
+    let path = format!("{POLICIES}/lic");
+    let read = fixture.call(Method::GET, &path, Auth::Admin, None).await;
+    assert_eq!(read.json()["licenses"], wanted);
+
+    let changed = admin(
+        &fixture,
+        Method::PUT,
+        &path,
+        json!({"licenses": {"mode": "report", "list": "allow", "ids": ["MIT", "Apache-2.0"], "unknown": "block"}}),
+    )
+    .await;
+    assert_eq!(changed.status, StatusCode::OK, "{}", changed.text());
+    let changed = changed.json();
+    assert_eq!(changed["revision"], 2);
+    assert_eq!(
+        changed["licenses"],
+        json!({"mode": "report", "list": "allow", "ids": ["MIT", "Apache-2.0"], "unknown": "block"})
+    );
+    let rows = events(&fixture, "contentPolicy").await;
+    assert_eq!(rows[1].attributes["licenses"]["list"], "allow");
+
+    let too_many: Vec<&str> = vec!["MIT"; 201];
+    let too_long = format!("LicenseRef-{}", "a".repeat(90));
+    for (ids, needle) in [
+        (json!(["Not-A-License"]), "Not-A-License"),
+        (json!(["MIT", "GPLv3"]), "GPLv3"),
+        (json!(["MIT OR Apache-2.0"]), "licenses.ids"),
+        (json!(too_many), "at most 200 ids"),
+        (json!([too_long]), "at most 100 characters"),
+    ] {
+        let body = json!({"licenses": {"mode": "report", "ids": ids}});
+        let reply = admin(&fixture, Method::PUT, &path, body.clone()).await;
+        assert_eq!(
+            reply.status,
+            StatusCode::BAD_REQUEST,
+            "{body}: {}",
+            reply.text()
+        );
+        assert!(reply.text().contains("licenses.ids"), "{}", reply.text());
+        assert!(reply.text().contains(needle), "{}", reply.text());
+    }
+    let kept = fixture
+        .call(Method::GET, &path, Auth::Admin, None)
+        .await
+        .json();
+    assert_eq!(kept["revision"], 2);
+    assert_eq!(kept["licenses"]["ids"], json!(["MIT", "Apache-2.0"]));
+}
+
+#[tokio::test]
 async fn policy_input_is_checked_strictly() {
     let fixture = Fixture::new().await;
     let long_name = "n".repeat(65);
@@ -788,8 +851,8 @@ async fn an_exception_target_must_fit_its_rule() {
     let digest = format!("sha256:{}", "ab".repeat(32));
     for (body, needle) in [
         (
-            json!({"rule": "license", "name": "left-pad", "reason": "r"}),
-            "license exception needs a license",
+            json!({"rule": "license", "format": "npm", "reason": "r"}),
+            "advisory, license, name or digest",
         ),
         (
             json!({"rule": "license", "license": "MIT", "advisory": "CVE-2024-0001", "reason": "r"}),
@@ -816,11 +879,62 @@ async fn an_exception_target_must_fit_its_rule() {
     }
     for body in [
         json!({"rule": "license", "license": "MIT", "name": "left-pad", "reason": "r"}),
+        json!({"rule": "license", "name": "left-pad", "reason": "r"}),
         json!({"rule": "vulnerability", "advisory": "CVE-2024-0001", "reason": "r"}),
         json!({"rule": "signature", "digest": digest, "reason": "r"}),
     ] {
         made(&fixture, EXCEPTIONS, body).await;
     }
+}
+
+#[tokio::test]
+async fn a_license_exception_can_target_a_component_and_is_read_and_deleted() {
+    let fixture = Fixture::new().await;
+    made(&fixture, POLICIES, json!({"name": "strict"})).await;
+    let created = made(
+        &fixture,
+        EXCEPTIONS,
+        json!({
+            "rule": "license", "policy": "strict", "format": "npm", "name": "left-pad",
+            "version": "1.3.0", "reason": "vendored copy",
+        }),
+    )
+    .await;
+    assert_eq!(created["rule"], "license");
+    assert_eq!(created["license"], Value::Null);
+    assert_eq!(created["name"], "left-pad");
+    let id = created["id"].as_str().unwrap().to_owned();
+
+    let listed = fixture
+        .call(Method::GET, EXCEPTIONS, Auth::Admin, None)
+        .await
+        .json();
+    let listed = listed.as_array().unwrap();
+    assert_eq!(listed.len(), 1);
+    assert_eq!(listed[0]["id"], id.as_str());
+    assert_eq!(listed[0]["version"], "1.3.0");
+    assert_eq!(listed[0]["policy"], "strict");
+
+    let removed = fixture
+        .call(
+            Method::DELETE,
+            &format!("{EXCEPTIONS}/{id}"),
+            Auth::Admin,
+            None,
+        )
+        .await;
+    assert_eq!(removed.status, StatusCode::NO_CONTENT, "{}", removed.text());
+    let after = fixture
+        .call(Method::GET, EXCEPTIONS, Auth::Admin, None)
+        .await
+        .json();
+    assert_eq!(after, json!([]));
+    let kinds: Vec<String> = events(&fixture, "policyException")
+        .await
+        .into_iter()
+        .map(|row| row.kind)
+        .collect();
+    assert_eq!(kinds, ["created", "deleted"]);
 }
 
 #[tokio::test]

@@ -11,6 +11,10 @@ pub fn violates(expression: &Expression, deny: &[String]) -> bool {
     denies(expression, &denied)
 }
 
+pub fn same_id(left: &str, right: &str) -> bool {
+    resolved(left) == resolved(right)
+}
+
 fn allows(expression: &Expression, allowed: &[String]) -> bool {
     match expression {
         Expression::Id(id) | Expression::With(id, _) => allowed.contains(&resolved(id)),
@@ -177,5 +181,14 @@ mod tests {
             &list(&["GPL-3.0+"])
         ));
         assert!(satisfies(&expression("GPL-3.0-only"), &list(&["GPL-3.0"])));
+    }
+
+    #[test]
+    fn same_id_ignores_case_and_follows_deprecated_equivalents() {
+        assert!(same_id("mit", "MIT"));
+        assert!(same_id("GPL-3.0", "GPL-3.0-only"));
+        assert!(same_id("gpl-3.0+", "GPL-3.0-or-later"));
+        assert!(!same_id("GPL-3.0-only", "GPL-3.0-or-later"));
+        assert!(!same_id("MIT", "ISC"));
     }
 }

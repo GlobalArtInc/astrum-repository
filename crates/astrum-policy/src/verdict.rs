@@ -3,7 +3,10 @@ use serde::Serialize;
 use uuid::Uuid;
 
 use crate::exception::{Exception, Rule};
-use crate::policy::{Malicious, Mode, Policy, Severity, Unscanned};
+use crate::license::{self, Expression};
+use crate::policy::{
+    LicenseList, LicenseRule, Malicious, Mode, Policy, Severity, UnknownLicense, Unscanned,
+};
 
 pub const MAX_FINDING_REASONS: usize = 200;
 pub const MAX_REASON_TEXT: usize = 256;
@@ -178,6 +181,39 @@ impl Counts {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LicenseFact {
+    pub state: license::State,
+    pub expression: Option<String>,
+    pub ids: Vec<String>,
+}
+
+impl LicenseFact {
+    pub fn stored(state: &str, expression: Option<String>, ids: Vec<String>) -> Self {
+        let state = license::State::parse(state).unwrap_or_else(|| {
+            tracing::warn!(
+                state,
+                "a stored license state is not known to this version, so the license counts as unknown"
+            );
+            license::State::Unknown
+        });
+        Self {
+            state,
+            expression,
+            ids,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum Breach {
+    NotAllowed,
+    Denied,
+    Unknown,
+    Undeclared,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct Applied {
     pub id: Uuid,
@@ -198,6 +234,14 @@ pub enum Reason {
         blocking: bool,
         #[serde(skip_serializing_if = "Option::is_none")]
         exception: Option<Applied>,
+    },
+    License {
+        #[serde(skip_serializing_if = "Option::is_none")]
+        expression: Option<String>,
+        breach: Breach,
+        blocking: bool,
+        #[serde(skip_serializing_if = "Vec::is_empty")]
+        exceptions: Vec<Applied>,
     },
     Exception {
         id: Uuid,
@@ -222,6 +266,7 @@ pub struct Verdict {
     pub state: State,
     pub counts: Counts,
     pub max_severity: Option<Severity>,
+    pub license_state: Option<license::State>,
     pub reasons: Vec<Reason>,
     pub policy_revision: i64,
 }
@@ -232,6 +277,7 @@ pub struct Input<'a> {
     pub target: &'a Target,
     pub scan: Scan,
     pub findings: &'a [Finding],
+    pub license: Option<&'a LicenseFact>,
     pub now: DateTime<Utc>,
 }
 
@@ -241,6 +287,7 @@ pub fn failed(revision: i64, message: impl Into<String>) -> Verdict {
         state: State::Error,
         counts: Counts::default(),
         max_severity: None,
+        license_state: None,
         reasons: vec![Reason::PolicyError {
             message: clean(&message.into()),
         }],
@@ -248,8 +295,8 @@ pub fn failed(revision: i64, message: impl Into<String>) -> Verdict {
     }
 }
 
-fn applies(exception: &Exception, policy: &str, now: DateTime<Utc>) -> bool {
-    exception.rule == Rule::Vulnerability
+fn applies(exception: &Exception, rule: Rule, policy: &str, now: DateTime<Utc>) -> bool {
+    exception.rule == rule
         && exception
             .policy
             .as_deref()
@@ -259,6 +306,18 @@ fn applies(exception: &Exception, policy: &str, now: DateTime<Utc>) -> bool {
 
 fn same(wanted: &Option<String>, actual: &str) -> bool {
     wanted.as_deref().is_none_or(|text| text == actual)
+}
+
+fn names(exception: &Exception, target: &Target) -> bool {
+    let digest = exception
+        .digest
+        .as_deref()
+        .is_none_or(|wanted| target.digest.as_deref() == Some(wanted));
+    digest
+        && same(&exception.format, &target.format)
+        && same(&exception.namespace, &target.namespace)
+        && same(&exception.name, &target.name)
+        && same(&exception.version, &target.version)
 }
 
 fn covers(exception: &Exception, target: &Target, finding: &Finding) -> bool {
@@ -272,16 +331,19 @@ fn covers(exception: &Exception, target: &Target, finding: &Finding) -> bool {
                 .iter()
                 .any(|alias| wanted.eq_ignore_ascii_case(alias))
     });
-    let digest = exception
-        .digest
-        .as_deref()
-        .is_none_or(|wanted| target.digest.as_deref() == Some(wanted));
-    advisory
-        && digest
-        && same(&exception.format, &target.format)
-        && same(&exception.namespace, &target.namespace)
-        && same(&exception.name, &target.name)
-        && same(&exception.version, &target.version)
+    advisory && names(exception, target)
+}
+
+fn covers_license(exception: &Exception, target: &Target, fact: Option<&LicenseFact>) -> bool {
+    if exception.advisory.is_some()
+        || (exception.license.is_none() && exception.name.is_none() && exception.digest.is_none())
+    {
+        return false;
+    }
+    let license = exception.license.as_deref().is_none_or(|wanted| {
+        fact.is_some_and(|fact| fact.ids.iter().any(|id| license::same_id(id, wanted)))
+    });
+    license && names(exception, target)
 }
 
 fn reaches(finding: &Finding, rule: &crate::policy::VulnerabilityRule) -> bool {
@@ -291,7 +353,26 @@ fn reaches(finding: &Finding, rule: &crate::policy::VulnerabilityRule) -> bool {
             .is_some_and(|threshold| rank(finding.severity) >= rank(threshold))
 }
 
-pub fn evaluate(input: &Input) -> Option<Verdict> {
+struct Part {
+    blocked: bool,
+    state: State,
+    would_block: bool,
+    reasons: Vec<Reason>,
+}
+
+impl Part {
+    fn weight(&self) -> u8 {
+        match (self.state, self.blocked) {
+            (State::Block, _) => 4,
+            (_, true) => 3,
+            (State::Report, _) => 2,
+            (State::Unscanned, _) => 1,
+            _ => 0,
+        }
+    }
+}
+
+fn judge_vulnerabilities(input: &Input) -> Option<(Part, Counts, Option<Severity>)> {
     let rule = &input.policy.vulnerabilities;
     if rule.mode == Mode::Off {
         return None;
@@ -308,7 +389,14 @@ pub fn evaluate(input: &Input) -> Option<Verdict> {
         let excepted = input
             .exceptions
             .iter()
-            .filter(|exception| applies(exception, &input.policy.name, input.now))
+            .filter(|exception| {
+                applies(
+                    exception,
+                    Rule::Vulnerability,
+                    &input.policy.name,
+                    input.now,
+                )
+            })
             .find(|exception| covers(exception, input.target, finding));
         let blocking = excepted.is_none() && reaches(finding, rule);
         if let Some(exception) = excepted {
@@ -374,17 +462,290 @@ pub fn evaluate(input: &Input) -> Option<Verdict> {
         _ if unscanned => (false, State::Unscanned),
         _ => (false, State::Pass),
     };
-    if rule.mode == Mode::Report && would_block {
+    let part = Part {
+        blocked,
+        state,
+        would_block: rule.mode == Mode::Report && would_block,
+        reasons,
+    };
+    Some((part, counts, max))
+}
+
+type Outcome = Option<(Breach, bool)>;
+
+fn unjudged(setting: UnknownLicense, breach: Breach) -> Outcome {
+    match setting {
+        UnknownLicense::Allow => None,
+        UnknownLicense::Report => Some((breach, false)),
+        UnknownLicense::Block => Some((breach, true)),
+    }
+}
+
+fn outcome(
+    rule: &LicenseRule,
+    state: license::State,
+    expression: Option<&Expression>,
+    ids: &[String],
+) -> Outcome {
+    match (state, expression) {
+        (license::State::Spdx | license::State::Mapped, Some(expression)) => match rule.list {
+            LicenseList::Allow => {
+                (!license::satisfies(expression, ids)).then_some((Breach::NotAllowed, true))
+            }
+            LicenseList::Deny => {
+                license::violates(expression, ids).then_some((Breach::Denied, true))
+            }
+        },
+        (license::State::Unknown, Some(expression)) => match rule.list {
+            LicenseList::Allow if license::satisfies(expression, ids) => None,
+            LicenseList::Deny if license::violates(expression, ids) => Some((Breach::Denied, true)),
+            _ => unjudged(rule.unknown, Breach::Unknown),
+        },
+        (license::State::None, _) => unjudged(rule.unknown, Breach::Undeclared),
+        _ => unjudged(rule.unknown, Breach::Unknown),
+    }
+}
+
+fn adjusted(rule: &LicenseRule, excepted: &[&Exception]) -> Vec<String> {
+    let wanted = excepted
+        .iter()
+        .filter_map(|exception| exception.license.as_deref());
+    match rule.list {
+        LicenseList::Allow => rule
+            .ids
+            .iter()
+            .map(String::as_str)
+            .chain(wanted)
+            .map(str::to_owned)
+            .collect(),
+        LicenseList::Deny => rule
+            .ids
+            .iter()
+            .filter(|id| !wanted.clone().any(|wanted| license::same_id(id, wanted)))
+            .cloned()
+            .collect(),
+    }
+}
+
+fn covered(expression: &Expression, excepted: &[&Exception]) -> bool {
+    expression.ids().iter().all(|id| {
+        excepted.iter().any(|exception| {
+            exception
+                .license
+                .as_deref()
+                .is_some_and(|wanted| license::same_id(id, wanted))
+        })
+    })
+}
+
+fn outlives(candidate: &Exception, known: &Exception) -> bool {
+    match (candidate.expires_at, known.expires_at) {
+        (None, Some(_)) => true,
+        (Some(candidate), Some(known)) => candidate > known,
+        _ => false,
+    }
+}
+
+fn longest_lived(exceptions: Vec<&Exception>) -> Vec<&Exception> {
+    let mut kept: Vec<&Exception> = Vec::new();
+    for exception in exceptions {
+        let wanted = exception.license.as_deref().unwrap_or_default();
+        let same = kept.iter_mut().find(|known| {
+            known
+                .license
+                .as_deref()
+                .is_some_and(|id| license::same_id(id, wanted))
+        });
+        match same {
+            Some(known) => {
+                if outlives(exception, known) {
+                    *known = exception;
+                }
+            }
+            None => kept.push(exception),
+        }
+    }
+    kept
+}
+
+struct Resolved<'a> {
+    remaining: Outcome,
+    used: Vec<&'a Exception>,
+}
+
+fn resolve<'a>(
+    rule: &LicenseRule,
+    state: license::State,
+    expression: Option<&Expression>,
+    first: (Breach, bool),
+    applicable: &[&'a Exception],
+) -> Resolved<'a> {
+    if let Some(exception) = applicable
+        .iter()
+        .find(|exception| exception.license.is_none())
+    {
+        return Resolved {
+            remaining: None,
+            used: vec![*exception],
+        };
+    }
+    let named = longest_lived(
+        applicable
+            .iter()
+            .filter(|exception| exception.license.is_some())
+            .copied()
+            .collect(),
+    );
+    let Some(expression) = expression.filter(|_| !named.is_empty()) else {
+        return Resolved {
+            remaining: Some(first),
+            used: Vec::new(),
+        };
+    };
+    let again = outcome(rule, state, Some(expression), &adjusted(rule, &named));
+    let settled = match again {
+        None => true,
+        Some((Breach::Unknown, _)) => covered(expression, &named),
+        Some(_) => false,
+    };
+    let used = if settled || again != Some(first) {
+        named
+    } else {
+        Vec::new()
+    };
+    Resolved {
+        remaining: if settled { None } else { again },
+        used,
+    }
+}
+
+fn judge_licenses(input: &Input) -> Option<(Part, license::State)> {
+    let rule = &input.policy.licenses;
+    if rule.mode == Mode::Off {
+        return None;
+    }
+    let fact = input.license;
+    let state = fact.map_or(license::State::None, |fact| fact.state);
+    let expression = fact
+        .and_then(|fact| fact.expression.as_deref())
+        .and_then(|text| license::normalise(text).expression);
+    let mut part = Part {
+        blocked: false,
+        state: State::Pass,
+        would_block: false,
+        reasons: Vec::new(),
+    };
+    if let Some(first) = outcome(rule, state, expression.as_ref(), &rule.ids) {
+        let applicable: Vec<&Exception> = input
+            .exceptions
+            .iter()
+            .filter(|exception| {
+                applies(exception, Rule::License, &input.policy.name, input.now)
+                    && covers_license(exception, input.target, fact)
+            })
+            .collect();
+        let resolved = resolve(rule, state, expression.as_ref(), first, &applicable);
+        let (found, hard) = resolved.remaining.unwrap_or(first);
+        let counts = resolved.remaining.is_some();
+        let blocking = counts && hard && rule.mode == Mode::Block;
+        let used = &resolved.used[..resolved.used.len().min(MAX_FINDING_REASONS)];
+        part.reasons.push(Reason::License {
+            expression: fact.and_then(|fact| fact.expression.as_deref()).map(clean),
+            breach: found,
+            blocking,
+            exceptions: used
+                .iter()
+                .map(|exception| Applied {
+                    id: exception.id,
+                    reason: clean(&exception.reason),
+                })
+                .collect(),
+        });
+        for exception in used {
+            part.reasons.push(Reason::Exception {
+                id: exception.id,
+                reason: clean(&exception.reason),
+                findings: 1,
+            });
+        }
+        if counts {
+            part.blocked = blocking;
+            part.would_block = hard && rule.mode == Mode::Report;
+            part.state = if blocking {
+                State::Block
+            } else {
+                State::Report
+            };
+        }
+    }
+    Some((part, state))
+}
+
+fn assemble(
+    parts: Vec<Part>,
+    counts: Counts,
+    max_severity: Option<Severity>,
+    license_state: Option<license::State>,
+    policy_revision: i64,
+) -> Verdict {
+    let blocked = parts.iter().any(|part| part.blocked);
+    let would_block = parts.iter().any(|part| part.would_block);
+    let state = parts
+        .iter()
+        .max_by_key(|part| part.weight())
+        .map_or(State::Pass, |part| part.state);
+    let mut reasons: Vec<Reason> = parts.into_iter().flat_map(|part| part.reasons).collect();
+    if would_block {
         reasons.push(Reason::WouldBlock);
     }
-    Some(Verdict {
+    Verdict {
         blocked,
         state,
         counts,
-        max_severity: max,
+        max_severity,
+        license_state,
         reasons,
-        policy_revision: input.policy.revision,
-    })
+        policy_revision,
+    }
+}
+
+pub fn evaluate_license(input: &Input) -> Option<Verdict> {
+    let (part, state) = judge_licenses(input)?;
+    Some(assemble(
+        vec![part],
+        Counts::default(),
+        None,
+        Some(state),
+        input.policy.revision,
+    ))
+}
+
+pub fn evaluate(input: &Input) -> Option<Verdict> {
+    let mut parts: Vec<Part> = Vec::new();
+    let (counts, max_severity) = match judge_vulnerabilities(input) {
+        Some((part, counts, max)) => {
+            parts.push(part);
+            (counts, max)
+        }
+        None => (Counts::default(), None),
+    };
+    let license_state = match judge_licenses(input) {
+        Some((part, state)) => {
+            parts.push(part);
+            Some(state)
+        }
+        None => None,
+    };
+    if parts.is_empty() {
+        return None;
+    }
+    Some(assemble(
+        parts,
+        counts,
+        max_severity,
+        license_state,
+        input.policy.revision,
+    ))
 }
 
 #[cfg(test)]
@@ -392,6 +753,7 @@ mod tests {
     use super::*;
     use crate::policy::{LicenseRule, SignatureRule, VulnerabilityRule};
     use chrono::Duration;
+    use serde_json::json;
 
     fn policy(mode: Mode, severity: Option<Severity>) -> Policy {
         Policy {
@@ -460,6 +822,7 @@ mod tests {
             target: &target(),
             scan,
             findings,
+            license: None,
             now: Utc::now(),
         })
     }
@@ -603,6 +966,7 @@ mod tests {
             target: &image,
             scan: Scan::Scanned,
             findings: &found,
+            license: None,
             now: Utc::now(),
         })
         .unwrap();
@@ -646,6 +1010,597 @@ mod tests {
         assert!(excepted);
         assert!(verdict.reasons.iter().any(|reason| matches!(reason,
             Reason::Exception { id, findings: 1, .. } if *id == held.id)));
+    }
+
+    fn licensed(mode: Mode, list: LicenseList, ids: &[&str]) -> Policy {
+        let mut policy = policy(Mode::Off, None);
+        policy.licenses = LicenseRule {
+            mode,
+            list,
+            ids: ids.iter().map(|id| (*id).to_owned()).collect(),
+            unknown: UnknownLicense::Report,
+        };
+        policy
+    }
+
+    fn fact(expression: &str) -> LicenseFact {
+        let normalised = license::normalise(expression);
+        LicenseFact {
+            state: normalised.state,
+            expression: Some(normalised.text),
+            ids: normalised.ids,
+        }
+    }
+
+    fn undeclared(state: license::State) -> LicenseFact {
+        LicenseFact {
+            state,
+            expression: None,
+            ids: Vec::new(),
+        }
+    }
+
+    fn judge_license(
+        policy: &Policy,
+        fact: Option<&LicenseFact>,
+        exceptions: &[Exception],
+    ) -> Verdict {
+        evaluate(&Input {
+            policy,
+            exceptions,
+            target: &target(),
+            scan: Scan::Scanned,
+            findings: &[],
+            license: fact,
+            now: Utc::now(),
+        })
+        .unwrap()
+    }
+
+    fn license_exception(license: Option<&str>) -> Exception {
+        Exception {
+            rule: Rule::License,
+            license: license.map(str::to_owned),
+            ..exception(None)
+        }
+    }
+
+    fn license_reason(verdict: &Verdict) -> Option<(&Option<String>, Breach, bool)> {
+        verdict.reasons.iter().find_map(|reason| match reason {
+            Reason::License {
+                expression,
+                breach,
+                blocking,
+                ..
+            } => Some((expression, *breach, *blocking)),
+            _ => None,
+        })
+    }
+
+    #[test]
+    fn an_allow_list_needs_an_or_branch_whose_terms_are_all_allowed_and_ids_meet_their_equivalents()
+    {
+        let cases: [(&str, &[&str], bool); 6] = [
+            ("MIT OR GPL-3.0-only", &["MIT"], true),
+            ("MIT AND GPL-3.0-only", &["MIT"], false),
+            ("MIT AND GPL-3.0-only", &["MIT", "GPL-3.0-only"], true),
+            ("GPL-2.0", &["GPL-2.0-only"], true),
+            ("GPL-3.0-only", &["gpl-3.0"], true),
+            ("Apache-2.0", &["MIT"], false),
+        ];
+        for (expression, allowed, passes) in cases {
+            let policy = licensed(Mode::Block, LicenseList::Allow, allowed);
+            let verdict = judge_license(&policy, Some(&fact(expression)), &[]);
+            assert_eq!(verdict.blocked, !passes, "{expression} against {allowed:?}");
+            assert_eq!(verdict.license_state, Some(license::State::Spdx));
+            match passes {
+                true => assert!(verdict.reasons.is_empty(), "{expression}"),
+                false => assert_eq!(
+                    license_reason(&verdict),
+                    Some((&Some(expression.to_owned()), Breach::NotAllowed, true))
+                ),
+            }
+        }
+    }
+
+    #[test]
+    fn a_deny_list_fails_when_every_or_branch_holds_a_denied_id() {
+        let cases: [(&str, &[&str], bool); 5] = [
+            ("MIT AND GPL-3.0-only", &["GPL-3.0-only"], true),
+            ("MIT OR GPL-3.0-only", &["GPL-3.0-only"], false),
+            ("GPL-3.0 OR GPL-3.0-only", &["GPL-3.0-only"], true),
+            ("GPL-3.0", &["GPL-3.0-only"], true),
+            ("MIT", &["GPL-3.0-only"], false),
+        ];
+        for (expression, denied, fails) in cases {
+            let policy = licensed(Mode::Block, LicenseList::Deny, denied);
+            let verdict = judge_license(&policy, Some(&fact(expression)), &[]);
+            assert_eq!(verdict.blocked, fails, "{expression} against {denied:?}");
+            if fails {
+                assert_eq!(
+                    license_reason(&verdict).map(|(_, breach, blocking)| (breach, blocking)),
+                    Some((Breach::Denied, true))
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn unknown_none_and_a_missing_row_follow_the_unknown_setting() {
+        let facts = [
+            (
+                Some(undeclared(license::State::Unknown)),
+                license::State::Unknown,
+            ),
+            (Some(undeclared(license::State::None)), license::State::None),
+            (None, license::State::None),
+        ];
+        for (fact, state) in facts {
+            for (setting, mode, blocked, shown) in [
+                (UnknownLicense::Allow, Mode::Block, false, State::Pass),
+                (UnknownLicense::Report, Mode::Block, false, State::Report),
+                (UnknownLicense::Block, Mode::Block, true, State::Block),
+                (UnknownLicense::Block, Mode::Report, false, State::Report),
+            ] {
+                let mut policy = licensed(mode, LicenseList::Deny, &["GPL-3.0-only"]);
+                policy.licenses.unknown = setting;
+                let verdict = judge_license(&policy, fact.as_ref(), &[]);
+                let label = format!("{state:?} {setting:?} {mode:?}");
+                assert_eq!(
+                    (verdict.blocked, verdict.state),
+                    (blocked, shown),
+                    "{label}"
+                );
+                assert_eq!(verdict.license_state, Some(state), "{label}");
+                let wanted = match state {
+                    license::State::None => Breach::Undeclared,
+                    _ => Breach::Unknown,
+                };
+                if setting != UnknownLicense::Allow {
+                    assert_eq!(license_reason(&verdict).unwrap().1, wanted, "{label}");
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn report_mode_never_blocks_and_says_it_would_and_off_judges_nothing() {
+        let report = licensed(Mode::Report, LicenseList::Deny, &["GPL-3.0-only"]);
+        let verdict = judge_license(&report, Some(&fact("GPL-3.0-only")), &[]);
+        assert_eq!((verdict.blocked, verdict.state), (false, State::Report));
+        assert!(!license_reason(&verdict).unwrap().2);
+        assert!(verdict.reasons.contains(&Reason::WouldBlock));
+        let clean = judge_license(&report, Some(&fact("MIT")), &[]);
+        assert_eq!((clean.blocked, clean.state), (false, State::Pass));
+
+        let off = licensed(Mode::Off, LicenseList::Deny, &["GPL-3.0-only"]);
+        let input = Input {
+            policy: &off,
+            exceptions: &[],
+            target: &target(),
+            scan: Scan::Scanned,
+            findings: &[],
+            license: Some(&fact("GPL-3.0-only")),
+            now: Utc::now(),
+        };
+        assert!(evaluate(&input).is_none());
+        let vulnerable = policy(Mode::Block, Some(Severity::High));
+        let verdict = judge(&vulnerable, Scan::Scanned, &[], &[]).unwrap();
+        assert_eq!(verdict.license_state, None);
+    }
+
+    #[test]
+    fn the_license_reason_names_the_expression_and_loses_control_characters() {
+        let policy = licensed(Mode::Block, LicenseList::Deny, &["GPL-3.0-only"]);
+        let mut dirty = fact("MIT AND GPL-3.0-only");
+        dirty.expression = Some("MIT AND GPL-3.0-only\n\t".to_owned());
+        let verdict = judge_license(&policy, Some(&dirty), &[]);
+        let reasons = serde_json::to_value(&verdict.reasons).unwrap();
+        assert_eq!(
+            reasons,
+            json!([{
+                "kind": "license",
+                "expression": "MIT AND GPL-3.0-only",
+                "breach": "denied",
+                "blocking": true
+            }])
+        );
+        let none = judge_license(&licensed(Mode::Block, LicenseList::Deny, &[]), None, &[]);
+        let reasons = serde_json::to_value(&none.reasons).unwrap();
+        assert_eq!(
+            reasons,
+            json!([{"kind": "license", "breach": "undeclared", "blocking": false}])
+        );
+    }
+
+    #[test]
+    fn license_exceptions_lift_by_id_or_by_component_only_while_valid_and_for_the_rule() {
+        let policy = licensed(Mode::Block, LicenseList::Deny, &["GPL-3.0-only"]);
+        let found = fact("MIT AND GPL-3.0-only");
+        let blocked =
+            |exceptions: &[Exception]| judge_license(&policy, Some(&found), exceptions).blocked;
+        assert!(blocked(&[]));
+
+        for lifting in ["GPL-3.0-only", "gpl-3.0-only", "GPL-3.0"] {
+            assert!(!blocked(&[license_exception(Some(lifting))]), "{lifting}");
+        }
+        for other in ["MIT", "Apache-2.0"] {
+            assert!(blocked(&[license_exception(Some(other))]), "{other}");
+        }
+
+        let mut by_component = license_exception(None);
+        by_component.name = Some("lib".to_owned());
+        by_component.version = Some("1.0.0".to_owned());
+        assert!(!blocked(&[by_component.clone()]));
+        by_component.version = Some("2.0.0".to_owned());
+        assert!(blocked(&[by_component]));
+        assert!(blocked(&[license_exception(None)]));
+
+        let mut narrowed = license_exception(Some("GPL-3.0-only"));
+        narrowed.name = Some("other".to_owned());
+        assert!(blocked(&[narrowed]));
+
+        let mut expired = license_exception(Some("GPL-3.0-only"));
+        expired.expires_at = Some(Utc::now() - Duration::seconds(1));
+        assert!(blocked(&[expired]));
+        let mut future = license_exception(Some("GPL-3.0-only"));
+        future.expires_at = Some(Utc::now() + Duration::hours(1));
+        assert!(!blocked(&[future]));
+
+        let mut other_policy = license_exception(Some("GPL-3.0-only"));
+        other_policy.policy = Some("other".to_owned());
+        assert!(blocked(&[other_policy]));
+        let mut other_rule = license_exception(Some("GPL-3.0-only"));
+        other_rule.rule = Rule::Vulnerability;
+        assert!(blocked(&[other_rule]));
+        let mut advisory = license_exception(Some("GPL-3.0-only"));
+        advisory.advisory = Some("GHSA-1".to_owned());
+        assert!(blocked(&[advisory]));
+
+        let held = license_exception(Some("GPL-3.0-only"));
+        let verdict = judge_license(&policy, Some(&found), std::slice::from_ref(&held));
+        assert_eq!((verdict.blocked, verdict.state), (false, State::Pass));
+        assert!(!license_reason(&verdict).unwrap().2);
+        assert!(verdict.reasons.iter().any(|reason| matches!(reason,
+            Reason::Exception { id, findings: 1, .. } if *id == held.id)));
+
+        let own = fact("LicenseRef-Own");
+        let mut unknown = licensed(Mode::Block, LicenseList::Deny, &[]);
+        unknown.licenses.unknown = UnknownLicense::Block;
+        assert!(judge_license(&unknown, Some(&own), &[]).blocked);
+        let lifted = judge_license(
+            &unknown,
+            Some(&own),
+            &[license_exception(Some("licenseref-own"))],
+        );
+        assert!(!lifted.blocked);
+        let unrelated = judge_license(&unknown, Some(&own), &[license_exception(Some("MIT"))]);
+        assert!(unrelated.blocked);
+    }
+
+    #[test]
+    fn an_id_exception_makes_the_id_acceptable_and_the_expression_is_judged_again() {
+        let excepting = |policy: &Policy, expression: &str, ids: &[&str]| {
+            let held: Vec<Exception> = ids.iter().map(|id| license_exception(Some(id))).collect();
+            judge_license(policy, Some(&fact(expression)), &held)
+        };
+        let deny = licensed(
+            Mode::Block,
+            LicenseList::Deny,
+            &["GPL-3.0-only", "AGPL-3.0-only"],
+        );
+        let both = "GPL-3.0-only AND AGPL-3.0-only";
+        assert!(excepting(&deny, both, &[]).blocked);
+        assert!(excepting(&deny, both, &["GPL-3.0-only"]).blocked);
+        assert!(excepting(&deny, both, &["agpl-3.0-only"]).blocked);
+        assert!(excepting(&deny, both, &["GPL-3.0-only", "MIT"]).blocked);
+        let lifted = excepting(&deny, both, &["GPL-3.0-only", "AGPL-3.0-only"]);
+        assert_eq!((lifted.blocked, lifted.state), (false, State::Pass));
+        let cited = lifted
+            .reasons
+            .iter()
+            .filter(|reason| matches!(reason, Reason::Exception { findings: 1, .. }))
+            .count();
+        assert_eq!(cited, 2);
+        assert!(!excepting(&deny, "GPL-3.0-only OR MIT", &[]).blocked);
+        assert!(excepting(&deny, "GPL-3.0-only OR AGPL-3.0-only", &[]).blocked);
+        assert!(!excepting(&deny, "GPL-3.0-only OR AGPL-3.0-only", &["GPL-3.0-only"]).blocked);
+
+        let allow = licensed(Mode::Block, LicenseList::Allow, &["MIT"]);
+        let three = "MIT AND ISC AND BSD-3-Clause";
+        assert!(excepting(&allow, three, &["ISC"]).blocked);
+        assert!(excepting(&allow, three, &["ISC", "Apache-2.0"]).blocked);
+        assert!(!excepting(&allow, three, &["isc", "BSD-3-Clause"]).blocked);
+        assert!(excepting(&allow, "ISC OR Apache-2.0", &["BSD-3-Clause"]).blocked);
+        assert!(!excepting(&allow, "ISC OR Apache-2.0", &["ISC"]).blocked);
+        assert!(!excepting(&allow, "GPL-3.0 AND MIT", &["GPL-3.0-only"]).blocked);
+
+        let blocked = excepting(&allow, three, &["ISC"]);
+        assert_eq!(
+            license_reason(&blocked).map(|(_, breach, blocking)| (breach, blocking)),
+            Some((Breach::NotAllowed, true))
+        );
+        assert!(
+            !blocked
+                .reasons
+                .iter()
+                .any(|reason| matches!(reason, Reason::Exception { .. }))
+        );
+    }
+
+    #[test]
+    fn an_unknown_license_that_parsed_is_judged_by_the_list_before_the_unknown_setting() {
+        type Case = (
+            LicenseList,
+            &'static [&'static str],
+            UnknownLicense,
+            &'static str,
+            Option<(Breach, bool)>,
+        );
+        let cases: [Case; 12] = [
+            (
+                LicenseList::Deny,
+                &["GPL-3.0-only"],
+                UnknownLicense::Allow,
+                "GPL-3.0-only AND Foo-Bar",
+                Some((Breach::Denied, true)),
+            ),
+            (
+                LicenseList::Deny,
+                &["GPL-3.0-only"],
+                UnknownLicense::Allow,
+                "GPL-3.0-only OR Foo-Bar",
+                None,
+            ),
+            (
+                LicenseList::Deny,
+                &["GPL-3.0-only"],
+                UnknownLicense::Block,
+                "GPL-3.0-only OR Foo-Bar",
+                Some((Breach::Unknown, true)),
+            ),
+            (
+                LicenseList::Allow,
+                &["MIT"],
+                UnknownLicense::Block,
+                "MIT OR Foo-Bar",
+                None,
+            ),
+            (
+                LicenseList::Allow,
+                &["MIT"],
+                UnknownLicense::Block,
+                "MIT AND Foo-Bar",
+                Some((Breach::Unknown, true)),
+            ),
+            (
+                LicenseList::Allow,
+                &["MIT"],
+                UnknownLicense::Allow,
+                "Foo-Bar",
+                None,
+            ),
+            (
+                LicenseList::Allow,
+                &["MIT"],
+                UnknownLicense::Block,
+                "Foo-Bar",
+                Some((Breach::Unknown, true)),
+            ),
+            (
+                LicenseList::Deny,
+                &["GPL-3.0-only"],
+                UnknownLicense::Report,
+                "Foo-Bar",
+                Some((Breach::Unknown, false)),
+            ),
+            (
+                LicenseList::Deny,
+                &["GPL-3.0-only"],
+                UnknownLicense::Block,
+                "Foo-Bar",
+                Some((Breach::Unknown, true)),
+            ),
+            (
+                LicenseList::Allow,
+                &["LicenseRef-Own"],
+                UnknownLicense::Block,
+                "LicenseRef-Own",
+                None,
+            ),
+            (
+                LicenseList::Deny,
+                &["LicenseRef-Bad"],
+                UnknownLicense::Allow,
+                "LicenseRef-Bad",
+                Some((Breach::Denied, true)),
+            ),
+            (
+                LicenseList::Deny,
+                &["LicenseRef-Bad"],
+                UnknownLicense::Allow,
+                "LicenseRef-Own",
+                None,
+            ),
+        ];
+        for (list, ids, setting, expression, expected) in cases {
+            let mut policy = licensed(Mode::Block, list, ids);
+            policy.licenses.unknown = setting;
+            let found = fact(expression);
+            assert_eq!(found.state, license::State::Unknown, "{expression}");
+            let verdict = judge_license(&policy, Some(&found), &[]);
+            let label = format!("{expression} under {list:?} {ids:?} with {setting:?}");
+            match expected {
+                None => assert!(verdict.reasons.is_empty(), "{label}"),
+                Some((breach, blocked)) => {
+                    assert_eq!(verdict.blocked, blocked, "{label}");
+                    assert_eq!(
+                        license_reason(&verdict).map(|(_, found, _)| found),
+                        Some(breach),
+                        "{label}"
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn an_id_exception_lifts_an_unknown_term_only_when_every_id_is_covered() {
+        let mut policy = licensed(Mode::Block, LicenseList::Deny, &["GPL-3.0-only"]);
+        policy.licenses.unknown = UnknownLicense::Block;
+        let found = fact("GPL-3.0-only AND Foo-Bar");
+        let with = |policy: &Policy, ids: &[&str]| {
+            let held: Vec<Exception> = ids.iter().map(|id| license_exception(Some(id))).collect();
+            judge_license(policy, Some(&found), &held)
+        };
+        for partial in [
+            &[][..],
+            &["GPL-3.0-only"],
+            &["Foo-Bar"],
+            &["GPL-3.0-only", "MIT"],
+        ] {
+            assert!(with(&policy, partial).blocked, "{partial:?}");
+        }
+        assert!(!with(&policy, &["GPL-3.0-only", "foo-bar"]).blocked);
+
+        let partial = with(&policy, &["GPL-3.0-only"]);
+        assert_eq!(
+            license_reason(&partial).map(|(_, breach, blocking)| (breach, blocking)),
+            Some((Breach::Unknown, true))
+        );
+        assert!(
+            partial
+                .reasons
+                .iter()
+                .any(|reason| matches!(reason, Reason::Exception { .. }))
+        );
+
+        let mut by_component = license_exception(None);
+        by_component.name = Some("lib".to_owned());
+        let lifted = judge_license(&policy, Some(&found), &[by_component]);
+        assert!(!lifted.blocked);
+
+        policy.licenses.unknown = UnknownLicense::Report;
+        let softened = with(&policy, &["GPL-3.0-only"]);
+        assert_eq!((softened.blocked, softened.state), (false, State::Report));
+        assert!(with(&policy, &[]).blocked);
+
+        let mut allow = licensed(Mode::Block, LicenseList::Allow, &["MIT"]);
+        allow.licenses.unknown = UnknownLicense::Block;
+        let mixed = fact("MIT AND Foo-Bar");
+        assert!(judge_license(&allow, Some(&mixed), &[]).blocked);
+        let held = [license_exception(Some("Foo-Bar"))];
+        assert!(!judge_license(&allow, Some(&mixed), &held).blocked);
+    }
+
+    #[test]
+    fn many_exceptions_for_one_id_are_cited_once_through_the_longest_lived() {
+        let policy = licensed(Mode::Block, LicenseList::Deny, &["GPL-3.0-only"]);
+        let found = fact("GPL-3.0-only");
+        let mut held: Vec<Exception> = (1..=30)
+            .map(|hours| {
+                let mut each = license_exception(Some("GPL-3.0-only"));
+                each.expires_at = Some(Utc::now() + Duration::hours(hours));
+                each
+            })
+            .collect();
+        let longest = held[29].id;
+        let verdict = judge_license(&policy, Some(&found), &held);
+        assert!(!verdict.blocked);
+        let cited: Vec<Uuid> = verdict
+            .reasons
+            .iter()
+            .filter_map(|reason| match reason {
+                Reason::Exception { id, .. } => Some(*id),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(cited, [longest]);
+        let permanent = license_exception(Some("gpl-3.0-only"));
+        let forever = permanent.id;
+        held.insert(3, permanent);
+        let verdict = judge_license(&policy, Some(&found), &held);
+        let cited: Vec<Uuid> = verdict
+            .reasons
+            .iter()
+            .filter_map(|reason| match reason {
+                Reason::License { exceptions, .. } => Some(exceptions.iter().map(|each| each.id)),
+                _ => None,
+            })
+            .flatten()
+            .collect();
+        assert_eq!(cited, [forever]);
+    }
+
+    #[test]
+    fn a_blocking_rule_blocks_whatever_the_other_says_and_every_failing_rule_is_listed() {
+        let mut both = licensed(Mode::Report, LicenseList::Deny, &["GPL-3.0-only"]);
+        both.vulnerabilities = VulnerabilityRule {
+            mode: Mode::Block,
+            severity: Some(Severity::High),
+            ..VulnerabilityRule::default()
+        };
+        let found = fact("GPL-3.0-only");
+        let verdict = evaluate(&Input {
+            policy: &both,
+            exceptions: &[],
+            target: &target(),
+            scan: Scan::Scanned,
+            findings: &[finding("A", Severity::Critical)],
+            license: Some(&found),
+            now: Utc::now(),
+        })
+        .unwrap();
+        assert_eq!((verdict.blocked, verdict.state), (true, State::Block));
+        assert_eq!(verdict.counts.critical, 1);
+        assert!(
+            verdict
+                .reasons
+                .iter()
+                .any(|reason| matches!(reason, Reason::Vulnerability { blocking: true, .. }))
+        );
+        assert_eq!(
+            license_reason(&verdict).map(|(_, breach, blocking)| (breach, blocking)),
+            Some((Breach::Denied, false))
+        );
+
+        let mut licence_blocks = both.clone();
+        licence_blocks.licenses.mode = Mode::Block;
+        let verdict = evaluate(&Input {
+            policy: &licence_blocks,
+            exceptions: &[],
+            target: &target(),
+            scan: Scan::Scanned,
+            findings: &[],
+            license: Some(&found),
+            now: Utc::now(),
+        })
+        .unwrap();
+        assert_eq!((verdict.blocked, verdict.state), (true, State::Block));
+        assert_eq!(
+            license_reason(&verdict).map(|(_, breach, blocking)| (breach, blocking)),
+            Some((Breach::Denied, true))
+        );
+        assert!(
+            !verdict
+                .reasons
+                .iter()
+                .any(|reason| matches!(reason, Reason::Vulnerability { .. }))
+        );
+
+        let mut waiting = both.clone();
+        waiting.vulnerabilities.unscanned = Unscanned::Block;
+        let verdict = evaluate(&Input {
+            policy: &waiting,
+            exceptions: &[],
+            target: &target(),
+            scan: Scan::Missing,
+            findings: &[],
+            license: Some(&found),
+            now: Utc::now(),
+        })
+        .unwrap();
+        assert_eq!((verdict.blocked, verdict.state), (true, State::Unscanned));
     }
 
     #[test]

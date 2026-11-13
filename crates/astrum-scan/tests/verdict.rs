@@ -882,3 +882,240 @@ async fn judging_one_subject_takes_only_its_mark() {
         .unwrap();
     assert_eq!(nothing.taken, 0);
 }
+
+const BLOCK_GPL: &str =
+    r#"{"mode":"block","list":"deny","ids":["GPL-3.0-only"],"unknown":"allow"}"#;
+
+async fn licences(s: &Setup, rule_json: &str) {
+    execute(
+        s,
+        &format!("UPDATE content_policy SET licenses = '{rule_json}'"),
+    )
+    .await;
+}
+
+async fn license(s: &Setup, id: i64, state: &str, id_text: &str) {
+    execute(
+        s,
+        &format!(
+            "INSERT INTO component_license (component_id, declared, source, expression, ids, state) \
+             VALUES ({id}, '{id_text}', 'test', '{id_text}', ARRAY['{id_text}'], '{state}') \
+             ON CONFLICT (component_id) DO UPDATE SET expression = EXCLUDED.expression, \
+               ids = EXCLUDED.ids, state = EXCLUDED.state"
+        ),
+    )
+    .await;
+}
+
+async fn dirty(s: &Setup) -> String {
+    text(
+        s,
+        "SELECT COALESCE(string_agg(subject, ',' ORDER BY subject), '') AS n FROM policy_dirty",
+    )
+    .await
+}
+
+async fn verdict_of(s: &Setup, id: i64) -> String {
+    text(
+        s,
+        &format!(
+            "SELECT state || ':' || blocked::text || ':' || COALESCE(license_state, '-') AS n \
+             FROM policy_verdict WHERE subject = 'c:{id}'"
+        ),
+    )
+    .await
+}
+
+#[tokio::test]
+async fn a_license_row_that_is_inserted_changed_or_removed_marks_its_subject_and_the_rejudge_follows()
+ {
+    let s = setup().await;
+    world(&s, r#"{"mode":"off"}"#).await;
+    licences(&s, BLOCK_GPL).await;
+    component(&s, "one", 1, None).await;
+    component(&s, "free", 2, None).await;
+    let cache = Cache::default();
+    judge(&s, &cache).await;
+    assert_eq!(verdict_of(&s, 1).await, "pass:false:none");
+    assert_eq!(dirty(&s).await, "");
+
+    license(&s, 1, "spdx", "MIT").await;
+    license(&s, 2, "spdx", "GPL-3.0-only").await;
+    assert_eq!(
+        dirty(&s).await,
+        "c:1",
+        "a repository without a policy is not marked"
+    );
+    judge(&s, &cache).await;
+    assert_eq!(verdict_of(&s, 1).await, "pass:false:spdx");
+
+    execute(
+        &s,
+        "UPDATE component_license SET declared = 'the MIT licence', source = 'other'",
+    )
+    .await;
+    assert_eq!(
+        dirty(&s).await,
+        "",
+        "a change that cannot alter the verdict marks nothing"
+    );
+
+    license(&s, 1, "spdx", "GPL-3.0-only").await;
+    assert_eq!(dirty(&s).await, "c:1");
+    judge(&s, &cache).await;
+    assert_eq!(verdict_of(&s, 1).await, "block:true:spdx");
+    assert_eq!(
+        text(
+            &s,
+            "SELECT reasons -> 0 ->> 'kind' || ':' || (reasons -> 0 ->> 'breach') || ':' || (reasons -> 0 ->> 'expression') AS n \
+             FROM policy_verdict WHERE subject = 'c:1'"
+        )
+        .await,
+        "license:denied:GPL-3.0-only"
+    );
+
+    execute(&s, "DELETE FROM component_license WHERE component_id = 1").await;
+    assert_eq!(dirty(&s).await, "c:1");
+    judge(&s, &cache).await;
+    assert_eq!(verdict_of(&s, 1).await, "pass:false:none");
+
+    execute(&s, "DELETE FROM component WHERE id = 1").await;
+    assert_eq!(
+        dirty(&s).await,
+        "",
+        "a deleted component leaves no mark behind"
+    );
+}
+
+#[tokio::test]
+async fn a_changed_licenses_block_rejudges_through_the_revision_and_an_off_rule_ignores_the_row() {
+    let s = setup().await;
+    world(&s, BLOCK_HIGH).await;
+    component(&s, "one", 1, None).await;
+    license(&s, 1, "spdx", "GPL-3.0-only").await;
+    let cache = Cache::default();
+    judge(&s, &cache).await;
+    assert_eq!(verdict_of(&s, 1).await, "pass:false:-");
+
+    licences(&s, BLOCK_GPL).await;
+    execute(&s, "UPDATE content_policy SET revision = revision + 1").await;
+    astrum_db::revision::bump(s.db.conn(), astrum_db::revision::POLICIES)
+        .await
+        .unwrap();
+    let mut state = SweepState::default();
+    let swept = verdict::sweep(s.db.conn(), &config(), &mut state)
+        .await
+        .unwrap();
+    assert_eq!(swept, Swept::Done { marked: 1 });
+    judge(&s, &cache).await;
+    assert_eq!(verdict_of(&s, 1).await, "block:true:spdx");
+
+    licences(
+        &s,
+        r#"{"mode":"report","list":"deny","ids":["GPL-3.0-only"]}"#,
+    )
+    .await;
+    execute(&s, "UPDATE content_policy SET revision = revision + 1").await;
+    astrum_db::revision::bump(s.db.conn(), astrum_db::revision::POLICIES)
+        .await
+        .unwrap();
+    verdict::sweep(s.db.conn(), &config(), &mut state)
+        .await
+        .unwrap();
+    judge(&s, &cache).await;
+    assert_eq!(verdict_of(&s, 1).await, "report:false:spdx");
+    assert_eq!(
+        scalar(
+            &s,
+            "SELECT policy_revision AS n FROM policy_verdict WHERE subject = 'c:1'"
+        )
+        .await,
+        3
+    );
+}
+
+#[tokio::test]
+async fn the_sweeper_judges_scanned_components_of_a_policy_that_only_has_the_license_rule_on() {
+    let s = setup().await;
+    world(&s, r#"{"mode":"off"}"#).await;
+    licences(&s, BLOCK_GPL).await;
+    component(&s, "one", 1, None).await;
+    execute(&s, "DELETE FROM policy_dirty").await;
+    let mut state = SweepState::default();
+
+    let swept = verdict::sweep(s.db.conn(), &config(), &mut state)
+        .await
+        .unwrap();
+
+    assert_eq!(swept, Swept::Done { marked: 1 });
+    assert_eq!(dirty(&s).await, "c:1");
+}
+
+#[tokio::test]
+async fn a_license_exception_lifts_the_failure_and_the_sweeper_re_blocks_when_it_expires() {
+    let s = setup().await;
+    world(&s, r#"{"mode":"off"}"#).await;
+    licences(&s, BLOCK_GPL).await;
+    component(&s, "one", 1, None).await;
+    license(&s, 1, "spdx", "GPL-3.0-only").await;
+    execute(
+        &s,
+        "INSERT INTO policy_exception (id, rule, license, reason, created_by, expires_at) \
+         VALUES (gen_random_uuid(), 'license', 'GPL-3.0-only', 'accepted', 'tester', \
+                 now() + interval '2 seconds')",
+    )
+    .await;
+    let cache = Cache::default();
+
+    judge(&s, &cache).await;
+    assert_eq!(verdict_of(&s, 1).await, "pass:false:spdx");
+    assert_eq!(
+        scalar(
+            &s,
+            "SELECT count(*) AS n FROM policy_verdict WHERE reasons @> '[{\"kind\":\"exception\",\"reason\":\"accepted\"}]'"
+        )
+        .await,
+        1
+    );
+
+    let mut state = SweepState::default();
+    verdict::sweep(s.db.conn(), &config(), &mut state)
+        .await
+        .unwrap();
+    execute(&s, "DELETE FROM policy_dirty").await;
+    tokio::time::sleep(Duration::from_millis(2300)).await;
+    let swept = verdict::sweep(s.db.conn(), &config(), &mut state)
+        .await
+        .unwrap();
+    assert_eq!(swept, Swept::Done { marked: 1 });
+
+    judge(&s, &cache).await;
+    assert_eq!(verdict_of(&s, 1).await, "block:true:spdx");
+}
+
+#[tokio::test]
+async fn a_license_change_that_commits_after_a_judge_read_the_old_row_keeps_its_mark() {
+    let s = setup().await;
+    world(&s, r#"{"mode":"off"}"#).await;
+    licences(&s, BLOCK_GPL).await;
+    component(&s, "one", 1, None).await;
+    license(&s, 1, "spdx", "MIT").await;
+    let cache = Cache::default();
+    judge(&s, &cache).await;
+    mark(&s, "one", 1).await;
+
+    let writer = s.db.conn().begin().await.unwrap();
+    writer
+        .execute_unprepared(
+            "UPDATE component_license SET expression = 'GPL-3.0-only', ids = ARRAY['GPL-3.0-only']",
+        )
+        .await
+        .unwrap();
+    let judged = judge(&s, &cache).await;
+    assert_eq!(judged.taken, 0);
+    writer.commit().await.unwrap();
+
+    assert_eq!(dirty(&s).await, "c:1");
+    judge(&s, &cache).await;
+    assert_eq!(verdict_of(&s, 1).await, "block:true:spdx");
+}

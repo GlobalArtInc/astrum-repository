@@ -3,8 +3,10 @@ mod eval;
 mod parse;
 mod spdx;
 
-pub use eval::{satisfies, violates};
+pub use eval::{same_id, satisfies, violates};
 pub use parse::Expression;
+
+const LICENSE_REF: &str = "LicenseRef-";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum State {
@@ -15,6 +17,16 @@ pub enum State {
 }
 
 impl State {
+    pub fn parse(text: &str) -> Option<Self> {
+        match text {
+            "spdx" => Some(Self::Spdx),
+            "mapped" => Some(Self::Mapped),
+            "unknown" => Some(Self::Unknown),
+            "none" => Some(Self::None),
+            _ => None,
+        }
+    }
+
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Spdx => "spdx",
@@ -58,6 +70,20 @@ pub fn normalise(input: &str) -> Normalised {
             Some(id) => describe(text, Some(Expression::Id(id.to_owned())), State::Mapped),
             None => describe(text, parsed.map(|parsed| parsed.expression), State::Unknown),
         },
+    }
+}
+
+pub fn is_identifier(text: &str) -> bool {
+    let normalised = normalise(text);
+    match &normalised.expression {
+        Some(Expression::Id(id)) if id.eq_ignore_ascii_case(text) => {
+            normalised.state == State::Spdx
+                || (id.len() > LICENSE_REF.len()
+                    && id
+                        .get(..LICENSE_REF.len())
+                        .is_some_and(|head| head.eq_ignore_ascii_case(LICENSE_REF)))
+        }
+        _ => false,
     }
 }
 
@@ -254,5 +280,44 @@ mod tests {
     #[test]
     fn unclosed_parentheses_are_unknown_without_overflowing_the_stack() {
         assert_eq!(normalise(&"(".repeat(1000)).state, State::Unknown);
+    }
+
+    #[test]
+    fn a_list_id_is_one_spdx_id_a_deprecated_id_or_a_license_reference() {
+        for accepted in [
+            "MIT",
+            "mit",
+            "Apache-2.0",
+            "GPL-2.0",
+            "GPL-3.0+",
+            "LicenseRef-Custom",
+            "licenseref-custom",
+        ] {
+            assert!(is_identifier(accepted), "{accepted}");
+        }
+        for refused in [
+            "",
+            " MIT",
+            "MIT License",
+            "GPLv3",
+            "MIT OR Apache-2.0",
+            "GPL-2.0-only WITH Classpath-exception-2.0",
+            "(MIT)",
+            "MIT+",
+            "Not-A-License",
+            "LicenseRef-",
+            "DocumentRef-spdx-tool-1.2:LicenseRef-MIT-Style-2",
+        ] {
+            assert!(!is_identifier(refused), "{refused}");
+        }
+    }
+
+    #[test]
+    fn states_round_trip_through_their_names_and_unknown_names_do_not_parse() {
+        for state in [State::Spdx, State::Mapped, State::Unknown, State::None] {
+            assert_eq!(State::parse(state.as_str()), Some(state));
+        }
+        assert_eq!(State::parse("SPDX"), None);
+        assert_eq!(State::parse(""), None);
     }
 }

@@ -5,10 +5,13 @@ use sea_orm::{
     ActiveValue, ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter, QueryOrder, SqlErr,
 };
 use serde::de::DeserializeOwned;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 
-use crate::Error;
+use crate::{Error, license};
+
+pub const MAX_LICENSE_IDS: usize = 200;
+pub const MAX_LICENSE_ID: usize = 100;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -45,10 +48,11 @@ pub enum Unscanned {
     Block,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum LicenseList {
     Allow,
+    #[default]
     Deny,
 }
 
@@ -75,9 +79,40 @@ pub struct VulnerabilityRule {
 #[serde(rename_all = "camelCase", default)]
 pub struct LicenseRule {
     pub mode: Mode,
-    pub list: Option<LicenseList>,
+    #[serde(deserialize_with = "list_or_default")]
+    pub list: LicenseList,
     pub ids: Vec<String>,
     pub unknown: UnknownLicense,
+}
+
+fn list_or_default<'de, D: Deserializer<'de>>(deserializer: D) -> Result<LicenseList, D::Error> {
+    Ok(Option::<LicenseList>::deserialize(deserializer)?.unwrap_or_default())
+}
+
+impl LicenseRule {
+    pub fn check(&self) -> Result<(), String> {
+        if self.ids.len() > MAX_LICENSE_IDS {
+            return Err(format!("must hold at most {MAX_LICENSE_IDS} ids"));
+        }
+        for id in &self.ids {
+            if id.chars().count() > MAX_LICENSE_ID {
+                return Err(format!(
+                    "every id must be at most {MAX_LICENSE_ID} characters long"
+                ));
+            }
+            if !license::is_identifier(id) {
+                return Err(format!(
+                    "{id:?} is not a license identifier; use an SPDX id, a deprecated SPDX id or a LicenseRef-* id"
+                ));
+            }
+        }
+        if self.mode == Mode::Block && self.list == LicenseList::Allow && self.ids.is_empty() {
+            return Err(
+                "must hold at least one id when the mode is block and the list is allow".to_owned(),
+            );
+        }
+        Ok(())
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -99,6 +134,14 @@ pub struct Policy {
 }
 
 impl Policy {
+    pub fn judged_mode(&self) -> Mode {
+        match (self.vulnerabilities.mode, self.licenses.mode) {
+            (Mode::Block, _) | (_, Mode::Block) => Mode::Block,
+            (Mode::Report, _) | (_, Mode::Report) => Mode::Report,
+            _ => Mode::Off,
+        }
+    }
+
     fn from_row(row: content_policy::Model) -> Result<Self, Error> {
         Ok(Self {
             vulnerabilities: read(&row.name, row.vulnerabilities)?,
@@ -247,7 +290,98 @@ mod tests {
         assert_eq!(vulnerabilities.unscanned, Unscanned::Allow);
         let licenses: LicenseRule = serde_json::from_str("{}").unwrap();
         assert_eq!(licenses.mode, Mode::Off);
+        assert_eq!(licenses.list, LicenseList::Deny);
+        assert!(licenses.ids.is_empty());
         assert_eq!(licenses.unknown, UnknownLicense::Report);
+    }
+
+    #[test]
+    fn a_license_block_round_trips_and_an_older_null_list_reads_as_deny() {
+        let rule = LicenseRule {
+            mode: Mode::Block,
+            list: LicenseList::Allow,
+            ids: vec!["MIT".to_owned(), "LicenseRef-Own".to_owned()],
+            unknown: UnknownLicense::Block,
+        };
+        let text = serde_json::to_string(&rule).unwrap();
+        assert_eq!(
+            text,
+            r#"{"mode":"block","list":"allow","ids":["MIT","LicenseRef-Own"],"unknown":"block"}"#
+        );
+        assert_eq!(serde_json::from_str::<LicenseRule>(&text).unwrap(), rule);
+        let older: LicenseRule =
+            serde_json::from_str(r#"{"mode":"report","list":null,"ids":[],"unknown":"report"}"#)
+                .unwrap();
+        assert_eq!(older.list, LicenseList::Deny);
+    }
+
+    fn rule(mode: Mode, list: LicenseList, ids: &[&str]) -> LicenseRule {
+        LicenseRule {
+            mode,
+            list,
+            ids: ids.iter().map(|id| (*id).to_owned()).collect(),
+            unknown: UnknownLicense::Report,
+        }
+    }
+
+    #[test]
+    fn the_ids_of_a_license_block_are_bounded_and_must_be_license_identifiers() {
+        let many = vec!["MIT"; MAX_LICENSE_IDS];
+        assert!(rule(Mode::Report, LicenseList::Deny, &many).check().is_ok());
+        let too_many = vec!["MIT"; MAX_LICENSE_IDS + 1];
+        let refused = rule(Mode::Report, LicenseList::Deny, &too_many).check();
+        assert!(refused.unwrap_err().contains("at most 200 ids"));
+
+        let long = format!("LicenseRef-{}", "a".repeat(MAX_LICENSE_ID));
+        let refused = rule(Mode::Report, LicenseList::Deny, &[long.as_str()]).check();
+        assert!(refused.unwrap_err().contains("at most 100 characters"));
+        let longest = format!("LicenseRef-{}", "a".repeat(MAX_LICENSE_ID - 11));
+        assert!(
+            rule(Mode::Report, LicenseList::Deny, &[longest.as_str()])
+                .check()
+                .is_ok()
+        );
+
+        for accepted in ["MIT", "Apache-2.0", "GPL-2.0", "LicenseRef-Own"] {
+            assert!(
+                rule(Mode::Block, LicenseList::Allow, &[accepted])
+                    .check()
+                    .is_ok(),
+                "{accepted}"
+            );
+        }
+        for refused in ["Not-A-License", "GPLv3", "MIT OR ISC", "MIT License", ""] {
+            let message = rule(Mode::Report, LicenseList::Deny, &["MIT", refused])
+                .check()
+                .unwrap_err();
+            assert!(message.contains("is not a license identifier"), "{refused}");
+        }
+        assert!(rule(Mode::Block, LicenseList::Allow, &[]).check().is_err());
+        assert!(rule(Mode::Block, LicenseList::Deny, &[]).check().is_ok());
+        assert!(rule(Mode::Report, LicenseList::Allow, &[]).check().is_ok());
+    }
+
+    #[test]
+    fn the_strictest_mode_of_the_judged_rules_decides_what_the_gate_does() {
+        let mut policy = Policy {
+            name: "p".to_owned(),
+            notes: String::new(),
+            vulnerabilities: VulnerabilityRule::default(),
+            licenses: LicenseRule::default(),
+            signatures: SignatureRule {
+                mode: Mode::Block,
+                keys: Vec::new(),
+            },
+            revision: 1,
+        };
+        assert_eq!(policy.judged_mode(), Mode::Off);
+        policy.licenses.mode = Mode::Report;
+        assert_eq!(policy.judged_mode(), Mode::Report);
+        policy.vulnerabilities.mode = Mode::Block;
+        assert_eq!(policy.judged_mode(), Mode::Block);
+        policy.vulnerabilities.mode = Mode::Off;
+        policy.licenses.mode = Mode::Block;
+        assert_eq!(policy.judged_mode(), Mode::Block);
     }
 
     #[test]
