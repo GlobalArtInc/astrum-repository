@@ -85,6 +85,16 @@ pub fn is_index(media_type: &str) -> bool {
     media_type == OCI_INDEX || media_type == DOCKER_LIST
 }
 
+pub fn layer_types(bytes: &[u8]) -> Vec<String> {
+    serde_json::from_slice::<RawManifest>(bytes)
+        .ok()
+        .and_then(|raw| raw.layers)
+        .unwrap_or_default()
+        .into_iter()
+        .map(|layer| layer.media_type)
+        .collect()
+}
+
 pub fn bare(content_type: &str) -> String {
     content_type
         .split(';')

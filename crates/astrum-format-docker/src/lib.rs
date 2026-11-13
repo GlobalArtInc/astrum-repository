@@ -1,4 +1,5 @@
 mod auth;
+pub mod children;
 mod error;
 pub mod gc;
 pub mod import;
@@ -6,6 +7,7 @@ mod manifest;
 mod reference;
 mod routes;
 mod storage;
+mod supply;
 mod upload;
 mod upstream;
 
@@ -569,6 +571,12 @@ impl Docker {
             .map_err(|_| RegistryError::too_large(MANIFEST_LIMIT))?;
         let parsed = manifest::parse(&bytes, content_type.as_deref())
             .map_err(RegistryError::manifest_invalid)?;
+        if parsed.children.len() > children::LIMIT {
+            return Err(RegistryError::manifest_invalid(format!(
+                "an index may list at most {} manifests",
+                children::LIMIT
+            )));
+        }
         let digest = match &reference {
             Reference::Digest(digest) => {
                 if !digest.matches_bytes(&bytes) {
@@ -690,6 +698,9 @@ impl Docker {
             let put = storage::manifest_put(image, tag, digest, parsed, Some(tag));
             store::adopt(target, put, &written).await?;
         }
+        if manifest::is_index(&parsed.media_type) {
+            children::replace(target.db(), target.name(), digest, &parsed.children).await?;
+        }
         Ok(())
     }
 
@@ -763,12 +774,16 @@ impl Docker {
                     doomed.push(found);
                 }
             }
+            let stored = own.is_some();
             if let Some(own) = own {
                 doomed.push(own);
             }
             for asset in doomed {
                 store::delete_asset(&ctx.content, asset).await?;
                 deleted = true;
+            }
+            if stored {
+                children::forget(ctx.db(), ctx.name(), &current.to_string()).await?;
             }
         }
         Ok(deleted)
