@@ -73,6 +73,7 @@ const sidebar: DefaultTheme.SidebarItem[] = [
       { text: 'Blob stores', link: '/configure/blob-stores' },
       { text: 'Reverse proxy and TLS', link: '/configure/reverse-proxy' },
       { text: 'Users, realms and sign-in', link: '/configure/authentication' },
+      { text: 'Two-factor authentication', link: '/configure/two-factor' },
       { text: 'Outbound HTTP and proxy', link: '/configure/outbound-http' },
       { text: 'SSL certificates', link: '/configure/ssl-certificates' },
       { text: 'Capabilities', link: '/configure/capabilities' },

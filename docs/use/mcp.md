@@ -84,13 +84,16 @@ counted per client address.
 | `request_upload` | Gives a one-time `PUT` address for a file; the agent then sends the file with `curl` ([Upload a package](#upload-a-package)) | the right to add to some repository |
 | `upload_component` | Uploads a file of up to 64 KiB given inline as base64 | the right to add to some repository |
 | `list_users`, `list_roles`, `list_privileges` | Users with their roles; roles with their privileges and the roles they include; privileges, filtered by repository, format or name | `astrum:users:read`, `astrum:roles:read`, `astrum:privileges:read` |
+| `get_two_factor_status` | Takes `userId`. Whether the user has an authenticator app set up, how many recovery codes are left, the requirement that applies and whether sign-in is locked; see [two-factor authentication](../configure/two-factor.md) | `astrum:users:read` |
+| `get_two_factor_policy` | No arguments. The methods that are on, who must have a second factor, the grace period and when the requirement was last widened | `astrum:*`; not offered to Read tokens |
 | `create_role`, `update_role` | Creates a role, or adds and takes away its privileges and included roles; built-in roles stay as they are | `astrum:roles:create`, `astrum:roles:update` |
 | `set_user_roles` | Gives roles to a user or takes them away, keeping the other details of the user | `astrum:users:update`, and the right to grant the roles |
 
 The tools that change the server are only offered to Write tokens, and every tool is only listed when the
 user holds the rights it needs; the server checks those rights again on every call. The only tools that
 add components are the two upload tools; nothing deletes components, repositories, blob stores or users,
-and nothing touches security settings.
+and nothing touches security settings. The two second-factor tools only read; no tool sets up, removes or
+resets a second factor.
 
 The server also offers two prompts: `diagnose_space`, which walks the agent through finding where the
 space went and what to do about it, and `find_artifact`, which finds a package and how to use its latest
