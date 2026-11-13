@@ -195,7 +195,7 @@ fn defs() -> Vec<Def> {
         Def {
             name: "list_blob_stores",
             title: "Blob stores and space",
-            description: "Every blob store with its type, blob count, size used, free space, soft quota state, the repositories that use it and the group it belongs to.",
+            description: "Every blob store with its type, blob count, size used, free space, soft quota state, the fill forecast, the repositories that use it and the group it belongs to.",
             schema: || schema(json!({}), &[]),
             need: Need::Permissions(&["astrum:blobstores:read"]),
             write: false,
@@ -624,8 +624,11 @@ impl Handler for AstrumTools {
             "diagnose_space" => Some((
                 "Find out where the space of Astrum Repository went".to_owned(),
                 "Find out where the space of this Astrum Repository went and what to do about it.\n\
-                 1. Call list_blob_stores: note stores that are unavailable, past a soft quota or low on free space.\n\
-                 2. Call list_repositories and rank the repositories by size; name the five biggest and their stores.\n\
+                 1. Call list_blob_stores: note stores that are unavailable, past a soft quota or low on free space, and read the forecast \
+                 of each store (daysUntilFull, bytesPerDay and its basis, capacity or softQuota): a store that will be full in a few weeks \
+                 needs room before one that is only fuller today.\n\
+                 2. Call list_repositories and rank the repositories by size; name the five biggest and their stores, and note the \
+                 repositories that reached their quota or passed its warning threshold, which the space alert reports as repository problems.\n\
                  3. For big Docker repositories call list_docker_tags on their largest images and count old tags.\n\
                  4. Call list_tasks and check that cleanup, Docker cleanup and compaction tasks exist and ran recently.\n\
                  5. Suggest, in this order: deleting what cleanup policies already allow, running the compaction, and adding room \
@@ -1151,6 +1154,7 @@ async fn list_blob_stores(api: &Loopback) -> Result<Value, ToolError> {
                 "availableBytes": store["availableSpace"],
                 "softQuota": store["softQuota"],
                 "quotaViolation": store["quotaStatus"]["violation"],
+                "forecast": store["forecast"],
                 "repositories": store["repositories"],
                 "repositoryCount": store["repositoryCount"],
                 "groups": store["groups"],

@@ -10,6 +10,7 @@ import { storeTypeName } from '../../repositories/components/EditTabs';
 import {
   configPath,
   convertPath,
+  daysUntilFull,
   deletePath,
   LIST_ADDRESS,
   storeAddress,
@@ -118,6 +119,7 @@ export default function BlobStorePage() {
   }
 
   const refusal = deleteRefusal(t, store);
+  const fullInDays = daysUntilFull(store);
   const remove = async () => {
     const agreed = await confirm({
       title: t('blobstores.delete.title', { name }),
@@ -188,6 +190,19 @@ export default function BlobStorePage() {
               <CircleAlert size={16} />
             </Callout.Icon>
             <Callout.Text>{t('blobstores.edit.unavailable')}</Callout.Text>
+          </Callout.Root>
+        )}
+        {fullInDays !== null && (
+          <Callout.Root color="orange" role="status" className={styles.callout}>
+            <Callout.Icon>
+              <CircleAlert size={16} />
+            </Callout.Icon>
+            <Callout.Text>
+              {t('blobstores.forecast.detail', {
+                count: fullInDays,
+                sampleDays: store.forecast?.sampleDays ?? 0,
+              })}
+            </Callout.Text>
           </Callout.Root>
         )}
         <Callout.Root className={styles.callout} variant="surface">

@@ -71,6 +71,21 @@ describe('capability forms', () => {
     });
   });
 
+  it('keep the forecast days of the space alert between 0 and 365', () => {
+    const space: CapabilityType = {
+      id: 'blobstores.space',
+      name: 'Blob Stores: Space Alert',
+      about: '',
+      formFields: [field('forecastDays', 'number', { initialValue: '14', minValue: '0', maxValue: '365' })],
+    };
+    const check = (value: string) =>
+      validateCapability(t, space, { enabled: true, notes: '', properties: { forecastDays: value } });
+    expect(check('0')).toEqual({});
+    expect(check('365')).toEqual({});
+    expect(check('366')).toEqual({ forecastDays: '“forecastDays” must be at most 365' });
+    expect(check('-1')).toEqual({ forecastDays: '“forecastDays” must be at least 0' });
+  });
+
   it('turn the about text into paragraphs', () => {
     expect(aboutParagraphs('First line.\n\n<p>Second <em>part</em>.</p>')).toEqual([
       'First line.',

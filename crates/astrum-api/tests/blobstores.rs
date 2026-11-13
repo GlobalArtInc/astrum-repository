@@ -187,6 +187,12 @@ async fn every_endpoint_needs_the_matching_permission() {
             true,
         ),
         (
+            Method::GET,
+            format!("{BLOBSTORES}/default/forecast"),
+            None,
+            true,
+        ),
+        (
             Method::POST,
             format!("{BLOBSTORES}/file"),
             Some(file.clone()),
@@ -454,6 +460,64 @@ async fn file_requests_are_validated() {
     );
 }
 
+async fn seed_usage(fixture: &Fixture, store: &str, bytes: &[i64]) {
+    let today = chrono::Utc::now().date_naive();
+    for (index, total) in bytes.iter().enumerate() {
+        let day = today - chrono::Duration::days((bytes.len() - index) as i64);
+        astrum_db::entity::blob_store_usage_day::Entity::insert(
+            astrum_db::entity::blob_store_usage_day::ActiveModel {
+                store: ActiveValue::Set(store.to_owned()),
+                day: ActiveValue::Set(day),
+                blob_count: ActiveValue::Set(0),
+                total_bytes: ActiveValue::Set(*total),
+                available_bytes: ActiveValue::Set(None),
+            },
+        )
+        .exec(fixture.state.db().conn())
+        .await
+        .unwrap();
+    }
+}
+
+#[tokio::test]
+async fn the_forecast_follows_the_daily_snapshots_and_the_room_left() {
+    let fixture = Fixture::new().await;
+    with_default(&fixture).await;
+    let path = format!("{BLOBSTORES}/default/forecast");
+
+    let reply = fixture.call(Method::GET, &path, Auth::Admin, None).await;
+    assert_eq!(reply.status, StatusCode::OK, "{}", reply.text());
+    assert_eq!(
+        reply.json(),
+        json!({"daysUntilFull": null, "bytesPerDay": null, "basis": "capacity", "sampleDays": 0})
+    );
+
+    let created = create_file(
+        &fixture,
+        json!({"name": "quota", "path": "quota", "softQuota": {"type": "spaceUsedQuota", "limit": 10000}}),
+    )
+    .await;
+    assert_eq!(created.status, StatusCode::NO_CONTENT, "{}", created.text());
+    seed_usage(
+        &fixture,
+        "quota",
+        &[0, 1000, 2000, 3000, 4000, 5000, 6000, 7000],
+    )
+    .await;
+    let reply = fixture
+        .call(
+            Method::GET,
+            &format!("{BLOBSTORES}/quota/forecast"),
+            Auth::Admin,
+            None,
+        )
+        .await;
+    assert_eq!(
+        reply.json(),
+        json!({"daysUntilFull": 10.0, "bytesPerDay": 1000.0, "basis": "softQuota", "sampleDays": 8})
+    );
+}
+
 #[tokio::test]
 async fn names_are_matched_exactly_in_paths() {
     let fixture = Fixture::new().await;
@@ -462,6 +526,8 @@ async fn names_are_matched_exactly_in_paths() {
         format!("{BLOBSTORES}/file/DEFAULT"),
         format!("{BLOBSTORES}/DEFAULT/quota-status"),
         format!("{BLOBSTORES}/nope/quota-status"),
+        format!("{BLOBSTORES}/DEFAULT/forecast"),
+        format!("{BLOBSTORES}/nope/forecast"),
     ] {
         let reply = fixture.call(Method::GET, &path, Auth::Admin, None).await;
         assert_eq!(reply.status, StatusCode::NOT_FOUND, "{path}");

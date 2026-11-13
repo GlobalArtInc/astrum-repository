@@ -2,6 +2,7 @@ pub mod auth;
 pub mod base_url;
 pub mod domains;
 pub mod error;
+pub mod forecast;
 pub mod github;
 pub mod json;
 pub mod limits;

@@ -74,6 +74,11 @@ fn field(
     })
 }
 
+fn bounded(mut field: Value, max: &str) -> Value {
+    field["maxValue"] = json!(max);
+    field
+}
+
 fn type_json(kind: &str) -> Value {
     let (about, fields) = match kind {
         BASE_URL => (
@@ -169,7 +174,7 @@ fn type_json(kind: &str) -> Value {
             )],
         ),
         SPACE_ALERT => (
-            "Watches the free space of the blob stores and sends a message to notification channels when a store runs low, passes its soft quota or cannot be reached, and again when the problem is over.\n\n<p>File, remote and group stores tell their free space; S3 stores only take part through their quota and their reachability.</p>",
+            "Watches the free space of the blob stores and sends a message to notification channels when a store runs low, passes its soft quota, cannot be reached or is forecast to fill up soon, when a repository nears or reaches its quota, and again when the problem is over.\n\n<p>File, remote and group stores tell their free space; S3 stores only take part through their quota and their reachability.</p>",
             vec![
                 field(
                     "minimumFree",
@@ -206,6 +211,18 @@ fn type_json(kind: &str) -> Value {
                     true,
                     Some("24"),
                     Some("0"),
+                ),
+                bounded(
+                    field(
+                        "forecastDays",
+                        "number",
+                        "Forecast alert (days)",
+                        "Alert when the growth of the last 30 days fills a blob store within this many days; 0 turns the forecast alert off",
+                        true,
+                        Some("14"),
+                        Some("0"),
+                    ),
+                    "365",
                 ),
                 field(
                     "quota",
@@ -395,6 +412,7 @@ async fn load(state: &AppState, kind: &str) -> Result<Option<Stored>, ApiError> 
                     ("channels".to_owned(), text(alert.channels.join(", "))),
                     ("interval".to_owned(), text(alert.interval_minutes)),
                     ("repeat".to_owned(), text(alert.repeat_hours)),
+                    ("forecastDays".to_owned(), text(alert.forecast_days)),
                     ("quota".to_owned(), text(alert.quota)),
                     ("unavailable".to_owned(), text(alert.unavailable)),
                     ("recovery".to_owned(), text(alert.recovery)),
@@ -496,6 +514,17 @@ fn number(
     default: u32,
     min: u32,
 ) -> Result<u32, ApiError> {
+    bounded_number(properties, name, label, default, min, u32::MAX)
+}
+
+fn bounded_number(
+    properties: &Map<String, Value>,
+    name: &str,
+    label: &str,
+    default: u32,
+    min: u32,
+    max: u32,
+) -> Result<u32, ApiError> {
     let Some(value) = property(properties, name).filter(|value| !value.trim().is_empty()) else {
         return Ok(default);
     };
@@ -509,6 +538,12 @@ fn number(
         return Err(ApiError::invalid(
             format!("properties.{name}"),
             format!("{label} must be at least {min}"),
+        ));
+    }
+    if parsed > max {
+        return Err(ApiError::invalid(
+            format!("properties.{name}"),
+            format!("{label} must be at most {max}"),
         ));
     }
     Ok(parsed)
@@ -665,6 +700,14 @@ async fn save(state: &AppState, kind: &str, xo: &CapabilityXo) -> Result<(), Api
                     "Repeat after",
                     defaults.repeat_hours,
                     0,
+                )?,
+                forecast_days: bounded_number(
+                    properties,
+                    "forecastDays",
+                    "Forecast alert",
+                    defaults.forecast_days,
+                    0,
+                    365,
                 )?,
                 quota: flag(properties, "quota", defaults.quota),
                 unavailable: flag(properties, "unavailable", defaults.unavailable),

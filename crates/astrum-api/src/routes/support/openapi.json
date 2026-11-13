@@ -1346,6 +1346,34 @@
         },
         "type": "object"
       },
+      "BlobStoreForecastXO": {
+        "properties": {
+          "basis": {
+            "enum": [
+              "capacity",
+              "softQuota"
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "bytesPerDay": {
+            "nullable": true,
+            "type": "number"
+          },
+          "daysUntilFull": {
+            "nullable": true,
+            "type": "number"
+          },
+          "sampleDays": {
+            "format": "int32",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "sampleDays"
+        ],
+        "type": "object"
+      },
       "BlobStoreQuotaResultXO": {
         "properties": {
           "blobStoreName": {
@@ -6727,6 +6755,36 @@
           }
         },
         "summary": "Delete blob stores",
+        "tags": [
+          "Blob store"
+        ]
+      }
+    },
+    "/v1/blobstores/{name}/forecast": {
+      "get": {
+        "operationId": "getV1BlobstoresNameForecast",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlobStoreForecastXO"
+                }
+              }
+            }
+          }
+        },
+        "summary": "List blob stores forecast",
         "tags": [
           "Blob store"
         ]
