@@ -13,6 +13,8 @@ use uuid::Uuid;
 use crate::ContentError;
 
 pub const TRANSFER: &str = "transfer";
+pub const TIERING: &str = "tiering";
+pub const RETIRED: &str = "retired";
 
 const HOLD: &str = "INSERT INTO blob_hold (blob_store, blob_id, reason, held_until) \
      VALUES ($1, $2, $3, now() + make_interval(secs => $4)) \
@@ -75,6 +77,16 @@ pub async fn hold(
     id: BlobId,
     ttl: Duration,
 ) -> Result<(), HoldError> {
+    hold_for(db, store, id, ttl, TRANSFER).await
+}
+
+pub async fn hold_for(
+    db: &impl ConnectionTrait,
+    store: &str,
+    id: BlobId,
+    ttl: Duration,
+    reason: &str,
+) -> Result<(), HoldError> {
     let inserted = db
         .execute(Statement::from_sql_and_values(
             DbBackend::Postgres,
@@ -82,7 +94,7 @@ pub async fn hold(
             [
                 store.into(),
                 id.uuid().into(),
-                TRANSFER.into(),
+                reason.into(),
                 ttl.as_secs_f64().into(),
             ],
         ))

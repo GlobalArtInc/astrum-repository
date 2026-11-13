@@ -13,6 +13,10 @@ use crate::{Error, RemoteSettings, S3Settings, SoftQuota};
 
 const RESTRICT_VIOLATION: &str = "23001";
 
+const LOCK_STORE: &str = "SELECT 1 AS locked FROM blob_store WHERE name = $1 FOR UPDATE";
+
+const NAMED_BY_ASSET: &str = "SELECT EXISTS (SELECT 1 FROM asset WHERE blob_store = $1) AS named";
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum StoreKind {
     File,
@@ -246,23 +250,57 @@ pub async fn update(db: &impl ConnectionTrait, config: &StoreConfig) -> Result<b
     Ok(result.rows_affected > 0)
 }
 
-pub async fn delete(db: &impl ConnectionTrait, name: &str) -> Result<bool, Error> {
-    let in_group = list(db)
+pub async fn delete(
+    db: &(impl ConnectionTrait + TransactionTrait),
+    name: &str,
+) -> Result<bool, Error> {
+    let txn = db.begin().await?;
+    let locked = txn
+        .query_one(Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            LOCK_STORE,
+            [name.into()],
+        ))
+        .await?;
+    if locked.is_none() {
+        txn.rollback().await?;
+        return Ok(false);
+    }
+    let in_group = list(&txn)
         .await?
         .iter()
         .filter_map(StoreConfig::group)
         .any(|group| group.members.iter().any(|member| member == name));
-    if in_group {
+    if in_group || named_by_asset(&txn, name).await? {
+        txn.rollback().await?;
         return Err(Error::InUse(name.to_owned()));
     }
     match blob_store::Entity::delete_by_id(name.to_owned())
-        .exec(db)
+        .exec(&txn)
         .await
     {
-        Ok(result) => Ok(result.rows_affected > 0),
-        Err(error) if still_referenced(&error) => Err(Error::InUse(name.to_owned())),
+        Ok(result) => {
+            txn.commit().await?;
+            Ok(result.rows_affected > 0)
+        }
+        Err(error) if still_referenced(&error) => {
+            txn.rollback().await?;
+            Err(Error::InUse(name.to_owned()))
+        }
         Err(error) => Err(error.into()),
     }
+}
+
+async fn named_by_asset(db: &impl ConnectionTrait, name: &str) -> Result<bool, Error> {
+    let row = db
+        .query_one(Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            NAMED_BY_ASSET,
+            [name.into()],
+        ))
+        .await?
+        .ok_or_else(|| DbErr::RecordNotFound("the asset check returned no row".to_owned()))?;
+    Ok(row.try_get::<bool>("", "named")?)
 }
 
 pub async fn promote(
