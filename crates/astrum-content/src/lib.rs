@@ -13,6 +13,7 @@ mod request;
 pub mod routing;
 mod serve;
 pub mod store;
+pub mod tiering;
 pub mod transfer;
 pub mod usage;
 pub mod zip;
