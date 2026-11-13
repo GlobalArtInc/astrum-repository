@@ -284,6 +284,7 @@ dependencies = [
  "md-5 0.10.6",
  "percent-encoding",
  "prost",
+ "regex",
  "reqwest",
  "rustix",
  "sea-orm",

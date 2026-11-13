@@ -7,6 +7,7 @@ pub const ANONYMOUS_ROLE: &str = "as-anonymous";
 pub const ADMIN_USER: &str = "admin";
 pub const ANONYMOUS_USER: &str = "anonymous";
 pub const DEFAULT_SOURCE: &str = "default";
+pub const REPLICATION_RECEIVE: &str = "as-replication-receive";
 
 type Application = (&'static str, &'static str, &'static [Action], &'static str);
 
@@ -265,6 +266,30 @@ const APPLICATION: &[Application] = &[
         "Change privileges",
     ),
     (
+        "as-replication-create",
+        "replication",
+        &[Action::Add, Action::Read],
+        "Create replication remotes and replications",
+    ),
+    (
+        "as-replication-delete",
+        "replication",
+        &[Action::Delete, Action::Read],
+        "Delete replication remotes and replications",
+    ),
+    (
+        "as-replication-read",
+        "replication",
+        &[Action::Read],
+        "Read replication remotes and replications",
+    ),
+    (
+        "as-replication-update",
+        "replication",
+        &[Action::Edit, Action::Read],
+        "Change replication remotes and replications",
+    ),
+    (
         "as-roles-all",
         "roles",
         &[Action::All],
@@ -494,6 +519,14 @@ pub fn builtin_privileges<'a>(formats: impl IntoIterator<Item = &'a str>) -> Vec
             pattern: "astrum:*".to_owned(),
         },
     }];
+    privileges.push(Privilege {
+        id: REPLICATION_RECEIVE.to_owned(),
+        description: "Receive replicated components from another server".to_owned(),
+        read_only: true,
+        kind: PrivilegeKind::Wildcard {
+            pattern: "astrum:replication:receive".to_owned(),
+        },
+    });
     privileges.extend(
         APPLICATION
             .iter()
@@ -597,6 +630,7 @@ mod tests {
     use std::collections::BTreeSet;
 
     use super::*;
+    use crate::permission::Permission;
 
     #[test]
     fn the_catalogue_has_the_names_existing_installations_use() {
@@ -624,7 +658,7 @@ mod tests {
             !ids.contains("as-healthcheck-read"),
             "the old server names it in the anonymous role but does not list it"
         );
-        assert_eq!(privileges.len(), 1 + 76 + 12 + 12);
+        assert_eq!(privileges.len(), 1 + 1 + 80 + 12 + 12);
         assert!(
             privileges
                 .iter()
@@ -700,6 +734,7 @@ mod tests {
         };
         let ours: Vec<serde_json::Value> = builtin_privileges(formats)
             .iter()
+            .filter(|privilege| !privilege.id.starts_with("as-replication-"))
             .map(|privilege| {
                 let mut value = privilege.kind.properties();
                 let map = value.as_object_mut().unwrap();
@@ -718,6 +753,41 @@ mod tests {
         assert_eq!(actual.len(), expected.len());
         for (actual, expected) in actual.iter().zip(&expected) {
             assert_eq!(actual, expected);
+        }
+    }
+
+    #[test]
+    fn replication_privileges_grant_their_own_permissions() {
+        let privileges = builtin_privileges(["maven2"]);
+        let permission = |id: &str| {
+            privileges
+                .iter()
+                .find(|privilege| privilege.id == id)
+                .and_then(|privilege| privilege.permission())
+                .unwrap()
+                .to_string()
+        };
+        assert_eq!(
+            permission("as-replication-update"),
+            "astrum:replication:read,update"
+        );
+        assert_eq!(
+            permission(REPLICATION_RECEIVE),
+            "astrum:replication:receive"
+        );
+        let receive = Permission::parse("astrum:replication:receive").unwrap();
+        for id in [
+            "as-replication-read",
+            "as-replication-create",
+            "as-replication-update",
+            "as-replication-delete",
+        ] {
+            let granted = privileges
+                .iter()
+                .find(|privilege| privilege.id == id)
+                .and_then(|privilege| privilege.permission())
+                .unwrap();
+            assert!(!granted.implies(&receive), "{id}");
         }
     }
 

@@ -615,6 +615,296 @@
     ]
    }
   },
+  "/v1/replication/remotes": {
+   "get": {
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/ReplicationRemoteXO"
+         },
+         "type": "array"
+        }
+       }
+      }
+     },
+     "403": {}
+    },
+    "tags": [
+     "Replication"
+    ]
+   },
+   "post": {
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ReplicationRemoteRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ReplicationRemoteXO"
+        }
+       }
+      }
+     },
+     "400": {},
+     "403": {},
+     "409": {}
+    },
+    "tags": [
+     "Replication"
+    ]
+   }
+  },
+  "/v1/replication/remotes/{id}": {
+   "delete": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "id",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid"
+      }
+     }
+    ],
+    "responses": {
+     "204": {},
+     "403": {},
+     "404": {},
+     "409": {}
+    },
+    "tags": [
+     "Replication"
+    ]
+   },
+   "get": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "id",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ReplicationRemoteXO"
+        }
+       }
+      }
+     },
+     "403": {},
+     "404": {}
+    },
+    "tags": [
+     "Replication"
+    ]
+   },
+   "put": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "id",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ReplicationRemoteRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ReplicationRemoteXO"
+        }
+       }
+      }
+     },
+     "400": {},
+     "403": {},
+     "404": {},
+     "409": {}
+    },
+    "tags": [
+     "Replication"
+    ]
+   }
+  },
+  "/v1/replications": {
+   "get": {
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/ReplicationXO"
+         },
+         "type": "array"
+        }
+       }
+      }
+     },
+     "403": {}
+    },
+    "tags": [
+     "Replication"
+    ]
+   },
+   "post": {
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ReplicationRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ReplicationXO"
+        }
+       }
+      }
+     },
+     "400": {},
+     "403": {},
+     "409": {}
+    },
+    "tags": [
+     "Replication"
+    ]
+   }
+  },
+  "/v1/replications/{id}": {
+   "delete": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "id",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid"
+      }
+     }
+    ],
+    "responses": {
+     "204": {},
+     "403": {},
+     "404": {},
+     "409": {}
+    },
+    "tags": [
+     "Replication"
+    ]
+   },
+   "get": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "id",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ReplicationXO"
+        }
+       }
+      }
+     },
+     "403": {},
+     "404": {}
+    },
+    "tags": [
+     "Replication"
+    ]
+   },
+   "put": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "id",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ReplicationRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ReplicationXO"
+        }
+       }
+      }
+     },
+     "400": {},
+     "403": {},
+     "404": {},
+     "409": {}
+    },
+    "tags": [
+     "Replication"
+    ]
+   }
+  },
   "/v1/repositories": {
    "get": {
     "responses": {
@@ -17446,6 +17736,254 @@
      "preemptivePullEnabled"
     ],
     "type": "object"
+   },
+   "ReplicationRemoteRequest": {
+    "type": "object",
+    "required": [
+     "name",
+     "url"
+    ],
+    "properties": {
+     "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100
+     },
+     "url": {
+      "type": "string"
+     },
+     "token": {
+      "type": "string",
+      "writeOnly": true,
+      "description": "Required on create. On update, absent or null keeps the stored value."
+     },
+     "useTrustStore": {
+      "type": "boolean"
+     },
+     "allowPrivateNetwork": {
+      "type": "boolean"
+     },
+     "maxConcurrency": {
+      "type": "integer",
+      "format": "int32",
+      "minimum": 1,
+      "maximum": 16,
+      "default": 2
+     },
+     "maxBytesPerSecond": {
+      "type": "integer",
+      "format": "int64",
+      "minimum": 1,
+      "nullable": true
+     }
+    }
+   },
+   "ReplicationRemoteXO": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid"
+     },
+     "name": {
+      "type": "string"
+     },
+     "url": {
+      "type": "string"
+     },
+     "hasToken": {
+      "type": "boolean"
+     },
+     "useTrustStore": {
+      "type": "boolean"
+     },
+     "allowPrivateNetwork": {
+      "type": "boolean"
+     },
+     "maxConcurrency": {
+      "type": "integer",
+      "format": "int32"
+     },
+     "maxBytesPerSecond": {
+      "type": "integer",
+      "format": "int64",
+      "nullable": true
+     },
+     "remoteInstanceId": {
+      "type": "string",
+      "format": "uuid",
+      "nullable": true
+     },
+     "remoteVersion": {
+      "type": "string",
+      "nullable": true
+     },
+     "checkedAt": {
+      "type": "string",
+      "format": "date-time",
+      "nullable": true
+     },
+     "createdAt": {
+      "type": "string",
+      "format": "date-time"
+     },
+     "updatedAt": {
+      "type": "string",
+      "format": "date-time"
+     }
+    }
+   },
+   "ReplicationRequest": {
+    "type": "object",
+    "required": [
+     "name",
+     "sourceRepository",
+     "remoteId",
+     "remoteRepository"
+    ],
+    "properties": {
+     "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100
+     },
+     "sourceRepository": {
+      "type": "string"
+     },
+     "remoteId": {
+      "type": "string",
+      "format": "uuid"
+     },
+     "remoteRepository": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+     },
+     "enabled": {
+      "type": "boolean",
+      "default": true
+     },
+     "nameFilter": {
+      "type": "string",
+      "maxLength": 10240,
+      "nullable": true
+     },
+     "versionFilter": {
+      "type": "string",
+      "maxLength": 10240,
+      "nullable": true
+     },
+     "propagateDeletes": {
+      "type": "boolean",
+      "default": false
+     },
+     "settleSeconds": {
+      "type": "integer",
+      "format": "int32",
+      "minimum": 0,
+      "maximum": 3600,
+      "default": 30
+     },
+     "reconcileMinutes": {
+      "type": "integer",
+      "format": "int32",
+      "minimum": 5,
+      "default": 360
+     },
+     "alertChannels": {
+      "type": "array",
+      "items": {
+       "type": "string",
+       "format": "uuid"
+      }
+     }
+    }
+   },
+   "ReplicationXO": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid"
+     },
+     "name": {
+      "type": "string"
+     },
+     "sourceRepository": {
+      "type": "string"
+     },
+     "remoteId": {
+      "type": "string",
+      "format": "uuid"
+     },
+     "remoteRepository": {
+      "type": "string"
+     },
+     "enabled": {
+      "type": "boolean"
+     },
+     "nameFilter": {
+      "type": "string",
+      "nullable": true
+     },
+     "versionFilter": {
+      "type": "string",
+      "nullable": true
+     },
+     "propagateDeletes": {
+      "type": "boolean"
+     },
+     "settleSeconds": {
+      "type": "integer",
+      "format": "int32"
+     },
+     "reconcileMinutes": {
+      "type": "integer",
+      "format": "int32"
+     },
+     "alertChannels": {
+      "type": "array",
+      "items": {
+       "type": "string",
+       "format": "uuid"
+      }
+     },
+     "alertState": {
+      "type": "string",
+      "enum": [
+       "ok",
+       "failing",
+       "dead_items"
+      ]
+     },
+     "lastSuccessAt": {
+      "type": "string",
+      "format": "date-time",
+      "nullable": true
+     },
+     "lastFailureAt": {
+      "type": "string",
+      "format": "date-time",
+      "nullable": true
+     },
+     "lastError": {
+      "type": "string",
+      "nullable": true
+     },
+     "lastReconcileAt": {
+      "type": "string",
+      "format": "date-time",
+      "nullable": true
+     },
+     "createdAt": {
+      "type": "string",
+      "format": "date-time"
+     },
+     "updatedAt": {
+      "type": "string",
+      "format": "date-time"
+     }
+    }
    },
    "RepositoriesForVersionResponse": {
     "properties": {
