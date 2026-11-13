@@ -274,8 +274,22 @@ impl Format for Npm {
             Route::Tarball { name, file } => {
                 let path = name.tarball_path(&file);
                 let version = name.version_of_file(&file);
+                let published = match &version {
+                    Some(version) if ctx.kind() == RepositoryType::Proxy => {
+                        documents::cached_date(ctx, &name, &path, version).await?
+                    }
+                    _ => None,
+                };
                 astrum_content::fetch(self, ctx, &path, Freshness::Content, || {
-                    documents::tarball_put(&name, PutAsset::cached(path.clone()), version.clone())
+                    let put = documents::tarball_put(
+                        &name,
+                        PutAsset::cached(path.clone()),
+                        version.clone(),
+                    );
+                    match published {
+                        Some(at) => put.published(at),
+                        None => put,
+                    }
                 })
                 .await
             }
