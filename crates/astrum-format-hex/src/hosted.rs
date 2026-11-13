@@ -481,6 +481,7 @@ mod tests {
             last_verified_at: None,
             remote_etag: None,
             remote_last_modified: None,
+            upstream_published_at: None,
         };
         let record = record(&found).unwrap();
         assert_eq!(record.name, "hello");

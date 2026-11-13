@@ -3,7 +3,7 @@ use astrum_policy::Error;
 use astrum_policy::exception::{self, Exception, Rule};
 use astrum_policy::key::{self, TrustedKey};
 use astrum_policy::policy::{
-    self, LicenseList, LicenseRule, Malicious, Mode, Policy, Severity, SignatureRule,
+    self, CooldownRule, LicenseList, LicenseRule, Malicious, Mode, Policy, Severity, SignatureRule,
     UnknownLicense, Unscanned, VulnerabilityRule,
 };
 use astrum_testkit::TestDatabase;
@@ -33,6 +33,7 @@ fn strict(name: &str) -> Policy {
             mode: Mode::Off,
             keys: vec!["release".to_owned()],
         },
+        cooldown: CooldownRule::default(),
         revision: 1,
     }
 }

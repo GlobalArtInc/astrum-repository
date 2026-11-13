@@ -43,6 +43,7 @@ pub struct PutAsset {
     pub write_policy: Option<WritePolicy>,
     pub remote_etag: Option<String>,
     pub remote_last_modified: Option<DateTime<FixedOffset>>,
+    pub upstream_published_at: Option<DateTime<FixedOffset>>,
     pub verified: bool,
 }
 
@@ -90,6 +91,11 @@ impl PutAsset {
 
     pub fn attributes(mut self, attributes: Value) -> Self {
         self.attributes = attributes;
+        self
+    }
+
+    pub fn published(mut self, at: DateTime<FixedOffset>) -> Self {
+        self.upstream_published_at = Some(at);
         self
     }
 }
@@ -341,6 +347,7 @@ async fn record(
         last_verified_at: ActiveValue::Set(put.verified.then_some(now)),
         remote_etag: ActiveValue::Set(put.remote_etag.clone()),
         remote_last_modified: ActiveValue::Set(put.remote_last_modified),
+        upstream_published_at: ActiveValue::Set(put.upstream_published_at),
     };
     let stored = asset::Entity::insert(row)
         .on_conflict(
@@ -364,6 +371,12 @@ async fn record(
                     asset::Column::RemoteEtag,
                     asset::Column::RemoteLastModified,
                 ])
+                .value(
+                    asset::Column::UpstreamPublishedAt,
+                    Expr::cust(
+                        "COALESCE(excluded.upstream_published_at, asset.upstream_published_at)",
+                    ),
+                )
                 .to_owned(),
         )
         .exec_with_returning(&txn)

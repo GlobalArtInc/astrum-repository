@@ -4,7 +4,7 @@ use astrum_policy::Error as PolicyError;
 use astrum_policy::exception::{self, Exception, Rule};
 use astrum_policy::key::{self, TrustedKey};
 use astrum_policy::policy::{
-    self, LicenseList, LicenseRule, Malicious, Mode, Policy, Severity, SignatureRule,
+    self, CooldownRule, LicenseList, LicenseRule, Malicious, Mode, Policy, Severity, SignatureRule,
     UnknownLicense, Unscanned, VulnerabilityRule,
 };
 use astrum_repo::Writer;
@@ -115,6 +115,7 @@ struct PolicyRequest {
     vulnerabilities: Option<VulnerabilityBody>,
     licenses: Option<LicenseBody>,
     signatures: Option<SignatureBody>,
+    cooldown: Option<CooldownRule>,
 }
 
 #[derive(Deserialize)]
@@ -196,6 +197,7 @@ struct Blocks {
     vulnerabilities: Option<VulnerabilityRule>,
     licenses: Option<LicenseRule>,
     signatures: Option<SignatureRule>,
+    cooldown: Option<CooldownRule>,
 }
 
 impl PolicyRequest {
@@ -206,6 +208,7 @@ impl PolicyRequest {
             vulnerabilities: self.vulnerabilities.map(|body| body.into_rule(validation)),
             licenses: self.licenses.map(|body| body.into_rule(validation)),
             signatures: self.signatures.map(|body| body.into_rule(validation)),
+            cooldown: self.cooldown,
         };
         if let Some(notes) = &blocks.notes {
             check_text("notes", notes, MAX_NOTES, true, validation);
@@ -299,6 +302,7 @@ fn audited(policy: &Policy) -> Value {
         "vulnerabilities": policy.vulnerabilities,
         "licenses": policy.licenses,
         "signatures": policy.signatures,
+        "cooldown": policy.cooldown,
     })
 }
 
@@ -346,6 +350,7 @@ async fn create_policy(
         vulnerabilities: blocks.vulnerabilities.unwrap_or_default(),
         licenses: blocks.licenses.unwrap_or_default(),
         signatures: blocks.signatures.unwrap_or_default(),
+        cooldown: blocks.cooldown.unwrap_or_default(),
         revision: 1,
     };
     check_name(&policy.name, &mut validation);
@@ -407,6 +412,7 @@ async fn update_policy(
         signatures: blocks
             .signatures
             .unwrap_or_else(|| current.signatures.clone()),
+        cooldown: blocks.cooldown.unwrap_or_else(|| current.cooldown.clone()),
         revision: current.revision,
     };
     if policy == current {

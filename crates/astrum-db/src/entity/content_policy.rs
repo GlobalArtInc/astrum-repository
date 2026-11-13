@@ -9,6 +9,7 @@ pub struct Model {
     pub vulnerabilities: Json,
     pub licenses: Json,
     pub signatures: Json,
+    pub cooldown: Json,
     pub revision: i64,
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,

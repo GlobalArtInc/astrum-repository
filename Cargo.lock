@@ -370,6 +370,7 @@ dependencies = [
  "astrum-blob",
  "astrum-db",
  "astrum-outbound",
+ "astrum-policy",
  "astrum-repo",
  "astrum-security",
  "astrum-testkit",
