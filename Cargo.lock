@@ -707,6 +707,7 @@ dependencies = [
  "astrum-content",
  "astrum-db",
  "astrum-repo",
+ "astrum-sbom",
  "astrum-security",
  "astrum-tasks",
  "async-trait",
@@ -1538,6 +1539,16 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
+]
+
+[[package]]
+name = "astrum-sbom"
+version = "3.0.4"
+dependencies = [
+ "base64 0.22.1",
+ "serde",
+ "serde_json",
+ "thiserror",
 ]
 
 [[package]]

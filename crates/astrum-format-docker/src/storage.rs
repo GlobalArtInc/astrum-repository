@@ -278,6 +278,27 @@ pub async fn read_all(ctx: &Ctx, asset: &Asset, limit: usize) -> Result<Vec<u8>,
     Ok(collected)
 }
 
+pub async fn read_capped(ctx: &Ctx, asset: &Asset, limit: usize) -> Result<Vec<u8>, ContentError> {
+    let store = ctx.content.blob_stores().get(&asset.blob_store).await?;
+    let Some(content) = store.read(asset.blob_id.into()).await? else {
+        return Err(ContentError::not_found(format!(
+            "the blob of {} is missing",
+            asset.path
+        )));
+    };
+    let mut stream = content.stream;
+    let mut collected = Vec::with_capacity(asset.size.clamp(0, limit as i64 + 1) as usize);
+    while let Some(chunk) = stream.try_next().await.map_err(ContentError::internal)? {
+        let room = limit + 1 - collected.len();
+        if chunk.len() >= room {
+            collected.extend_from_slice(&chunk[..room]);
+            break;
+        }
+        collected.extend_from_slice(&chunk);
+    }
+    Ok(collected)
+}
+
 pub async fn stream_of(ctx: &Ctx, asset: &Asset) -> Result<ContentStream, ContentError> {
     let store = ctx.content.blob_stores().get(&asset.blob_store).await?;
     store

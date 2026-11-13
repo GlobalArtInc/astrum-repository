@@ -95,6 +95,27 @@ pub fn layer_types(bytes: &[u8]) -> Vec<String> {
         .collect()
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Layer {
+    pub media_type: String,
+    pub digest: Digest,
+}
+
+pub fn layers(bytes: &[u8]) -> Vec<Layer> {
+    serde_json::from_slice::<RawManifest>(bytes)
+        .ok()
+        .and_then(|raw| raw.layers)
+        .unwrap_or_default()
+        .into_iter()
+        .filter_map(|layer| {
+            Some(Layer {
+                digest: Digest::parse(&layer.digest)?,
+                media_type: layer.media_type,
+            })
+        })
+        .collect()
+}
+
 pub fn bare(content_type: &str) -> String {
     content_type
         .split(';')

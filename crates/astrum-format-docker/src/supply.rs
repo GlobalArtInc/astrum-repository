@@ -8,7 +8,7 @@ use serde_json::Value;
 
 use crate::MANIFEST_LIMIT;
 use crate::manifest;
-use crate::reference::Reference;
+use crate::reference::{Digest, Reference};
 use crate::storage;
 
 const COSIGN_SIGNATURE: &str = "application/vnd.dev.cosign.artifact.sig.v1+json";
@@ -122,7 +122,7 @@ pub async fn list(
     Ok(Some(listing))
 }
 
-async fn members_of(ctx: &Ctx) -> Result<Vec<Ctx>, ContentError> {
+pub(crate) async fn members_of(ctx: &Ctx) -> Result<Vec<Ctx>, ContentError> {
     match ctx.kind() {
         RepositoryType::Group => Ok(group::members(ctx)
             .await?
@@ -138,6 +138,58 @@ async fn children_of(ctx: &Ctx, asset: &Asset) -> Result<Vec<String>, ContentErr
     let parsed = manifest::parse(&bytes, Some(&storage::media_type_of(asset)))
         .map_err(|problem| ContentError::internal(std::io::Error::other(problem)))?;
     Ok(parsed.children.iter().map(ToString::to_string).collect())
+}
+
+pub struct Artifact {
+    pub holder: Ctx,
+    pub asset: Asset,
+}
+
+fn legacy_document_tag(tag: &str) -> bool {
+    let Some(stem) = tag
+        .strip_suffix(".sbom")
+        .or_else(|| tag.strip_suffix(".att"))
+    else {
+        return false;
+    };
+    stem.split_once('-').is_some_and(|(algorithm, hex)| {
+        matches!(algorithm, "sha256" | "sha512")
+            && hex.len() == 64
+            && hex
+                .bytes()
+                .all(|byte| matches!(byte, b'0'..=b'9' | b'a'..=b'f'))
+    })
+}
+
+pub async fn artifact(
+    ctx: &Ctx,
+    image: &str,
+    digest: &Digest,
+) -> Result<Option<Artifact>, ContentError> {
+    let path = storage::manifest_path(image, &digest.to_string());
+    for member in members_of(ctx).await? {
+        if let Some(asset) = storage::find(&member, &path).await?
+            && asset.attributes.pointer("/docker/subject").is_some()
+            && matches!(
+                classify(&member, &asset).await?,
+                Some(Found::Sbom(_) | Found::Attestation)
+            )
+        {
+            return Ok(Some(Artifact {
+                holder: member,
+                asset,
+            }));
+        }
+        for tag in storage::tags_pointing_at(&member, image, digest).await? {
+            if legacy_document_tag(&storage::tag_name(&tag, image)) {
+                return Ok(Some(Artifact {
+                    holder: member,
+                    asset: tag,
+                }));
+            }
+        }
+    }
+    Ok(None)
 }
 
 async fn classify(ctx: &Ctx, referrer: &Asset) -> Result<Option<Found>, ContentError> {

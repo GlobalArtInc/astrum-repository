@@ -6,6 +6,7 @@ pub mod import;
 mod manifest;
 mod reference;
 mod routes;
+mod sbom;
 mod storage;
 mod supply;
 mod upload;
@@ -28,7 +29,7 @@ use axum::response::{IntoResponse, Response};
 use serde_json::{Value, json};
 
 pub use auth::REALM;
-pub use routes::{Connector, FIRST_SUGGESTED_PORT, routes};
+pub use routes::{Connector, FIRST_SUGGESTED_PORT, routes, routes_with_sbom_limit};
 
 use crate::error::RegistryError;
 use crate::manifest::Manifest;

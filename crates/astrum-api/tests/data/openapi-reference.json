@@ -433,6 +433,65 @@
     ]
    }
   },
+  "/v1/docker/{repository}/sbom": {
+   "get": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "repository",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "image",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "digest",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "page",
+      "required": false,
+      "schema": {
+       "type": "integer"
+      }
+     },
+     {
+      "in": "query",
+      "name": "filter",
+      "required": false,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {},
+     "400": {},
+     "401": {},
+     "403": {},
+     "404": {},
+     "413": {},
+     "422": {},
+     "503": {}
+    },
+    "tags": [
+     "Docker: supply chain"
+    ]
+   }
+  },
   "/v1/docker/{repository}/supply-chain": {
    "get": {
     "parameters": [
