@@ -10,8 +10,9 @@ use std::collections::HashMap;
 
 use astrum_blob::{BlobId, Digests, Written};
 use astrum_content::format::SearchTarget;
+use astrum_content::inventory::{Inventory, LicenseFact, PackageRef};
 use astrum_content::proxy;
-use astrum_content::store::{self, ComponentKey, PutAsset};
+use astrum_content::store::{self, Component, ComponentKey, PutAsset};
 use astrum_content::{
     Asset, BrowseLayout, CHALLENGE, ContentError, ContentRequest, Ctx, Format, Freshness,
     SearchKey, Serve, UploadField, UploadForm, UploadSpec, View, group as members, serve,
@@ -31,6 +32,7 @@ use crate::index::{InfoEntry, Specs};
 pub const ID: &str = "rubygems";
 pub const GEM: &str = "GEM";
 pub const GEMSPEC: &str = "GEMSPEC";
+const MAX_LICENSE: usize = 1024;
 pub const INDEX: &str = "INDEX";
 pub const REALM: &str = api_keys::RUBYGEMS;
 const TEXT: &str = "text/plain; charset=utf-8";
@@ -249,6 +251,47 @@ impl Index {
 
 fn spec_of(found: &Asset) -> Option<Spec> {
     Spec::from_attributes(found.attributes.get(ID)?)
+}
+
+fn package_inventory(name: &str, version: &str) -> Option<Inventory> {
+    if name.is_empty() || version.is_empty() {
+        return None;
+    }
+    let purl = format!("pkg:gem/{name}@{version}");
+    Some(Inventory {
+        key: purl.clone(),
+        packages: vec![PackageRef {
+            ecosystem: "RubyGems".to_owned(),
+            name: name.to_owned(),
+            version: version.to_owned(),
+            purl,
+        }],
+        license: None,
+        complete: true,
+    })
+}
+
+fn declared_license(text: &str) -> Option<String> {
+    let mut end = text.len().min(MAX_LICENSE);
+    while !text.is_char_boundary(end) {
+        end -= 1;
+    }
+    let declared = text[..end].trim();
+    (!declared.is_empty()).then(|| declared.to_owned())
+}
+
+fn license_fact(licenses: &[String]) -> Option<LicenseFact> {
+    let joined = licenses
+        .iter()
+        .map(|license| license.trim())
+        .filter(|license| !license.is_empty())
+        .collect::<Vec<_>>()
+        .join(" OR ");
+    let declared = declared_license(&joined)?;
+    Some(LicenseFact {
+        declared,
+        source: "rubygems.gemspec".to_owned(),
+    })
 }
 
 fn component(spec: &Spec) -> ComponentKey {
@@ -620,6 +663,25 @@ impl Format for Rubygems {
         }
     }
 
+    async fn inventory(
+        &self,
+        ctx: &Ctx,
+        component: &Component,
+    ) -> Result<Option<Inventory>, ContentError> {
+        let Some(mut inventory) = package_inventory(&component.name, &component.version) else {
+            return Ok(None);
+        };
+        let gem = store::assets_of(ctx.db(), component.id)
+            .await?
+            .into_iter()
+            .find(|asset| asset.kind == GEM);
+        inventory.license = gem
+            .as_ref()
+            .and_then(spec_of)
+            .and_then(|spec| license_fact(&spec.licenses));
+        Ok(Some(inventory))
+    }
+
     fn upload_spec(&self) -> Option<UploadSpec> {
         Some(UploadSpec {
             format: ID,
@@ -720,6 +782,36 @@ mod tests {
         ] {
             assert_eq!(route(path).path(), path);
         }
+    }
+
+    #[test]
+    fn gem_package_reference_names_the_gem_by_purl() {
+        let inventory = package_inventory("rake", "13.0.6").unwrap();
+        assert_eq!(inventory.key, "pkg:gem/rake@13.0.6");
+        assert_eq!(inventory.packages[0].ecosystem, "RubyGems");
+        assert_eq!(inventory.packages[0].name, "rake");
+        assert_eq!(inventory.packages[0].version, "13.0.6");
+        assert!(inventory.complete);
+        assert!(package_inventory("rake", "").is_none());
+    }
+
+    #[test]
+    fn gem_licences_are_alternatives_joined_with_or() {
+        let fact = license_fact(&["MIT".to_owned(), "GPL-2.0-only".to_owned()]).unwrap();
+        assert_eq!(fact.declared, "MIT OR GPL-2.0-only");
+        assert_eq!(fact.source, "rubygems.gemspec");
+    }
+
+    #[test]
+    fn gem_without_licences_has_no_fact() {
+        assert!(license_fact(&[]).is_none());
+        assert!(license_fact(&[" ".to_owned()]).is_none());
+    }
+
+    #[test]
+    fn declared_licence_is_cut_at_a_kib_on_a_character_boundary() {
+        let text = format!("a{}", "é".repeat(1000));
+        assert_eq!(declared_license(&text).unwrap().len(), 1023);
     }
 
     #[test]
