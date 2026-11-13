@@ -351,6 +351,7 @@
   "browse.component.path": "Path",
   "browse.component.copyPath": "Copy the path",
   "browse.component.registry": "Registry",
+  "browse.component.cooldown": "Cooldown: published {published}, available from {available}",
   "browse.component.dependencies": "Dependencies",
   "browse.component.chooseSnippet": "Choose a dependency snippet",
   "browse.component.copySnippet": "Copy the {label} snippet",

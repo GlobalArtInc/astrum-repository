@@ -142,6 +142,7 @@ function Help({ type }: { type: ChannelType }) {
                 published: <code key="published">component.published</code>,
                 updated: <code key="updated">component.updated</code>,
                 deleted: <code key="deleted">component.deleted</code>,
+                released: <code key="released">cooldown.released</code>,
                 test: <code key="test">test</code>,
                 delivery: <code key="delivery">X-Astrum-Delivery</code>,
               }),

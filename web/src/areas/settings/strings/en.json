@@ -43,6 +43,8 @@
   "settings.tile.sslCertificatesText": "Certificates this server trusts",
   "settings.tile.policies": "Content Policies",
   "settings.tile.policiesText": "Block or report vulnerable, unlicensed and unsigned packages",
+  "settings.tile.cooldown": "Cooldown",
+  "settings.tile.cooldownText": "Versions still waiting out the release cooldown of proxy repositories",
   "settings.tile.policyExceptions": "Policy Exceptions",
   "settings.tile.policyExceptionsText": "Exempt advisories, licences and packages from a policy",
   "settings.tile.trustedKeys": "Trusted Keys",

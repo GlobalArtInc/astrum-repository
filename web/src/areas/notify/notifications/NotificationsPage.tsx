@@ -25,7 +25,12 @@ const TYPE_ICONS: Record<ChannelType, typeof Send> = {
   webhook: Webhook,
   email: Mail,
 };
-const EVENT_COLORS = { published: 'green', updated: 'blue', deleted: 'red' } as const;
+const EVENT_COLORS = {
+  published: 'green',
+  updated: 'blue',
+  deleted: 'red',
+  'cooldown.released': 'amber',
+} as const;
 
 function ChannelRow({
   channel,

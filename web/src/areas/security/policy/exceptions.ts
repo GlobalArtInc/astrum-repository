@@ -1,6 +1,6 @@
 import { type Choice, DAY } from './model';
 
-export type Rule = 'vulnerability' | 'license' | 'signature';
+export type Rule = 'vulnerability' | 'license' | 'signature' | 'cooldown';
 export type Subject = 'advisory' | 'license' | 'component' | 'digest';
 export type Expiry = '7d' | '30d' | '90d' | 'custom' | 'never';
 
@@ -55,6 +55,7 @@ export const RULE_OPTIONS: Array<Choice<Rule>> = [
   { value: 'vulnerability', label: 'security.exceptions.rules.vulnerability' },
   { value: 'license', label: 'security.exceptions.rules.license' },
   { value: 'signature', label: 'security.exceptions.rules.signature' },
+  { value: 'cooldown', label: 'security.exceptions.rules.cooldown' },
 ];
 
 export const SUBJECT_OPTIONS: Array<Choice<Subject>> = [
@@ -91,6 +92,9 @@ export const EMPTY_EXCEPTION_FORM: ExceptionForm = {
 export function subjectsOf(rule: Rule): Subject[] {
   if (rule === 'license') {
     return ['license'];
+  }
+  if (rule === 'cooldown') {
+    return ['component'];
   }
   if (rule === 'signature') {
     return ['component', 'digest'];

@@ -1,4 +1,5 @@
 import { path } from '../../../api';
+import type { CooldownRule } from '../api';
 
 export const POLICIES_PAGE = '/admin/security/policies';
 
@@ -39,6 +40,7 @@ export interface Policy {
   vulnerabilities: VulnerabilityRule;
   licenses: LicenseRule;
   signatures: SignatureRule;
+  cooldown?: CooldownRule;
   revision: number;
 }
 
@@ -56,6 +58,9 @@ export interface PolicyForm {
   unknownLicense: UnknownLicense;
   signatureMode: Mode;
   signatureKeys: string[];
+  cooldownMode: Mode;
+  minAgeDays: number | null;
+  exclude: string[];
 }
 
 export interface PolicyRequest {
@@ -64,7 +69,16 @@ export interface PolicyRequest {
   vulnerabilities: VulnerabilityRule;
   licenses: LicenseRule;
   signatures: SignatureRule;
+  cooldown: CooldownRule;
 }
+
+export const COOLDOWN_MIN_DAYS = 1;
+export const COOLDOWN_MAX_DAYS = 90;
+export const COOLDOWN_DEFAULT_DAYS = 7;
+export const COOLDOWN_MAX_PATTERNS = 100;
+export const COOLDOWN_MAX_PATTERN = 200;
+
+export type CooldownProblems = Partial<Record<'minAgeDays' | 'exclude', string>>;
 
 export const EMPTY_FORM: PolicyForm = {
   name: '',
@@ -80,6 +94,9 @@ export const EMPTY_FORM: PolicyForm = {
   unknownLicense: 'report',
   signatureMode: 'off',
   signatureKeys: [],
+  cooldownMode: 'off',
+  minAgeDays: COOLDOWN_DEFAULT_DAYS,
+  exclude: [],
 };
 
 export const DAY = 24 * 60 * 60 * 1000;
@@ -151,7 +168,45 @@ export function idsOf(text: string): string[] {
   return text.split(/[\s,]+/).filter((id) => id !== '');
 }
 
+export function validDays(value: number | null): value is number {
+  return (
+    value !== null && Number.isInteger(value) && value >= COOLDOWN_MIN_DAYS && value <= COOLDOWN_MAX_DAYS
+  );
+}
+
+export function daysOf(value: number | null): number {
+  return validDays(value) ? value : COOLDOWN_DEFAULT_DAYS;
+}
+
+export function cooldownProblems(form: PolicyForm): CooldownProblems {
+  const problems: CooldownProblems = {};
+  if (form.cooldownMode !== 'off' && !validDays(form.minAgeDays)) {
+    problems.minAgeDays = 'security.policy.cooldown.daysRange';
+  }
+  if (form.exclude.length > COOLDOWN_MAX_PATTERNS) {
+    problems.exclude = 'security.policy.cooldown.excludeCount';
+  } else if (form.exclude.some((pattern) => pattern.length > COOLDOWN_MAX_PATTERN)) {
+    problems.exclude = 'security.policy.cooldown.excludeLength';
+  }
+  return problems;
+}
+
+export function cooldownPatternProblem(value: string, patterns: readonly string[]): string | null {
+  if (value.length > COOLDOWN_MAX_PATTERN) {
+    return 'security.policy.cooldown.excludeLength';
+  }
+  if (patterns.length >= COOLDOWN_MAX_PATTERNS) {
+    return 'security.policy.cooldown.excludeCount';
+  }
+  return null;
+}
+
 export function formOf(policy: Policy): PolicyForm {
+  const cooldown: CooldownRule = policy.cooldown ?? {
+    mode: 'off',
+    minAgeDays: COOLDOWN_DEFAULT_DAYS,
+    exclude: [],
+  };
   return {
     name: policy.name,
     notes: policy.notes,
@@ -166,6 +221,9 @@ export function formOf(policy: Policy): PolicyForm {
     unknownLicense: policy.licenses.unknown,
     signatureMode: policy.signatures.mode,
     signatureKeys: [...policy.signatures.keys],
+    cooldownMode: cooldown.mode,
+    minAgeDays: cooldown.minAgeDays,
+    exclude: [...cooldown.exclude],
   };
 }
 
@@ -188,6 +246,11 @@ export function requestOf(form: PolicyForm, creating: boolean): PolicyRequest {
     signatures: {
       mode: form.signatureMode,
       keys: form.signatureKeys,
+    },
+    cooldown: {
+      mode: form.cooldownMode,
+      minAgeDays: daysOf(form.minAgeDays),
+      exclude: form.exclude,
     },
   };
   if (creating) {

@@ -1,6 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { Handler } from '../../../test/http';
 import { ADMIN_STATE, fakeServer, jsonResponse, renderWithApp } from '../../../test/render';
 import { repository } from '../test-fixtures';
 import type { SearchAsset, SearchComponent } from '../types';
@@ -38,37 +39,63 @@ function component(version: string, repositoryName: string): SearchComponent {
   };
 }
 
-function serve() {
-  vi.stubGlobal(
-    'fetch',
-    fakeServer({
-      [`GET ${VERSIONS}`]: () =>
-        jsonResponse({
-          format: 'maven2',
-          group: 'org.acme',
-          name: 'lib',
-          versions: [
-            {
-              version: '2.0',
-              repositories: ['releases', 'mirror'],
-              componentIds: ['releases-2.0', 'mirror-2.0'],
-              lastModified: '2026-10-02T10:00:00.000+00:00',
-            },
-            {
-              version: '1.0',
-              repositories: ['releases'],
-              componentIds: ['releases-1.0'],
-              lastModified: '2026-10-01T10:00:00.000+00:00',
-            },
-          ],
-        }),
-      'GET /service/rest/v1/components/releases-2.0': () => jsonResponse(component('2.0', 'releases')),
-      'GET /service/rest/v1/components/mirror-2.0': () => jsonResponse(component('2.0', 'mirror')),
-      'GET /service/rest/v1/components/releases-1.0': () => jsonResponse(component('1.0', 'releases')),
-      'GET /service/rest/internal/ui/repositories': () =>
-        jsonResponse([repository('releases', 'maven2', 'hosted'), repository('mirror', 'maven2', 'proxy')]),
-    }).fetch,
-  );
+function serve(extra: Record<string, Handler> = {}) {
+  const server = fakeServer({
+    [`GET ${VERSIONS}`]: () =>
+      jsonResponse({
+        format: 'maven2',
+        group: 'org.acme',
+        name: 'lib',
+        versions: [
+          {
+            version: '2.0',
+            repositories: ['releases', 'mirror'],
+            componentIds: ['releases-2.0', 'mirror-2.0'],
+            lastModified: '2026-10-02T10:00:00.000+00:00',
+          },
+          {
+            version: '1.0',
+            repositories: ['releases'],
+            componentIds: ['releases-1.0'],
+            lastModified: '2026-10-01T10:00:00.000+00:00',
+          },
+        ],
+      }),
+    'GET /service/rest/v1/components/releases-2.0': () => jsonResponse(component('2.0', 'releases')),
+    'GET /service/rest/v1/components/mirror-2.0': () => jsonResponse(component('2.0', 'mirror')),
+    'GET /service/rest/v1/components/releases-1.0': () => jsonResponse(component('1.0', 'releases')),
+    'GET /service/rest/internal/ui/repositories': () =>
+      jsonResponse([repository('releases', 'maven2', 'hosted'), repository('mirror', 'maven2', 'proxy')]),
+    ...extra,
+  });
+  vi.stubGlobal('fetch', server.fetch);
+  return server;
+}
+
+function waitingAt(version: string, continuationToken: string | null = null) {
+  return jsonResponse({
+    items: [
+      {
+        repository: 'mirror',
+        format: 'maven2',
+        namespace: 'org.acme',
+        name: 'lib',
+        version,
+        publishedAt: '2026-11-10T08:00:00Z',
+        availableAt: '2026-11-17T08:00:00Z',
+        blocked: true,
+        refusals: 1,
+        firstRefusedAt: null,
+      },
+    ],
+    continuationToken,
+  });
+}
+
+const CAPPED = 'GET /service/rest/v1/security/cooldown?repository=mirror';
+
+function cooldownCalls(server: { calls: Array<{ path: string }> }) {
+  return server.calls.filter((call) => call.path.includes('/security/cooldown')).length;
 }
 
 function page(path: string) {
@@ -154,6 +181,38 @@ describe('the component page', { timeout: 20_000 }, () => {
     };
     const manifest = { ...blob, path: '/v2/app/manifests/1.0' };
     expect(mainAsset('docker', [blob, manifest])?.path).toBe('/v2/app/manifests/1.0');
+  });
+
+  it('shows the cooldown line of a version that waits at a proxy', async () => {
+    serve({ 'GET /service/rest/v1/security/cooldown?repository=mirror': () => waitingAt('2.0') });
+    page(URL);
+    expect(await screen.findByText(/Cooldown: published/)).toBeInTheDocument();
+  });
+
+  it('shows no cooldown line when the waiting list has no row for the version', async () => {
+    const server = serve({
+      'GET /service/rest/v1/security/cooldown?repository=mirror': () => waitingAt('3.0'),
+    });
+    page(URL);
+    expect(await screen.findByRole('heading', { level: 1, name: 'lib v2.0' })).toBeInTheDocument();
+    await waitFor(() => expect(server.calls.some((call) => call.path.includes('/cooldown'))).toBe(true));
+    expect(screen.queryByText(/Cooldown: published/)).not.toBeInTheDocument();
+  });
+
+  it('gives up the cooldown line after four pages of the waiting list', async () => {
+    const server = serve({
+      [CAPPED]: () => waitingAt('3.0', 'page-2'),
+      [`${CAPPED}&continuationToken=page-2`]: () => waitingAt('3.0', 'page-3'),
+      [`${CAPPED}&continuationToken=page-3`]: () => waitingAt('3.0', 'page-4'),
+      [`${CAPPED}&continuationToken=page-4`]: () => waitingAt('3.0', 'page-5'),
+      [`${CAPPED}&continuationToken=page-5`]: () => waitingAt('2.0'),
+    });
+    page(URL);
+    expect(await screen.findByRole('heading', { level: 1, name: 'lib v2.0' })).toBeInTheDocument();
+    await waitFor(() => expect(cooldownCalls(server)).toBe(4));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(cooldownCalls(server)).toBe(4);
+    expect(screen.queryByText(/Cooldown: published/)).not.toBeInTheDocument();
   });
 
   it('offers the guide only when a version came from a proxy', async () => {
