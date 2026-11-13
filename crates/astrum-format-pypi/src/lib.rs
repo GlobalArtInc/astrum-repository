@@ -230,7 +230,15 @@ async fn leaf_names(ctx: &Ctx) -> Result<Vec<String>, ContentError> {
 
 async fn leaf_project(ctx: &Ctx, project: &str) -> Result<Option<Project>, ContentError> {
     match ctx.kind() {
-        RepositoryType::Proxy => Ok(remote::page(ctx, project).await?.map(Project::localize)),
+        RepositoryType::Proxy => {
+            let Some(page) = remote::page(ctx, project).await?.map(Project::localize) else {
+                return Ok(None);
+            };
+            match ctx.content.gate().cooldown(ctx).await? {
+                Some(cooldown) if cooldown.block => Ok(Some(page.hide_cooldown(&cooldown))),
+                _ => Ok(Some(page)),
+            }
+        }
         _ => hosted::project(ctx, project).await,
     }
 }

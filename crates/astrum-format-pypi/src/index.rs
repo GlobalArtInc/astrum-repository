@@ -1,5 +1,8 @@
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 
+use astrum_content::Cooldown;
+use chrono::{DateTime, FixedOffset, TimeDelta, TimeZone, Utc};
+
 use crate::name;
 
 pub type Hashes = BTreeMap<String, String>;
@@ -25,6 +28,13 @@ pub struct File {
 }
 
 impl File {
+    pub fn published(&self) -> Option<DateTime<FixedOffset>> {
+        let at = DateTime::parse_from_rfc3339(self.upload_time.as_deref()?).ok()?;
+        let earliest = Utc.with_ymd_and_hms(2005, 1, 1, 0, 0, 0).single()?;
+        let latest = Utc::now() + TimeDelta::days(1);
+        (at >= earliest && at <= latest).then_some(at)
+    }
+
     pub fn fragment(&self) -> Option<(&str, &str)> {
         ["sha256", "sha512", "sha384", "sha224", "sha1", "md5"]
             .iter()
@@ -84,6 +94,35 @@ impl Project {
                 file.version = file.url.split('/').nth(3).map(str::to_owned);
             }
         }
+        self
+    }
+
+    pub fn hide_cooldown(mut self, cooldown: &Cooldown) -> Self {
+        let project = name::normalize(&self.name);
+        let (hidden, kept): (Vec<File>, Vec<File>) = std::mem::take(&mut self.files)
+            .into_iter()
+            .partition(|file| {
+                let version = name::version_of(&project, &file.filename).unwrap_or_default();
+                cooldown.hides(
+                    &project,
+                    "",
+                    &project,
+                    &version,
+                    file.published().map(|at| at.with_timezone(&Utc)),
+                )
+            });
+        let kept_versions: HashSet<String> = kept
+            .iter()
+            .filter_map(|file| file.version.clone())
+            .collect();
+        let hidden_versions: HashSet<String> = hidden
+            .iter()
+            .filter_map(|file| file.version.clone())
+            .collect();
+        self.versions.retain(|version| {
+            kept_versions.contains(version) || !hidden_versions.contains(version)
+        });
+        self.files = kept;
         self
     }
 
