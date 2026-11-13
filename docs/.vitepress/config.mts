@@ -101,6 +101,7 @@ const sidebar: DefaultTheme.SidebarItem[] = [
       { text: 'Connect build tools', link: '/use/clients' },
       { text: 'REST API', link: '/use/rest-api' },
       { text: 'Agents over MCP', link: '/use/mcp' },
+      { text: 'Customers', link: '/use/customers' },
       { text: 'Interface language', link: '/use/language' },
     ],
   },
