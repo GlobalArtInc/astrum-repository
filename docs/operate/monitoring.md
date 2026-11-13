@@ -61,6 +61,8 @@ database pool are those of the node that served the scrape, the rest is the same
 | `astrum_http_request_duration_seconds` | histogram | `area` | Time until the response headers were ready; a download keeps streaming after that |
 | `astrum_repository_requests_total` | counter | `repository`, `method`, `status` | Requests to each repository |
 | `astrum_repository_online` | gauge | `repository`, `format`, `type` | 1 online, 0 offline |
+| `astrum_repository_bytes` | gauge | `repository` | Logical bytes of the assets of each repository, from its usage counter |
+| `astrum_repository_quota_bytes` | gauge | `repository` | The quota limit in bytes; only repositories that have a [quota](../repositories/quotas.md) |
 | `astrum_blobstore_up` | gauge | `blobstore`, `type` | 1 when the store opens and answers |
 | `astrum_blobstore_blobs`, `astrum_blobstore_size_bytes` | gauge | `blobstore`, `type` | Blobs and bytes in the store |
 | `astrum_blobstore_available_bytes` | gauge | `blobstore`, `type` | Free space, for stores that can tell it (file, remote, group) |

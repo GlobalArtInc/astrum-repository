@@ -8818,6 +8818,69 @@
     ]
    }
   },
+  "/v1/repositories/{repositoryName}/usage": {
+   "get": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "repositoryName",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "properties": {
+          "assets": {
+           "format": "int64",
+           "type": "integer"
+          },
+          "bytes": {
+           "format": "int64",
+           "type": "integer"
+          },
+          "percentUsed": {
+           "format": "double",
+           "nullable": true,
+           "type": "number"
+          },
+          "quota": {
+           "nullable": true,
+           "properties": {
+            "enforce": {
+             "type": "boolean"
+            },
+            "limitBytes": {
+             "format": "int64",
+             "type": "integer"
+            },
+            "warnPercent": {
+             "format": "int32",
+             "type": "integer"
+            }
+           },
+           "type": "object"
+          }
+         },
+         "type": "object"
+        }
+       }
+      }
+     },
+     "401": {},
+     "403": {},
+     "404": {}
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   }
+  },
   "/v1/repositorySettings": {
    "get": {
     "responses": {

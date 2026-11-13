@@ -10,6 +10,7 @@ import {
   sameJson,
   setPath,
 } from './document';
+import { quotaDocument, quotaFields } from './quota';
 import { type Spec, sections } from './spec';
 
 export interface RepositoryValues {
@@ -93,6 +94,9 @@ export interface RepositoryValues {
   domainHost: string;
   domainRouting: string;
   domainPath: string;
+  quotaLimitBytes: number | null;
+  quotaWarnPercent: number | null;
+  quotaEnforce: boolean;
 }
 
 export type FieldKey = keyof RepositoryValues;
@@ -249,6 +253,10 @@ export function fromDocument(document: RepositoryDocument): RepositoryValues {
   for (const def of FIELDS) {
     values[def.key] = read(def, getPath(document, def.path));
   }
+  const quota = quotaFields(document);
+  values.quotaLimitBytes = quota.limitBytes;
+  values.quotaWarnPercent = quota.warnPercent;
+  values.quotaEnforce = quota.enforce;
   return values as unknown as RepositoryValues;
 }
 
@@ -268,6 +276,14 @@ export function toDocument(values: RepositoryValues, original: RepositoryDocumen
       continue;
     }
     setPath(next, def.path, write(def, value));
+  }
+  const quota = quotaDocument({
+    limitBytes: values.quotaLimitBytes,
+    warnPercent: values.quotaWarnPercent,
+    enforce: values.quotaEnforce,
+  });
+  if (!sameJson(quota, getPath(original, ['storage', 'quota']) ?? null)) {
+    setPath(next, ['storage', 'quota'], quota);
   }
   return next;
 }
@@ -475,6 +491,14 @@ export function validate(values: RepositoryValues, context: ValidationContext, t
   if (sections.writePolicy(spec) && values.writePolicy === '') {
     errors.writePolicy = t('repositories.form.errors.writePolicyRequired');
   }
+  if (sections.quota(spec) && values.quotaLimitBytes !== null) {
+    if (values.quotaLimitBytes <= 0) {
+      errors.quotaLimitBytes = t('repositories.form.errors.quotaLimit');
+    }
+    if (!between(values.quotaWarnPercent, 1, 100)) {
+      errors.quotaWarnPercent = t('repositories.form.errors.quotaWarnPercent');
+    }
+  }
   if (sections.proxy(spec)) {
     if (values.remoteUrl.trim() === '') {
       errors.remoteUrl = t('repositories.form.errors.remoteUrlRequired');
@@ -619,6 +643,12 @@ export function formField(id: string, spec: Spec): FieldKey | null {
       return 'hexKeypair';
     case 'pacmanSigning':
       return 'pacmanKeypair';
+    case 'limitBytes':
+      return 'quotaLimitBytes';
+    case 'warnPercent':
+      return 'quotaWarnPercent';
+    case 'enforce':
+      return 'quotaEnforce';
     default:
       return SAME_NAME.has(last) ? (last as FieldKey) : null;
   }

@@ -81,6 +81,8 @@ counted per client address.
 | `convert_blob_store_to_group` | Turns a store into a group of the same name | `astrum:blobstores:create` and `update` |
 | `update_group_blob_store` | Sets the members or the fill policy of a group | `astrum:blobstores:update` |
 | `set_repository_online` | Takes a repository offline or back online | edit rights on the repository |
+| `get_repository_usage` | Assets and bytes of a repository, its [quota](../repositories/quotas.md) and the percent of the limit | a token |
+| `set_repository_quota` | Sets the quota (`limitBytes`, `warnPercent`, `enforce`), or removes it with `limitBytes` null; the same checks as the repository settings | edit rights on the repository, a token with write access |
 | `request_upload` | Gives a one-time `PUT` address for a file; the agent then sends the file with `curl` ([Upload a package](#upload-a-package)) | the right to add to some repository |
 | `upload_component` | Uploads a file of up to 64 KiB given inline as base64 | the right to add to some repository |
 | `list_users`, `list_roles`, `list_privileges` | Users with their roles; roles with their privileges and the roles they include; privileges, filtered by repository, format or name | `astrum:users:read`, `astrum:roles:read`, `astrum:privileges:read` |

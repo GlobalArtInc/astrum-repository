@@ -36,6 +36,19 @@ export interface UiRepository {
   domain?: RepositoryDomain;
 }
 
+export interface RepositoryQuota {
+  limitBytes: number | null;
+  warnPercent: number;
+  enforce: boolean;
+}
+
+export interface RepositoryUsage {
+  assets: number;
+  bytes: number;
+  quota: RepositoryQuota | null;
+  percentUsed: number | null;
+}
+
 export interface Recipe {
   id: string;
   format: string;
@@ -77,6 +90,10 @@ export function createPath(apiFormat: string, type: RepositoryType): string {
 
 export function repositoryPath(name: string): string {
   return path`/service/rest/v1/repositories/${name}`;
+}
+
+export function usagePath(name: string): string {
+  return path`/service/rest/v1/repositories/${name}/usage`;
 }
 
 export function auditPath(name: string, limit: number): string {

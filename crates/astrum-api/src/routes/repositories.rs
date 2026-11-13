@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::convert::Infallible;
 
+use astrum_content::usage::Usage;
 use astrum_db::audit::Event;
 use astrum_repo::{Problem, Repository, RepositoryType, Request, Spec, WriteError, Writer, store};
 use astrum_security::Subject;
@@ -30,6 +31,7 @@ pub fn routes() -> Router<AppState> {
             "/service/rest/v1/repositories/{format}/{kind}",
             post(create),
         )
+        .route("/service/rest/v1/repositories/{name}/usage", get(usage))
         .route(
             "/service/rest/v1/repositories/{name}/invalidate-cache",
             post(invalidate_cache),
@@ -122,12 +124,52 @@ async fn summary(
     base: BaseUrl,
     Path(name): Path<String>,
 ) -> Result<Json<Value>, ApiError> {
-    let subject = signed(&caller)?;
-    let repository = existing(&state, &name).await?;
+    let repository = readable(&state, &caller, &name).await?;
+    Ok(Json(repository.summary(&base.0)))
+}
+
+async fn usage(
+    State(state): State<AppState>,
+    caller: Caller,
+    Path(name): Path<String>,
+) -> Result<Json<Value>, ApiError> {
+    let repository = readable(&state, &caller, &name).await?;
+    let counted = astrum_content::usage::current(state.db().conn(), &repository.name)
+        .await
+        .map_err(ApiError::internal)?
+        .unwrap_or(Usage {
+            assets: 0,
+            bytes: 0,
+        });
+    let quota = repository
+        .attributes
+        .storage
+        .as_ref()
+        .and_then(|storage| storage.quota.clone());
+    let percent_used = quota
+        .as_ref()
+        .and_then(|quota| quota.limit_bytes)
+        .filter(|limit| *limit > 0)
+        .map(|limit| percent_used(counted.bytes, limit));
+    Ok(Json(json!({
+        "assets": counted.assets,
+        "bytes": counted.bytes,
+        "quota": quota,
+        "percentUsed": percent_used,
+    })))
+}
+
+fn percent_used(bytes: i64, limit: i64) -> f64 {
+    (bytes as f64 / limit as f64 * 1000.0).round() / 10.0
+}
+
+async fn readable(state: &AppState, caller: &Caller, name: &str) -> Result<Repository, ApiError> {
+    let subject = signed(caller)?;
+    let repository = existing(state, name).await?;
     if !visible(subject, &repository) {
         return Err(denied(subject));
     }
-    Ok(Json(repository.summary(&base.0)))
+    Ok(repository)
 }
 
 async fn read(

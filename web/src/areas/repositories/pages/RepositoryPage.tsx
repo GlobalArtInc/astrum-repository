@@ -6,7 +6,14 @@ import { api, useApi, useInvalidateApi } from '../../../api';
 import { useSession } from '../../../auth/state';
 import { useT } from '../../../i18n';
 import { EmptyState, ErrorState, Page, useToast } from '../../../ui';
-import { documentPath, LIST_ADDRESS, UI_REPOSITORIES, type UiRepository, useUiRepositories } from '../api';
+import {
+  documentPath,
+  LIST_ADDRESS,
+  UI_REPOSITORIES,
+  type UiRepository,
+  usagePath,
+  useUiRepositories,
+} from '../api';
 import { AccessTab } from '../components/AccessTab';
 import { AuditCard, SummaryTab, TasksTab } from '../components/EditTabs';
 import { ProfileTabs } from '../components/ProfileTabs';
@@ -127,7 +134,11 @@ export default function RepositoryPage() {
       }}
       onSaved={() => {
         toast.success(t('repositories.form.saved', { name: repository.name }));
-        void Promise.all([invalidate(UI_REPOSITORIES), docPath ? invalidate(docPath) : Promise.resolve()]);
+        void Promise.all([
+          invalidate(UI_REPOSITORIES),
+          docPath ? invalidate(docPath) : Promise.resolve(),
+          invalidate(usagePath(repository.name)),
+        ]);
       }}
     />
   );

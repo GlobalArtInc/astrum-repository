@@ -597,3 +597,38 @@ describe('repository domains', () => {
     expect(domainAddress({ ...values, domainHost: 'nope' })).toBeNull();
   });
 });
+
+describe('the quota of a repository', () => {
+  const hosted: Spec = { format: 'raw', type: 'hosted' };
+  const context = { spec: hosted, creating: false, stored: { password: false, bearerToken: false } };
+
+  it('is written as storage.quota only while it has a limit', () => {
+    const document = template(hosted, 'default');
+    const limited = toDocument(
+      { ...fromDocument(document), quotaLimitBytes: 1024 ** 2, quotaWarnPercent: 80, quotaEnforce: true },
+      document,
+    );
+    expect(limited.storage).toMatchObject({ quota: { limitBytes: 1048576, warnPercent: 80, enforce: true } });
+    const removed = toDocument({ ...fromDocument(limited), quotaLimitBytes: null }, limited);
+    expect(removed.storage).toMatchObject({ quota: null });
+  });
+
+  it('is validated: a limit above zero and a warning percent from 1 to 100', () => {
+    const values = { ...fromDocument(template(hosted, 'default')), quotaLimitBytes: 0, quotaWarnPercent: 90 };
+    expect(validate(values, context, t).quotaLimitBytes).toBe(t('repositories.form.errors.quotaLimit'));
+    const percent = { ...values, quotaLimitBytes: 10, quotaWarnPercent: 101 };
+    expect(validate(percent, context, t).quotaWarnPercent).toBe(
+      t('repositories.form.errors.quotaWarnPercent'),
+    );
+    expect(validate({ ...percent, quotaWarnPercent: 100 }, context, t).quotaWarnPercent).toBeUndefined();
+    expect(
+      validate({ ...values, quotaLimitBytes: null, quotaWarnPercent: null }, context, t).quotaWarnPercent,
+    ).toBeUndefined();
+  });
+
+  it('maps the server problems of the quota to its fields', () => {
+    expect(formField('PARAMETER quota.limitBytes', hosted)).toBe('quotaLimitBytes');
+    expect(formField('PARAMETER quota.warnPercent', hosted)).toBe('quotaWarnPercent');
+    expect(formField('PARAMETER quota.enforce', hosted)).toBe('quotaEnforce');
+  });
+});

@@ -6,6 +6,7 @@ import {
   Database,
   ExternalLink,
   FileBox,
+  Gauge,
   HardDrive,
   Package,
   ScrollText,
@@ -16,13 +17,14 @@ import { Link } from 'react-router';
 import { INTERNAL, REST, useApi, withQuery } from '../../../api';
 import { useCan } from '../../../auth/state';
 import { useT } from '../../../i18n';
-import { DateTime, FileSize, FormatLogo, formatName } from '../../../ui';
+import { DateTime, ErrorState, FileSize, FormatLogo, formatName } from '../../../ui';
 import { CATEGORY_COLORS, CATEGORY_LABELS, categoryOf, kindLabel, summaryOf } from '../../audit/events';
 import { useUiBlobStores } from '../../blobstores/api';
-import type { AuditEvent, UiRepository } from '../api';
+import { type AuditEvent, type RepositoryUsage, type UiRepository, usagePath } from '../api';
 import { Count } from './bits';
 import { OnlineDot } from './RepositoryHeader';
 import styles from './tabs.module.css';
+import { UsageBar } from './UsageBar';
 
 export function Card({
   icon,
@@ -81,12 +83,27 @@ function htmlIndex(name: string): string {
   return `${REST}/repository/browse/${encodeURIComponent(name)}/`;
 }
 
+function UsageCard({ repository }: { repository: UiRepository }) {
+  const t = useT();
+  const usage = useApi<RepositoryUsage>(usagePath(repository.name));
+  return (
+    <Card icon={<Gauge size={18} />} title={t('repositories.usage.title')} plain>
+      {usage.error ? (
+        <ErrorState error={usage.error} onRetry={() => void usage.refetch()} />
+      ) : usage.data ? (
+        <UsageBar usage={usage.data} />
+      ) : null}
+    </Card>
+  );
+}
+
 export function SummaryTab({ repository, online }: { repository: UiRepository; online: boolean }) {
   const t = useT();
   const stores = useUiBlobStores();
   const store = stores.data?.find((candidate) => candidate.name === repository.blobStoreName);
   return (
     <div className={styles.stack}>
+      <UsageCard repository={repository} />
       <section className={styles.card} aria-label={t('repositories.summary.label')}>
         <dl className={styles.grid} style={{ margin: 0 }}>
           <Item term={t('repositories.summary.status')} upper>

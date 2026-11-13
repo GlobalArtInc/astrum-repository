@@ -1,4 +1,5 @@
 mod support;
+mod ui_support;
 
 use std::path::Path;
 use std::sync::Arc;
@@ -8,6 +9,7 @@ use axum::body::Body;
 use axum::http::{Method, StatusCode};
 use serde_json::{Value, json};
 use support::{Auth, Fixture, Reply};
+use ui_support::role;
 
 const REPOSITORIES: &str = "/service/rest/v1/repositories/raw";
 
@@ -364,4 +366,100 @@ async fn quota_settings_are_validated() {
         )
         .await;
     assert_eq!(accepted.status, StatusCode::CREATED, "{}", accepted.text());
+}
+
+#[tokio::test]
+async fn usage_answers_like_the_summary_and_reports_the_quota() {
+    let fixture = ready().await;
+    create(
+        &fixture,
+        "capped",
+        Some(json!({"limitBytes": 100, "warnPercent": 80, "enforce": true})),
+    )
+    .await;
+    create(&fixture, "open", None).await;
+    assert_eq!(
+        put(&fixture, "capped", "a.bin", 25).await,
+        StatusCode::CREATED
+    );
+
+    let capped = fixture
+        .call(
+            Method::GET,
+            "/service/rest/v1/repositories/capped/usage",
+            Auth::Admin,
+            None,
+        )
+        .await;
+    assert_eq!(capped.status, StatusCode::OK, "{}", capped.text());
+    let capped = capped.json();
+    assert_eq!(capped["assets"], 1);
+    assert_eq!(capped["bytes"], 25);
+    assert_eq!(capped["quota"]["limitBytes"], 100);
+    assert_eq!(capped["quota"]["warnPercent"], 80);
+    assert_eq!(capped["quota"]["enforce"], true);
+    assert_eq!(capped["percentUsed"], 25.0);
+
+    let open = fixture
+        .call(
+            Method::GET,
+            "/service/rest/v1/repositories/open/usage",
+            Auth::Admin,
+            None,
+        )
+        .await;
+    assert_eq!(
+        open.json(),
+        json!({"assets": 0, "bytes": 0, "quota": null, "percentUsed": null})
+    );
+
+    role(
+        &fixture,
+        "keeper-role",
+        &["as-repository-admin-raw-capped-read"],
+    )
+    .await;
+    fixture
+        .add_user("keeper", "secret-pw", &["keeper-role"])
+        .await;
+    fixture.add_user("outsider", "secret-pw", &[]).await;
+    let usage = "/service/rest/v1/repositories/capped/usage";
+    assert_eq!(
+        fixture
+            .call(Method::GET, usage, Auth::Basic("keeper", "secret-pw"), None)
+            .await
+            .status,
+        StatusCode::OK
+    );
+    assert_eq!(
+        fixture
+            .call(
+                Method::GET,
+                usage,
+                Auth::Basic("outsider", "secret-pw"),
+                None
+            )
+            .await
+            .status,
+        StatusCode::FORBIDDEN
+    );
+    assert_eq!(
+        fixture
+            .call(
+                Method::GET,
+                "/service/rest/v1/repositories/nope/usage",
+                Auth::Basic("keeper", "secret-pw"),
+                None
+            )
+            .await
+            .status,
+        StatusCode::NOT_FOUND
+    );
+    assert_eq!(
+        fixture
+            .call(Method::GET, usage, Auth::None, None)
+            .await
+            .status,
+        StatusCode::UNAUTHORIZED
+    );
 }
