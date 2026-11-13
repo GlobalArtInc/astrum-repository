@@ -366,6 +366,23 @@ fn defs() -> Vec<Def> {
             idempotent: true,
         },
         Def {
+            name: "list_cooldown_waits",
+            title: "Versions held back by the cooldown",
+            description: "Versions that proxy repositories held back for the release cooldown and that somebody asked for, with the date they become available. Only repositories you can browse. Pass continuationToken from a previous answer for the next page.",
+            schema: || {
+                schema(
+                    json!({
+                        "repository": string("Repository name"),
+                        "continuationToken": string("Token of the next page"),
+                    }),
+                    &[],
+                )
+            },
+            need: Need::SignedIn,
+            write: false,
+            idempotent: true,
+        },
+        Def {
             name: "create_role",
             title: "Create a role",
             description: "Create a role that holds privileges and other roles. Give it to users with set_user_roles.",
@@ -611,6 +628,7 @@ impl Handler for AstrumTools {
             "list_users" => list_users(api, &arguments).await,
             "list_roles" => list_roles(api, &arguments).await,
             "list_privileges" => list_privileges(api, &arguments).await,
+            "list_cooldown_waits" => list_cooldown_waits(api, &arguments).await,
             "create_role" => create_role(api, &arguments).await,
             "update_role" => update_role(api, &arguments).await,
             "set_user_roles" => set_user_roles(api, &arguments).await,
@@ -1206,6 +1224,18 @@ async fn list_tasks(api: &Loopback, arguments: &Map<String, Value>) -> Result<Va
     let uri = match pairs.is_empty() {
         true => "/service/rest/v1/tasks".to_owned(),
         false => format!("/service/rest/v1/tasks?{}", query(&pairs)),
+    };
+    api.get(&uri).await
+}
+
+async fn list_cooldown_waits(
+    api: &Loopback,
+    arguments: &Map<String, Value>,
+) -> Result<Value, ToolError> {
+    let pairs = picked(arguments, &["repository", "continuationToken"]);
+    let uri = match pairs.is_empty() {
+        true => "/service/rest/v1/security/cooldown".to_owned(),
+        false => format!("/service/rest/v1/security/cooldown?{}", query(&pairs)),
     };
     api.get(&uri).await
 }

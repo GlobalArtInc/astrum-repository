@@ -309,6 +309,7 @@ fn endpoints(extra: Router<AppState>) -> Router<AppState> {
         .merge(routes::tasks::routes())
         .merge(routes::cleanup_policies::routes())
         .merge(routes::advisories::routes())
+        .merge(routes::cooldown::routes())
         .merge(routes::policies::routes())
         .merge(routes::scan::routes())
         .merge(routes::support::routes())

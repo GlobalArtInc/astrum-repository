@@ -58,6 +58,7 @@ pub fn register_tasks(tasks: &Tasks) {
     tasks.register(Arc::new(astrum_format_docker::gc::Gc));
     tasks.register(Arc::new(astrum_format_hex::task::RebuildMetadata::default()));
     tasks.add_expiry(Arc::new(astrum_format_docker::gc::UploadExpiry));
+    tasks.add_expiry(Arc::new(astrum_tasks::kinds::cooldown::CooldownExpiry));
     tasks.register(Arc::new(astrum_format_nix::task::Gc));
     tasks.register(Arc::new(
         astrum_format_pacman::task::RebuildMetadata::default(),

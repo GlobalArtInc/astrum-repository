@@ -28,6 +28,9 @@ struct Texts {
     published: &'static str,
     updated: &'static str,
     deleted: &'static str,
+    released_title: &'static str,
+    released: &'static str,
+    in_word: &'static str,
     repository: &'static str,
     by: &'static str,
     system: &'static str,
@@ -42,6 +45,9 @@ const RU: Texts = Texts {
     published: "Опубликован компонент",
     updated: "Обновлён компонент",
     deleted: "Удалён компонент",
+    released_title: "Версия доступна",
+    released: "{} можно скачать сейчас",
+    in_word: "в",
     repository: "Репозиторий",
     by: "Автор",
     system: "система",
@@ -56,6 +62,9 @@ const EN: Texts = Texts {
     published: "Component published",
     updated: "Component updated",
     deleted: "Component deleted",
+    released_title: "Version can be downloaded",
+    released: "{} can be downloaded now",
+    in_word: "in",
     repository: "Repository",
     by: "By",
     system: "system",
@@ -235,6 +244,7 @@ fn emoji(notice: &Notice) -> &'static str {
         Action::Published => "📦",
         Action::Updated => "🔄",
         Action::Deleted => "🗑️",
+        Action::CooldownReleased => "🔓",
     }
 }
 
@@ -243,7 +253,26 @@ fn title(texts: &Texts, action: Action) -> &'static str {
         Action::Published => texts.published,
         Action::Updated => texts.updated,
         Action::Deleted => texts.deleted,
+        Action::CooldownReleased => texts.released_title,
     }
+}
+
+fn event(notice: &Notice) -> String {
+    match notice.action {
+        Action::CooldownReleased => notice.action.id().to_owned(),
+        _ => format!("component.{}", notice.action.id()),
+    }
+}
+
+fn released(markup: Markup, texts: &Texts, notice: &Notice) -> String {
+    let subject = format!(
+        "{} ({}) {} {}",
+        markup.strong(&coordinates(notice)),
+        markup.escape(&notice.format),
+        texts.in_word,
+        markup.code(&notice.repository)
+    );
+    texts.released.replacen("{}", &subject, 1)
 }
 
 fn initiator(texts: &Texts, initiator: Option<&str>) -> Option<String> {
@@ -260,21 +289,26 @@ fn initiator(texts: &Texts, initiator: Option<&str>) -> Option<String> {
 pub fn single(channel: &Channel, links: &Links, notice: &Notice) -> String {
     let markup = Markup::of(channel);
     let texts = texts(channel);
-    let mut text = format!(
-        "{} {}\n{}\n{}: {}",
-        emoji(notice),
-        markup.bold(title(texts, notice.action)),
-        markup.strong(&coordinates(notice)),
-        texts.repository,
-        markup.code(&notice.repository)
-    );
-    if !notice.format.is_empty() {
-        text.push_str(" · ");
-        text.push_str(&markup.escape(&notice.format));
-    }
-    if let Some(by) = initiator(texts, notice.initiator.as_deref()) {
-        text.push_str(&format!("\n{}: {}", texts.by, markup.escape(&by)));
-    }
+    let mut text = if notice.action == Action::CooldownReleased {
+        format!("{} {}", emoji(notice), released(markup, texts, notice))
+    } else {
+        let mut text = format!(
+            "{} {}\n{}\n{}: {}",
+            emoji(notice),
+            markup.bold(title(texts, notice.action)),
+            markup.strong(&coordinates(notice)),
+            texts.repository,
+            markup.code(&notice.repository)
+        );
+        if !notice.format.is_empty() {
+            text.push_str(" · ");
+            text.push_str(&markup.escape(&notice.format));
+        }
+        if let Some(by) = initiator(texts, notice.initiator.as_deref()) {
+            text.push_str(&format!("\n{}: {}", texts.by, markup.escape(&by)));
+        }
+        text
+    };
     if let Some(pull) = links.pull_command(notice) {
         text.push('\n');
         text.push_str(&markup.code(&pull));
@@ -346,7 +380,7 @@ pub fn render(
     notices
         .iter()
         .map(|notice| Rendered {
-            event: format!("component.{}", notice.action.id()),
+            event: event(notice),
             text: single(channel, links, notice),
             notice: Some(notice.clone()),
         })
@@ -443,6 +477,39 @@ mod tests {
             slack,
             "📦 *Component published*\n`org.example:demo:1.0`\nRepository: `releases` · maven2\nBy: jane"
         );
+    }
+
+    #[test]
+    fn a_released_version_is_announced_in_one_sentence() {
+        let mut released = notice("npm", "", "lodash", "4.17.22");
+        released.action = Action::CooldownReleased;
+        let slack = single(
+            &channel(ChannelType::Slack, "en"),
+            &Links::default(),
+            &released,
+        );
+        assert_eq!(
+            slack,
+            "🔓 `lodash@4.17.22` (npm) in `releases` can be downloaded now"
+        );
+        let mut hostile = notice("maven2", "g", "x<y", "1.0");
+        hostile.action = Action::CooldownReleased;
+        let html = single(
+            &channel(ChannelType::Telegram, "en"),
+            &Links::default(),
+            &hostile,
+        );
+        assert_eq!(
+            html,
+            "🔓 <b>g:x&lt;y:1.0</b> (maven2) in <code>releases</code> can be downloaded now"
+        );
+        let hooks = render(
+            &channel(ChannelType::Webhook, "en"),
+            &Links::default(),
+            &[released],
+            0,
+        );
+        assert_eq!(hooks[0].event, "cooldown.released");
     }
 
     #[test]

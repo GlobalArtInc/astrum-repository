@@ -8,16 +8,24 @@ pub enum Action {
     Published,
     Updated,
     Deleted,
+    #[serde(rename = "cooldown.released")]
+    CooldownReleased,
 }
 
 impl Action {
-    pub const ALL: [Action; 3] = [Action::Published, Action::Updated, Action::Deleted];
+    pub const ALL: [Action; 4] = [
+        Action::Published,
+        Action::Updated,
+        Action::Deleted,
+        Action::CooldownReleased,
+    ];
 
     pub fn id(self) -> &'static str {
         match self {
             Action::Published => "published",
             Action::Updated => "updated",
             Action::Deleted => "deleted",
+            Action::CooldownReleased => "cooldown.released",
         }
     }
 
@@ -41,22 +49,24 @@ pub struct Notice {
 }
 
 impl Notice {
-    fn key(&self) -> (String, String, String, String) {
+    fn key(&self, position: usize) -> Key {
         (
             self.repository.clone(),
             self.namespace.clone(),
             self.name.clone(),
             self.version.clone(),
+            (self.action == Action::CooldownReleased).then_some(position),
         )
     }
 
     pub fn merge(&self, later: &Notice) -> Option<Notice> {
-        let action = match self.action {
-            Action::Published if later.action == Action::Deleted => return None,
-            Action::Published => Action::Published,
-            Action::Updated => later.action,
-            Action::Deleted if later.action == Action::Deleted => Action::Deleted,
-            Action::Deleted => Action::Updated,
+        let action = match (self.action, later.action) {
+            (Action::CooldownReleased, _) | (_, Action::CooldownReleased) => return None,
+            (Action::Published, Action::Deleted) => return None,
+            (Action::Published, _) => Action::Published,
+            (Action::Updated, _) => later.action,
+            (Action::Deleted, Action::Deleted) => Action::Deleted,
+            (Action::Deleted, _) => Action::Updated,
         };
         Some(Notice {
             action,
@@ -86,13 +96,14 @@ pub struct Batch {
     pub overflow: usize,
 }
 
+type Key = (String, String, String, String, Option<usize>);
+
 pub fn combine(changes: impl IntoIterator<Item = Notice>, capacity: usize) -> Batch {
-    let mut order: Vec<(String, String, String, String)> = Vec::new();
-    let mut pending: HashMap<(String, String, String, String), Notice> = HashMap::new();
-    let mut overflow: std::collections::HashSet<(String, String, String, String)> =
-        Default::default();
-    for change in changes {
-        let key = change.key();
+    let mut order: Vec<Key> = Vec::new();
+    let mut pending: HashMap<Key, Notice> = HashMap::new();
+    let mut overflow: std::collections::HashSet<Key> = Default::default();
+    for (position, change) in changes.into_iter().enumerate() {
+        let key = change.key(position);
         if let Some(previous) = pending.get(&key) {
             match previous.merge(&change) {
                 Some(merged) => {
@@ -166,5 +177,27 @@ mod tests {
         let names: Vec<_> = batch.notices.iter().map(|n| n.name.as_str()).collect();
         assert_eq!(names, ["a", "c", "e"]);
         assert_eq!(batch.overflow, 1);
+    }
+
+    #[test]
+    fn releases_are_never_combined_with_other_changes() {
+        let batch = combine(
+            [
+                notice("a", Action::Published),
+                notice("a", Action::CooldownReleased),
+                notice("a", Action::Updated),
+                notice("a", Action::CooldownReleased),
+            ],
+            10,
+        );
+        let actions: Vec<_> = batch.notices.iter().map(|n| n.action).collect();
+        assert_eq!(
+            actions,
+            [
+                Action::Published,
+                Action::CooldownReleased,
+                Action::CooldownReleased
+            ]
+        );
     }
 }

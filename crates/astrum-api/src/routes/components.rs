@@ -147,13 +147,17 @@ fn component_json(base: &str, component: &Component, assets: &[Asset]) -> Value 
     })
 }
 
-struct Visibility {
+pub(crate) struct Visibility {
     full: BTreeSet<String>,
     selected: BTreeMap<String, Ctx>,
     shown_as: Option<String>,
 }
 
 impl Visibility {
+    pub(crate) fn repositories(&self) -> Vec<String> {
+        self.full.iter().cloned().collect()
+    }
+
     fn names(&self) -> Vec<String> {
         self.full
             .iter()
@@ -213,7 +217,7 @@ async fn members(state: &AppState, name: &str) -> Result<Option<Vec<String>>, Ap
     ))
 }
 
-async fn visibility(
+pub(crate) async fn visibility(
     state: &AppState,
     caller: &Caller,
     only: Option<&str>,

@@ -1,5 +1,6 @@
 pub mod advisories;
 pub mod compact;
+pub mod cooldown;
 pub mod expired;
 pub mod purge_unused;
 pub mod reconcile;
