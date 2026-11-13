@@ -86,9 +86,7 @@ pub(super) fn check_payload(payload: &[u8], manifest_digest: &str) -> Result<(),
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::signature::tests::{
-        DIGEST, OTHER_DIGEST, is_invalid, key, read, signer, text, verified,
-    };
+    use crate::tests::{DIGEST, OTHER_DIGEST, is_invalid, key, read, signer, text, verified};
     use base64::Engine;
     use base64::engine::general_purpose::STANDARD;
 

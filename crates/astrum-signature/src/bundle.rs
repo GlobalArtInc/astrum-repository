@@ -315,7 +315,7 @@ mod tests {
     use serde_json::{Value, json};
 
     use super::*;
-    use crate::signature::tests::{
+    use crate::tests::{
         DIGEST, OTHER_DIGEST, bundle_json, is_invalid, is_unsupported, key, read, signer, verified,
     };
     use base64::Engine;

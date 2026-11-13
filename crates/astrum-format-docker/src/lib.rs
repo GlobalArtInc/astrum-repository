@@ -6,7 +6,6 @@ pub mod import;
 mod manifest;
 mod reference;
 mod routes;
-pub mod signature;
 mod storage;
 mod supply;
 mod upload;
@@ -28,6 +27,7 @@ use axum::http::{HeaderMap, HeaderValue, Method, StatusCode, header};
 use axum::response::{IntoResponse, Response};
 use serde_json::{Value, json};
 
+pub use astrum_signature as signature;
 pub use auth::REALM;
 pub use routes::{Connector, FIRST_SUGGESTED_PORT, routes};
 

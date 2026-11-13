@@ -708,6 +708,7 @@ dependencies = [
  "astrum-db",
  "astrum-repo",
  "astrum-security",
+ "astrum-signature",
  "astrum-tasks",
  "async-trait",
  "axum",
@@ -717,7 +718,6 @@ dependencies = [
  "futures-util",
  "hex",
  "percent-encoding",
- "ring",
  "sea-orm",
  "serde",
  "serde_json",
@@ -726,7 +726,6 @@ dependencies = [
  "tracing",
  "url",
  "uuid",
- "x509-parser",
 ]
 
 [[package]]
@@ -1681,6 +1680,19 @@ dependencies = [
  "tower-http 0.7.1",
  "tracing",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "astrum-signature"
+version = "3.0.4"
+dependencies = [
+ "base64 0.22.1",
+ "hex",
+ "ring",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "x509-parser",
 ]
 
 [[package]]

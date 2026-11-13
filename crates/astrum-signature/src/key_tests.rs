@@ -1,5 +1,5 @@
 use super::*;
-use crate::signature::tests::{ED25519_HEADER, key, read, text, variants};
+use crate::tests::{ED25519_HEADER, key, read, text, variants};
 
 const RSA_STRUCTURE_BYTES: usize = 32;
 
