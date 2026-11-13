@@ -15826,6 +15826,70 @@
         ]
       }
     },
+    "/v1/repositories/{repositoryName}/usage/history": {
+      "get": {
+        "operationId": "getV1RepositoriesRepositoryNameUsageHistory",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repositoryName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "days",
+            "schema": {
+              "default": 90,
+              "maximum": 730,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "properties": {
+                      "assets": {
+                        "type": "integer"
+                      },
+                      "bytes": {
+                        "type": "integer"
+                      },
+                      "components": {
+                        "type": "integer"
+                      },
+                      "day": {
+                        "type": "string"
+                      },
+                      "downloads": {
+                        "type": "integer"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "type": "array"
+                }
+              }
+            }
+          },
+          "400": {},
+          "401": {},
+          "403": {},
+          "404": {}
+        },
+        "summary": "List repositories usage history",
+        "tags": [
+          "Repository Management"
+        ]
+      }
+    },
     "/v1/repositorySettings": {
       "get": {
         "operationId": "getV1RepositorySettings",
