@@ -108,6 +108,30 @@ describe('a blob store page', () => {
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
   });
 
+  it('shows what a store holds and that tiering moved it when no repository uses it', async () => {
+    serve({
+      'GET /service/rest/v1/blobstores/file/spare': () => jsonResponse({ softQuota: null, path: 'spare' }),
+      'GET /service/rest/internal/ui/blobstores/spare/usage': () => jsonResponse({ assets: 3, bytes: 4096 }),
+    });
+    page('/admin/repository/blobstores/file/spare');
+    expect(await screen.findByText('Assets')).toBeInTheDocument();
+    expect(screen.getByText('3')).toBeInTheDocument();
+    expect(screen.getByTitle(/4,096/)).toBeInTheDocument();
+    expect(screen.getByText('Assets were moved here by a tiering task.')).toBeInTheDocument();
+  });
+
+  it('shows the figures without the note for a store that a repository uses', async () => {
+    serve({
+      'GET /service/rest/v1/blobstores/file/default': () =>
+        jsonResponse({ softQuota: null, path: 'default' }),
+      'GET /service/rest/internal/ui/blobstores/default/usage': () =>
+        jsonResponse({ assets: 12, bytes: 4096 }),
+    });
+    page('/admin/repository/blobstores/file/default');
+    expect(await screen.findByText('12')).toBeInTheDocument();
+    expect(screen.queryByText('Assets were moved here by a tiering task.')).not.toBeInTheDocument();
+  });
+
   it('shows the refusal of a member removal on the members field', async () => {
     const server = serve({
       'GET /service/rest/v1/blobstores/group/pool': () =>

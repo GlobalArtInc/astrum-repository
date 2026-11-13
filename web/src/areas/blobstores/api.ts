@@ -43,6 +43,19 @@ export function useUiBlobStores() {
   return useApi<UiBlobStore[]>(UI_BLOB_STORES);
 }
 
+export interface BlobStoreUsage {
+  assets: number;
+  bytes: number;
+}
+
+export function usageAddress(name: string): string {
+  return path`/service/rest/internal/ui/blobstores/${name}/usage`;
+}
+
+export function useBlobStoreUsage(name: string) {
+  return useApi<BlobStoreUsage>(usageAddress(name));
+}
+
 export function storeAddress(type: StoreType, name: string): string {
   return path`/admin/repository/blobstores/${type}/${name}`;
 }
