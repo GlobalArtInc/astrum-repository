@@ -6,6 +6,7 @@ pub mod import;
 mod manifest;
 mod reference;
 mod routes;
+pub mod signature;
 mod storage;
 mod supply;
 mod upload;

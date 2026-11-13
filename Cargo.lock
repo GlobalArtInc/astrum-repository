@@ -717,6 +717,7 @@ dependencies = [
  "futures-util",
  "hex",
  "percent-encoding",
+ "ring",
  "sea-orm",
  "serde",
  "serde_json",
@@ -725,6 +726,7 @@ dependencies = [
  "tracing",
  "url",
  "uuid",
+ "x509-parser",
 ]
 
 [[package]]
