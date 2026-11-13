@@ -40,7 +40,9 @@ impl Cooldown {
     }
 
     pub fn available_at(&self, published: DateTime<Utc>) -> DateTime<Utc> {
-        published + self.min_age
+        published
+            .checked_add_signed(self.min_age)
+            .unwrap_or(DateTime::<Utc>::MAX_UTC)
     }
 }
 

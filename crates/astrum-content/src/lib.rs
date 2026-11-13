@@ -32,7 +32,7 @@ pub use access::{Grant, View};
 pub use downloads::DOWNLOAD_DAYS_KEPT;
 pub use error::{BLOCKED_BY, CHALLENGE, ContentError, MAX_BLOCKED_TEXT};
 pub use format::{BrowseLayout, Format, SearchKey, UploadField, UploadForm, UploadSpec, fetch};
-pub use gate::{Gate, Open};
+pub use gate::{Cooldown, Gate, Open};
 pub use proxy::Freshness;
 pub use request::{ContentRequest, normalize};
 pub use serve::{Serve, serve};
