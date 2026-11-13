@@ -504,7 +504,7 @@ async fn schedules_fire_when_due_and_abandoned_runs_fail() {
 async fn built_in_tasks_are_created_once_and_stay_editable() {
     let fixture = ready().await;
     let db = fixture.state.db().conn();
-    assert_eq!(astrum_tasks::bootstrap(db).await.unwrap(), 4);
+    assert_eq!(astrum_tasks::bootstrap(db).await.unwrap(), 5);
     assert_eq!(astrum_tasks::bootstrap(db).await.unwrap(), 0);
     let listed = call(&fixture, Method::GET, TASKS, None).await.json();
     let names: Vec<&str> = listed["items"]
@@ -519,7 +519,8 @@ async fn built_in_tasks_are_created_once_and_stay_editable() {
             "Cleanup service",
             "Compact blob stores",
             "Delete expired sessions and uploads",
-            "Delete unused Docker manifests and layers"
+            "Delete unused Docker manifests and layers",
+            "Record repository usage"
         ]
     );
     let cleanup = &listed["items"][0];
@@ -563,6 +564,35 @@ async fn built_in_tasks_are_created_once_and_stay_editable() {
         )
         .await;
     assert_eq!(refused.status, StatusCode::FORBIDDEN);
+}
+
+#[tokio::test]
+async fn usage_snapshot_is_added_to_an_existing_install_once() {
+    let fixture = ready().await;
+    let db = fixture.state.db().conn();
+    assert_eq!(astrum_tasks::bootstrap(db).await.unwrap(), 5);
+    let task = astrum_tasks::store::find_by_name(db, "Record repository usage")
+        .await
+        .unwrap()
+        .unwrap();
+    astrum_tasks::store::delete(db, task.id).await.unwrap();
+    astrum_db::setting::delete(db, astrum_tasks::bootstrap::USAGE_SNAPSHOT_PROVISIONED)
+        .await
+        .unwrap();
+    assert_eq!(astrum_tasks::bootstrap(db).await.unwrap(), 1);
+    assert_eq!(astrum_tasks::bootstrap(db).await.unwrap(), 0);
+    let task = astrum_tasks::store::find_by_name(db, "Record repository usage")
+        .await
+        .unwrap()
+        .unwrap();
+    astrum_tasks::store::delete(db, task.id).await.unwrap();
+    assert_eq!(astrum_tasks::bootstrap(db).await.unwrap(), 0);
+    assert!(
+        astrum_tasks::store::find_by_name(db, "Record repository usage")
+            .await
+            .unwrap()
+            .is_none()
+    );
 }
 
 #[tokio::test]

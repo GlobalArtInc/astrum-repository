@@ -7,6 +7,7 @@ use crate::schedule::Schedule;
 use crate::store::{self, NewTask, StoreError};
 
 pub const PROVISIONED: &str = "tasks.provisioned";
+pub const USAGE_SNAPSHOT_PROVISIONED: &str = "tasks.provisioned.usageSnapshot";
 pub const DOCKER_GC: &str = "repository.docker.gc";
 
 fn properties(pairs: &[(&str, &str)]) -> Properties {
@@ -56,12 +57,21 @@ pub fn builtin() -> Vec<NewTask> {
     ]
 }
 
-pub async fn bootstrap(db: &DatabaseConnection) -> Result<usize, astrum_db::Error> {
-    if setting::get::<bool>(db, PROVISIONED).await?.is_some() {
-        return Ok(0);
+fn usage_snapshot() -> NewTask {
+    NewTask {
+        kind: crate::kinds::usage_snapshot::ID.to_owned(),
+        name: "Record repository usage".to_owned(),
+        enabled: true,
+        schedule: Schedule::cron("0 30 0 * * ?").expect("built-in schedules are valid"),
+        alert_email: None,
+        notification_condition: crate::notification::FAILURE.to_owned(),
+        properties: Properties::new(),
     }
+}
+
+async fn create(db: &DatabaseConnection, tasks: Vec<NewTask>) -> Result<usize, astrum_db::Error> {
     let mut created = 0;
-    for task in builtin() {
+    for task in tasks {
         let name = task.name.clone();
         match store::create(db, task).await {
             Ok(_) => created += 1,
@@ -70,6 +80,21 @@ pub async fn bootstrap(db: &DatabaseConnection) -> Result<usize, astrum_db::Erro
         }
         tracing::info!(task = %name, "created a built-in task");
     }
-    setting::put(db, PROVISIONED, &true).await?;
+    Ok(created)
+}
+
+pub async fn bootstrap(db: &DatabaseConnection) -> Result<usize, astrum_db::Error> {
+    let mut created = 0;
+    if setting::get::<bool>(db, PROVISIONED).await?.is_none() {
+        created += create(db, builtin()).await?;
+        setting::put(db, PROVISIONED, &true).await?;
+    }
+    if setting::get::<bool>(db, USAGE_SNAPSHOT_PROVISIONED)
+        .await?
+        .is_none()
+    {
+        created += create(db, vec![usage_snapshot()]).await?;
+        setting::put(db, USAGE_SNAPSHOT_PROVISIONED, &true).await?;
+    }
     Ok(created)
 }
