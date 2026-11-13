@@ -1,5 +1,6 @@
 mod hosted;
 pub mod import;
+mod license;
 pub mod metadata;
 pub mod path;
 pub mod pom;
@@ -472,14 +473,16 @@ impl Format for Maven {
 
     async fn inventory(
         &self,
-        _ctx: &Ctx,
+        ctx: &Ctx,
         component: &Component,
     ) -> Result<Option<Inventory>, ContentError> {
-        Ok(package_inventory(
-            &component.namespace,
-            &component.name,
-            &component.version,
-        ))
+        let Some(mut inventory) =
+            package_inventory(&component.namespace, &component.name, &component.version)
+        else {
+            return Ok(None);
+        };
+        inventory.license = license::fact(ctx, component).await?;
+        Ok(Some(inventory))
     }
 
     async fn handle(&self, ctx: Ctx, request: ContentRequest) -> Result<Response, ContentError> {
