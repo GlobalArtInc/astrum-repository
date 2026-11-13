@@ -1,8 +1,10 @@
 use std::collections::BTreeMap;
 
+use astrum_blob::StoreConfig;
 use async_trait::async_trait;
 use serde_json::{Value, json};
 
+use crate::Problems;
 use crate::run::Run;
 
 pub type Properties = BTreeMap<String, String>;
@@ -201,6 +203,8 @@ pub trait TaskKind: Send + Sync + 'static {
     fn singleton(&self) -> bool {
         false
     }
+
+    fn check(&self, _properties: &Properties, _stores: &[StoreConfig], _problems: &mut Problems) {}
 
     fn describe(&self, properties: &Properties) -> String;
 

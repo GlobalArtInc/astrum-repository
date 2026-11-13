@@ -14,6 +14,7 @@ use support::{Auth, Fixture, Reply};
 const TASKS: &str = "/service/rest/v1/tasks";
 const POLICIES: &str = "/service/rest/internal/cleanup-policies";
 const UI_TASKS: &str = "/service/rest/internal/ui/tasks";
+const BLOBSTORES: &str = "/service/rest/v1/blobstores";
 
 async fn ready() -> Fixture {
     let fixture = Fixture::new().await;
@@ -131,6 +132,7 @@ async fn tasks_are_created_read_changed_and_deleted_like_the_public_api() {
         "repository.purge-unused",
         "blobstore.metrics.reconcile",
         "security.purge-expired",
+        "blobstore.tier",
     ] {
         assert!(types.contains(&wanted), "{wanted} in {types:?}");
     }
@@ -1312,5 +1314,47 @@ async fn held_duplicates_survive_compaction_that_runs_alongside_and_loose_ones_d
     assert_eq!(
         count(&fixture, "SELECT count(*) AS n FROM blob_hold").await,
         held.len() as i64
+    );
+}
+
+#[tokio::test]
+async fn a_tier_task_whose_stores_overlap_is_refused_with_the_stores_named() {
+    let fixture = ready().await;
+    for name in ["one", "two"] {
+        let created = call(
+            &fixture,
+            Method::POST,
+            &format!("{BLOBSTORES}/file"),
+            Some(json!({"name": name, "path": name})),
+        )
+        .await;
+        assert_eq!(created.status, StatusCode::NO_CONTENT, "{}", created.text());
+    }
+    let group = call(
+        &fixture,
+        Method::POST,
+        &format!("{BLOBSTORES}/group"),
+        Some(json!({"name": "pool", "members": ["one", "two"], "fillPolicy": "roundRobin"})),
+    )
+    .await;
+    assert_eq!(group.status, StatusCode::CREATED, "{}", group.text());
+    let refused = call(
+        &fixture,
+        Method::POST,
+        TASKS,
+        Some(json!({"type": "blobstore.tier", "name": "Tier idle blobs", "properties": {"source": "pool", "target": "two"}})),
+    )
+    .await;
+    assert_eq!(
+        refused.status,
+        StatusCode::BAD_REQUEST,
+        "{}",
+        refused.text()
+    );
+    assert_eq!(refused.json()[0]["id"], "properties.target");
+    let message = refused.json()[0]["message"].as_str().unwrap().to_owned();
+    assert!(
+        message.contains("pool") && message.contains("two"),
+        "{message}"
     );
 }

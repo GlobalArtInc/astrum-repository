@@ -2,6 +2,7 @@ pub mod compact;
 pub mod expired;
 pub mod purge_unused;
 pub mod reconcile;
+pub mod tier;
 
 use std::sync::Arc;
 
@@ -15,6 +16,7 @@ pub fn register_builtin(tasks: &Tasks) {
     tasks.register(Arc::new(reconcile::Reconcile));
     tasks.register(Arc::new(purge_unused::PurgeUnused));
     tasks.register(Arc::new(expired::PurgeExpired));
+    tasks.register(Arc::new(tier::Tier));
     tasks.add_expiry(Arc::new(expired::BlobHoldExpiry));
 }
 
