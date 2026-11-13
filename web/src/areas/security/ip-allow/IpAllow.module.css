@@ -1,0 +1,16 @@
+.facts {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--space-1) var(--space-4);
+  margin: 0;
+}
+
+.facts dt {
+  color: var(--gray-11);
+  font-size: var(--font-size-2);
+}
+
+.facts dd {
+  margin: 0;
+  min-width: 0;
+}

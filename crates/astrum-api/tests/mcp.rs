@@ -8,6 +8,7 @@ use ui_support::*;
 
 const MCP: &str = "/mcp";
 const TOKENS: &str = "/service/rest/internal/access-tokens";
+const IP_ALLOW: &str = "/service/rest/v1/security/ip-allow";
 
 async fn token(fixture: &Fixture, scope: &str) -> String {
     let reply = fixture
@@ -680,4 +681,52 @@ async fn prompts_guide_the_usual_jobs() {
     )
     .await;
     assert_eq!(missing["error"]["code"], -32602);
+}
+
+#[tokio::test]
+async fn the_ip_allow_list_is_read_by_administrators_and_changed_by_no_tool() {
+    let fixture = ready().await;
+    let set = fixture
+        .call(
+            Method::PUT,
+            IP_ALLOW,
+            Auth::Admin,
+            Some(json!({"management": [], "content": ["10.0.0.0/8"], "agents": []})),
+        )
+        .await;
+    assert_eq!(set.status, StatusCode::OK, "{}", set.text());
+    let token = token(&fixture, "WRITE").await;
+
+    let listed = names(&rpc(&fixture, &token, "tools/list", json!({})).await);
+    assert!(
+        listed.contains(&"get_ip_allow_list".to_owned()),
+        "{listed:?}"
+    );
+    assert!(
+        listed
+            .iter()
+            .all(|name| !name.contains("ip_allow") || name == "get_ip_allow_list"),
+        "{listed:?}"
+    );
+    let view = ok(&fixture, &token, "get_ip_allow_list", json!({})).await;
+    assert_eq!(view["content"], json!(["10.0.0.0/8"]));
+    assert_eq!(view["management"], json!([]));
+    assert_eq!(view["trustedProxies"], json!([]));
+
+    user_with(&fixture, "dev", &["as-blobstores-read"]).await;
+    let narrow = fixture
+        .call(
+            Method::POST,
+            TOKENS,
+            Auth::Basic("dev", "password-1"),
+            Some(json!({"name": "mcp", "scope": "WRITE", "expiresInDays": 30})),
+        )
+        .await;
+    assert_eq!(narrow.status, StatusCode::CREATED, "{}", narrow.text());
+    let narrow = narrow.json()["token"].as_str().unwrap().to_owned();
+    let narrow_tools = names(&rpc(&fixture, &narrow, "tools/list", json!({})).await);
+    assert!(
+        !narrow_tools.contains(&"get_ip_allow_list".to_owned()),
+        "{narrow_tools:?}"
+    );
 }
