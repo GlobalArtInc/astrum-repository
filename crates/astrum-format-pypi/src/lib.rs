@@ -4,6 +4,7 @@ mod html;
 pub mod import;
 mod index;
 mod json;
+mod license;
 mod metadata;
 mod name;
 mod negotiate;
@@ -265,7 +266,12 @@ impl Format for PyPi {
         _ctx: &Ctx,
         component: &Component,
     ) -> Result<Option<Inventory>, ContentError> {
-        Ok(package_inventory(&component.name, &component.version))
+        Ok(
+            package_inventory(&component.name, &component.version).map(|inventory| Inventory {
+                license: license::fact(&component.attributes),
+                ..inventory
+            }),
+        )
     }
 
     async fn handle(&self, ctx: Ctx, request: ContentRequest) -> Result<Response, ContentError> {

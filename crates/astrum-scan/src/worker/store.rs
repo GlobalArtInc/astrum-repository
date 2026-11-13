@@ -2,8 +2,8 @@ use std::collections::HashSet;
 use std::time::Duration;
 
 use astrum_content::Component;
-use astrum_content::inventory::{Inventory, PackageRef};
-use astrum_policy::subject;
+use astrum_content::inventory::{Inventory, LicenseFact, PackageRef};
+use astrum_policy::{license, subject};
 use chrono::{DateTime, Utc};
 use sea_orm::{
     ConnectionTrait, DatabaseConnection, DatabaseTransaction, DbBackend, DbErr, Statement,
@@ -14,6 +14,7 @@ use super::{Claimed, EXTRACTOR, State};
 use crate::PACKAGE_LOCK;
 
 const MAX_ERROR_CHARS: usize = 1000;
+const MAX_LICENSE_BYTES: usize = 1024;
 
 pub async fn claim(
     db: &DatabaseConnection,
@@ -229,6 +230,7 @@ pub async fn record_inventory(
     let inventory_id = upsert_inventory(&txn, &inventory.key).await?;
     let package_ids = lock_packages(&txn, &packages).await?;
     replace_links(&txn, inventory_id, &package_ids).await?;
+    replace_license(&txn, component.id, inventory.license.as_ref()).await?;
     upsert_scan(&txn, component, Some(inventory_id), state).await?;
     mark_dirty(&txn, component.id).await?;
     dequeue(&txn, item).await?;
@@ -386,6 +388,54 @@ async fn replace_links(
     ))
     .await?;
     Ok(())
+}
+
+async fn replace_license(
+    txn: &DatabaseTransaction,
+    component_id: i64,
+    fact: Option<&LicenseFact>,
+) -> Result<(), DbErr> {
+    let Some(fact) = fact else {
+        txn.execute(Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            "DELETE FROM component_license WHERE component_id = $1",
+            [component_id.into()],
+        ))
+        .await?;
+        return Ok(());
+    };
+    let declared = capped(&fact.declared);
+    let normalised = license::normalise(declared);
+    let expression = match normalised.state {
+        license::State::Spdx | license::State::Mapped => Some(normalised.text),
+        license::State::Unknown | license::State::None => None,
+    };
+    txn.execute(Statement::from_sql_and_values(
+        DbBackend::Postgres,
+        "INSERT INTO component_license (component_id, declared, source, expression, ids, state) \
+         VALUES ($1, $2, $3, $4, $5, $6) \
+         ON CONFLICT (component_id) DO UPDATE SET declared = EXCLUDED.declared, \
+           source = EXCLUDED.source, expression = EXCLUDED.expression, ids = EXCLUDED.ids, \
+           state = EXCLUDED.state",
+        [
+            component_id.into(),
+            declared.into(),
+            fact.source.as_str().into(),
+            expression.into(),
+            normalised.ids.into(),
+            normalised.state.as_str().into(),
+        ],
+    ))
+    .await?;
+    Ok(())
+}
+
+fn capped(text: &str) -> &str {
+    let mut end = text.len().min(MAX_LICENSE_BYTES);
+    while !text.is_char_boundary(end) {
+        end -= 1;
+    }
+    &text[..end]
 }
 
 async fn upsert_scan(
