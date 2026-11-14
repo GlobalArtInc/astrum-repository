@@ -58,6 +58,7 @@ fn inventory() -> Inventory {
         }],
         license: None,
         complete: true,
+        ..Inventory::default()
     }
 }
 
@@ -294,6 +295,7 @@ fn newer_inventory() -> Inventory {
         }],
         license: None,
         complete: true,
+        ..Inventory::default()
     }
 }
 

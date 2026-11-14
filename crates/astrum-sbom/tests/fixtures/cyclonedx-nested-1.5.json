@@ -1,0 +1,36 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "version": 1,
+  "metadata": {
+    "component": {"type": "application", "name": "shop", "version": "2.0.0", "purl": "pkg:generic/shop@2.0.0"}
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "web",
+      "version": "1.0.0",
+      "purl": "pkg:maven/org.example/web@1.0.0",
+      "licenses": [{"license": {"id": "Apache-2.0"}}, {"license": {"name": "Custom Terms"}}],
+      "components": [
+        {
+          "type": "library",
+          "name": "json",
+          "version": "3.1.4",
+          "purl": "pkg:pypi/json@3.1.4",
+          "licenses": [{"expression": "MIT OR GPL-2.0-only"}],
+          "components": [
+            {"type": "library", "name": "deep", "version": "0.0.1", "purl": "pkg:gem/deep@0.0.1"}
+          ]
+        }
+      ]
+    },
+    {"type": "library", "name": "libssl", "version": "3.0.13-1", "purl": "pkg:deb/debian/libssl3@3.0.13-1?arch=amd64&distro=debian-12.5"},
+    {"type": "library", "name": "musl", "version": "1.2.5-r0", "purl": "pkg:apk/alpine/musl@1.2.5-r0?arch=x86_64&distro=alpine-3.19.1"},
+    {"type": "library", "name": "glibc", "version": "2.38", "purl": "pkg:rpm/fedora/glibc@2.38"},
+    {"type": "library", "name": "Newtonsoft.Json", "version": "13.0.3", "purl": "pkg:nuget/Newtonsoft.Json@13.0.3"},
+    {"type": "library", "name": "blob", "version": "1", "purl": "pkg:generic/blob@1"},
+    {"type": "library", "name": "weird", "version": "2", "purl": "pkg:swift/weird@2"},
+    {"type": "library", "name": "nameless-purl", "version": "3"}
+  ]
+}

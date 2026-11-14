@@ -22,6 +22,7 @@ pub const CHUNK: i64 = 5000;
 pub const IDLE: Duration = Duration::from_secs(5);
 pub const CONTENDED: Duration = Duration::from_millis(100);
 pub const SWEEP_EVERY: Duration = Duration::from_secs(60);
+pub const ORPHAN_EVERY: Duration = Duration::from_secs(60);
 
 #[derive(Clone, Debug)]
 pub struct Config {
@@ -31,6 +32,7 @@ pub struct Config {
     pub idle: Duration,
     pub contended: Duration,
     pub sweep_every: Duration,
+    pub orphan_every: Duration,
 }
 
 impl Default for Config {
@@ -42,6 +44,7 @@ impl Default for Config {
             idle: IDLE,
             contended: CONTENDED,
             sweep_every: SWEEP_EVERY,
+            orphan_every: ORPHAN_EVERY,
         }
     }
 }

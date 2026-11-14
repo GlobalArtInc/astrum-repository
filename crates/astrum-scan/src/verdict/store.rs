@@ -2,8 +2,8 @@ use std::collections::{BTreeMap, HashMap};
 use std::future::Future;
 
 use astrum_db::revision;
-use astrum_policy::cache::Cache;
-use astrum_policy::subject::COMPONENT_PREFIX;
+use astrum_policy::cache::{Cache, Snapshot};
+use astrum_policy::subject::{self, COMPONENT_PREFIX, IMAGE_PREFIX};
 use astrum_policy::verdict::{self, Finding, Input, Scan, Target, Verdict};
 use chrono::{DateTime, Utc};
 use sea_orm::{
@@ -13,6 +13,8 @@ use sea_orm::{
 
 use super::Config;
 use super::metrics::STATES;
+
+mod oci;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Judged {
@@ -34,7 +36,7 @@ struct Row {
     repository: String,
     subject: String,
     policy: String,
-    component_id: i64,
+    component_id: Option<i64>,
     verdict: Verdict,
 }
 
@@ -108,7 +110,12 @@ where
     }
     let mut wanted: BTreeMap<i64, Vec<(String, String)>> = BTreeMap::new();
     let mut vanished: Vec<(String, String)> = Vec::new();
+    let mut images: Vec<(String, String)> = Vec::new();
     for (repository, subject) in marks {
+        if let Some(digest) = subject::image_digest(&subject) {
+            images.push((repository, digest.to_owned()));
+            continue;
+        }
         match subject
             .strip_prefix(COMPONENT_PREFIX)
             .and_then(|id| id.parse::<i64>().ok())
@@ -121,13 +128,20 @@ where
             }
         }
     }
+    let mut cleared: Vec<(String, String)> = vanished;
+    let mut picked: Vec<(String, String, String)> = Vec::new();
+    for (repository, digest) in images {
+        match policies.get(&repository).cloned().flatten() {
+            Some(policy) => picked.push((repository, digest, policy)),
+            None => cleared.push((repository, subject::image(&digest))),
+        }
+    }
     let ids: Vec<i64> = wanted.keys().copied().collect();
     let mut components: HashMap<i64, Component> = lock_components(&txn, &ids)
         .await?
         .into_iter()
         .map(|component| (component.id, component))
         .collect();
-    let mut cleared: Vec<(String, String)> = vanished;
     let mut judging: Vec<(Component, String, String, String)> = Vec::new();
     for (id, marks) in wanted {
         let component = components.remove(&id);
@@ -147,47 +161,65 @@ where
     }
     let mut rows: Vec<Row> = Vec::new();
     let mut basis: Option<i64> = None;
-    if !judging.is_empty() {
+    if !judging.is_empty() || !picked.is_empty() {
         let snapshot = cache.fresh(&txn).await.map_err(custom)?;
         basis = Some(snapshot.revision);
+        let sound = |policy: &String| matches!(snapshot.policies.get(policy), Some(stored) if stored.policy.is_ok());
         let readable: Vec<i64> = judging
             .iter()
-            .filter(|(_, _, _, policy)| matches!(snapshot.policies.get(policy), Some(stored) if stored.policy.is_ok()))
+            .filter(|(_, _, _, policy)| sound(policy))
             .map(|(component, ..)| component.id)
             .collect();
         let scans = load_scans(&txn, &readable).await?;
-        let mut findings = load_findings(&txn, &readable).await?;
+        let findings = load_findings(&txn, &readable).await?;
+        let readable_images: Vec<oci::Key> = picked
+            .iter()
+            .filter(|(_, _, policy)| sound(policy))
+            .map(|(repository, digest, _)| (repository.clone(), digest.clone()))
+            .collect();
+        let facts = oci::load(&txn, &readable_images).await?;
         let now = database_time(&txn).await?;
         for (component, subject, repository, policy) in judging {
-            let verdict = match snapshot.policies.get(&policy) {
-                None => Some(verdict::failed(
-                    0,
-                    format!("the content policy \"{policy}\" does not exist"),
-                )),
-                Some(stored) => match &stored.policy {
-                    Err(reason) => Some(verdict::failed(
-                        stored.revision,
-                        format!("the content policy \"{policy}\" cannot be read: {reason}"),
-                    )),
-                    Ok(content) => verdict::evaluate(&Input {
-                        policy: content,
-                        exceptions: &snapshot.exceptions,
-                        target: &component.target,
-                        scan: scans.get(&component.id).copied().unwrap_or(Scan::Missing),
-                        findings: findings
-                            .remove(&component.id)
-                            .as_deref()
-                            .unwrap_or_default(),
-                        now,
-                    }),
-                },
-            };
+            let verdict = evaluate_for(
+                &snapshot,
+                &policy,
+                &component.target,
+                scans.get(&component.id).copied().unwrap_or(Scan::Missing),
+                findings
+                    .get(&component.id)
+                    .map(Vec::as_slice)
+                    .unwrap_or_default(),
+                now,
+            );
             match verdict {
                 Some(verdict) => rows.push(Row {
                     repository,
                     subject,
                     policy,
-                    component_id: component.id,
+                    component_id: Some(component.id),
+                    verdict,
+                }),
+                None => cleared.push((repository, subject)),
+            }
+        }
+        for (repository, digest, policy) in picked {
+            let subject = subject::image(&digest);
+            let known = facts.get(&(repository.clone(), digest.clone()));
+            let target = oci::target_of(&digest, known);
+            let verdict = evaluate_for(
+                &snapshot,
+                &policy,
+                &target,
+                known.map_or(Scan::Missing, |known| known.scan),
+                known.map_or(&[][..], |known| known.findings.as_slice()),
+                now,
+            );
+            match verdict {
+                Some(verdict) => rows.push(Row {
+                    repository,
+                    subject,
+                    policy,
+                    component_id: None,
                     verdict,
                 }),
                 None => cleared.push((repository, subject)),
@@ -224,17 +256,50 @@ where
     Ok(judged)
 }
 
+fn evaluate_for(
+    snapshot: &Snapshot,
+    policy: &str,
+    target: &Target,
+    scan: Scan,
+    findings: &[Finding],
+    now: DateTime<Utc>,
+) -> Option<Verdict> {
+    match snapshot.policies.get(policy) {
+        None => Some(verdict::failed(
+            0,
+            format!("the content policy \"{policy}\" does not exist"),
+        )),
+        Some(stored) => match &stored.policy {
+            Err(reason) => Some(verdict::failed(
+                stored.revision,
+                format!("the content policy \"{policy}\" cannot be read: {reason}"),
+            )),
+            Ok(content) => verdict::evaluate(&Input {
+                policy: content,
+                exceptions: &snapshot.exceptions,
+                target,
+                scan,
+                findings,
+                now,
+            }),
+        },
+    }
+}
+
 async fn requeue(txn: &DatabaseTransaction, rows: &[Row]) -> Result<u64, DbErr> {
     let repositories: Vec<String> = rows.iter().map(|row| row.repository.clone()).collect();
     let subjects: Vec<String> = rows.iter().map(|row| row.subject.clone()).collect();
-    let ids: Vec<i64> = rows.iter().map(|row| row.component_id).collect();
+    let ids: Vec<i64> = rows
+        .iter()
+        .map(|row| row.component_id.unwrap_or_default())
+        .collect();
     Ok(txn
         .execute(Statement::from_sql_and_values(
             DbBackend::Postgres,
             "INSERT INTO policy_dirty (repository, subject) \
              SELECT repository, subject FROM unnest($1::text[], $2::text[], $3::bigint[]) \
                AS again(repository, subject, component_id) \
-             ORDER BY component_id \
+             ORDER BY (subject LIKE 'oci:%'), component_id, subject, repository \
              ON CONFLICT (repository, subject) DO NOTHING",
             [repositories.into(), subjects.into(), ids.into()],
         ))
@@ -262,7 +327,8 @@ async fn peek_repositories(
             DbBackend::Postgres,
             format!(
                 "SELECT DISTINCT repository FROM (\
-                   SELECT repository FROM policy_dirty WHERE subject LIKE '{COMPONENT_PREFIX}%' \
+                   SELECT repository FROM policy_dirty \
+                   WHERE subject LIKE '{COMPONENT_PREFIX}%' OR subject LIKE '{IMAGE_PREFIX}%' \
                    ORDER BY queued_at LIMIT $1) marks ORDER BY repository"
             ),
             [limit.into()],
@@ -313,7 +379,8 @@ async fn take_marks(
             format!(
                 "DELETE FROM policy_dirty WHERE (repository, subject) IN (\
                    SELECT repository, subject FROM policy_dirty \
-                   WHERE repository = ANY($1) AND subject LIKE '{COMPONENT_PREFIX}%' \
+                   WHERE repository = ANY($1) \
+                     AND (subject LIKE '{COMPONENT_PREFIX}%' OR subject LIKE '{IMAGE_PREFIX}%') \
                    ORDER BY queued_at LIMIT $2 FOR UPDATE SKIP LOCKED) \
                  RETURNING repository, subject"
             ),
@@ -341,8 +408,9 @@ async fn lock_components(txn: &DatabaseTransaction, ids: &[i64]) -> Result<Vec<C
     let rows = txn
         .query_all(Statement::from_sql_and_values(
             DbBackend::Postgres,
-            "SELECT id, repository, format, namespace, name, version FROM component \
-             WHERE id = ANY($1) ORDER BY id FOR KEY SHARE",
+            "SELECT c.id, c.repository, c.format, c.namespace, c.name, c.version, cs.digest \
+             FROM component c LEFT JOIN component_scan cs ON cs.component_id = c.id \
+             WHERE c.id = ANY($1) ORDER BY c.id FOR KEY SHARE OF c",
             [ids.to_vec().into()],
         ))
         .await?;
@@ -356,7 +424,8 @@ async fn lock_components(txn: &DatabaseTransaction, ids: &[i64]) -> Result<Vec<C
                     namespace: row.try_get("", "namespace")?,
                     name: row.try_get("", "name")?,
                     version: row.try_get("", "version")?,
-                    digest: None,
+                    digest: row.try_get("", "digest")?,
+                    peers: Vec::new(),
                 },
             })
         })
@@ -457,7 +526,7 @@ async fn write_rows(
         DbBackend::Postgres,
         "INSERT INTO policy_verdict (repository, subject, policy, component_id, blocked, state, \
            critical, high, medium, low, unknown, max_severity, reasons, policy_revision, computed_at) \
-         SELECT repository, subject, policy, component_id, blocked, state, crit, hi, med, lo, unk, \
+         SELECT repository, subject, policy, NULLIF(component_id, 0), blocked, state, crit, hi, med, lo, unk, \
            NULLIF(top, ''), reasons::jsonb, revision, $15 \
          FROM unnest($1::text[], $2::text[], $3::text[], $4::bigint[], $5::bool[], $6::text[], \
            $7::int[], $8::int[], $9::int[], $10::int[], $11::int[], $12::text[], $13::text[], $14::bigint[]) \
@@ -475,7 +544,7 @@ async fn write_rows(
             text(|row| row.subject.clone()).into(),
             text(|row| row.policy.clone()).into(),
             rows.iter()
-                .map(|row| row.component_id)
+                .map(|row| row.component_id.unwrap_or_default())
                 .collect::<Vec<i64>>()
                 .into(),
             rows.iter()

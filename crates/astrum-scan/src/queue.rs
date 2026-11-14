@@ -5,7 +5,7 @@ use sea_orm::{
     ConnectionTrait, DatabaseConnection, DbBackend, DbErr, RuntimeErr, Statement, TransactionTrait,
 };
 
-use crate::worker::EXTRACTOR;
+use crate::worker::extractor_case;
 
 pub const CHUNK: i64 = 10_000;
 
@@ -66,7 +66,9 @@ fn chunk_sql(selection: Selection) -> String {
                 "AND NOT EXISTS (SELECT 1 FROM component_scan s \
              LEFT JOIN sca_inventory i ON i.id = s.inventory_id \
              WHERE s.component_id = c.id AND s.state NOT IN ('failed', 'incomplete') \
-             AND (i.id IS NULL OR i.extractor >= {EXTRACTOR}))"
+             AND NOT (s.state = 'unsupported' AND c.format = 'docker') \
+             AND (i.id IS NULL OR i.extractor >= {}))",
+                extractor_case("c")
             ),
             "ON CONFLICT (component_id) DO NOTHING".to_owned(),
         ),
@@ -236,6 +238,58 @@ pub async fn enqueue_component(
         ))
         .await?;
     Ok(Some(added.rows_affected()))
+}
+
+pub async fn enqueue_components(
+    db: &impl ConnectionTrait,
+    repository: &str,
+    component_ids: &[i64],
+    reason: &str,
+) -> Result<u64, DbErr> {
+    if component_ids.is_empty() {
+        return Ok(0);
+    }
+    let added = db
+        .execute(Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            format!(
+                "INSERT INTO scan_queue (component_id, reason) \
+                 SELECT id, $3 FROM component WHERE id = ANY($1) AND repository = $2 \
+                 ORDER BY id {RESCAN}"
+            ),
+            [
+                component_ids.to_vec().into(),
+                repository.into(),
+                reason.into(),
+            ],
+        ))
+        .await?;
+    Ok(added.rows_affected())
+}
+
+pub async fn enqueue_missing_components(
+    db: &impl ConnectionTrait,
+    repository: &str,
+    component_ids: &[i64],
+    reason: &str,
+) -> Result<u64, DbErr> {
+    if component_ids.is_empty() {
+        return Ok(0);
+    }
+    let added = db
+        .execute(Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            "INSERT INTO scan_queue (component_id, reason) \
+             SELECT id, $3 FROM component WHERE id = ANY($1) AND repository = $2 \
+             ORDER BY id ON CONFLICT (component_id) DO NOTHING",
+            [
+                component_ids.to_vec().into(),
+                repository.into(),
+                reason.into(),
+            ],
+        ))
+        .await?;
+    Ok(added.rows_affected())
 }
 
 pub async fn depth(db: &impl ConnectionTrait) -> Result<Depth, DbErr> {

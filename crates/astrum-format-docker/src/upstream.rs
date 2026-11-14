@@ -10,6 +10,7 @@ use axum::http::{HeaderName, Method, StatusCode, header};
 use serde_json::Value;
 
 use crate::children;
+use crate::inventory;
 use crate::manifest::{self, ACCEPTED};
 use crate::reference::{Digest, Reference};
 use crate::storage;
@@ -248,14 +249,17 @@ impl Upstreams {
                 false => children::replace(ctx.db(), ctx.name(), digest, &parsed.children).await?,
             }
         }
-        match tag {
+        let kept = match tag {
             Some(tag) => {
                 let mut put = storage::manifest_put(image, tag, digest, &parsed, Some(tag));
                 put.verified = true;
-                store::put(ctx, put, astrum_blob::content_of(bytes.to_vec())).await
+                store::put(ctx, put, astrum_blob::content_of(bytes.to_vec())).await?
             }
-            None => Ok(stored),
-        }
+            None => stored,
+        };
+        let tags: Vec<String> = tag.map(str::to_owned).into_iter().collect();
+        inventory::requeue::after_store(ctx, image, &parsed, &tags).await;
+        Ok(kept)
     }
 
     pub async fn manifest(

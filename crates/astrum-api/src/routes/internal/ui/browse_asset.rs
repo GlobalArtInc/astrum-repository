@@ -356,6 +356,12 @@ async fn asset_content(
             .await
             .map_err(content_error)?;
     }
+    if let Some(format) = state.content().format(&asset.format) {
+        format
+            .gate_asset(&owner_ctx, &asset)
+            .await
+            .map_err(content_error)?;
+    }
     if asset.size > PREVIEW_LIMIT {
         return Err(ApiError::BadRequest(format!(
             "{} is larger than the {} bytes a preview shows",

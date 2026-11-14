@@ -5,6 +5,8 @@ use sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, DbErr, Statement};
 use super::Config;
 use super::store::Marked;
 
+mod oci;
+
 const SWEEP_LIMIT: i64 = 100;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -99,11 +101,11 @@ async fn fan_out_package(
          queued AS (\
            INSERT INTO policy_dirty (repository, subject) \
            SELECT repository, '{COMPONENT_PREFIX}' || component_id FROM page \
-           ON CONFLICT (repository, subject) DO NOTHING) \
+           ORDER BY component_id ON CONFLICT (repository, subject) DO NOTHING) \
          SELECT count(*) AS n, COALESCE(max(component_id), $2) AS last FROM page"
     );
+    let mut subjects = oci::fan_out(db, chunk, marked.package_id).await?;
     let mut after = 0i64;
-    let mut subjects = 0u64;
     loop {
         let row = db
             .query_one(Statement::from_sql_and_values(

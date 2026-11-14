@@ -35,7 +35,9 @@ pub async fn run(db: &DatabaseConnection) -> Result<Purged, DbErr> {
         &txn,
         &format!(
             "DELETE FROM sca_inventory i WHERE i.extracted_at < now() - interval '{GRACE}' \
-             AND NOT EXISTS (SELECT 1 FROM component_scan s WHERE s.inventory_id = i.id)"
+             AND NOT EXISTS (SELECT 1 FROM component_scan s WHERE s.inventory_id = i.id) \
+             AND NOT EXISTS (SELECT 1 FROM policy_verdict v WHERE v.subject LIKE 'oci:%' \
+               AND i.key = 'oci:' || v.repository || ':' || substr(v.subject, 5))"
         ),
     )
     .await?;

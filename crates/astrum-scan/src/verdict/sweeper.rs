@@ -1,5 +1,7 @@
 use astrum_db::revision;
 use astrum_policy::subject::COMPONENT_PREFIX;
+use std::time::Instant;
+
 use chrono::{DateTime, Utc};
 use sea_orm::{
     ConnectionTrait, DatabaseConnection, DbBackend, DbErr, QueryResult, Statement, TransactionTrait,
@@ -7,12 +9,16 @@ use sea_orm::{
 
 use super::{Config, Swept};
 
+mod oci;
+
 const SWEEP_LOCK: &str = "SELECT pg_try_advisory_xact_lock(hashtext('policy.sweep')) AS locked";
 
 #[derive(Clone, Debug, Default)]
 pub struct State {
     revision: Option<i64>,
     expired_until: Option<DateTime<Utc>>,
+    orphans_at: Option<Instant>,
+    orphans_after: (String, String),
 }
 
 pub async fn sweep(
@@ -44,9 +50,18 @@ pub async fn sweep(
     let mut marked = 0u64;
     let from = state.expired_until.unwrap_or(DateTime::<Utc>::UNIX_EPOCH);
     marked += mark_expired(db, config.chunk, from, now).await?;
+    if state
+        .orphans_at
+        .is_none_or(|at| at.elapsed() >= config.orphan_every)
+    {
+        let (next, _) = oci::drop_orphans(db, &state.orphans_after).await?;
+        state.orphans_after = next;
+        state.orphans_at = Some(Instant::now());
+    }
     state.expired_until = Some(now);
     if state.revision != Some(current) {
         marked += mark_stale(db, config.chunk).await?;
+        marked += oci::mark_stale(db, config.chunk).await?;
         marked += mark_with_findings(db, config.chunk).await?;
         state.revision = Some(current);
     }
@@ -99,7 +114,7 @@ async fn mark_expired(
                  queued AS (\
                    INSERT INTO policy_dirty (repository, subject) \
                    SELECT p.repository, p.subject FROM page p JOIN live l ON l.name = p.repository \
-                   ORDER BY p.component_id, p.subject ON CONFLICT (repository, subject) DO NOTHING RETURNING 1) \
+                   ORDER BY (p.subject LIKE 'oci:%'), p.component_id, p.subject, p.repository ON CONFLICT (repository, subject) DO NOTHING RETURNING 1) \
                  SELECT count(*) AS n, (SELECT count(*) FROM queued) AS queued, NULL::text AS last_repository, NULL::text AS last_subject FROM page",
                 [from.into(), to.into(), chunk.into()],
             ))
@@ -185,7 +200,7 @@ async fn mark_with_findings(db: &DatabaseConnection, chunk: i64) -> Result<u64, 
          queued AS (\
            INSERT INTO policy_dirty (repository, subject) \
            SELECT p.repository, p.subject FROM page p JOIN live l ON l.name = p.repository \
-           ORDER BY p.component_id, p.subject ON CONFLICT (repository, subject) DO NOTHING RETURNING 1) \
+           ORDER BY (p.subject LIKE 'oci:%'), p.component_id, p.subject, p.repository ON CONFLICT (repository, subject) DO NOTHING RETURNING 1) \
          SELECT count(*) AS n, (SELECT count(*) FROM queued) AS queued, \
            (array_agg(repository ORDER BY repository DESC, subject DESC))[1] AS last_repository, \
            (array_agg(subject ORDER BY repository DESC, subject DESC))[1] AS last_subject FROM page",

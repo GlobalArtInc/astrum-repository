@@ -757,6 +757,8 @@ dependencies = [
  "astrum-db",
  "astrum-policy",
  "astrum-repo",
+ "astrum-sbom",
+ "astrum-scan",
  "astrum-security",
  "astrum-signature",
  "astrum-tasks",
@@ -765,13 +767,16 @@ dependencies = [
  "base64 0.22.1",
  "bytes",
  "chrono",
+ "flate2",
  "futures-util",
  "hex",
  "percent-encoding",
+ "ruzstd",
  "sea-orm",
  "serde",
  "serde_json",
  "sha2 0.10.9",
+ "tar",
  "tokio",
  "tracing",
  "url",
@@ -1590,6 +1595,16 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
+]
+
+[[package]]
+name = "astrum-sbom"
+version = "3.0.4"
+dependencies = [
+ "base64 0.22.1",
+ "serde",
+ "serde_json",
+ "thiserror",
 ]
 
 [[package]]

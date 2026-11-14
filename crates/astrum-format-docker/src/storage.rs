@@ -116,6 +116,31 @@ pub async fn referrers(
     .await
 }
 
+pub async fn document_referrers(
+    ctx: &Ctx,
+    image: &str,
+    subject: &Digest,
+    limit: i64,
+) -> Result<Vec<Asset>, ContentError> {
+    Ok(asset::Entity::find()
+        .from_raw_sql(Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            "SELECT * FROM asset WHERE format = 'docker' AND repository = $1 \
+             AND kind = 'manifest' AND attributes #>> '{docker,name}' = $2 \
+             AND attributes #>> '{docker,subject}' = $3 \
+             AND attributes #>> '{docker,artifactKind}' IN ('sbom', 'attestation') \
+             ORDER BY id DESC LIMIT $4",
+            vec![
+                ctx.name().into(),
+                image.into(),
+                subject.to_string().into(),
+                limit.into(),
+            ],
+        ))
+        .all(ctx.db())
+        .await?)
+}
+
 pub async fn has_image(ctx: &Ctx, image: &str) -> Result<bool, ContentError> {
     #[derive(FromQueryResult)]
     struct Found {
@@ -269,6 +294,27 @@ pub async fn read_all(ctx: &Ctx, asset: &Asset, limit: usize) -> Result<Vec<u8>,
                 "{} is larger than {limit} bytes",
                 asset.path
             ))));
+        }
+        collected.extend_from_slice(&chunk);
+    }
+    Ok(collected)
+}
+
+pub async fn read_capped(ctx: &Ctx, asset: &Asset, limit: usize) -> Result<Vec<u8>, ContentError> {
+    let store = ctx.content.blob_stores().get(&asset.blob_store).await?;
+    let Some(content) = store.read(asset.blob_id.into()).await? else {
+        return Err(ContentError::not_found(format!(
+            "the blob of {} is missing",
+            asset.path
+        )));
+    };
+    let mut stream = content.stream;
+    let mut collected = Vec::with_capacity(asset.size.clamp(0, limit as i64 + 1) as usize);
+    while let Some(chunk) = stream.try_next().await.map_err(ContentError::internal)? {
+        let room = limit + 1 - collected.len();
+        if chunk.len() >= room {
+            collected.extend_from_slice(&chunk[..room]);
+            break;
         }
         collected.extend_from_slice(&chunk);
     }

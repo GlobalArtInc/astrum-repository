@@ -138,6 +138,10 @@ pub trait Format: Send + Sync + 'static {
 
     async fn get(&self, ctx: &Ctx, path: &str) -> Result<Option<Asset>, ContentError>;
 
+    async fn gate_asset(&self, _ctx: &Ctx, _asset: &Asset) -> Result<(), ContentError> {
+        Ok(())
+    }
+
     fn upload_spec(&self) -> Option<UploadSpec> {
         None
     }

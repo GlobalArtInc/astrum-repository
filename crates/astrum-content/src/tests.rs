@@ -25,6 +25,7 @@ impl Gate for Refuse {
         _ctx: &Ctx,
         _repository: &str,
         _digest: &str,
+        _reference: Option<&str>,
     ) -> Result<(), ContentError> {
         Err(ContentError::Blocked("refused".to_owned()))
     }
@@ -86,13 +87,13 @@ async fn the_default_gate_passes_and_a_registered_gate_replaces_it() {
     let (_test, content, _dir, ctx) = setup().await;
     content
         .gate()
-        .check_digest(&ctx, "releases", "sha256:abc")
+        .check_digest(&ctx, "releases", "sha256:abc", None)
         .await
         .unwrap();
     content.register_gate(Arc::new(Refuse));
     let refused = content
         .gate()
-        .check_digest(&ctx, "releases", "sha256:abc")
+        .check_digest(&ctx, "releases", "sha256:abc", None)
         .await;
     assert!(
         matches!(refused, Err(ContentError::Blocked(_))),

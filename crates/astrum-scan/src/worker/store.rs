@@ -3,15 +3,20 @@ use std::time::Duration;
 
 use astrum_content::Component;
 use astrum_content::inventory::{Inventory, PackageRef};
-use astrum_policy::subject;
 use chrono::{DateTime, Utc};
 use sea_orm::{
     ConnectionTrait, DatabaseConnection, DatabaseTransaction, DbBackend, DbErr, Statement,
     TransactionTrait,
 };
 
-use super::{Claimed, EXTRACTOR, State};
+use super::{Claimed, State, extractor_of};
 use crate::{PACKAGE_LOCK, matcher};
+
+mod clean;
+mod oci;
+
+pub use clean::sanitise;
+use oci::{mark_subjects, previous_digest};
 
 const MAX_ERROR_CHARS: usize = 1000;
 
@@ -166,6 +171,7 @@ pub async fn give_up(db: &DatabaseConnection, item: Claimed, message: &str) -> R
     if !owns(&txn, item).await? {
         return txn.commit().await;
     }
+    let before = previous_digest(&txn, item.component_id).await?;
     txn.execute(Statement::from_sql_and_values(
         DbBackend::Postgres,
         "INSERT INTO component_scan (component_id, repository, state, error) \
@@ -179,7 +185,7 @@ pub async fn give_up(db: &DatabaseConnection, item: Claimed, message: &str) -> R
         ],
     ))
     .await?;
-    mark_dirty(&txn, item.component_id).await?;
+    mark_subjects(&txn, item.component_id, before.as_deref(), None).await?;
     dequeue(&txn, item).await?;
     txn.commit().await
 }
@@ -198,8 +204,9 @@ pub async fn record_unsupported(
         txn.commit().await?;
         return Ok(false);
     }
-    upsert_scan(&txn, component, None, State::Unsupported).await?;
-    mark_dirty(&txn, component.id).await?;
+    let before = previous_digest(&txn, component.id).await?;
+    upsert_scan(&txn, component, None, None, State::Unsupported).await?;
+    mark_subjects(&txn, component.id, before.as_deref(), None).await?;
     dequeue(&txn, item).await?;
     txn.commit().await?;
     Ok(true)
@@ -226,11 +233,19 @@ pub async fn record_inventory(
         txn.commit().await?;
         return Ok(false);
     }
-    let inventory_id = upsert_inventory(&txn, &inventory.key).await?;
+    let before = previous_digest(&txn, component.id).await?;
+    let inventory_id = upsert_inventory(&txn, inventory, extractor_of(&component.format)).await?;
     let package_ids = lock_packages(&txn, &packages).await?;
     replace_links(&txn, inventory_id, &package_ids).await?;
     let first = !has_scan(&txn, component.id).await?;
-    upsert_scan(&txn, component, Some(inventory_id), state).await?;
+    upsert_scan(
+        &txn,
+        component,
+        Some(inventory_id),
+        inventory.digest.as_deref(),
+        state,
+    )
+    .await?;
     if first {
         matcher::announce_notices(
             &txn,
@@ -239,7 +254,11 @@ pub async fn record_inventory(
         )
         .await?;
     }
-    mark_dirty(&txn, component.id).await?;
+    let marked = inventory
+        .digest
+        .as_deref()
+        .map(|digest| (digest, inventory_id));
+    mark_subjects(&txn, component.id, before.as_deref(), marked).await?;
     dequeue(&txn, item).await?;
     txn.commit().await?;
     Ok(true)
@@ -301,6 +320,7 @@ fn distinct(packages: &[PackageRef]) -> Vec<&PackageRef> {
     let mut seen = HashSet::new();
     let mut kept: Vec<&PackageRef> = packages
         .iter()
+        .filter(|package| clean::writable(package))
         .filter(|package| seen.insert((&package.ecosystem, &package.name, &package.version)))
         .collect();
     kept.sort_by(|a, b| {
@@ -309,15 +329,25 @@ fn distinct(packages: &[PackageRef]) -> Vec<&PackageRef> {
     kept
 }
 
-async fn upsert_inventory(txn: &DatabaseTransaction, key: &str) -> Result<i64, DbErr> {
+async fn upsert_inventory(
+    txn: &DatabaseTransaction,
+    inventory: &Inventory,
+    extractor: i32,
+) -> Result<i64, DbErr> {
     let row = txn
         .query_one(Statement::from_sql_and_values(
             DbBackend::Postgres,
-            "INSERT INTO sca_inventory (key, source, extractor) VALUES ($1, 'metadata', $2) \
+            "INSERT INTO sca_inventory (key, source, extractor, complete) VALUES ($1, $2, $3, $4) \
              ON CONFLICT (key) DO UPDATE SET source = EXCLUDED.source, \
-               extractor = EXCLUDED.extractor, extracted_at = now() \
+               extractor = EXCLUDED.extractor, complete = EXCLUDED.complete, \
+               extracted_at = now() \
              RETURNING id",
-            [key.into(), EXTRACTOR.into()],
+            [
+                inventory.key.clone().into(),
+                inventory.source.as_str().into(),
+                extractor.into(),
+                inventory.complete.into(),
+            ],
         ))
         .await?
         .ok_or_else(|| DbErr::RecordNotFound("the inventory upsert returned no row".to_owned()))?;
@@ -412,33 +442,23 @@ async fn upsert_scan(
     txn: &DatabaseTransaction,
     component: &Component,
     inventory_id: Option<i64>,
+    digest: Option<&str>,
     state: State,
 ) -> Result<(), DbErr> {
     txn.execute(Statement::from_sql_and_values(
         DbBackend::Postgres,
-        "INSERT INTO component_scan (component_id, repository, inventory_id, state) \
-         VALUES ($1, $2, $3, $4) \
+        "INSERT INTO component_scan (component_id, repository, inventory_id, digest, state) \
+         VALUES ($1, $2, $3, $4, $5) \
          ON CONFLICT (component_id) DO UPDATE SET repository = EXCLUDED.repository, \
-           inventory_id = EXCLUDED.inventory_id, digest = NULL, state = EXCLUDED.state, \
-           error = NULL, scanned_at = now()",
+           inventory_id = EXCLUDED.inventory_id, digest = EXCLUDED.digest, \
+           state = EXCLUDED.state, error = NULL, scanned_at = now()",
         [
             component.id.into(),
             component.repository.clone().into(),
             inventory_id.into(),
+            digest.map(str::to_owned).into(),
             state.as_str().into(),
         ],
-    ))
-    .await?;
-    Ok(())
-}
-
-async fn mark_dirty(txn: &DatabaseTransaction, component_id: i64) -> Result<(), DbErr> {
-    txn.execute(Statement::from_sql_and_values(
-        DbBackend::Postgres,
-        "INSERT INTO policy_dirty (repository, subject) \
-         SELECT repository, $2 FROM component WHERE id = $1 \
-         ON CONFLICT (repository, subject) DO NOTHING",
-        [component_id.into(), subject::component(component_id).into()],
     ))
     .await?;
     Ok(())

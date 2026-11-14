@@ -3,11 +3,15 @@ pub mod children;
 mod error;
 mod evidence;
 mod exempt;
+mod gate;
 pub mod gc;
 pub mod import;
+mod inventory;
+mod layers;
 mod manifest;
 mod reference;
 mod routes;
+mod sbom;
 mod signed_only;
 mod storage;
 mod supply;
@@ -18,7 +22,8 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 
 use astrum_content::format::SearchTarget;
-use astrum_content::store::{self, Asset};
+use astrum_content::inventory::Inventory;
+use astrum_content::store::{self, Asset, Component};
 use astrum_content::{
     BrowseLayout, ContentError, ContentRequest, Ctx, Format, SearchKey, Serve, View, group, serve,
 };
@@ -32,7 +37,7 @@ use serde_json::{Value, json};
 
 pub use astrum_signature as signature;
 pub use auth::REALM;
-pub use routes::{Connector, FIRST_SUGGESTED_PORT, routes};
+pub use routes::{Connector, FIRST_SUGGESTED_PORT, routes, routes_with_sbom_limit};
 
 use crate::error::RegistryError;
 use crate::manifest::Manifest;
@@ -525,6 +530,7 @@ impl Docker {
                 .map(|digest| digest.to_string())
                 .unwrap_or_else(|| format!("sha256:{}", asset.sha256)),
         };
+        gate::gate_manifest(&holder, &reference, &asset).await?;
         let etag = format!("\"{digest}\"");
         let mut response = Response::builder()
             .header(header::CONTENT_TYPE, storage::media_type_of(&asset))
@@ -714,6 +720,7 @@ impl Docker {
         if manifest::is_index(&parsed.media_type) {
             children::replace(target.db(), target.name(), digest, &parsed.children).await?;
         }
+        inventory::requeue::after_store(target, image, parsed, tags).await;
         Ok(())
     }
 
@@ -1396,6 +1403,13 @@ impl Format for Docker {
         Ok(self.serve(ctx, request, mount).await)
     }
 
+    async fn gate_asset(&self, ctx: &Ctx, asset: &Asset) -> Result<(), ContentError> {
+        match gate::reference_of(asset) {
+            Some(reference) => gate::gate_manifest(ctx, &reference, asset).await,
+            None => Ok(()),
+        }
+    }
+
     async fn get(&self, ctx: &Ctx, path: &str) -> Result<Option<Asset>, ContentError> {
         match ctx.kind() {
             RepositoryType::Group => {
@@ -1421,6 +1435,14 @@ impl Format for Docker {
 
     fn search_keys(&self) -> &'static [SearchKey] {
         SEARCH_KEYS
+    }
+
+    async fn inventory(
+        &self,
+        ctx: &Ctx,
+        component: &Component,
+    ) -> Result<Option<Inventory>, ContentError> {
+        inventory::of(&self.upstreams, ctx, component).await
     }
 }
 

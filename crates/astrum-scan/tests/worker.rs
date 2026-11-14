@@ -75,11 +75,19 @@ impl Format for Fake {
             }
             "plain" => Ok(None),
             "boom" => Err(ContentError::BadRequest("cannot read it".to_owned())),
+            "hostile" => Ok(Some(Inventory {
+                key: "pkg:maven/hostile@1".to_owned(),
+                packages: vec![package("hostile"), package("bad\u{0}name")],
+                license: None,
+                complete: true,
+                ..Inventory::default()
+            })),
             name => Ok(Some(Inventory {
                 key: format!("pkg:maven/{name}@1"),
                 packages: vec![package(name), package("shared"), package("shared")],
                 license: None,
                 complete: name != "partial",
+                ..Inventory::default()
             })),
         }
     }
@@ -207,6 +215,24 @@ async fn two_workers_on_one_queue_never_take_the_same_row() {
         .await,
         30
     );
+}
+
+#[tokio::test]
+async fn a_package_with_a_control_character_is_left_out_and_the_inventory_is_incomplete() {
+    let s = setup().await;
+    let hostile = add(&s, "hostile").await;
+    drain_all(&s, &quick()).await;
+
+    assert_eq!(
+        text(
+            &s,
+            &format!("SELECT state AS t FROM component_scan WHERE component_id = {hostile}")
+        )
+        .await
+        .as_deref(),
+        Some("incomplete")
+    );
+    assert_eq!(scalar(&s, "SELECT count(*) AS n FROM sca_package").await, 1);
 }
 
 #[tokio::test]
@@ -487,4 +513,107 @@ async fn a_scan_that_times_out_is_stopped_before_its_outcome_is_written() {
     );
     assert_eq!(scalar(&s, &due(slow)).await, 0);
     assert_eq!(scalar(&s, "SELECT count(*) AS n FROM scan_queue").await, 1);
+}
+
+async fn component_of(s: &Setup, format: &str, name: &str) -> i64 {
+    s.db.conn()
+        .query_one(Statement::from_string(
+            DbBackend::Postgres,
+            format!(
+                "INSERT INTO component (repository, format, name, version) \
+                 VALUES ('releases', '{format}', '{name}', '1') RETURNING id"
+            ),
+        ))
+        .await
+        .unwrap()
+        .unwrap()
+        .try_get("", "id")
+        .unwrap()
+}
+
+async fn scanned_with(s: &Setup, id: i64, state: &str, extractor: Option<i32>) {
+    let inventory = match extractor {
+        Some(extractor) => {
+            let row =
+                s.db.conn()
+                    .query_one(Statement::from_string(
+                        DbBackend::Postgres,
+                        format!(
+                            "INSERT INTO sca_inventory (key, source, extractor) \
+                         VALUES ('k{id}', 'sbom', {extractor}) RETURNING id"
+                        ),
+                    ))
+                    .await
+                    .unwrap()
+                    .unwrap();
+            row.try_get::<i64>("", "id").unwrap().to_string()
+        }
+        None => "NULL".to_owned(),
+    };
+    s.db.conn()
+        .execute_unprepared(&format!(
+            "INSERT INTO component_scan (component_id, repository, state, inventory_id) \
+             VALUES ({id}, 'releases', '{state}', {inventory})"
+        ))
+        .await
+        .unwrap();
+}
+
+async fn picked(s: &Setup) -> Vec<i64> {
+    s.db.conn()
+        .execute_unprepared("DELETE FROM scan_queue")
+        .await
+        .unwrap();
+    let never = || false;
+    queue::enqueue_repository(
+        s.db.conn(),
+        "releases",
+        "test",
+        Selection::Unscanned,
+        10,
+        &never,
+    )
+    .await
+    .unwrap();
+    let rows =
+        s.db.conn()
+            .query_all(Statement::from_string(
+                DbBackend::Postgres,
+                "SELECT component_id FROM scan_queue ORDER BY component_id".to_owned(),
+            ))
+            .await
+            .unwrap();
+    rows.iter()
+        .map(|row| row.try_get("", "component_id").unwrap())
+        .collect()
+}
+
+#[tokio::test]
+async fn the_extractor_is_versioned_per_format_so_only_stale_images_are_picked_again() {
+    assert_eq!(worker::extractor_of("npm"), 1);
+    assert!(worker::extractor_of("docker") > worker::extractor_of("npm"));
+    let s = setup().await;
+    let docker = worker::extractor_of("docker");
+    let package = component_of(&s, "npm", "plain").await;
+    scanned_with(&s, package, "scanned", Some(worker::extractor_of("npm"))).await;
+    let bare = component_of(&s, "docker", "bare").await;
+    scanned_with(&s, bare, "unsupported", None).await;
+    let old = component_of(&s, "docker", "old").await;
+    scanned_with(&s, old, "scanned", Some(docker - 1)).await;
+    let current = component_of(&s, "docker", "current").await;
+    scanned_with(&s, current, "scanned", Some(docker)).await;
+    let unsupported_package = component_of(&s, "maven2", "none").await;
+    scanned_with(&s, unsupported_package, "unsupported", None).await;
+    assert_eq!(picked(&s).await, vec![bare, old]);
+
+    s.db.conn()
+        .execute_unprepared(&format!(
+            "WITH inventory AS (INSERT INTO sca_inventory (key, source, extractor) \
+               VALUES ('later', 'layers', {docker}) RETURNING id) \
+             UPDATE component_scan SET state = 'scanned', \
+               inventory_id = (SELECT id FROM inventory) WHERE component_id = {bare}"
+        ))
+        .await
+        .unwrap();
+    assert_eq!(picked(&s).await, vec![old]);
 }

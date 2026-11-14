@@ -12,10 +12,34 @@ pub struct LicenseFact {
     pub source: String,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum Source {
+    #[default]
+    Metadata,
+    Sbom,
+    Index,
+    Layers,
+    SbomAndLayers,
+}
+
+impl Source {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Source::Metadata => "metadata",
+            Source::Sbom => "sbom",
+            Source::Index => "index",
+            Source::Layers => "layers",
+            Source::SbomAndLayers => "sbom+layers",
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Inventory {
     pub key: String,
     pub packages: Vec<PackageRef>,
     pub license: Option<LicenseFact>,
     pub complete: bool,
+    pub source: Source,
+    pub digest: Option<String>,
 }
