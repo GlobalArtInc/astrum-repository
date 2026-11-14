@@ -22,7 +22,7 @@ use async_trait::async_trait;
 use axum::response::Response;
 use futures_util::future::BoxFuture;
 use sea_orm::{ConnectionTrait, DbBackend, Statement};
-use serde_json::{Value, json};
+use serde_json::{Map, Value, json};
 
 pub struct World {
     pub _test: TestDatabase,
@@ -254,6 +254,32 @@ pub fn describe_marking(file: &Imported) -> BoxFuture<'_, Result<Option<Describe
     })
 }
 
+pub fn describe_filtered(file: &Imported) -> BoxFuture<'_, Result<Option<Described>, String>> {
+    Box::pin(async move {
+        let mut kept = Map::new();
+        let note = file
+            .component
+            .as_ref()
+            .and_then(|found| found.attributes.get("note"))
+            .and_then(Value::as_object);
+        for name in ["a", "b"] {
+            if let Some(value) = note.and_then(|note| note.get(name)) {
+                kept.insert(name.to_owned(), value.clone());
+            }
+        }
+        let mut put = file.put(file.path.clone());
+        put.component = file.component.as_ref().map(|found| ComponentKey {
+            attributes: json!({"note": kept}),
+            ..found.key()
+        });
+        let described = Described::source(put);
+        Ok(Some(match file.path.ends_with(".snupkg") {
+            true => described.keeping_component(),
+            false => described,
+        }))
+    })
+}
+
 pub fn describe_unchecked(file: &Imported) -> BoxFuture<'_, Result<Option<Described>, String>> {
     Box::pin(async move {
         let mut put = file.put(file.path.clone());
@@ -284,6 +310,16 @@ impl Recording {
 
     pub fn declaring(keys: &'static [&'static str]) -> Self {
         Self::around(declaring(keys), None)
+    }
+
+    pub fn filtering(keys: &'static [&'static str]) -> Self {
+        Self::around(
+            GenericTransfer {
+                carried: keys,
+                ..transfer_of(describe_filtered)
+            },
+            None,
+        )
     }
 
     fn around(transfer: GenericTransfer, failure: Option<&'static str>) -> Self {
@@ -386,16 +422,16 @@ pub async fn run_with(
     source: &Ctx,
     target: &Ctx,
     bundle: &Bundle,
+    conflict: Conflict,
     dry_run: bool,
-) -> Outcome {
-    let mut terms = Terms::new(Conflict::Fail, PROMOTED);
+) -> Result<Outcome, ContentError> {
+    let mut terms = Terms::new(conflict, PROMOTED);
     terms.dry_run = dry_run;
     format
         .transfer()
         .unwrap()
         .receive(target, bundle, &LocalSource::new(source.clone()), terms)
         .await
-        .unwrap()
 }
 
 pub async fn number(world: &World, sql: &str) -> i64 {

@@ -1,13 +1,24 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
-use astrum_blob::Written;
 use astrum_db::entity::component;
-use astrum_repo::config::WritePolicy;
+use chrono::{DateTime, FixedOffset};
+use sea_orm::sea_query::Expr;
 use sea_orm::{ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter};
 use serde_json::{Map, Value};
 
-use super::{ComponentIdentity, ComponentKey, PutAsset, Resolved, changed_meanwhile, identity_of};
+use super::{
+    Asset, Candidate, ComponentIdentity, Decision, Replaceable, Resolved, changed_meanwhile,
+    check_write, identity_of,
+};
 use crate::ContentError;
+use crate::transfer::{AssetStatus, Conflict, Outcome, Status};
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Intent {
+    pub identity: ComponentIdentity,
+    pub attributes: Map<String, Value>,
+    pub companion_only: bool,
+}
 
 pub(super) struct Drift {
     pub(super) id: i64,
@@ -15,19 +26,7 @@ pub(super) struct Drift {
     pub(super) attributes: Value,
 }
 
-pub(super) fn carried_of(key: &ComponentKey, carried: &[&str]) -> Map<String, Value> {
-    carried
-        .iter()
-        .filter_map(|name| {
-            key.attributes
-                .get(*name)
-                .filter(|value| !value.is_null())
-                .map(|value| ((*name).to_owned(), value.clone()))
-        })
-        .collect()
-}
-
-pub(super) fn merged_attributes(
+pub(super) fn merged(
     stored: &Value,
     wanted: &Map<String, Value>,
 ) -> Result<Option<Value>, ContentError> {
@@ -50,35 +49,57 @@ pub(super) fn merged_attributes(
     Ok(changed.then_some(Value::Object(merged)))
 }
 
-pub(super) fn check_attribute_write<'a>(
-    repository: &str,
+pub(super) fn wanted<'a>(
+    intents: &'a [Intent],
     identity: &ComponentIdentity,
-    mut puts: impl Iterator<Item = &'a PutAsset>,
+) -> Option<&'a Map<String, Value>> {
+    intents
+        .iter()
+        .find(|intent| intent.identity == *identity)
+        .map(|intent| &intent.attributes)
+        .filter(|attributes| !attributes.is_empty())
+}
+
+pub(super) fn keeps_stored(intents: &[Intent], identity: &ComponentIdentity) -> bool {
+    intents
+        .iter()
+        .any(|intent| intent.companion_only && intent.identity == *identity)
+}
+
+pub(super) async fn renew(
+    txn: &impl ConnectionTrait,
+    id: i64,
+    now: DateTime<FixedOffset>,
 ) -> Result<(), ContentError> {
-    let denied = puts.any(|put| {
-        put.write_policy == Some(WritePolicy::Deny)
-            && put
-                .component
-                .as_ref()
-                .is_some_and(|found| identity_of(found) == *identity)
-    });
-    match denied {
-        true => Err(ContentError::BadRequest(format!(
-            "the repository {repository} is read-only"
-        ))),
-        false => Ok(()),
-    }
+    component::Entity::update_many()
+        .col_expr(component::Column::UpdatedAt, Expr::value(now))
+        .filter(component::Column::Id.eq(id))
+        .exec(txn)
+        .await?;
+    Ok(())
+}
+
+pub(super) fn written_identities(
+    candidates: &[Candidate<'_>],
+    decision: &Decision,
+) -> HashSet<ComponentIdentity> {
+    candidates
+        .iter()
+        .zip(&decision.assets)
+        .filter(|(_, outcome)| matches!(outcome.status, AssetStatus::New | AssetStatus::Replaced))
+        .filter_map(|(candidate, _)| candidate.put.component.as_ref())
+        .map(identity_of)
+        .collect()
 }
 
 pub(super) async fn drifting(
     txn: &impl ConnectionTrait,
     repository: &str,
-    items: &[(PutAsset, Written)],
     resolved: &[Resolved<'_>],
     written: &HashSet<ComponentIdentity>,
-    carried: &[&str],
+    intents: &[Intent],
 ) -> Result<Vec<Drift>, ContentError> {
-    if carried.is_empty() {
+    if intents.is_empty() {
         return Ok(Vec::new());
     }
     let untouched: Vec<&Resolved<'_>> = resolved
@@ -97,24 +118,107 @@ pub(super) async fn drifting(
     let mut drift = Vec::new();
     for found in untouched {
         let Some(id) = found.id else { continue };
-        let wanted = carried_of(found.key, carried);
-        if wanted.is_empty() {
+        let identity = identity_of(found.key);
+        let Some(wanted) = wanted(intents, &identity) else {
             continue;
-        }
+        };
         let row = rows
             .iter()
             .find(|row| row.id == id)
             .ok_or_else(|| changed_meanwhile(repository))?;
-        let Some(attributes) = merged_attributes(&row.attributes, &wanted)? else {
-            continue;
-        };
-        let identity = identity_of(found.key);
-        check_attribute_write(repository, &identity, items.iter().map(|(put, _)| put))?;
-        drift.push(Drift {
-            id,
-            identity,
-            attributes,
-        });
+        if let Some(attributes) = merged(&row.attributes, wanted)? {
+            drift.push(Drift {
+                id,
+                identity,
+                attributes,
+            });
+        }
     }
     Ok(drift)
+}
+
+pub(super) struct Stance<'a> {
+    pub(super) conflict: Conflict,
+    pub(super) planning: bool,
+    pub(super) replaceable: Option<Replaceable<'a>>,
+}
+
+pub(super) fn judge(
+    repository: &str,
+    candidates: &[Candidate<'_>],
+    existing: &HashMap<String, Asset>,
+    mut decision: Decision,
+    drifted: &HashSet<ComponentIdentity>,
+    stance: Stance<'_>,
+) -> Result<(Decision, Vec<usize>), ContentError> {
+    let Stance {
+        conflict,
+        planning,
+        replaceable,
+    } = stance;
+    if drifted.is_empty() || !matches!(decision.status, Status::Copied | Status::Unchanged) {
+        return Ok((decision, Vec::new()));
+    }
+    let indexes: Vec<usize> = candidates
+        .iter()
+        .enumerate()
+        .filter(|(_, candidate)| {
+            candidate
+                .put
+                .component
+                .as_ref()
+                .is_some_and(|key| drifted.contains(&identity_of(key)))
+        })
+        .map(|(index, _)| index)
+        .collect();
+    let refuse = |decision: &mut Decision, status: Status| {
+        decision.status = status;
+        decision.bytes_copied = 0;
+        decision.bytes_reused = 0;
+        decision.writes = false;
+    };
+    match conflict {
+        Conflict::Fail if planning => {
+            for index in &indexes {
+                decision.assets[*index].status = AssetStatus::Conflict;
+            }
+            refuse(&mut decision, Status::Conflict);
+            Ok((decision, Vec::new()))
+        }
+        Conflict::Fail => Err(ContentError::Conflict(format!(
+            "{repository}: {} exist with different attributes",
+            indexes
+                .iter()
+                .map(|index| candidates[*index].put.path.as_str())
+                .collect::<Vec<&str>>()
+                .join(", ")
+        ))),
+        Conflict::Skip => {
+            refuse(&mut decision, Status::Skipped);
+            Ok((decision, Vec::new()))
+        }
+        Conflict::Replace => {
+            for index in &indexes {
+                let put = candidates[*index].put;
+                check_write(
+                    repository,
+                    put,
+                    existing.get(&put.path),
+                    Conflict::Replace,
+                    replaceable.map(|allowed| allowed as &dyn Fn(&str) -> bool),
+                )?;
+            }
+            Ok((decision, indexes))
+        }
+    }
+}
+
+pub(super) fn mark_replaced(outcome: &mut Outcome, indexes: &[usize]) {
+    if indexes.is_empty() {
+        return;
+    }
+    for index in indexes {
+        outcome.assets[*index].status = AssetStatus::Replaced;
+    }
+    outcome.status = Status::Copied;
 }

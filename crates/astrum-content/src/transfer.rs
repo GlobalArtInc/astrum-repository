@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use std::time::Duration;
 
-use astrum_blob::{BlobStore, Digests, Written, content_of};
+use astrum_blob::{BlobId, BlobStore, Digests, Written, content_of};
 use astrum_repo::RepositoryType;
 use astrum_repo::config::WritePolicy;
 use async_trait::async_trait;
@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
 use crate::import::{Body, Described, Imported, ImportedComponent, Plan};
-use crate::store::{self, Component, ComponentIdentity, ComponentKey, Planned, PutAsset};
+use crate::store::{self, Component, ComponentIdentity, ComponentKey, Intent, Planned, PutAsset};
 use crate::{Content, ContentError, Ctx, holds, mime, normalize};
 
 pub const MAX_ASSETS: usize = 10_000;
@@ -368,6 +368,11 @@ fn promoted(placed: &[Placed], outcome: &Outcome, refreshed: &[ComponentIdentity
         if !written.contains(path.as_str()) {
             continue;
         }
+        if let Some(key) = component
+            && refreshed.contains(&(key.namespace.clone(), key.name.clone(), key.version.clone()))
+        {
+            continue;
+        }
         let Some(key) = component else {
             promoted.loose.push(path.clone());
             continue;
@@ -522,14 +527,50 @@ fn verify(written: &Written, asset: &BundleAsset) -> Result<(), ContentError> {
     Ok(())
 }
 
-fn hint(bundle: &Bundle, carried: &Map<String, Value>) -> ComponentKey {
+fn hint(bundle: &Bundle) -> ComponentKey {
     ComponentKey {
         namespace: bundle.namespace.clone(),
         name: bundle.name.clone(),
         version: bundle.version.clone(),
         kind: String::new(),
-        attributes: Value::Object(carried.clone()),
+        attributes: Value::Object(Default::default()),
     }
+}
+
+struct Held {
+    store: Arc<dyn BlobStore>,
+    blob: BlobId,
+    size: u64,
+    sha256: String,
+}
+
+fn imported_of(target: &Ctx, incoming: &Incoming<'_>, asset: &BundleAsset, held: Held) -> Imported {
+    Imported {
+        repository: RepositoryType::Hosted,
+        config: target.repository.clone(),
+        path: asset.path.clone(),
+        kind: asset.kind.clone(),
+        content_type: asset.content_type.clone(),
+        attributes: asset.attributes.clone(),
+        component: Some(ImportedComponent {
+            namespace: incoming.bundle.namespace.clone(),
+            name: incoming.bundle.name.clone(),
+            version: incoming.bundle.version.clone(),
+            attributes: match incoming.carried.is_empty() {
+                true => Value::Null,
+                false => Value::Object(incoming.carried.clone()),
+            },
+            ..Default::default()
+        }),
+        store: held.store,
+        blob: held.blob,
+        size: held.size,
+        sha256: held.sha256,
+    }
+}
+
+fn same_component(left: &ComponentKey, right: &ComponentKey) -> bool {
+    left.namespace == right.namespace && left.name == right.name && left.version == right.version
 }
 
 struct Incoming<'a> {
@@ -537,7 +578,11 @@ struct Incoming<'a> {
     carried: &'a Map<String, Value>,
 }
 
-type Transferred<'a> = (Vec<(PutAsset, Written)>, HashMap<String, &'a BundleAsset>);
+type Transferred<'a> = (
+    Vec<(PutAsset, Written)>,
+    HashMap<String, &'a BundleAsset>,
+    Vec<ComponentIdentity>,
+);
 
 impl GenericTransfer {
     fn declared(&self) -> Vec<&'static str> {
@@ -616,9 +661,9 @@ impl GenericTransfer {
         bundle: &Bundle,
         wanted: &[&BundleAsset],
         terms: Terms,
-        carried: &Map<String, Value>,
+        intents: &[Intent],
     ) -> Result<Outcome, ContentError> {
-        let key = hint(bundle, carried);
+        let key = hint(bundle);
         let planned: Vec<Planned> = wanted
             .iter()
             .map(|asset| Planned {
@@ -636,14 +681,60 @@ impl GenericTransfer {
             .map(|asset| (asset.path.clone(), *asset))
             .collect();
         let allowed = self.allowance(target, origins);
-        store::preview_many_carrying(
-            target,
-            &planned,
-            terms.conflict,
-            Some(&allowed),
-            &self.declared(),
-        )
-        .await
+        store::preview_many_carrying(target, &planned, terms.conflict, Some(&allowed), intents)
+            .await
+    }
+
+    async fn intents(
+        &self,
+        target: &Ctx,
+        incoming: &Incoming<'_>,
+        wanted: &[&BundleAsset],
+    ) -> Result<Vec<Intent>, ContentError> {
+        if incoming.carried.is_empty() {
+            return Ok(Vec::new());
+        }
+        let sink = Sink::of(target).await?;
+        let mut primaries: Vec<ComponentKey> = Vec::new();
+        for asset in wanted {
+            let held = Held {
+                store: sink.store.clone(),
+                blob: BlobId::from(uuid::Uuid::nil()),
+                size: asset.size,
+                sha256: asset.sha256.to_ascii_lowercase(),
+            };
+            let imported = imported_of(target, incoming, asset, held);
+            let Some(described) = (self.describe)(&imported)
+                .await
+                .map_err(ContentError::BadRequest)?
+            else {
+                continue;
+            };
+            let Some(key) = described.put.component else {
+                continue;
+            };
+            let seen = primaries.iter().any(|found| same_component(found, &key));
+            if !described.keep_component && !seen {
+                primaries.push(key);
+            }
+        }
+        Ok(primaries
+            .into_iter()
+            .map(|key| Intent {
+                attributes: incoming
+                    .carried
+                    .iter()
+                    .filter_map(|(name, _)| {
+                        key.attributes
+                            .get(name)
+                            .filter(|value| !value.is_null())
+                            .map(|value| (name.clone(), value.clone()))
+                    })
+                    .collect(),
+                identity: (key.namespace, key.name, key.version),
+                companion_only: false,
+            })
+            .collect())
     }
 
     fn allowance<'a>(
@@ -670,8 +761,6 @@ impl GenericTransfer {
         wanted: &[&'a BundleAsset],
         staged: &mut Staged<'_>,
     ) -> Result<Transferred<'a>, ContentError> {
-        let bundle = incoming.bundle;
-        let carried = incoming.carried;
         let mut items: Vec<(PutAsset, Written)> = Vec::new();
         let mut keeping: Vec<bool> = Vec::new();
         let mut origins: HashMap<String, &'a BundleAsset> = HashMap::new();
@@ -681,28 +770,13 @@ impl GenericTransfer {
             let written = blobs.write(sink, asset).await?;
             staged.hold(written.clone()).await?;
             verify(&written, asset)?;
-            let imported = Imported {
-                repository: RepositoryType::Hosted,
-                config: target.repository.clone(),
-                path: asset.path.clone(),
-                kind: asset.kind.clone(),
-                content_type: asset.content_type.clone(),
-                attributes: asset.attributes.clone(),
-                component: Some(ImportedComponent {
-                    namespace: bundle.namespace.clone(),
-                    name: bundle.name.clone(),
-                    version: bundle.version.clone(),
-                    attributes: match carried.is_empty() {
-                        true => Value::Null,
-                        false => Value::Object(carried.clone()),
-                    },
-                    ..Default::default()
-                }),
+            let held = Held {
                 store: sink.store.clone(),
                 blob: written.id,
                 size: written.size,
                 sha256: written.digests.sha256.clone(),
             };
+            let imported = imported_of(target, incoming, asset, held);
             let Some(described) = (self.describe)(&imported)
                 .await
                 .map_err(ContentError::BadRequest)?
@@ -746,25 +820,31 @@ impl GenericTransfer {
             }
         }
         staged.check()?;
-        Self::primary_first(&mut items, &keeping);
-        Ok((items, origins))
+        let companions = Self::primary_first(&mut items, &keeping);
+        Ok((items, origins, companions))
     }
 
-    fn primary_first(items: &mut [(PutAsset, Written)], keeping: &[bool]) {
+    fn primary_first(
+        items: &mut [(PutAsset, Written)],
+        keeping: &[bool],
+    ) -> Vec<ComponentIdentity> {
         let mut primaries: HashMap<ComponentIdentity, ComponentKey> = HashMap::new();
+        let mut companions: Vec<ComponentIdentity> = Vec::new();
         for pass in [false, true] {
             for ((put, _), keep) in items.iter().zip(keeping) {
                 if *keep != pass {
                     continue;
                 }
                 if let Some(found) = put.component.as_ref() {
-                    primaries
-                        .entry((
-                            found.namespace.clone(),
-                            found.name.clone(),
-                            found.version.clone(),
-                        ))
-                        .or_insert_with(|| found.clone());
+                    let identity = (
+                        found.namespace.clone(),
+                        found.name.clone(),
+                        found.version.clone(),
+                    );
+                    if pass && !primaries.contains_key(&identity) {
+                        companions.push(identity.clone());
+                    }
+                    primaries.entry(identity).or_insert_with(|| found.clone());
                 }
             }
         }
@@ -781,6 +861,7 @@ impl GenericTransfer {
                 put.component = Some(primary.clone());
             }
         }
+        companions
     }
 
     fn count_component(
@@ -893,16 +974,17 @@ impl Transfer for GenericTransfer {
         if let Some(admit) = self.admit {
             admit(target, bundle).await?;
         }
-        if terms.dry_run {
-            return self.preview(target, bundle, &wanted, terms, &carried).await;
-        }
-        let sink = Sink::of(target).await?;
         let incoming = Incoming {
             bundle,
             carried: &carried,
         };
+        let intents = self.intents(target, &incoming, &wanted).await?;
+        if terms.dry_run {
+            return self.preview(target, bundle, &wanted, terms, &intents).await;
+        }
+        let sink = Sink::of(target).await?;
         let mut staged = Staged::new(&target.content);
-        let (items, origins) = match self
+        let (items, origins, companions) = match self
             .stage(target, &incoming, blobs, &sink, &wanted, &mut staged)
             .await
         {
@@ -915,6 +997,12 @@ impl Transfer for GenericTransfer {
         if items.is_empty() {
             return Ok(Outcome::nothing());
         }
+        let mut intents = intents;
+        intents.extend(companions.into_iter().map(|identity| Intent {
+            identity,
+            attributes: Map::new(),
+            companion_only: true,
+        }));
         let allowed = self.allowance(target, origins);
         let placed: Vec<Placed> = items
             .iter()
@@ -926,7 +1014,7 @@ impl Transfer for GenericTransfer {
             terms.conflict,
             terms.action,
             Some(&allowed),
-            &self.declared(),
+            &intents,
         )
         .await?;
         if outcome.status == Status::Copied

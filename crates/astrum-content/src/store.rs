@@ -25,7 +25,10 @@ use crate::{Content, ContentError, Ctx, holds};
 
 mod drift;
 
-use drift::{carried_of, check_attribute_write, drifting, merged_attributes};
+pub use drift::Intent;
+use drift::{
+    Stance, drifting, judge, keeps_stored, mark_replaced, merged, renew, wanted, written_identities,
+};
 
 pub type Asset = asset::Model;
 pub type Component = component::Model;
@@ -1107,7 +1110,7 @@ pub async fn preview_many_carrying(
     planned: &[Planned],
     conflict: Conflict,
     replaceable: Option<Replaceable<'_>>,
-    carried: &[&str],
+    intents: &[Intent],
 ) -> Result<Outcome, ContentError> {
     let repository = ctx.name();
     let paths: Vec<String> = planned.iter().map(|item| item.put.path.clone()).collect();
@@ -1120,7 +1123,7 @@ pub async fn preview_many_carrying(
             sha256: &item.sha256,
         })
         .collect();
-    let mut decision = decide(
+    let decision = decide(
         repository,
         &candidates,
         &existing,
@@ -1128,27 +1131,40 @@ pub async fn preview_many_carrying(
         true,
         replaceable.map(|allowed| allowed as &dyn Fn(&str) -> bool),
     )?;
+    let written = written_identities(&candidates, &decision);
     let mut component_ids = Vec::new();
-    let mut drifted = false;
+    let mut drifted = HashSet::new();
     for key in component_keys(planned.iter().map(|item| &item.put))? {
-        if let Some(found) = find_component(ctx.db(), repository, &key).await? {
-            component_ids.push(found.id);
-            if decision.status == Status::Unchanged
-                && merged_attributes(&found.attributes, &carried_of(&key, carried))?.is_some()
-            {
-                check_attribute_write(
-                    repository,
-                    &identity_of(&key),
-                    planned.iter().map(|item| &item.put),
-                )?;
-                drifted = true;
-            }
+        let Some(found) = find_component(ctx.db(), repository, &key).await? else {
+            continue;
+        };
+        component_ids.push(found.id);
+        let identity = identity_of(&key);
+        if !written.contains(&identity)
+            && wanted(intents, &identity)
+                .map(|wanted| merged(&found.attributes, wanted))
+                .transpose()?
+                .flatten()
+                .is_some()
+        {
+            drifted.insert(identity);
         }
     }
-    if drifted {
-        decision.status = Status::Copied;
-    }
-    Ok(decision.outcome(component_ids))
+    let (decision, replaced) = judge(
+        repository,
+        &candidates,
+        &existing,
+        decision,
+        &drifted,
+        Stance {
+            conflict,
+            planning: true,
+            replaceable,
+        },
+    )?;
+    let mut outcome = decision.outcome(component_ids);
+    mark_replaced(&mut outcome, &replaced);
+    Ok(outcome)
 }
 
 fn validate_many(items: &[(PutAsset, Written)]) -> Result<Vec<ComponentKey>, ContentError> {
@@ -1208,7 +1224,7 @@ pub async fn record_many_carrying(
     conflict: Conflict,
     action: &str,
     replaceable: Option<Replaceable<'_>>,
-    carried: &[&str],
+    intents: &[Intent],
 ) -> Result<(Outcome, Vec<ComponentIdentity>), ContentError> {
     let blobs: Vec<(String, Uuid)> = items
         .iter()
@@ -1232,7 +1248,7 @@ pub async fn record_many_carrying(
         conflict,
         action,
         replaceable,
-        carried,
+        intents,
     };
     let executed = write_many(ctx, &txn, &items, &keys, rules).await;
     match executed {
@@ -1283,7 +1299,7 @@ struct Rules<'a> {
     conflict: Conflict,
     action: &'a str,
     replaceable: Option<Replaceable<'a>>,
-    carried: &'a [&'a str],
+    intents: &'a [Intent],
 }
 
 async fn write_many(
@@ -1297,7 +1313,7 @@ async fn write_many(
         conflict,
         action,
         replaceable,
-        carried,
+        intents,
     } = rules;
     let repository = ctx.name();
     if !lock_repository(txn, repository).await? {
@@ -1400,19 +1416,28 @@ async fn write_many(
         false,
         replaceable.map(|allowed| allowed as &dyn Fn(&str) -> bool),
     )?;
-    let mut written_keys: HashSet<ComponentIdentity> = HashSet::new();
-    for (index, (put, _)) in items.iter().enumerate() {
-        if matches!(
-            decision.assets[index].status,
-            AssetStatus::New | AssetStatus::Replaced
-        ) && let Some(found) = put.component.as_ref()
-        {
-            written_keys.insert(identity_of(found));
-        }
-    }
+    let written_keys = written_identities(&candidates, &decision);
     let drift = match matches!(decision.status, Status::Copied | Status::Unchanged) {
-        true => drifting(txn, repository, items, &resolved, &written_keys, carried).await?,
+        true => drifting(txn, repository, &resolved, &written_keys, intents).await?,
         false => Vec::new(),
+    };
+    let drifted: HashSet<ComponentIdentity> =
+        drift.iter().map(|found| found.identity.clone()).collect();
+    let (decision, replaced) = judge(
+        repository,
+        &candidates,
+        &existing,
+        decision,
+        &drifted,
+        Stance {
+            conflict,
+            planning: false,
+            replaceable,
+        },
+    )?;
+    let drift = match replaced.is_empty() {
+        true => Vec::new(),
+        false => drift,
     };
     if !decision.writes && drift.is_empty() {
         let ids: Vec<i64> = match keys.is_empty() {
@@ -1442,7 +1467,13 @@ async fn write_many(
         if found.id.is_none() {
             return Err(changed_meanwhile(repository));
         }
-        upsert_component(txn, repository, ctx.format_id(), found.key, now).await?;
+        let identity = identity_of(found.key);
+        match !found.created && keeps_stored(intents, &identity) {
+            true => renew(txn, found.id.unwrap_or_default(), now).await?,
+            false => {
+                upsert_component(txn, repository, ctx.format_id(), found.key, now).await?;
+            }
+        }
     }
     for found in &drift {
         component::Entity::update_many()
@@ -1513,12 +1544,8 @@ async fn write_many(
     for old in left_components {
         drop_empty_component(txn, old).await?;
     }
-    let status = match drift.is_empty() {
-        true => decision.status,
-        false => Status::Copied,
-    };
     let mut outcome = decision.outcome(ids);
-    outcome.status = status;
+    mark_replaced(&mut outcome, &replaced);
     Ok(Executed {
         outcome,
         committed: true,
