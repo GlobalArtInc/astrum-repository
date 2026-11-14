@@ -1,6 +1,7 @@
 import { useT } from '../../i18n';
-import { Page } from '../../ui';
+import { Page, QueryTabs } from '../../ui';
 import { RemotesPanel } from './RemotesPanel';
+import { ReplicationsPanel } from './ReplicationsPanel';
 
 export default function ReplicationPage() {
   const t = useT();
@@ -13,7 +14,16 @@ export default function ReplicationPage() {
         { label: t('replication.page.title') },
       ]}
     >
-      <RemotesPanel />
+      <QueryTabs
+        tabs={[
+          { value: 'remotes', label: t('replication.tabs.remotes'), content: <RemotesPanel /> },
+          {
+            value: 'replications',
+            label: t('replication.tabs.replications'),
+            content: <ReplicationsPanel />,
+          },
+        ]}
+      />
     </Page>
   );
 }
