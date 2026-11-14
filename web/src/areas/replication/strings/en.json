@@ -26,6 +26,13 @@
   "replication.remotes.checkFormats": "Formats: {formats}",
   "replication.remotes.checkFailed": "{name} did not answer ({kind}): {message}",
   "replication.remotes.checkError": "The check of {name} failed: {message}",
+  "replication.remotes.health": "Health",
+  "replication.remotes.healthOk": "OK",
+  "replication.remotes.suspendedUntil": "Suspended until {time}",
+  "replication.remotes.healthDetail": {
+    "one": "{count} failure, last error: {error}",
+    "other": "{count} failures, last error: {error}"
+  },
   "replication.remote.createTitle": "New remote",
   "replication.remote.editTitle": "Edit remote",
   "replication.remote.name": "Name",
@@ -52,7 +59,11 @@
   "replication.replications.remote": "Remote and repository",
   "replication.replications.state": "State",
   "replication.replications.filters": "Filters",
-  "replication.replications.enabled": "Enabled",
+  "replication.replications.refresh": "Refresh",
+  "replication.replications.pending": "Pending",
+  "replication.replications.dead": "Dead",
+  "replication.replications.lag": "Lag",
+  "replication.replications.lastSuccess": "Last success",
   "replication.replications.disabled": "Disabled",
   "replication.replications.enable": "Enable replication {name}",
   "replication.replications.disable": "Disable replication {name}",
@@ -124,5 +135,85 @@
   "replication.validation.range": "Enter a whole number from {min} to {max}",
   "replication.validation.period": "Choose one of the listed periods",
   "replication.validation.positive": "Enter a number above 0, or leave empty for no limit",
-  "replication.validation.repository": "Use letters, digits, '-', '_' and '.', starting with a letter, a digit or '-'"
+  "replication.validation.repository": "Use letters, digits, '-', '_' and '.', starting with a letter, a digit or '-'",
+  "replication.status.ok": "OK",
+  "replication.status.failing": "Failing",
+  "replication.status.deadItems": "Dead items",
+  "replication.status.upToDate": "up to date",
+  "replication.status.never": "Never",
+  "replication.status.noError": "no error recorded",
+  "replication.status.lagSeconds": {
+    "one": "{count} second",
+    "other": "{count} seconds"
+  },
+  "replication.status.lagMinutes": {
+    "one": "{count} minute",
+    "other": "{count} minutes"
+  },
+  "replication.status.lagHours": {
+    "one": "{count} hour",
+    "other": "{count} hours"
+  },
+  "replication.status.lagDays": {
+    "one": "{count} day",
+    "other": "{count} days"
+  },
+  "replication.detail.reconcile": "Reconcile now",
+  "replication.detail.reconcileStarted": "Reconcile started",
+  "replication.detail.notFoundTitle": "Replication not found",
+  "replication.detail.notFound": "The replication does not exist or was deleted",
+  "replication.detail.leased": "Leased",
+  "replication.detail.lastFailure": "Last failure",
+  "replication.detail.lastError": "Last error",
+  "replication.detail.lastReconcile": "Last reconcile",
+  "replication.detail.remoteFailures": "Remote failures",
+  "replication.detail.remoteError": "Remote last error",
+  "replication.detail.suspended": {
+    "one": "Suspended until {time} after {count} failure: {error}",
+    "other": "Suspended until {time} after {count} failures: {error}"
+  },
+  "replication.items.show": "Show",
+  "replication.items.stateDead": "Dead",
+  "replication.items.statePending": "Pending",
+  "replication.items.stateLeased": "Leased",
+  "replication.items.table": "Replication items",
+  "replication.items.key": "Key",
+  "replication.items.attempts": "Attempts",
+  "replication.items.lastError": "Last error",
+  "replication.items.firstQueued": "First queued",
+  "replication.items.empty": "No items in this state",
+  "replication.items.select": "Select {key}",
+  "replication.items.retrySelectedButton": "Retry selected",
+  "replication.items.retryAllButton": "Retry all dead",
+  "replication.items.discardSelectedButton": "Discard selected",
+  "replication.items.discardAllButton": "Discard all dead",
+  "replication.items.retrySelectedTitle": {
+    "one": "Retry {count} selected item?",
+    "other": "Retry {count} selected items?"
+  },
+  "replication.items.retryAllTitle": {
+    "one": "Retry {count} dead item?",
+    "other": "Retry {count} dead items?"
+  },
+  "replication.items.discardSelectedTitle": {
+    "one": "Discard {count} selected item?",
+    "other": "Discard {count} selected items?"
+  },
+  "replication.items.discardAllTitle": {
+    "one": "Discard {count} dead item?",
+    "other": "Discard {count} dead items?"
+  },
+  "replication.items.retryText": "The items go back to the queue with their attempts reset and are sent now.",
+  "replication.items.discardText": "Discarded items leave the queue. The component will not be sent until it changes again.",
+  "replication.items.retryConfirm": "Retry",
+  "replication.items.discardConfirm": "Discard",
+  "replication.items.retried": {
+    "one": "Retried {count} item",
+    "other": "Retried {count} items"
+  },
+  "replication.items.discarded": {
+    "one": "Discarded {count} item",
+    "other": "Discarded {count} items"
+  },
+  "replication.replicatedTo.badge": "Replicated to {count}"
 }

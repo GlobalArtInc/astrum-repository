@@ -3,7 +3,7 @@ import { Pencil, PlugZap, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { api, useInvalidateApi } from '../../api';
 import { useCan } from '../../auth/state';
-import { useT } from '../../i18n';
+import { formatDateTime, useI18n, useT } from '../../i18n';
 import {
   type Column,
   ConfirmDialog,
@@ -11,6 +11,8 @@ import {
   DateTime,
   describeError,
   EmptyState,
+  StatusBadge,
+  Tooltip,
   useToast,
 } from '../../ui';
 import styles from '../security/shared/Form.module.css';
@@ -25,6 +27,7 @@ import {
   UPDATE,
   useReplicationRemotes,
 } from './api';
+import { isSuspended } from './model';
 import { RemoteDialog } from './RemoteDialog';
 
 interface CheckReport {
@@ -35,6 +38,7 @@ interface CheckReport {
 
 export function RemotesPanel() {
   const t = useT();
+  const { language } = useI18n();
   const toast = useToast();
   const invalidate = useInvalidateApi();
   const canCreate = useCan(CREATE);
@@ -86,6 +90,29 @@ export function RemotesPanel() {
         </Text>
       ),
       sortValue: (remote) => remote.url,
+    },
+    {
+      id: 'health',
+      header: t('replication.remotes.health'),
+      cell: (remote) =>
+        remote.suspendedUntil !== null && isSuspended(remote.suspendedUntil, new Date()) ? (
+          <Tooltip
+            content={t('replication.remotes.healthDetail', {
+              count: remote.failures,
+              error: remote.lastError ?? t('replication.status.noError'),
+            })}
+          >
+            <span>
+              <StatusBadge tone="warning">
+                {t('replication.remotes.suspendedUntil', {
+                  time: formatDateTime(language, remote.suspendedUntil),
+                })}
+              </StatusBadge>
+            </span>
+          </Tooltip>
+        ) : (
+          <StatusBadge tone="success">{t('replication.remotes.healthOk')}</StatusBadge>
+        ),
     },
     {
       id: 'checkedAt',

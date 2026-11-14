@@ -21,6 +21,9 @@ const REMOTE: ReplicationRemote = {
   remoteInstanceId: null,
   remoteVersion: '3.0.4',
   checkedAt: null,
+  failures: 0,
+  suspendedUntil: null,
+  lastError: null,
   createdAt: '2026-11-01T10:00:00Z',
   updatedAt: '2026-11-01T10:00:00Z',
 };
@@ -154,5 +157,31 @@ describe('the remotes panel', () => {
     expect(
       await within(dialog).findByText('The remote is used by these replications: Nightly, Weekly'),
     ).toBeInTheDocument();
+  });
+
+  it('shows the health of each remote and the failures of a suspended one in a tooltip', async () => {
+    const fake = fakeServer({
+      [`GET ${REMOTES}`]: () =>
+        jsonResponse([
+          REMOTE,
+          {
+            ...REMOTE,
+            id: 'r2',
+            name: 'Edge',
+            failures: 4,
+            suspendedUntil: '2099-01-01T00:00:00Z',
+            lastError: 'connection refused',
+          },
+        ]),
+    });
+    vi.stubGlobal('fetch', fake.fetch);
+    renderWithApp(<RemotesPanel />);
+    const healthy = (await screen.findByText('Mirror')).closest('tr') as HTMLElement;
+    expect(within(healthy).getByText('OK')).toBeInTheDocument();
+    const suspended = screen.getByText('Edge').closest('tr') as HTMLElement;
+    const badge = within(suspended).getByText(/^Suspended until /);
+    document.documentElement.dataset.input = 'pointer';
+    await userEvent.hover(badge);
+    expect(await screen.findByText('4 failures, last error: connection refused')).toBeInTheDocument();
   });
 });

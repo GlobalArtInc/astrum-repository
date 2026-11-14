@@ -1,5 +1,6 @@
 import { Button, Flex, IconButton, Switch, Text } from '@radix-ui/themes';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { useQueries } from '@tanstack/react-query';
+import { Pencil, Plus, RotateCw, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { api, useInvalidateApi } from '../../api';
 import { useCan } from '../../auth/state';
@@ -10,7 +11,7 @@ import {
   DataTable,
   describeError,
   EmptyState,
-  StatusBadge,
+  RelativeTime,
   useToast,
 } from '../../ui';
 import {
@@ -18,13 +19,16 @@ import {
   DELETE,
   REPLICATIONS,
   type Replication,
+  replicationAddress,
   replicationPath,
+  statusQuery,
   UPDATE,
   useReplicationList,
   useReplicationRemotes,
 } from './api';
-import { remoteName, replicationBody, replicationValues } from './model';
+import { lagText, remoteName, replicationBody, replicationValues } from './model';
 import { ReplicationDialog } from './ReplicationDialog';
+import { ReplicationState, StatusValue } from './Status';
 
 export function ReplicationsPanel() {
   const t = useT();
@@ -35,6 +39,10 @@ export function ReplicationsPanel() {
   const canDelete = useCan(DELETE);
   const replications = useReplicationList();
   const remotes = useReplicationRemotes();
+  const rows = replications.data ?? [];
+  const statuses = useQueries({ queries: rows.map((replication) => statusQuery(replication.id)) });
+  const statusById = new Map(rows.map((replication, index) => [replication.id, statuses[index]] as const));
+  const statusOf = (id: string) => statusById.get(id);
   const [editing, setEditing] = useState<Replication | 'new' | null>(null);
   const [deleting, setDeleting] = useState<Replication | null>(null);
 
@@ -105,13 +113,65 @@ export function ReplicationsPanel() {
     {
       id: 'state',
       header: t('replication.replications.state'),
-      cell: (replication) =>
-        replication.enabled ? (
-          <StatusBadge tone="success">{t('replication.replications.enabled')}</StatusBadge>
-        ) : (
-          <StatusBadge tone="neutral">{t('replication.replications.disabled')}</StatusBadge>
-        ),
-      sortValue: (replication) => (replication.enabled ? 1 : 0),
+      cell: (replication) => (
+        <ReplicationState enabled={replication.enabled} result={statusOf(replication.id)} />
+      ),
+      sortValue: (replication) => statusOf(replication.id)?.data?.alertState ?? '',
+    },
+    {
+      id: 'pending',
+      header: t('replication.replications.pending'),
+      align: 'right',
+      cell: (replication) => (
+        <StatusValue result={statusOf(replication.id)}>{(status) => status.pending}</StatusValue>
+      ),
+      sortValue: (replication) => statusOf(replication.id)?.data?.pending ?? null,
+    },
+    {
+      id: 'dead',
+      header: t('replication.replications.dead'),
+      align: 'right',
+      cell: (replication) => (
+        <StatusValue result={statusOf(replication.id)}>
+          {(status) => (
+            <Text size="2" color={status.dead > 0 ? 'red' : undefined}>
+              {status.dead}
+            </Text>
+          )}
+        </StatusValue>
+      ),
+      sortValue: (replication) => statusOf(replication.id)?.data?.dead ?? null,
+    },
+    {
+      id: 'lag',
+      header: t('replication.replications.lag'),
+      cell: (replication) => (
+        <StatusValue result={statusOf(replication.id)}>
+          {(status) => <Text size="2">{lagText(t, status.lagSeconds)}</Text>}
+        </StatusValue>
+      ),
+      sortValue: (replication) => statusOf(replication.id)?.data?.lagSeconds ?? null,
+    },
+    {
+      id: 'lastSuccess',
+      header: t('replication.replications.lastSuccess'),
+      cell: (replication) => (
+        <StatusValue result={statusOf(replication.id)}>
+          {(status) =>
+            status.lastSuccessAt === null ? (
+              <Text size="2" color="gray">
+                {t('replication.status.never')}
+              </Text>
+            ) : (
+              <RelativeTime value={status.lastSuccessAt} />
+            )
+          }
+        </StatusValue>
+      ),
+      sortValue: (replication) => {
+        const at = statusOf(replication.id)?.data?.lastSuccessAt;
+        return at ? new Date(at) : null;
+      },
     },
     {
       id: 'filters',
@@ -164,7 +224,16 @@ export function ReplicationsPanel() {
 
   return (
     <Flex direction="column" gap="4">
-      <Flex justify="end">
+      <Flex justify="end" gap="2">
+        <Button
+          variant="soft"
+          color="gray"
+          loading={replications.isFetching || statuses.some((status) => status.isFetching)}
+          onClick={() => void invalidate(REPLICATIONS)}
+        >
+          <RotateCw size={16} aria-hidden="true" />
+          {t('replication.replications.refresh')}
+        </Button>
         {canCreate && (
           <Button onClick={() => setEditing('new')}>
             <Plus size={16} aria-hidden="true" />
@@ -177,6 +246,7 @@ export function ReplicationsPanel() {
         columns={columns}
         rows={replications.data}
         getRowId={(replication) => replication.id}
+        rowHref={(replication) => replicationAddress(replication.id)}
         loading={replications.isPending}
         error={replications.error}
         onRetry={() => void replications.refetch()}

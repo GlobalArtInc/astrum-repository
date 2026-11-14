@@ -32,6 +32,9 @@ const REMOTE: ReplicationRemote = {
   remoteInstanceId: null,
   remoteVersion: null,
   checkedAt: null,
+  failures: 0,
+  suspendedUntil: null,
+  lastError: null,
   createdAt: '2026-11-01T10:00:00Z',
   updatedAt: '2026-11-01T10:00:00Z',
 };

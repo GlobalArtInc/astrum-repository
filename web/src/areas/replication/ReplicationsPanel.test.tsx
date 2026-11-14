@@ -21,6 +21,9 @@ const REMOTE: ReplicationRemote = {
   remoteInstanceId: null,
   remoteVersion: null,
   checkedAt: null,
+  failures: 0,
+  suspendedUntil: null,
+  lastError: null,
   createdAt: '2026-11-01T10:00:00Z',
   updatedAt: '2026-11-01T10:00:00Z',
 };
@@ -211,5 +214,47 @@ describe('the reconcile period', () => {
       'aria-invalid',
       'true',
     );
+  });
+});
+
+describe('the status columns', () => {
+  const DISABLED: Replication = { ...REPLICATION, id: 'p2', name: 'Weekly', enabled: false };
+
+  it('shows the state, pending, dead, lag and last success of each replication', async () => {
+    const fake = fakeServer({
+      ...handlers([REPLICATION, DISABLED]),
+      [`GET ${REPLICATIONS}/p1/status`]: () =>
+        jsonResponse({
+          enabled: true,
+          pending: 2,
+          leased: 0,
+          dead: 3,
+          lagSeconds: 120,
+          lastSuccessAt: null,
+          lastFailureAt: null,
+          lastError: null,
+          lastReconcileAt: null,
+          alertState: 'dead_items',
+          remote: { suspendedUntil: null, failures: 0, lastError: null },
+        }),
+    });
+    vi.stubGlobal('fetch', fake.fetch);
+    renderWithApp(<ReplicationsPanel />);
+    const row = (await screen.findByText('Nightly')).closest('tr') as HTMLElement;
+    expect(within(row).getByText('Dead items')).toBeInTheDocument();
+    expect(within(row).getByText('2')).toBeInTheDocument();
+    expect(within(row).getByText('3')).toBeInTheDocument();
+    expect(within(row).getByText('2 minutes')).toBeInTheDocument();
+    expect(within(row).getByText('Never')).toBeInTheDocument();
+  });
+
+  it('shows a dash for a row whose status request fails and Disabled for a disabled replication', async () => {
+    const fake = fakeServer(handlers([REPLICATION, DISABLED]));
+    vi.stubGlobal('fetch', fake.fetch);
+    renderWithApp(<ReplicationsPanel />);
+    const row = (await screen.findByText('Nightly')).closest('tr') as HTMLElement;
+    expect(await within(row).findAllByText('—')).toHaveLength(5);
+    const disabledRow = screen.getByText('Weekly').closest('tr') as HTMLElement;
+    expect(within(disabledRow).getByText('Disabled')).toBeInTheDocument();
   });
 });

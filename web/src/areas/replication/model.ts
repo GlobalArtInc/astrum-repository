@@ -355,3 +355,32 @@ export function previewFilters(
 export function remoteName(remotes: ReplicationRemote[] | undefined, id: string): string {
   return remotes?.find((remote) => remote.id === id)?.name ?? id;
 }
+
+export function isSuspended(suspendedUntil: string | null, now: Date): boolean {
+  return suspendedUntil !== null && new Date(suspendedUntil).getTime() > now.getTime();
+}
+
+export function lagText(t: Translate, seconds: number | null): string {
+  if (seconds === null || seconds <= 0) {
+    return t('replication.status.upToDate');
+  }
+  const whole = Math.max(1, Math.floor(seconds));
+  if (whole < 60) {
+    return t('replication.status.lagSeconds', { count: whole });
+  }
+  if (whole < 3600) {
+    return t('replication.status.lagMinutes', { count: Math.floor(whole / 60) });
+  }
+  if (whole < 86400) {
+    return t('replication.status.lagHours', { count: Math.floor(whole / 3600) });
+  }
+  return t('replication.status.lagDays', { count: Math.floor(whole / 86400) });
+}
+
+export function excerpt(text: string | null, max = 120): string {
+  if (text === null) {
+    return '—';
+  }
+  const characters = Array.from(text);
+  return characters.length > max ? `${characters.slice(0, max).join('')}…` : text;
+}
