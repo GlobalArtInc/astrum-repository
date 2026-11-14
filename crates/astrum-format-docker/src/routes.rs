@@ -200,7 +200,7 @@ async fn supply_chain(
     }
     let reference = Reference::parse(&raw)
         .ok_or_else(|| ApiError::not_found(format!("{raw} is not a reference")))?;
-    let listing = supply::list(&ctx, &image, &reference)
+    let listing = supply::list(&ctx, &image, &reference, state.policy_cache())
         .await
         .map_err(content_failure)?
         .ok_or_else(|| ApiError::not_found(format!("{raw} is not stored for {image}")))?;

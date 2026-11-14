@@ -1,14 +1,17 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
+use std::sync::Arc;
 
 use astrum_content::store::Asset;
 use astrum_content::{ContentError, Ctx, group};
+use astrum_policy::cache::Cache;
 use astrum_repo::RepositoryType;
 use serde::Serialize;
 use serde_json::Value;
 
 use crate::MANIFEST_LIMIT;
+use crate::evidence::{self, Env, Keys};
 use crate::manifest;
-use crate::reference::Reference;
+use crate::reference::{Algorithm, Digest, Reference};
 use crate::storage;
 
 const COSIGN_SIGNATURE: &str = "application/vnd.dev.cosign.artifact.sig.v1+json";
@@ -29,6 +32,9 @@ pub struct Listing {
 pub struct Signature {
     digest: String,
     scheme: &'static str,
+    state: &'static str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    signer: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -53,6 +59,7 @@ pub async fn list(
     ctx: &Ctx,
     image: &str,
     reference: &Reference,
+    policies: &Cache,
 ) -> Result<Option<Listing>, ContentError> {
     let members = members_of(ctx).await?;
     let path = storage::manifest_path(image, &reference.as_str());
@@ -80,12 +87,16 @@ pub async fn list(
         false => Vec::new(),
     };
     let mut found: BTreeMap<String, Found> = BTreeMap::new();
+    let mut held: HashMap<String, (usize, Asset)> = HashMap::new();
     let stem = digest.referrers_tag();
-    for member in &members {
+    for (index, member) in members.iter().enumerate() {
         for referrer in storage::referrers(member, image, &digest).await? {
             if let Some(kind) = classify(member, &referrer).await?
                 && let Some(target) = storage::digest_of(&referrer)
             {
+                if matches!(kind, Found::Signature(_)) && !found.contains_key(&target.to_string()) {
+                    held.insert(target.to_string(), (index, referrer.clone()));
+                }
                 found.entry(target.to_string()).or_insert(kind);
             }
         }
@@ -102,6 +113,9 @@ pub async fn list(
                 ".att" => Found::Attestation,
                 _ => Found::Sbom(format_of(&source_of(&legacy))),
             };
+            if matches!(kind, Found::Signature(_)) && !found.contains_key(&target.to_string()) {
+                held.insert(target.to_string(), (index, legacy.clone()));
+            }
             found.entry(target.to_string()).or_insert(kind);
         }
     }
@@ -112,14 +126,90 @@ pub async fn list(
         attestations: Vec::new(),
         sboms: Vec::new(),
     };
-    for (digest, kind) in found {
+    let mut keys: HashMap<String, Option<Arc<Keys>>> = HashMap::new();
+    for (artifact, kind) in found {
         match kind {
-            Found::Signature(scheme) => listing.signatures.push(Signature { digest, scheme }),
-            Found::Attestation => listing.attestations.push(Attestation { digest }),
-            Found::Sbom(format) => listing.sboms.push(Sbom { digest, format }),
+            Found::Signature(scheme) => {
+                let (state, signer) = match held.get(&artifact) {
+                    Some((index, asset)) => {
+                        signature_state(
+                            &members[*index],
+                            image,
+                            &digest,
+                            asset,
+                            policies,
+                            &mut keys,
+                        )
+                        .await?
+                    }
+                    None => ("unknown", None),
+                };
+                listing.signatures.push(Signature {
+                    digest: artifact,
+                    scheme,
+                    state,
+                    signer,
+                });
+            }
+            Found::Attestation => listing.attestations.push(Attestation { digest: artifact }),
+            Found::Sbom(format) => listing.sboms.push(Sbom {
+                digest: artifact,
+                format,
+            }),
         }
     }
     Ok(Some(listing))
+}
+
+async fn keys_of(
+    member: &Ctx,
+    policies: &Cache,
+    loaded: &mut HashMap<String, Option<Arc<Keys>>>,
+) -> Result<Option<Arc<Keys>>, ContentError> {
+    let Some(name) = member.repository.policy_name() else {
+        return Ok(None);
+    };
+    if let Some(known) = loaded.get(name) {
+        return Ok(known.clone());
+    }
+    let internal = |error: astrum_policy::Error| ContentError::internal(error);
+    let mut snapshot = policies.get(member.db()).await.map_err(internal)?;
+    if !snapshot.policies.contains_key(name) {
+        snapshot = policies.fresh(member.db()).await.map_err(internal)?;
+    }
+    let keys = match snapshot.policies.get(name).map(|stored| &stored.policy) {
+        Some(Ok(policy)) if !policy.signatures.keys.is_empty() => {
+            Some(Arc::new(Keys::load(member.db(), policy).await?))
+        }
+        _ => None,
+    };
+    let keys = keys.filter(|keys| !keys.is_empty());
+    loaded.insert(name.to_owned(), keys.clone());
+    Ok(keys)
+}
+
+async fn signature_state(
+    member: &Ctx,
+    image: &str,
+    subject: &Digest,
+    asset: &Asset,
+    policies: &Cache,
+    loaded: &mut HashMap<String, Option<Arc<Keys>>>,
+) -> Result<(&'static str, Option<String>), ContentError> {
+    let Some(keys) = keys_of(member, policies, loaded).await? else {
+        return Ok(("unknown", None));
+    };
+    if subject.algorithm() != Algorithm::Sha256 {
+        return Ok(("unsupported", None));
+    }
+    let env = Env::new(member, image, &keys, None);
+    let tally = evidence::examine_asset(&env, subject, asset).await;
+    Ok(match tally.verified() {
+        Some(signer) => ("verified", Some(signer.to_owned())),
+        None if tally.failed() => ("unknown", None),
+        None if tally.invalid() => ("invalid", None),
+        None => ("unsupported", None),
+    })
 }
 
 async fn members_of(ctx: &Ctx) -> Result<Vec<Ctx>, ContentError> {

@@ -273,21 +273,6 @@ pub fn kind_of(artifact_type: Option<&str>, config: Option<&str>, layers: &[&str
     }
 }
 
-pub fn kind_for_tag(kind: Kind, tag: &str) -> Kind {
-    if kind != Kind::Image && kind != Kind::Other {
-        return kind;
-    }
-    if tag.ends_with(".sig") {
-        Kind::Signature
-    } else if tag.ends_with(".att") {
-        Kind::Attestation
-    } else if tag.ends_with(".sbom") {
-        Kind::Sbom
-    } else {
-        kind
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use serde_json::json;
@@ -494,15 +479,20 @@ mod tests {
     }
 
     #[test]
-    fn cosign_tags_name_their_kind() {
-        assert_eq!(kind_for_tag(Kind::Image, "sha256-abc.sig"), Kind::Signature);
+    fn the_kind_of_a_manifest_comes_from_its_content_and_never_from_its_tag() {
+        let simple = "application/vnd.dev.cosign.simplesigning.v1+json";
+        let config = Some(OCI_IMAGE_CONFIG);
+        assert_eq!(kind_of(None, config, &[simple]), Kind::Signature);
         assert_eq!(
-            kind_for_tag(Kind::Other, "sha256-abc.att"),
+            kind_of(None, config, &["application/vnd.in-toto+json"]),
             Kind::Attestation
         );
-        assert_eq!(kind_for_tag(Kind::Other, "sha256-abc.sbom"), Kind::Sbom);
-        assert_eq!(kind_for_tag(Kind::Helm, "x.sig"), Kind::Helm);
-        assert_eq!(kind_for_tag(Kind::Image, "1.0"), Kind::Image);
+        assert_eq!(
+            kind_of(None, config, &["application/spdx+json"]),
+            Kind::Sbom
+        );
+        let tar = "application/vnd.oci.image.layer.v1.tar+gzip";
+        assert_eq!(kind_of(None, config, &[tar]), Kind::Image);
         assert_eq!(bare("Application/JSON; charset=utf-8"), "application/json");
     }
 }

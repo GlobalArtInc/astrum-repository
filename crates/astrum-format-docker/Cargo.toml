@@ -10,6 +10,7 @@ astrum-api.workspace = true
 astrum-blob.workspace = true
 astrum-content.workspace = true
 astrum-db.workspace = true
+astrum-policy.workspace = true
 astrum-repo.workspace = true
 astrum-security.workspace = true
 astrum-signature.workspace = true

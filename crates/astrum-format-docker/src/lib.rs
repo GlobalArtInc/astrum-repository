@@ -1,11 +1,14 @@
 mod auth;
 pub mod children;
 mod error;
+mod evidence;
+mod exempt;
 pub mod gc;
 pub mod import;
 mod manifest;
 mod reference;
 mod routes;
+mod signed_only;
 mod storage;
 mod supply;
 mod upload;
@@ -34,6 +37,7 @@ pub use routes::{Connector, FIRST_SUGGESTED_PORT, routes};
 use crate::error::RegistryError;
 use crate::manifest::Manifest;
 use crate::reference::{Digest, Reference, Route};
+use crate::signed_only::SignedOnly;
 use crate::upstream::Upstreams;
 
 pub const ID: &str = "docker";
@@ -108,6 +112,7 @@ impl Mount {
 #[derive(Default)]
 pub struct Docker {
     upstreams: Upstreams,
+    signed_only: SignedOnly,
 }
 
 enum BlobHit {
@@ -437,14 +442,18 @@ impl Docker {
         ctx: &Ctx,
         image: &str,
         reference: &Reference,
-    ) -> Result<Option<Asset>, ContentError> {
+    ) -> Result<Option<(Ctx, Asset)>, ContentError> {
         match ctx.kind() {
-            RepositoryType::Group => Ok(group::first(ctx, |member| async move {
-                self.leaf_manifest(&member, image, reference).await
-            })
-            .await?
-            .map(|(_, asset)| asset)),
-            _ => self.leaf_manifest(ctx, image, reference).await,
+            RepositoryType::Group => {
+                group::first(ctx, |member| async move {
+                    self.leaf_manifest(&member, image, reference).await
+                })
+                .await
+            }
+            _ => Ok(self
+                .leaf_manifest(ctx, image, reference)
+                .await?
+                .map(|asset| (ctx.clone(), asset))),
         }
     }
 
@@ -503,10 +512,13 @@ impl Docker {
         let name = call.mount.name(image);
         let reference =
             Reference::parse(raw).ok_or_else(|| RegistryError::manifest_unknown(&name, raw))?;
-        let asset = self
+        let (holder, asset) = self
             .find_manifest(ctx, image, &reference)
             .await?
             .ok_or_else(|| RegistryError::manifest_unknown(&name, raw))?;
+        self.signed_only
+            .require(&self.upstreams, &holder, image, &reference, &asset)
+            .await?;
         let digest = match &reference {
             Reference::Digest(digest) => digest.to_string(),
             Reference::Tag(_) => storage::digest_of(&asset)

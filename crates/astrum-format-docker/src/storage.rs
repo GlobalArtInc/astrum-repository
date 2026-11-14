@@ -196,10 +196,7 @@ pub fn manifest_attributes(
     manifest: &Manifest,
     tag: Option<&str>,
 ) -> Value {
-    let kind = match tag {
-        Some(tag) => crate::manifest::kind_for_tag(manifest.kind, tag),
-        None => manifest.kind,
-    };
+    let kind = manifest.kind;
     let mut docker = Map::new();
     docker.insert("name".to_owned(), image.into());
     docker.insert("digest".to_owned(), digest.to_string().into());
@@ -240,7 +237,7 @@ pub fn manifest_put(
         .attributes(attributes);
     put.verified = false;
     if let Some(tag) = tag {
-        let kind = crate::manifest::kind_for_tag(manifest.kind, tag);
+        let kind = manifest.kind;
         put = put.component(ComponentKey {
             namespace: String::new(),
             name: image.to_owned(),

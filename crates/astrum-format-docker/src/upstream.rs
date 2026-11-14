@@ -527,6 +527,60 @@ impl Upstreams {
     }
 }
 
+impl Upstreams {
+    pub async fn manifest_bytes(
+        &self,
+        ctx: &Ctx,
+        image: &str,
+        reference: &str,
+        limit: usize,
+    ) -> Result<Option<Vec<u8>>, ContentError> {
+        let remote = self
+            .send(
+                ctx,
+                Method::GET,
+                &remote_name(ctx, image),
+                &format!("manifests/{reference}"),
+                None,
+                Some(ACCEPTED),
+            )
+            .await?;
+        match remote.status {
+            StatusCode::OK => Ok(Some(remote.bytes(limit).await?)),
+            StatusCode::NOT_FOUND => Ok(None),
+            status => Err(ContentError::BadGateway(format!(
+                "the remote answered {status}"
+            ))),
+        }
+    }
+
+    pub async fn blob_bytes(
+        &self,
+        ctx: &Ctx,
+        image: &str,
+        digest: &Digest,
+        limit: usize,
+    ) -> Result<Option<Vec<u8>>, ContentError> {
+        let remote = self
+            .send(
+                ctx,
+                Method::GET,
+                &remote_name(ctx, image),
+                &format!("blobs/{digest}"),
+                None,
+                None,
+            )
+            .await?;
+        match remote.status {
+            StatusCode::OK => Ok(Some(remote.bytes(limit).await?)),
+            StatusCode::NOT_FOUND => Ok(None),
+            status => Err(ContentError::BadGateway(format!(
+                "the remote answered {status}"
+            ))),
+        }
+    }
+}
+
 pub fn index_entries(bytes: &[u8]) -> Vec<Value> {
     serde_json::from_slice::<Value>(bytes)
         .ok()
