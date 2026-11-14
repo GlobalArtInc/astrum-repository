@@ -80,6 +80,7 @@ impl Format for Fake {
                 packages: vec![package(name), package("shared"), package("shared")],
                 license: None,
                 complete: name != "partial",
+                ..Inventory::default()
             })),
         }
     }

@@ -102,7 +102,35 @@ fn matches(package: &Package, needle: &str) -> bool {
             .any(|license| license.to_lowercase().contains(needle))
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum Access {
+    Checked,
+    Internal,
+}
+
+pub struct Read {
+    pub parsed: Vec<Sbom>,
+    pub failed: Option<Outcome>,
+    pub unreadable: usize,
+}
+
 pub async fn load(ctx: &Ctx, image: &str, artifact: &Artifact) -> Result<Outcome, ContentError> {
+    let mut budget = astrum_sbom::MAX_INPUT_BYTES;
+    let read = read_layers(ctx, image, artifact, Access::Checked, &mut budget, true).await?;
+    Ok(match read.parsed.into_iter().next() {
+        Some(sbom) => Outcome::Parsed(sbom),
+        None => read.failed.unwrap_or(Outcome::NoDocument),
+    })
+}
+
+pub async fn read_layers(
+    ctx: &Ctx,
+    image: &str,
+    artifact: &Artifact,
+    access: Access,
+    budget: &mut usize,
+    first_only: bool,
+) -> Result<Read, ContentError> {
     let manifest_bytes =
         storage::read_all(&artifact.holder, &artifact.asset, MANIFEST_LIMIT).await?;
     let layers: Vec<manifest::Layer> = manifest::layers(&manifest_bytes)
@@ -117,36 +145,51 @@ pub async fn load(ctx: &Ctx, image: &str, artifact: &Artifact) -> Result<Outcome
             .into_iter()
             .filter(|member| member.name() != artifact.holder.name()),
     );
-    let mut budget = astrum_sbom::MAX_INPUT_BYTES;
-    let mut failed = None;
+    let mut read = Read {
+        parsed: Vec::new(),
+        failed: None,
+        unreadable: 0,
+    };
     for layer in layers {
-        ctx.require(View::Read, &format!("/v2/{image}/blobs/{}", layer.digest))?;
-        let bytes = match read_layer(&holders, &layer.digest, budget).await? {
+        if access == Access::Checked {
+            ctx.require(View::Read, &format!("/v2/{image}/blobs/{}", layer.digest))?;
+        }
+        let bytes = match read_layer(&holders, &layer.digest, *budget).await? {
             Layer::Bytes(bytes) => bytes,
             Layer::TooLarge => {
-                failed.get_or_insert(Outcome::TooLarge);
+                read.unreadable += 1;
+                read.failed.get_or_insert(Outcome::TooLarge);
                 continue;
             }
             Layer::Missing => {
-                failed.get_or_insert(Outcome::Missing(format!(
+                read.unreadable += 1;
+                read.failed.get_or_insert(Outcome::Missing(format!(
                     "the document blob {} is not stored in this repository",
                     layer.digest
                 )));
                 continue;
             }
         };
-        budget -= bytes.len();
+        *budget -= bytes.len();
         let parsed = tokio::task::spawn_blocking(move || astrum_sbom::parse(&bytes))
             .await
             .map_err(ContentError::internal)?;
         match parsed {
-            Ok(sbom) => return Ok(Outcome::Parsed(sbom)),
+            Ok(sbom) => {
+                read.parsed.push(sbom);
+                if first_only {
+                    return Ok(read);
+                }
+            }
             Err(error) => {
-                failed.get_or_insert(Outcome::Refused(error));
+                if !matches!(error, astrum_sbom::Error::Unsupported(_)) {
+                    read.unreadable += 1;
+                }
+                read.failed.get_or_insert(Outcome::Refused(error));
             }
         }
     }
-    Ok(failed.unwrap_or(Outcome::NoDocument))
+    Ok(read)
 }
 
 enum Layer {

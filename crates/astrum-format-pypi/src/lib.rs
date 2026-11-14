@@ -251,6 +251,7 @@ pub(crate) fn package_inventory(name: &str, version: &str) -> Option<Inventory> 
         }],
         license: None,
         complete: true,
+        ..Inventory::default()
     })
 }
 

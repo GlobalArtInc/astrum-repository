@@ -3,7 +3,7 @@ use std::future::Future;
 
 use astrum_db::revision;
 use astrum_policy::cache::Cache;
-use astrum_policy::subject::COMPONENT_PREFIX;
+use astrum_policy::subject::{self, COMPONENT_PREFIX, IMAGE_PREFIX};
 use astrum_policy::verdict::{self, Finding, Input, Scan, Target, Verdict};
 use chrono::{DateTime, Utc};
 use sea_orm::{
@@ -108,7 +108,12 @@ where
     }
     let mut wanted: BTreeMap<i64, Vec<(String, String)>> = BTreeMap::new();
     let mut vanished: Vec<(String, String)> = Vec::new();
+    let mut images: Vec<(String, String)> = Vec::new();
     for (repository, subject) in marks {
+        if let Some(digest) = subject::image_digest(&subject) {
+            images.push((repository, digest.to_owned()));
+            continue;
+        }
         match subject
             .strip_prefix(COMPONENT_PREFIX)
             .and_then(|id| id.parse::<i64>().ok())
@@ -121,13 +126,21 @@ where
             }
         }
     }
+    let mut cleared: Vec<(String, String)> = vanished;
+    let represented = represent_images(&txn, &images).await?;
+    for (repository, digest) in images {
+        let subject = subject::image(&digest);
+        match represented.get(&(repository.clone(), digest)) {
+            Some(id) => wanted.entry(*id).or_default().push((repository, subject)),
+            None => cleared.push((repository, subject)),
+        }
+    }
     let ids: Vec<i64> = wanted.keys().copied().collect();
     let mut components: HashMap<i64, Component> = lock_components(&txn, &ids)
         .await?
         .into_iter()
         .map(|component| (component.id, component))
         .collect();
-    let mut cleared: Vec<(String, String)> = vanished;
     let mut judging: Vec<(Component, String, String, String)> = Vec::new();
     for (id, marks) in wanted {
         let component = components.remove(&id);
@@ -156,7 +169,7 @@ where
             .map(|(component, ..)| component.id)
             .collect();
         let scans = load_scans(&txn, &readable).await?;
-        let mut findings = load_findings(&txn, &readable).await?;
+        let findings = load_findings(&txn, &readable).await?;
         let now = database_time(&txn).await?;
         for (component, subject, repository, policy) in judging {
             let verdict = match snapshot.policies.get(&policy) {
@@ -169,17 +182,23 @@ where
                         stored.revision,
                         format!("the content policy \"{policy}\" cannot be read: {reason}"),
                     )),
-                    Ok(content) => verdict::evaluate(&Input {
-                        policy: content,
-                        exceptions: &snapshot.exceptions,
-                        target: &component.target,
-                        scan: scans.get(&component.id).copied().unwrap_or(Scan::Missing),
-                        findings: findings
-                            .remove(&component.id)
-                            .as_deref()
-                            .unwrap_or_default(),
-                        now,
-                    }),
+                    Ok(content) => {
+                        let target = match subject::image_digest(&subject) {
+                            Some(digest) => image_target(digest),
+                            None => component.target.clone(),
+                        };
+                        verdict::evaluate(&Input {
+                            policy: content,
+                            exceptions: &snapshot.exceptions,
+                            target: &target,
+                            scan: scans.get(&component.id).copied().unwrap_or(Scan::Missing),
+                            findings: findings
+                                .get(&component.id)
+                                .map(Vec::as_slice)
+                                .unwrap_or_default(),
+                            now,
+                        })
+                    }
                 },
             };
             match verdict {
@@ -262,7 +281,8 @@ async fn peek_repositories(
             DbBackend::Postgres,
             format!(
                 "SELECT DISTINCT repository FROM (\
-                   SELECT repository FROM policy_dirty WHERE subject LIKE '{COMPONENT_PREFIX}%' \
+                   SELECT repository FROM policy_dirty \
+                   WHERE subject LIKE '{COMPONENT_PREFIX}%' OR subject LIKE '{IMAGE_PREFIX}%' \
                    ORDER BY queued_at LIMIT $1) marks ORDER BY repository"
             ),
             [limit.into()],
@@ -313,7 +333,8 @@ async fn take_marks(
             format!(
                 "DELETE FROM policy_dirty WHERE (repository, subject) IN (\
                    SELECT repository, subject FROM policy_dirty \
-                   WHERE repository = ANY($1) AND subject LIKE '{COMPONENT_PREFIX}%' \
+                   WHERE repository = ANY($1) \
+                     AND (subject LIKE '{COMPONENT_PREFIX}%' OR subject LIKE '{IMAGE_PREFIX}%') \
                    ORDER BY queued_at LIMIT $2 FOR UPDATE SKIP LOCKED) \
                  RETURNING repository, subject"
             ),
@@ -332,6 +353,44 @@ async fn take_marks(
     rows.iter()
         .map(|row| Ok((row.try_get("", "repository")?, row.try_get("", "subject")?)))
         .collect()
+}
+
+fn image_target(digest: &str) -> Target {
+    Target {
+        format: "docker".to_owned(),
+        digest: Some(digest.to_owned()),
+        ..Target::default()
+    }
+}
+
+async fn represent_images(
+    txn: &DatabaseTransaction,
+    images: &[(String, String)],
+) -> Result<HashMap<(String, String), i64>, DbErr> {
+    let mut represented = HashMap::new();
+    if images.is_empty() {
+        return Ok(represented);
+    }
+    let repositories: Vec<String> = images.iter().map(|image| image.0.clone()).collect();
+    let digests: Vec<String> = images.iter().map(|image| image.1.clone()).collect();
+    let rows = txn
+        .query_all(Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            "SELECT DISTINCT ON (cs.repository, cs.digest) cs.repository, cs.digest, cs.component_id \
+             FROM component_scan cs \
+             JOIN unnest($1::text[], $2::text[]) AS wanted(repository, digest) \
+               ON cs.repository = wanted.repository AND cs.digest = wanted.digest \
+             ORDER BY cs.repository, cs.digest, cs.scanned_at DESC, cs.component_id",
+            [repositories.into(), digests.into()],
+        ))
+        .await?;
+    for row in rows {
+        represented.insert(
+            (row.try_get("", "repository")?, row.try_get("", "digest")?),
+            row.try_get("", "component_id")?,
+        );
+    }
+    Ok(represented)
 }
 
 async fn lock_components(txn: &DatabaseTransaction, ids: &[i64]) -> Result<Vec<Component>, DbErr> {

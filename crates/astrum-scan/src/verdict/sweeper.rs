@@ -1,5 +1,5 @@
 use astrum_db::revision;
-use astrum_policy::subject::COMPONENT_PREFIX;
+use astrum_policy::subject::{COMPONENT_PREFIX, IMAGE_PREFIX};
 use chrono::{DateTime, Utc};
 use sea_orm::{
     ConnectionTrait, DatabaseConnection, DbBackend, DbErr, QueryResult, Statement, TransactionTrait,
@@ -47,6 +47,7 @@ pub async fn sweep(
     state.expired_until = Some(now);
     if state.revision != Some(current) {
         marked += mark_stale(db, config.chunk).await?;
+        marked += mark_stale_images(db, config.chunk).await?;
         marked += mark_with_findings(db, config.chunk).await?;
         state.revision = Some(current);
     }
@@ -169,6 +170,34 @@ async fn mark_stale(db: &DatabaseConnection, chunk: i64) -> Result<u64, DbErr> {
          FROM page"
     );
     paged(db, chunk, &sql, ("", "0")).await
+}
+
+async fn mark_stale_images(db: &DatabaseConnection, chunk: i64) -> Result<u64, DbErr> {
+    let sql = format!(
+        "WITH page AS (\
+           SELECT DISTINCT cs.repository, '{IMAGE_PREFIX}' || cs.digest AS subject \
+           FROM content_policy p \
+           JOIN repository r ON r.attributes #>> '{{policy,name}}' = p.name \
+           JOIN component_scan cs ON cs.repository = r.name AND cs.digest IS NOT NULL \
+           LEFT JOIN policy_verdict v \
+             ON v.repository = cs.repository AND v.subject = '{IMAGE_PREFIX}' || cs.digest \
+           WHERE (cs.repository, '{IMAGE_PREFIX}' || cs.digest) > ($1, $2) \
+             AND ((v.subject IS NULL AND (p.vulnerabilities ->> 'mode') IS DISTINCT FROM 'off') \
+               OR (v.subject IS NOT NULL AND (v.policy_revision <> p.revision OR v.policy <> p.name))) \
+           ORDER BY cs.repository, subject LIMIT $3), \
+         live AS (\
+           SELECT name FROM repository WHERE name IN (SELECT repository FROM page) \
+           ORDER BY name FOR KEY SHARE), \
+         queued AS (\
+           INSERT INTO policy_dirty (repository, subject) \
+           SELECT p.repository, p.subject FROM page p JOIN live l ON l.name = p.repository \
+           ORDER BY p.repository, p.subject ON CONFLICT (repository, subject) DO NOTHING RETURNING 1) \
+         SELECT count(*) AS n, (SELECT count(*) FROM queued) AS queued, \
+           (array_agg(repository ORDER BY repository DESC, subject DESC))[1] AS last_repository, \
+           (array_agg(subject ORDER BY repository DESC, subject DESC))[1] AS last_subject \
+         FROM page"
+    );
+    paged(db, chunk, &sql, ("", "")).await
 }
 
 async fn mark_with_findings(db: &DatabaseConnection, chunk: i64) -> Result<u64, DbErr> {

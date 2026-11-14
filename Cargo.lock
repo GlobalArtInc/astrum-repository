@@ -708,6 +708,7 @@ dependencies = [
  "astrum-db",
  "astrum-repo",
  "astrum-sbom",
+ "astrum-scan",
  "astrum-security",
  "astrum-tasks",
  "async-trait",

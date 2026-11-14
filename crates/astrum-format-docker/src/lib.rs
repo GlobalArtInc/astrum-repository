@@ -3,6 +3,7 @@ pub mod children;
 mod error;
 pub mod gc;
 pub mod import;
+mod inventory;
 mod manifest;
 mod reference;
 mod routes;
@@ -16,7 +17,8 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 
 use astrum_content::format::SearchTarget;
-use astrum_content::store::{self, Asset};
+use astrum_content::inventory::Inventory;
+use astrum_content::store::{self, Asset, Component};
 use astrum_content::{
     BrowseLayout, ContentError, ContentRequest, Ctx, Format, SearchKey, Serve, View, group, serve,
 };
@@ -702,7 +704,7 @@ impl Docker {
         if manifest::is_index(&parsed.media_type) {
             children::replace(target.db(), target.name(), digest, &parsed.children).await?;
         }
-        Ok(())
+        inventory::requeue::after_store(target, image, parsed, tags).await
     }
 
     async fn delete_manifest(
@@ -1409,6 +1411,14 @@ impl Format for Docker {
 
     fn search_keys(&self) -> &'static [SearchKey] {
         SEARCH_KEYS
+    }
+
+    async fn inventory(
+        &self,
+        ctx: &Ctx,
+        component: &Component,
+    ) -> Result<Option<Inventory>, ContentError> {
+        inventory::of(ctx, component).await
     }
 }
 

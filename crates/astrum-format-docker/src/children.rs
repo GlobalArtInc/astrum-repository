@@ -47,6 +47,66 @@ pub async fn replace(
     Ok(())
 }
 
+pub async fn of(
+    db: &DatabaseConnection,
+    repository: &str,
+    parent: &Digest,
+    limit: u64,
+) -> Result<Vec<Digest>, ContentError> {
+    let rows = db
+        .query_all(Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            "SELECT child FROM docker_manifest_child WHERE repository = $1 AND parent = $2 \
+             ORDER BY child LIMIT $3",
+            vec![
+                repository.into(),
+                parent.to_string().into(),
+                (limit as i64).into(),
+            ],
+        ))
+        .await?;
+    let mut children = Vec::with_capacity(rows.len());
+    for row in rows {
+        let child: String = row.try_get("", "child")?;
+        children.push(Digest::parse(&child).ok_or_else(|| {
+            ContentError::internal(std::io::Error::other(format!(
+                "the recorded child {child} of {parent} is not a digest"
+            )))
+        })?);
+    }
+    Ok(children)
+}
+
+pub async fn parents(
+    db: &DatabaseConnection,
+    repository: &str,
+    child: &Digest,
+    limit: u64,
+) -> Result<Vec<Digest>, ContentError> {
+    let rows = db
+        .query_all(Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            "SELECT parent FROM docker_manifest_child WHERE repository = $1 AND child = $2 \
+             ORDER BY parent LIMIT $3",
+            vec![
+                repository.into(),
+                child.to_string().into(),
+                (limit as i64).into(),
+            ],
+        ))
+        .await?;
+    let mut parents = Vec::with_capacity(rows.len());
+    for row in rows {
+        let parent: String = row.try_get("", "parent")?;
+        parents.push(Digest::parse(&parent).ok_or_else(|| {
+            ContentError::internal(std::io::Error::other(format!(
+                "the recorded parent {parent} of {child} is not a digest"
+            )))
+        })?);
+    }
+    Ok(parents)
+}
+
 pub async fn forget(
     db: &DatabaseConnection,
     repository: &str,

@@ -1,4 +1,4 @@
-use astrum_policy::subject::COMPONENT_PREFIX;
+use astrum_policy::subject::{COMPONENT_PREFIX, IMAGE_PREFIX};
 use chrono::{DateTime, Utc};
 use sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, DbErr, Statement};
 
@@ -91,14 +91,20 @@ async fn fan_out_package(
 ) -> Result<u64, DbErr> {
     let sql = format!(
         "WITH page AS (\
-           SELECT cs.component_id, cs.repository FROM sca_inventory_package ip \
+           SELECT cs.component_id, cs.repository, cs.digest FROM sca_inventory_package ip \
            JOIN component_scan cs ON cs.inventory_id = ip.inventory_id \
            JOIN repository r ON r.name = cs.repository \
            WHERE ip.package_id = $1 AND cs.component_id > $2 \
            ORDER BY cs.component_id LIMIT $3), \
          queued AS (\
            INSERT INTO policy_dirty (repository, subject) \
-           SELECT repository, '{COMPONENT_PREFIX}' || component_id FROM page \
+           SELECT repository, subject FROM (\
+             SELECT repository, '{COMPONENT_PREFIX}' || component_id AS subject, 0 AS kind, \
+               component_id AS n FROM page \
+             UNION ALL \
+             SELECT DISTINCT repository, '{IMAGE_PREFIX}' || digest, 1, 0::bigint FROM page \
+             WHERE digest IS NOT NULL) marks \
+           ORDER BY kind, n, subject \
            ON CONFLICT (repository, subject) DO NOTHING) \
          SELECT count(*) AS n, COALESCE(max(component_id), $2) AS last FROM page"
     );
