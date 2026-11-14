@@ -260,6 +260,9 @@ impl Dispatcher {
                 ctx.format_id()
             ))
         })?;
+        transfer
+            .replicable()
+            .map_err(|reason| Failure::Rejected(reason.to_owned()))?;
         let mut bundle = transfer.bundle(&ctx, found).await?;
         if bundle.assets.is_empty() {
             return Ok(Done::Dropped(EMPTY));

@@ -356,6 +356,10 @@ pub trait Transfer: Send + Sync {
     fn bundle_skip(&self) -> Option<SkipFn> {
         None
     }
+
+    fn replicable(&self) -> Result<(), &'static str> {
+        Ok(())
+    }
 }
 
 pub type PlanFn = fn(RepositoryType, &str, &str) -> Plan;

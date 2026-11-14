@@ -811,6 +811,14 @@ async fn replication_input(
         };
         return Err(ApiError::invalid("sourceRepository", message));
     }
+    let format = state.content().format(&repository.format).ok_or_else(|| {
+        ApiError::invalid(
+            "sourceRepository",
+            format!("the format {} is not served", repository.format),
+        )
+    })?;
+    replicated::replicable(format.as_ref())
+        .map_err(|reason| ApiError::invalid("sourceRepository", reason))?;
     if direction == PULL_DIRECTION {
         require_writable(state, subject, &repository.format, &source).await?;
     }

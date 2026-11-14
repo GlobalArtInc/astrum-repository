@@ -793,3 +793,50 @@ async fn a_blob_is_refused_before_its_body_is_read_when_it_could_never_be_used()
     let other = put_digest(&fixture, "once", b"one more", &[]).await;
     assert_eq!(other.status, StatusCode::CREATED, "{}", other.text());
 }
+
+#[tokio::test]
+async fn a_repository_of_a_format_that_cannot_be_replicated_refuses_the_receiver_routes() {
+    let fixture = ready().await;
+    fixture
+        .state
+        .content()
+        .register(std::sync::Arc::new(astrum_format_docker::Docker::default()));
+    accounts::create_repository(&fixture, "images", "docker").await;
+    upload(&fixture, "source", "/d/a.txt", b"alpha").await;
+    let raw = bundle(&fixture, "/d/a.txt").await;
+    let committed = commit_raw(&fixture, Auth::Admin, "images", &raw).await;
+    let blob = put_digest(&fixture, "images", b"x", &[]).await;
+    let compare = fixture
+        .call(
+            Method::POST,
+            &url("images", "inventory/compare"),
+            Auth::Admin,
+            Some(json!({"items": []})),
+        )
+        .await;
+    let listing = fixture
+        .call(Method::GET, &url("images", "inventory"), Auth::Admin, None)
+        .await;
+    for reply in [committed, blob, compare, listing] {
+        assert_eq!(reply.status, StatusCode::BAD_REQUEST, "{}", reply.text());
+        assert_eq!(reply.json()["code"], "unsupported_format");
+        assert!(
+            reply
+                .text()
+                .contains("Docker images cannot be replicated yet"),
+            "{}",
+            reply.text()
+        );
+    }
+    let capabilities = fixture
+        .call(
+            Method::GET,
+            "/service/rest/v1/replication/capabilities",
+            Auth::Admin,
+            None,
+        )
+        .await;
+    let formats = capabilities.json()["formats"].clone();
+    assert!(formats.as_array().unwrap().contains(&json!("raw")));
+    assert!(!formats.as_array().unwrap().contains(&json!("docker")));
+}

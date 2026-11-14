@@ -691,3 +691,52 @@ async fn a_suspended_remote_skips_the_run_and_leaves_the_mark() {
     let mark = "SELECT count(*) AS n FROM replication WHERE last_reconcile_at IS NOT NULL";
     assert_eq!(pair.sender.number(mark).await, 0);
 }
+
+#[tokio::test]
+async fn a_replication_of_a_format_that_cannot_be_replicated_is_skipped_and_its_items_die_once() {
+    let pair = pair(json!({})).await;
+    seed(&pair, &["/a", "/b"]).await;
+    pair.sender
+        .sql(&format!(
+            "INSERT INTO replication_item (replication_id, namespace, name, version, reason) \
+             VALUES ('{}', '/', '/a', '', 'reconcile')",
+            pair.replication
+        ))
+        .await;
+    pair.sender
+        .fixture
+        .state
+        .content()
+        .register(Arc::new(astrum_format_docker::Docker::default()));
+    pair.sender
+        .sql("UPDATE repository SET format = 'docker' WHERE name = 'source'")
+        .await;
+    let summary = pair.sender.reconcile(&pair.replication).await;
+    assert!(
+        matches!(&summary.outcome, Outcome::Skipped(text) if text.contains("Docker images cannot be replicated")),
+        "{:?}",
+        summary.outcome
+    );
+    assert!(summary.message().starts_with("skipped: Docker images"));
+    assert_eq!(pair.sender.queued().await, ["/a"]);
+    let mark = "SELECT count(*) AS n FROM replication WHERE last_reconcile_at IS NOT NULL";
+    assert_eq!(pair.sender.number(mark).await, 0);
+
+    pair.sender.drain().await;
+    let dead = "SELECT state AS t FROM replication_item WHERE name = '/a'";
+    assert_eq!(pair.sender.text(dead).await.as_deref(), Some("dead"));
+    let reason = "SELECT last_error AS t FROM replication_item WHERE name = '/a'";
+    assert!(
+        pair.sender
+            .text(reason)
+            .await
+            .unwrap()
+            .contains("Docker images cannot be replicated")
+    );
+    let attempts = "SELECT attempts::bigint AS n FROM replication_item WHERE name = '/a'";
+    assert_eq!(pair.sender.number(attempts).await, 1);
+    assert_eq!(pair.sender.pass().await.leased, 0);
+    pair.sender.reconcile(&pair.replication).await;
+    assert_eq!(pair.sender.text(dead).await.as_deref(), Some("dead"));
+    assert_eq!(pair.sender.number(attempts).await, 1);
+}

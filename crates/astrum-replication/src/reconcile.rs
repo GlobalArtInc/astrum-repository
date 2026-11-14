@@ -140,6 +140,23 @@ pub async fn run_with(
             tally: Tally::default(),
         });
     };
+    let dispatcher = Dispatcher::new(content.clone());
+    let ctx = dispatcher.context(&replication.source_repository).await?;
+    let format = content
+        .format(ctx.format_id())
+        .ok_or_else(|| Ended::Failed(format!("the format {} is not served", ctx.format_id())))?;
+    let transfer = format.transfer().ok_or_else(|| {
+        Ended::Failed(format!(
+            "the format {} takes no part in replication",
+            ctx.format_id()
+        ))
+    })?;
+    if let Err(reason) = transfer.replicable() {
+        return Ok(Summary {
+            outcome: Outcome::Skipped(reason.to_owned()),
+            tally: Tally::default(),
+        });
+    }
     let remote = queue::remote(db, replication.remote_id)
         .await?
         .ok_or_else(|| Ended::Failed("the remote of the replication is gone".to_owned()))?;
@@ -152,7 +169,6 @@ pub async fn run_with(
         });
     }
     let filters = Filters::new(&replication).map_err(Ended::Failed)?;
-    let dispatcher = Dispatcher::new(content.clone());
     let target = dispatcher.target(remote).await;
     let client = target.client()?;
     let remote_instance = match dispatcher.remote_instance(&target, client).await {
@@ -160,16 +176,6 @@ pub async fn run_with(
         Err(failure) => return Err(settle(&dispatcher, &target, failure.into()).await),
     };
     let own = dispatcher.instance().await?;
-    let ctx = dispatcher.context(&replication.source_repository).await?;
-    let format = content
-        .format(ctx.format_id())
-        .ok_or_else(|| Ended::Failed(format!("the format {} is not served", ctx.format_id())))?;
-    let transfer = format.transfer().ok_or_else(|| {
-        Ended::Failed(format!(
-            "the format {} takes no part in replication",
-            ctx.format_id()
-        ))
-    })?;
     let mut scan = Scan {
         db,
         client,

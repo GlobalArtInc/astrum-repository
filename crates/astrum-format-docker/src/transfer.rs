@@ -564,6 +564,10 @@ impl Transfer for DockerTransfer {
             "docker bundles must come from prepare".to_owned(),
         ))
     }
+
+    fn replicable(&self) -> Result<(), &'static str> {
+        Err("Docker images cannot be replicated yet: their transfer needs the image closure")
+    }
 }
 
 impl DockerTransfer {

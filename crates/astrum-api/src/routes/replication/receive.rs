@@ -188,7 +188,7 @@ async fn capabilities(
         .content()
         .formats()
         .iter()
-        .filter(|format| format.transfer().is_some())
+        .filter(|format| replicated::replicable(format.as_ref()).is_ok())
         .map(|format| format.id().to_owned())
         .collect();
     Ok(axum::Json(Capabilities {

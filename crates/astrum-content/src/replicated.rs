@@ -103,19 +103,25 @@ pub fn require_hosted(ctx: &Ctx) -> Result<(), Refusal> {
     }
 }
 
+pub fn replicable(format: &dyn Format) -> Result<(), String> {
+    let transfer = format
+        .transfer()
+        .ok_or_else(|| format!("the format {} takes no part in replication", format.id()))?;
+    transfer.replicable().map_err(str::to_owned)
+}
+
 pub fn format_of(ctx: &Ctx) -> Result<Arc<dyn Format>, Refusal> {
-    ctx.content
-        .format(ctx.format_id())
-        .filter(|format| format.transfer().is_some())
-        .ok_or_else(|| {
-            refuse(
-                "unsupported_format",
-                format!(
-                    "the format {} takes no part in replication",
-                    ctx.format_id()
-                ),
-            )
-        })
+    let format = ctx.content.format(ctx.format_id()).ok_or_else(|| {
+        refuse(
+            "unsupported_format",
+            format!(
+                "the format {} takes no part in replication",
+                ctx.format_id()
+            ),
+        )
+    })?;
+    replicable(format.as_ref()).map_err(|reason| refuse("unsupported_format", reason))?;
+    Ok(format)
 }
 
 pub fn transfer_of(format: &Arc<dyn Format>) -> Result<&dyn Transfer, ContentError> {

@@ -1,6 +1,8 @@
 mod accounts;
 mod support;
 
+use std::sync::Arc;
+
 use accounts::{audit, create_repository, create_role, create_user};
 use axum::http::{Method, StatusCode};
 use sea_orm::{ConnectionTrait, DbBackend, Statement};
@@ -56,6 +58,13 @@ fn replication(name: &str, remote_id: &str) -> Value {
 
 async fn ready() -> Fixture {
     let fixture = Fixture::new().await;
+    let content = fixture.state.content();
+    content.register(Arc::new(astrum_format_raw::Raw));
+    content.register(Arc::new(astrum_format_maven::Maven));
+    content.register(Arc::new(astrum_format_helm::Helm::default()));
+    content.register(Arc::new(astrum_format_pypi::PyPi));
+    content.register(Arc::new(astrum_format_nuget::Nuget::default()));
+    content.register(Arc::new(astrum_format_docker::Docker::default()));
     create_repository(&fixture, "src", "raw").await;
     fixture
 }
@@ -937,4 +946,64 @@ async fn editing_a_pull_replication_keeps_its_remote_and_forgets_its_sends() {
     let filtered = admin(&fixture, Method::PUT, &path, Some(narrowed)).await;
     assert_eq!(filtered.status, StatusCode::OK, "{}", filtered.text());
     assert_eq!(sent_rows(&fixture).await, 0);
+}
+
+#[tokio::test]
+async fn a_format_that_cannot_be_replicated_is_refused_for_push_and_pull() {
+    let fixture = ready().await;
+    create_repository(&fixture, "images", "docker").await;
+    let remote_id = make_remote(&fixture, "Mirror").await;
+    for direction in ["push", "pull"] {
+        let mut body = replication(direction, &remote_id);
+        body["sourceRepository"] = json!("images");
+        body["direction"] = json!(direction);
+        let refused = admin(&fixture, Method::POST, REPLICATIONS, Some(body)).await;
+        assert_eq!(refused.status, StatusCode::BAD_REQUEST, "{direction}");
+        assert_eq!(fields(&refused), ["sourceRepository"], "{direction}");
+        assert!(
+            refused
+                .text()
+                .contains("Docker images cannot be replicated"),
+            "{}",
+            refused.text()
+        );
+    }
+    let created = admin(
+        &fixture,
+        Method::POST,
+        REPLICATIONS,
+        Some(replication("Kept", &remote_id)),
+    )
+    .await;
+    assert_eq!(created.status, StatusCode::CREATED, "{}", created.text());
+    let path = format!("{REPLICATIONS}/{}", created.json()["id"].as_str().unwrap());
+    let mut moved = replication("Kept", &remote_id);
+    moved["sourceRepository"] = json!("images");
+    let refused = admin(&fixture, Method::PUT, &path, Some(moved)).await;
+    assert_eq!(
+        refused.status,
+        StatusCode::BAD_REQUEST,
+        "{}",
+        refused.text()
+    );
+    assert_eq!(fields(&refused), ["sourceRepository"]);
+}
+
+#[tokio::test]
+async fn the_formats_that_can_be_replicated_still_create() {
+    let fixture = ready().await;
+    let remote_id = make_remote(&fixture, "Mirror").await;
+    for format in ["raw", "maven2", "helm", "pypi", "nuget"] {
+        let repository = format!("{format}-src");
+        create_repository(&fixture, &repository, format).await;
+        let mut body = replication(&format!("push {format}"), &remote_id);
+        body["sourceRepository"] = json!(repository);
+        let created = admin(&fixture, Method::POST, REPLICATIONS, Some(body)).await;
+        assert_eq!(
+            created.status,
+            StatusCode::CREATED,
+            "{format}: {}",
+            created.text()
+        );
+    }
 }
