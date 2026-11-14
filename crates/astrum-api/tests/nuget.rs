@@ -3,8 +3,11 @@ mod support;
 use std::net::SocketAddr;
 use std::sync::Arc;
 
+use astrum_blob::Written;
 use astrum_content::store;
-use astrum_content::transfer::{Bundle, Conflict, LocalSource, Outcome, PROMOTED, Status, Terms};
+use astrum_content::transfer::{
+    BlobSource, Bundle, BundleAsset, Conflict, LocalSource, Outcome, PROMOTED, Sink, Status, Terms,
+};
 use astrum_content::{ContentError, Format};
 use astrum_security::model::REALMS_KEY;
 use astrum_security::ssrf::{SSRF_KEY, SsrfProtection};
@@ -1411,4 +1414,58 @@ async fn promotion_refuses_an_id_that_differs_from_the_target_only_in_case() {
     bundle.name = "Newtonsoft.Json".to_owned();
     let outcome = try_promote(&fixture, &bundle).await.unwrap();
     assert_eq!(outcome.status, Status::Copied);
+}
+
+struct Lowered(LocalSource);
+
+#[async_trait::async_trait]
+impl BlobSource for Lowered {
+    async fn write(&self, sink: &Sink, asset: &BundleAsset) -> Result<Written, ContentError> {
+        let mut stored = asset.clone();
+        stored.path = stored.path.to_lowercase();
+        self.0.write(sink, &stored).await
+    }
+}
+
+#[tokio::test]
+async fn a_bundle_path_that_differs_in_case_is_stored_under_the_canonical_path() {
+    let fixture = ready().await;
+    create(&fixture, "hosted", hosted("source", "ALLOW")).await;
+    create(&fixture, "hosted", hosted("target", "ALLOW_ONCE")).await;
+    let pushed = push(&fixture, "source", nupkg("Foo", "1.0.0", ""), Auth::Admin).await;
+    assert_eq!(pushed.status, StatusCode::CREATED, "{}", pushed.text());
+    let format = astrum_format_nuget::Nuget::default();
+    let mut bundle =
+        support::bundle_of(&fixture, &format, "source", "/foo/1.0.0/foo.1.0.0.nupkg").await;
+    bundle.name = "Foo".to_owned();
+    bundle.assets[0].path = "/Foo/1.0.0/Foo.1.0.0.nupkg".to_owned();
+    let from = support::repository_ctx(&fixture, "source").await;
+    let to = support::repository_ctx(&fixture, "target").await;
+    let outcome = format
+        .transfer()
+        .expect("nuget takes part in promotion")
+        .receive(
+            &to,
+            &bundle,
+            &Lowered(LocalSource::new(from)),
+            Terms::new(Conflict::Fail, PROMOTED),
+        )
+        .await
+        .unwrap();
+    assert_eq!(outcome.status, Status::Copied);
+    let db = fixture.state.db().conn();
+    assert!(
+        store::find(db, "target", "/foo/1.0.0/foo.1.0.0.nupkg")
+            .await
+            .unwrap()
+            .is_some()
+    );
+    assert!(
+        store::find(db, "target", "/Foo/1.0.0/Foo.1.0.0.nupkg")
+            .await
+            .unwrap()
+            .is_none()
+    );
+    let again = push(&fixture, "target", nupkg("Foo", "1.0.0", ""), Auth::Admin).await;
+    assert_eq!(again.status, StatusCode::CONFLICT, "{}", again.text());
 }
