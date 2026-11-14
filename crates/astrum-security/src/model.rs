@@ -127,6 +127,7 @@ pub struct SecurityModel {
     pub oidc_users: BTreeMap<String, OidcUser>,
     pub default_role: Option<String>,
     pub two_factor: TwoFactorPolicy,
+    pub base_url: Option<String>,
     pub second_factor: HashMap<String, FactorSummary>,
 }
 
@@ -267,7 +268,9 @@ impl SecurityModel {
         }
         let two_factor = two_factor::load(db).await?;
         model.two_factor = two_factor.policy;
+        model.base_url = two_factor.base_url;
         model.second_factor = two_factor.factors;
+        model.report_unenrollable_requirement();
         Ok(model)
     }
 

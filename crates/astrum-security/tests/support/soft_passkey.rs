@@ -21,6 +21,7 @@ pub struct SoftPasskey {
     pub user_verified: bool,
     pub backup_eligible: bool,
     pub backup_state: bool,
+    pub cross_origin: bool,
     pub user_handle: Option<Vec<u8>>,
 }
 
@@ -36,6 +37,7 @@ impl SoftPasskey {
             user_verified: true,
             backup_eligible: false,
             backup_state: false,
+            cross_origin: false,
             user_handle: None,
         }
     }
@@ -94,7 +96,7 @@ impl SoftPasskey {
             "type": kind,
             "challenge": challenge,
             "origin": self.origin,
-            "crossOrigin": false,
+            "crossOrigin": self.cross_origin,
         }))
         .expect("client data is serialisable")
     }

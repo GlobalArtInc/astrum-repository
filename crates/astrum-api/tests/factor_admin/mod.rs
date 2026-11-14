@@ -80,4 +80,5 @@ pub async fn set_base(fixture: &Fixture, url: &str) {
         .await
         .unwrap();
     fixture.state.forget_base_url();
+    fixture.state.security().changed().await.unwrap();
 }

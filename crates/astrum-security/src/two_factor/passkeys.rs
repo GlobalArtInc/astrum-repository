@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use serde_json::Value;
 use url::{Host, Url};
 use uuid::Uuid;
@@ -9,19 +9,12 @@ use webauthn_rs::prelude::{
     WebauthnBuilder, WebauthnError,
 };
 
+use super::RelyingPartyPolicy;
+
 const RP_NAME: &str = "Astrum";
 const LOCALHOST: &str = "localhost";
 const MAX_LABEL: usize = 63;
 const MAX_HOST: usize = 253;
-
-#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct RelyingPartyPolicy {
-    #[serde(default)]
-    pub id: Option<String>,
-    #[serde(default)]
-    pub origins: Vec<String>,
-}
 
 #[derive(Debug, PartialEq, Eq, thiserror::Error)]
 pub enum RelyingPartyError {
@@ -309,6 +302,9 @@ pub fn finish_authentication(
     let state = PasskeyAuthentication::deserialize(state).map_err(|_| PasskeyError::State)?;
     let response =
         PublicKeyCredential::deserialize(response).map_err(|_| PasskeyError::Malformed)?;
+    if cross_origin(&response) {
+        return Err(PasskeyError::Refused(WebauthnError::CredentialCrossOrigin));
+    }
     let result = rp
         .webauthn()?
         .finish_passkey_authentication(&response, &state)
@@ -337,6 +333,13 @@ pub fn finish_authentication(
         credential,
         changed,
     })
+}
+
+fn cross_origin(response: &PublicKeyCredential) -> bool {
+    serde_json::from_slice::<Value>(response.response.client_data_json.as_ref())
+        .ok()
+        .and_then(|data| data.get("crossOrigin").and_then(Value::as_bool))
+        .unwrap_or(false)
 }
 
 fn stored_counter(credential: &Passkey) -> Result<u32, PasskeyError> {

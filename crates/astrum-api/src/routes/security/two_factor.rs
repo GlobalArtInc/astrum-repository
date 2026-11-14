@@ -3,6 +3,7 @@ use std::collections::BTreeSet;
 use astrum_db::audit::Event;
 use astrum_db::setting;
 use astrum_security::catalogue::DEFAULT_SOURCE;
+use astrum_security::two_factor::passkeys::{RelyingParty, RelyingPartyError};
 use astrum_security::two_factor::store::StoreError;
 use astrum_security::two_factor::{
     AUDIT_DOMAIN, Methods, POLICY_KEY, RelyingPartyPolicy, RequiredBy, Requirement, lock_policy,
@@ -17,7 +18,7 @@ use chrono::Utc;
 use sea_orm::{ConnectionTrait, DbBackend, DbErr, Statement, TransactionTrait};
 use serde::Deserialize;
 use serde_json::{Value, json};
-use url::{Host, Url};
+use url::Url;
 
 use super::users::user_not_found;
 use super::{SECURITY, changed};
@@ -30,8 +31,6 @@ const MAX_GRACE_DAYS: u32 = 90;
 const MAX_ROLES: usize = 100;
 const MAX_ORIGINS: usize = 20;
 const MAX_ORIGIN_BYTES: usize = 255;
-const MAX_HOST_BYTES: usize = 253;
-const MAX_LABEL_BYTES: usize = 63;
 
 pub fn routes() -> Router<AppState> {
     Router::new()
@@ -340,63 +339,20 @@ fn check_roles(validation: &mut Validation, model: &SecurityModel, roles: &[Stri
     }
 }
 
-struct BaseHost {
-    name: String,
-    literal: bool,
-}
+const FIELD_ID: &str = "relyingParty.id";
+const FIELD_ORIGINS: &str = "relyingParty.origins";
 
-impl BaseHost {
-    fn parse(base: Option<&str>) -> Option<Self> {
-        let url = Url::parse(base?).ok()?;
-        match url.host()? {
-            Host::Domain(name) => Some(Self {
-                name: name.to_owned(),
-                literal: false,
-            }),
-            Host::Ipv4(address) => Some(Self {
-                name: address.to_string(),
-                literal: true,
-            }),
-            Host::Ipv6(address) => Some(Self {
-                name: address.to_string(),
-                literal: true,
-            }),
-        }
+fn origin_problem(origin: &str) -> Option<&'static str> {
+    if origin.len() > MAX_ORIGIN_BYTES {
+        return Some("must be at most 255 bytes");
     }
-
-    fn ends_with(&self, id: &str) -> bool {
-        match self.literal {
-            true => self.name == id,
-            false => within(&self.name, id),
-        }
+    match Url::parse(origin) {
+        Ok(url) if url.origin().ascii_serialization() == origin => None,
+        Ok(_) => Some(
+            "must be written exactly as https://host[:port] or http://localhost[:port], in lower case, with no path, query, user info, default port or trailing slash",
+        ),
+        Err(_) => Some("is not a URL"),
     }
-}
-
-fn within(host: &str, id: &str) -> bool {
-    host == id
-        || host
-            .strip_suffix(id)
-            .is_some_and(|rest| rest.ends_with('.'))
-}
-
-fn host_name(value: &str) -> bool {
-    !value.is_empty()
-        && value.len() <= MAX_HOST_BYTES
-        && value.split('.').all(|label| {
-            !label.is_empty()
-                && label.len() <= MAX_LABEL_BYTES
-                && !label.starts_with('-')
-                && !label.ends_with('-')
-                && label
-                    .bytes()
-                    .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-')
-        })
-}
-
-fn numeric_name(value: &str) -> bool {
-    value
-        .split('.')
-        .all(|label| label.bytes().all(|byte| byte.is_ascii_digit()))
 }
 
 fn check_relying_party(
@@ -405,63 +361,39 @@ fn check_relying_party(
     base: Option<&str>,
 ) {
     relying_party.id = relying_party.id.take().filter(|id| !id.is_empty());
-    let base_host = BaseHost::parse(base);
-    let mut effective = base_host.as_ref().map(|host| host.name.clone());
+    let mut clean = true;
     if let Some(id) = &relying_party.id {
-        match (&base_host, host_name(id)) {
-            (_, false) => validation.add(
-                "relyingParty.id",
-                "must be a lower-case host name without a scheme, port or path",
-            ),
-            (_, true) if numeric_name(id) => {
-                validation.add("relyingParty.id", "must be a host name, not an IP address")
-            }
-            (None, true) => validation.add(
-                "relyingParty.id",
+        if *id != id.to_ascii_lowercase() {
+            validation.add(FIELD_ID, "must be a lower-case host name");
+            clean = false;
+        } else if base.is_none() {
+            validation.add(
+                FIELD_ID,
                 "needs a base URL to be checked against; set the base URL first",
-            ),
-            (Some(host), true) if !id.contains('.') && host.name != *id => validation.add(
-                "relyingParty.id",
-                "must have at least two labels unless it is the host of the base URL",
-            ),
-            (Some(host), true) if !host.ends_with(id) => validation.add(
-                "relyingParty.id",
-                "must be the host of the base URL or a parent domain of it",
-            ),
-            _ => effective = Some(id.clone()),
+            );
+            clean = false;
         }
     }
     if relying_party.origins.len() > MAX_ORIGINS {
-        validation.add("relyingParty.origins", "must name at most 20 origins");
+        validation.add(FIELD_ORIGINS, "must name at most 20 origins");
+        clean = false;
     }
     for origin in &relying_party.origins {
-        if let Some(problem) = origin_problem(origin, effective.as_deref()) {
-            validation.add("relyingParty.origins", format!("{origin}: {problem}"));
+        if let Some(problem) = origin_problem(origin) {
+            validation.add(FIELD_ORIGINS, format!("{origin}: {problem}"));
+            clean = false;
         }
     }
-}
-
-fn origin_problem(origin: &str, rp_id: Option<&str>) -> Option<&'static str> {
-    if origin.len() > MAX_ORIGIN_BYTES {
-        return Some("must be at most 255 bytes");
+    if !clean || (relying_party.id.is_none() && relying_party.origins.is_empty()) {
+        return;
     }
-    let Ok(url) = Url::parse(origin) else {
-        return Some("is not a URL");
+    let Err(error) = RelyingParty::resolve(relying_party, base) else {
+        return;
     };
-    if !matches!(url.scheme(), "http" | "https") || url.origin().ascii_serialization() != origin {
-        return Some(
-            "must be exactly https://host[:port] or http://localhost[:port], in lower case, with no path, query, user info, default port or trailing slash",
-        );
-    }
-    let Some(Host::Domain(host)) = url.host() else {
-        return Some("must name a host, not an IP address");
+    let field = match (&error, &relying_party.id) {
+        (RelyingPartyError::Origin { .. } | RelyingPartyError::Unavailable, _) => FIELD_ORIGINS,
+        (_, Some(_)) => FIELD_ID,
+        (_, None) => FIELD_ORIGINS,
     };
-    if url.scheme() == "http" && host != "localhost" {
-        return Some("may use http only for localhost");
-    }
-    match rp_id {
-        Some(id) if within(host, id) => None,
-        Some(_) => Some("must be the relying party id or a subdomain of it"),
-        None => Some("needs a relying party id or a base URL to be checked against"),
-    }
+    validation.add(field, error.to_string());
 }

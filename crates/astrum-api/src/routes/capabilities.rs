@@ -556,6 +556,7 @@ async fn save(state: &AppState, kind: &str, xo: &CapabilityXo) -> Result<(), Api
             )
             .await?;
             state.forget_base_url();
+            state.security().changed().await?;
         }
         UI_SETTINGS => {
             let defaults = UiSettings::default();
@@ -810,6 +811,7 @@ async fn remove(
     }
     if kind == BASE_URL {
         state.forget_base_url();
+        state.security().changed().await?;
     }
     if kind == SPACE_ALERT {
         crate::space::forget(&state).await?;

@@ -194,7 +194,7 @@ async fn a_relying_party_id_must_be_a_registrable_host_name() {
         (
             "https://astrum.example.org",
             "org",
-            Some("at least two labels"),
+            Some("top level domain"),
         ),
         ("https://astrum.example.org", "1.2.3.4", Some("IP address")),
         ("https://astrum.example.org", "127.1", Some("IP address")),
@@ -206,7 +206,7 @@ async fn a_relying_party_id_must_be_a_registrable_host_name() {
         (
             "https://astrum.example.org",
             "example.org:8443",
-            Some("lower-case"),
+            Some("plain ASCII domain name"),
         ),
         (
             "https://astrum.example.org",

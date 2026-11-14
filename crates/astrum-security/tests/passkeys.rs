@@ -1,9 +1,10 @@
 #[path = "support/soft_passkey.rs"]
 mod soft_passkey;
 
+use astrum_security::two_factor::RelyingPartyPolicy;
 use astrum_security::two_factor::passkeys::{
-    Passkey, PasskeyError, RelyingParty, RelyingPartyError, RelyingPartyPolicy,
-    finish_authentication, finish_registration, start_authentication, start_registration,
+    Passkey, PasskeyError, RelyingParty, finish_authentication, finish_registration,
+    start_authentication, start_registration,
 };
 use base64::Engine;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
@@ -229,210 +230,89 @@ fn a_credential_that_is_not_registered_is_unknown() {
     ));
 }
 
-type Accepted<'a> = (
-    Option<&'a str>,
-    &'a [&'a str],
-    Option<&'a str>,
-    &'a str,
-    &'a [&'a str],
-);
-type Refused<'a> = (
-    Option<&'a str>,
-    &'a [&'a str],
-    Option<&'a str>,
-    RelyingPartyError,
-);
-
-fn resolve(
-    id: Option<&str>,
-    origins: &[&str],
-    base: Option<&str>,
-) -> Result<RelyingParty, RelyingPartyError> {
-    RelyingParty::resolve(
-        &RelyingPartyPolicy {
-            id: id.map(str::to_owned),
-            origins: origins.iter().map(|origin| (*origin).to_owned()).collect(),
-        },
-        base,
-    )
+#[test]
+fn a_cross_origin_ceremony_is_refused_at_registration_and_sign_in() {
+    let rp = relying_party();
+    let mut key = soft(7);
+    key.cross_origin = true;
+    assert!(matches!(
+        register(&rp, &key, 0),
+        Err(PasskeyError::Refused(WebauthnError::CredentialCrossOrigin))
+    ));
+    let passkey = register(&rp, &soft(7), 0).unwrap();
+    assert!(matches!(
+        authenticate(&rp, &key, &[passkey], 1),
+        Err(PasskeyError::Refused(WebauthnError::CredentialCrossOrigin))
+    ));
 }
 
 #[test]
-fn the_relying_party_is_resolved_from_the_base_url_and_the_policy() {
-    let accepted: Vec<Accepted> = vec![
-        (
-            None,
-            &[],
-            Some("https://astrum.example.com"),
-            "astrum.example.com",
-            &["https://astrum.example.com/"],
-        ),
-        (
-            None,
-            &[],
-            Some("https://Astrum.Example.com:443/ui/?x=1#y"),
-            "astrum.example.com",
-            &["https://astrum.example.com/"],
-        ),
-        (
-            None,
-            &[],
-            Some("https://astrum.example.com:8443"),
-            "astrum.example.com",
-            &["https://astrum.example.com:8443/"],
-        ),
-        (
-            Some("example.com"),
-            &[],
-            Some("https://astrum.example.com"),
-            "example.com",
-            &["https://astrum.example.com/"],
-        ),
-        (
-            Some("Astrum.Example.com"),
-            &[],
-            Some("https://astrum.example.com"),
-            "astrum.example.com",
-            &["https://astrum.example.com/"],
-        ),
-        (
-            None,
-            &[
-                "https://astrum.example.com",
-                "https://alt.astrum.example.com",
-            ],
-            Some("https://astrum.example.com"),
-            "astrum.example.com",
-            &[
-                "https://astrum.example.com/",
-                "https://alt.astrum.example.com/",
-            ],
-        ),
-        (
-            Some("example.com"),
-            &["https://example.com", "https://other.example.com:9443"],
-            Some("https://astrum.example.com"),
-            "example.com",
-            &[
-                "https://astrum.example.com/",
-                "https://example.com/",
-                "https://other.example.com:9443/",
-            ],
-        ),
-        (
-            None,
-            &[],
-            Some("http://localhost:8081"),
-            "localhost",
-            &["http://localhost:8081/"],
-        ),
-        (
-            None,
-            &["http://localhost:3000"],
-            Some("http://localhost:8081"),
-            "localhost",
-            &["http://localhost:8081/", "http://localhost:3000/"],
-        ),
-        (
-            Some("example.com"),
-            &["https://example.com"],
-            None,
-            "example.com",
-            &["https://example.com/"],
-        ),
-        (
-            Some("localhost"),
-            &["http://localhost:5173"],
-            None,
-            "localhost",
-            &["http://localhost:5173/"],
-        ),
-    ];
-    for (id, origins, base, expected_id, expected_origins) in accepted {
-        let rp =
-            resolve(id, origins, base).unwrap_or_else(|error| panic!("{base:?} {id:?}: {error}"));
-        assert_eq!(rp.id(), expected_id, "{base:?} {id:?}");
-        let got: Vec<&str> = rp.origins().iter().map(|origin| origin.as_str()).collect();
-        assert_eq!(got, expected_origins, "{base:?} {id:?}");
-    }
-
-    let base = Some("https://astrum.example.com");
-    let origin = |value: &str| RelyingPartyError::Origin {
-        origin: value.to_owned(),
-        reason: "",
-    };
-    let refused: Vec<Refused> = vec![
-        (None, &[], None, RelyingPartyError::Unavailable),
-        (
-            None,
-            &["https://astrum.example.com"],
-            None,
-            RelyingPartyError::Unavailable,
-        ),
-        (
-            Some("example.com"),
-            &[],
-            None,
-            RelyingPartyError::Unavailable,
-        ),
-        (Some("other.com"), &[], base, RelyingPartyError::IdNotSuffix),
-        (
-            Some("xample.com"),
-            &[],
-            base,
-            RelyingPartyError::IdNotSuffix,
-        ),
-        (
-            Some("sub.astrum.example.com"),
-            &[],
-            base,
-            RelyingPartyError::IdNotSuffix,
-        ),
-        (Some("com"), &[], base, RelyingPartyError::Id("")),
-        (
-            Some("com"),
-            &["https://example.com"],
-            None,
-            RelyingPartyError::Id(""),
-        ),
-        (Some("exa mple.com"), &[], base, RelyingPartyError::Id("")),
-        (Some("127.0.0.1"), &[], None, RelyingPartyError::Id("")),
-        (None, &["https://other.com"], base, origin("")),
-        (None, &["https://badastrum.example.com"], base, origin("")),
-        (None, &["http://astrum.example.com"], base, origin("")),
-        (None, &["https://astrum.example.com/path"], base, origin("")),
-        (None, &["https://user@astrum.example.com"], base, origin("")),
-        (None, &["https://astrum.example.com?x=1"], base, origin("")),
-        (None, &["not a url"], base, origin("")),
-        (None, &[], Some("http://astrum.example.com"), origin("")),
-        (
-            None,
-            &[],
-            Some("https://127.0.0.1:8081"),
-            RelyingPartyError::BaseUrl(""),
-        ),
-        (
-            None,
-            &[],
-            Some("ftp://astrum.example.com"),
-            RelyingPartyError::BaseUrl(""),
-        ),
-    ];
-    for (id, origins, base, expected) in refused {
-        let error = resolve(id, origins, base).expect_err(&format!("{base:?} {id:?} {origins:?}"));
-        assert_eq!(
-            std::mem::discriminant(&error),
-            std::mem::discriminant(&expected),
-            "{base:?} {id:?} {origins:?}: {error}"
-        );
-    }
+fn a_response_to_another_challenge_is_refused() {
+    let rp = relying_party();
+    let key = soft(7);
+    let first = start_registration(&rp, Uuid::from_u128(1), "alice", "Alice", &[]).unwrap();
+    let second = start_registration(&rp, Uuid::from_u128(1), "alice", "Alice", &[]).unwrap();
     assert!(matches!(
-        resolve(None, &[], Some("not a url")),
-        Err(RelyingPartyError::BaseUrl(_))
+        finish_registration(&rp, &first.state, &key.register(&second.public_key, 0)),
+        Err(PasskeyError::Refused(WebauthnError::MismatchedChallenge))
+    ));
+    let passkey =
+        finish_registration(&rp, &first.state, &key.register(&first.public_key, 0)).unwrap();
+    let one = start_authentication(&rp, std::slice::from_ref(&passkey)).unwrap();
+    let two = start_authentication(&rp, std::slice::from_ref(&passkey)).unwrap();
+    assert!(matches!(
+        finish_authentication(
+            &rp,
+            &one.state,
+            &key.assert(&two.public_key, 1),
+            std::slice::from_ref(&passkey),
+        ),
+        Err(PasskeyError::Refused(WebauthnError::MismatchedChallenge))
+    ));
+}
+
+#[test]
+fn a_state_of_the_other_ceremony_kind_is_refused() {
+    let rp = relying_party();
+    let key = soft(7);
+    let registering = start_registration(&rp, Uuid::from_u128(1), "alice", "Alice", &[]).unwrap();
+    let passkey = register(&rp, &key, 0).unwrap();
+    let authenticating = start_authentication(&rp, std::slice::from_ref(&passkey)).unwrap();
+    assert!(matches!(
+        finish_authentication(
+            &rp,
+            &registering.state,
+            &key.assert(&authenticating.public_key, 1),
+            std::slice::from_ref(&passkey),
+        ),
+        Err(PasskeyError::State)
     ));
     assert!(matches!(
-        resolve(None, &[], Some("https://astrum.example.com.")),
-        Err(RelyingPartyError::Id(_))
+        finish_registration(
+            &rp,
+            &authenticating.state,
+            &key.register(&registering.public_key, 0),
+        ),
+        Err(PasskeyError::State)
+    ));
+}
+
+#[test]
+fn a_credential_already_held_cannot_be_registered_again() {
+    let rp = relying_party();
+    let key = soft(7);
+    let passkey = register(&rp, &key, 0).unwrap();
+    let started = start_registration(
+        &rp,
+        Uuid::from_u128(1),
+        "alice",
+        "Alice",
+        std::slice::from_ref(&passkey),
+    )
+    .unwrap();
+    assert!(matches!(
+        finish_registration(&rp, &started.state, &key.register(&started.public_key, 0)),
+        Err(PasskeyError::Refused(_))
     ));
 }
 

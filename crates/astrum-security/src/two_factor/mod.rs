@@ -6,7 +6,6 @@ use astrum_db::system::{BASE_URL_KEY, BaseUrl};
 use chrono::{DateTime, Duration, FixedOffset, Utc};
 use sea_orm::{ConnectionTrait, DbErr, EntityTrait, QuerySelect};
 use serde::{Deserialize, Serialize};
-use url::{Host, Url};
 
 use crate::catalogue::DEFAULT_SOURCE;
 use crate::model::{SecurityModel, tolerant};
@@ -15,6 +14,8 @@ use crate::{Error, realm};
 pub mod passkeys;
 pub mod qr;
 pub mod store;
+
+use self::passkeys::RelyingParty;
 
 pub const POLICY_KEY: &str = "security.twoFactor";
 pub const POLICY_LOCK: i64 = i64::from_be_bytes(*b"astr2fpl");
@@ -34,14 +35,18 @@ pub async fn lock_policy(db: &impl ConnectionTrait) -> Result<(), DbErr> {
     Ok(())
 }
 
+pub async fn base_url_in(db: &impl ConnectionTrait) -> Result<Option<String>, Error> {
+    Ok(tolerant::<BaseUrl>(db, BASE_URL_KEY)
+        .await?
+        .filter(|base| base.enabled && !base.url.trim().is_empty())
+        .map(|base| base.url.trim().trim_end_matches('/').to_owned()))
+}
+
 pub async fn methods_in(db: &impl ConnectionTrait) -> Result<Methods, Error> {
     let policy = tolerant::<TwoFactorPolicy>(db, POLICY_KEY)
         .await?
         .unwrap_or_default();
-    let base = tolerant::<BaseUrl>(db, BASE_URL_KEY)
-        .await?
-        .filter(|base| base.enabled && !base.url.trim().is_empty())
-        .map(|base| base.url.trim().trim_end_matches('/').to_owned());
+    let base = base_url_in(db).await?;
     Ok(policy.methods(base.as_deref()))
 }
 
@@ -172,28 +177,23 @@ impl TwoFactorPolicy {
             (true, _) => Methods::Available,
             (false, false) => Methods::NoneEnabled,
             (false, true) if !passkey_flow_implemented() => Methods::NoneEnabled,
-            (false, true) if self.relying_party_id_known(base_url) => Methods::Available,
+            (false, true) if self.relying_party_usable(base_url) => Methods::Available,
             (false, true) => Methods::PasskeysWithoutId,
         }
     }
 
-    pub fn enrollable(&self) -> bool {
-        self.totp || (self.passkeys && passkey_flow_implemented())
+    pub fn enrollable(&self, base_url: Option<&str>) -> bool {
+        self.methods(base_url) == Methods::Available
     }
 
-    fn relying_party_id_known(&self, base_url: Option<&str>) -> bool {
-        self.relying_party
-            .id
-            .as_deref()
-            .is_some_and(|id| !id.is_empty())
-            || base_url
-                .and_then(|base| Url::parse(base).ok())
-                .is_some_and(|url| matches!(url.host(), Some(Host::Domain(_))))
+    pub fn relying_party_usable(&self, base_url: Option<&str>) -> bool {
+        RelyingParty::resolve(&self.relying_party, base_url).is_ok()
     }
 }
 
 pub struct Loaded {
     pub policy: TwoFactorPolicy,
+    pub base_url: Option<String>,
     pub factors: HashMap<String, FactorSummary>,
 }
 
@@ -201,6 +201,7 @@ pub async fn load(db: &impl ConnectionTrait) -> Result<Loaded, Error> {
     let policy = tolerant::<TwoFactorPolicy>(db, POLICY_KEY)
         .await?
         .unwrap_or_default();
+    let base_url = base_url_in(db).await?;
     let with_passkeys: Vec<String> = user_passkey::Entity::find()
         .select_only()
         .column(user_passkey::Column::UserId)
@@ -230,7 +231,11 @@ pub async fn load(db: &impl ConnectionTrait) -> Result<Loaded, Error> {
                 enroll_by: None,
             });
     }
-    Ok(Loaded { policy, factors })
+    Ok(Loaded {
+        policy,
+        base_url,
+        factors,
+    })
 }
 
 impl SecurityModel {
@@ -253,15 +258,30 @@ impl SecurityModel {
         };
         if gate == Gate::Enroll
             && requirement != Requirement::Unreadable
-            && !self.two_factor.enrollable()
+            && !self.two_factor.enrollable(self.base_url.as_deref())
         {
-            tracing::warn!(
-                user_id,
-                "a second factor is required but the policy leaves no method to enroll; the sign-in is not gated"
-            );
             return Gate::Open;
         }
         gate
+    }
+
+    pub(crate) fn report_unenrollable_requirement(&self) {
+        if self.two_factor.enrollable(self.base_url.as_deref()) {
+            return;
+        }
+        let required = &self.two_factor.required;
+        let anyone = required.everyone
+            || required.administrators
+            || !required.roles.is_empty()
+            || self
+                .second_factor
+                .values()
+                .any(|summary| summary.requirement == Requirement::Required);
+        if anyone {
+            tracing::warn!(
+                "a second factor is required but the policy leaves no method to enroll; sign-ins of users who could not enroll are not gated"
+            );
+        }
     }
 
     pub fn requires_second_factor(&self, requirement: Requirement, user_id: &str) -> bool {
@@ -363,7 +383,25 @@ mod tests {
             policy(false, false, None).methods(base),
             Methods::NoneEnabled
         );
-        assert!(policy(true, false, None).enrollable());
-        assert!(!policy(false, true, None).enrollable());
+        assert!(policy(true, false, None).enrollable(None));
+        assert!(!policy(false, true, None).enrollable(base));
+    }
+
+    #[test]
+    fn the_relying_party_is_usable_only_when_it_resolves() {
+        let id = |id: &str, origins: &[&str]| {
+            let mut policy = policy(false, true, Some(id));
+            policy.relying_party.origins =
+                origins.iter().map(|origin| (*origin).to_owned()).collect();
+            policy
+        };
+        assert!(policy(false, true, None).relying_party_usable(Some("https://astrum.example.org")));
+        assert!(policy(false, true, None).relying_party_usable(Some("http://localhost:8081")));
+        assert!(!policy(false, true, None).relying_party_usable(None));
+        assert!(!policy(false, true, None).relying_party_usable(Some("http://astrum.example.org")));
+        assert!(!policy(false, true, None).relying_party_usable(Some("https://127.0.0.1:8081")));
+        assert!(!id("example.org", &[]).relying_party_usable(None));
+        assert!(id("example.org", &["https://example.org"]).relying_party_usable(None));
+        assert!(!id("example.org", &[]).relying_party_usable(Some("https://other.test")));
     }
 }

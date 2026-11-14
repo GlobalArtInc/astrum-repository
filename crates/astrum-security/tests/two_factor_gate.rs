@@ -278,6 +278,13 @@ async fn an_unreadable_row_fails_closed() {
     world.sql(&totp("pat")).await;
     world.reload().await;
     assert_eq!(world.gate("pat").await, Gate::Verify);
+
+    world
+        .policy(json!({"totp": false, "passkeys": false}))
+        .await;
+    world.reload().await;
+    assert_eq!(world.gate("jane").await, Gate::Enroll);
+    assert_eq!(world.gate("pat").await, Gate::Verify);
 }
 
 #[tokio::test]
