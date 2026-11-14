@@ -5,6 +5,7 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+use astrum_content::transfer::Status;
 use astrum_security::ssrf::{SSRF_KEY, SsrfProtection};
 use axum::Router;
 use axum::body::Body;
@@ -1261,4 +1262,35 @@ async fn deleting_a_repository_removes_its_content_and_counts_downloads() {
         .await
         .unwrap();
     assert_eq!(metrics_after.blob_count + 1, metrics_before.blob_count);
+}
+
+#[tokio::test]
+async fn components_are_promoted_between_hosted_repositories() {
+    let fixture = ready().await;
+    create(&fixture, "hosted", hosted("source", "ALLOW")).await;
+    create(&fixture, "hosted", hosted("target", "ALLOW")).await;
+    assert_eq!(
+        put(
+            &fixture,
+            "/repository/source/docs/readme.txt",
+            b"promoted",
+            Auth::Admin
+        )
+        .await,
+        StatusCode::CREATED
+    );
+    let format = astrum_format_raw::Raw;
+    let bundle = support::bundle_of(&fixture, &format, "source", "/docs/readme.txt").await;
+    let outcome = support::receive(&fixture, &format, "source", "target", &bundle).await;
+    assert_eq!(outcome.status, Status::Copied);
+    let served = fixture
+        .call(
+            Method::GET,
+            "/repository/target/docs/readme.txt",
+            Auth::Admin,
+            None,
+        )
+        .await;
+    assert_eq!(served.status, StatusCode::OK);
+    assert_eq!(served.body, b"promoted".to_vec());
 }

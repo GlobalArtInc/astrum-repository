@@ -427,3 +427,55 @@ async fn low_space_is_reported_once_and_again_when_it_is_over() {
             .is_none()
     );
 }
+
+#[tokio::test]
+async fn repository_bytes_and_quota_come_from_the_usage_counter() {
+    let fixture = ready().await;
+    let created = capability(
+        &fixture,
+        json!({"type": "metrics.prometheus", "enabled": true, "properties": {"repositories": "true"}}),
+    )
+    .await;
+    assert_eq!(created.status, StatusCode::CREATED, "{}", created.text());
+    hosted(&fixture, "files").await;
+    let capped = fixture
+        .call(
+            Method::POST,
+            "/service/rest/v1/repositories/raw/hosted",
+            Auth::Admin,
+            Some(json!({
+                "name": "capped",
+                "online": true,
+                "storage": {"blobStoreName": "default", "strictContentTypeValidation": false, "writePolicy": "ALLOW", "quota": {"limitBytes": 100, "enforce": true}},
+                "raw": {"contentDisposition": "ATTACHMENT"}
+            })),
+        )
+        .await;
+    assert_eq!(capped.status, StatusCode::CREATED, "{}", capped.text());
+    let uploaded = fixture
+        .send_body(
+            Method::PUT,
+            "/repository/capped/a.txt",
+            Auth::Admin,
+            Body::from("hello"),
+            &[],
+        )
+        .await;
+    assert_eq!(uploaded.status, StatusCode::CREATED);
+
+    let text = fixture
+        .call(Method::GET, METRICS, Auth::Admin, None)
+        .await
+        .text();
+    for expected in [
+        "astrum_repository_bytes{repository=\"capped\"} 5",
+        "astrum_repository_bytes{repository=\"files\"} 0",
+        "astrum_repository_quota_bytes{repository=\"capped\"} 100",
+    ] {
+        assert!(
+            text.contains(expected),
+            "{expected} is missing from\n{text}"
+        );
+    }
+    assert!(line(&text, "astrum_repository_quota_bytes{repository=\"files\"}").is_none());
+}

@@ -314,6 +314,34 @@ fn defs() -> Vec<Def> {
             idempotent: true,
         },
         Def {
+            name: "get_repository_usage",
+            title: "Repository usage",
+            description: "How many assets and bytes a repository holds, its quota (limitBytes, warnPercent, enforce) or null, and percentUsed of the limit, which may exceed 100.",
+            schema: || schema(json!({ "name": string("Repository name") }), &["name"]),
+            need: Need::SignedIn,
+            write: false,
+            idempotent: true,
+        },
+        Def {
+            name: "set_repository_quota",
+            title: "Set or remove a repository quota",
+            description: "Set the storage quota of a hosted or proxy repository, or remove it with limitBytes null. enforce true refuses uploads over the limit and is only for hosted repositories; a proxy keeps caching over its limit. warnPercent and enforce keep their stored values when omitted.",
+            schema: || {
+                schema(
+                    json!({
+                        "name": string("Repository name"),
+                        "limitBytes": { "type": ["integer", "null"], "minimum": 1, "description": "Limit in bytes, or null to remove the quota" },
+                        "warnPercent": { "type": "integer", "minimum": 1, "maximum": 100, "description": "Percent of the limit at which the repository is reported as near full; 90 when none is stored" },
+                        "enforce": { "type": "boolean", "description": "true to refuse uploads over the limit (hosted only)" },
+                    }),
+                    &["name", "limitBytes"],
+                )
+            },
+            need: Need::SignedIn,
+            write: true,
+            idempotent: true,
+        },
+        Def {
             name: "list_users",
             title: "List users",
             description: "Users with their source, status and roles. query matches any part of the user id, name or email.",
@@ -609,6 +637,15 @@ impl Handler for AstrumTools {
             }
             "update_group_blob_store" => update_group(api, &arguments).await,
             "set_repository_online" => set_online(api, &arguments).await,
+            "get_repository_usage" => {
+                let name = required_text(&arguments, "name")?;
+                api.get(&format!(
+                    "/service/rest/v1/repositories/{}/usage",
+                    segment(&name)
+                ))
+                .await
+            }
+            "set_repository_quota" => set_quota(api, &arguments).await,
             "list_users" => list_users(api, &arguments).await,
             "list_roles" => list_roles(api, &arguments).await,
             "list_privileges" => list_privileges(api, &arguments).await,
@@ -1282,6 +1319,42 @@ async fn set_online(api: &Loopback, arguments: &Map<String, Value>) -> Result<Va
     api.json(Method::PUT, &uri, Some(&settings)).await?;
     let saved = api.get(&uri).await?;
     Ok(json!({ "name": name, "online": saved["online"] }))
+}
+
+async fn set_quota(api: &Loopback, arguments: &Map<String, Value>) -> Result<Value, ToolError> {
+    let name = required_text(arguments, "name")?;
+    let limit = match arguments.get("limitBytes") {
+        Some(Value::Null) => None,
+        Some(value) => Some(value.as_i64().ok_or_else(|| {
+            ToolError::invalid("the argument limitBytes must be a whole number of bytes or null")
+        })?),
+        None => {
+            return Err(ToolError::invalid(
+                "the argument limitBytes is required; null removes the quota",
+            ));
+        }
+    };
+    let summary = api
+        .get(&format!("/service/rest/v1/repositories/{}", segment(&name)))
+        .await?;
+    let Some(uri) = settings_uri(&summary, &name) else {
+        return Err(ToolError::failed(format!(
+            "the repository {name} has no format or type"
+        )));
+    };
+    let mut settings = api.get(&uri).await?;
+    let stored = settings["storage"]["quota"].clone();
+    settings["storage"]["quota"] = match limit {
+        None => Value::Null,
+        Some(limit) => json!({
+            "limitBytes": limit,
+            "warnPercent": arguments.get("warnPercent").and_then(Value::as_i64).map_or_else(|| stored["warnPercent"].clone(), Value::from),
+            "enforce": arguments.get("enforce").and_then(Value::as_bool).unwrap_or_else(|| stored["enforce"].as_bool().unwrap_or(false)),
+        }),
+    };
+    api.json(Method::PUT, &uri, Some(&settings)).await?;
+    let saved = api.get(&uri).await?;
+    Ok(json!({ "name": name, "quota": saved["storage"]["quota"] }))
 }
 
 const USERS: &str = "/service/rest/v1/security/users";

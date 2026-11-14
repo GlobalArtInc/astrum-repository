@@ -26,7 +26,7 @@ pub use proxy::{
 };
 pub use signing::{Signing, is_armored_pgp_key, is_pem_private_key};
 pub use spec::{Presence, Spec};
-pub use storage::{Cleanup, Component, Storage, WritePolicy};
+pub use storage::{Cleanup, Component, DEFAULT_WARN_PERCENT, Quota, Storage, WritePolicy};
 
 pub const MAX_NAME_LENGTH: usize = 200;
 

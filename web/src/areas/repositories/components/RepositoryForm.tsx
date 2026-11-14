@@ -34,6 +34,7 @@ import {
   TextInput,
 } from './fields';
 import styles from './fields.module.css';
+import { QuotaLimitInput } from './QuotaLimitInput';
 import { FooterError } from './SaveError';
 import { SuggestPort } from './SuggestPort';
 
@@ -818,6 +819,29 @@ export function RepositoryForm(props: RepositoryFormProps) {
             label={t('repositories.form.strict')}
             description={t('repositories.form.strictHint')}
           />
+          {sections.quota(spec) && (
+            <>
+              <QuotaLimitInput
+                {...field('quotaLimitBytes')}
+                label={t('repositories.form.quotaLimit')}
+                hint={t('repositories.form.quotaLimitHint')}
+              />
+              <NumberInput
+                {...field('quotaWarnPercent')}
+                label={t('repositories.form.quotaWarnPercent')}
+                hint={t('repositories.form.quotaWarnPercentHint')}
+                min={1}
+                max={100}
+              />
+              {spec.type === 'hosted' && (
+                <CheckInput
+                  {...field('quotaEnforce')}
+                  label={t('repositories.form.quotaEnforce')}
+                  description={t('repositories.form.quotaEnforceHint')}
+                />
+              )}
+            </>
+          )}
         </Section>
 
         {sections.writePolicy(spec) && (

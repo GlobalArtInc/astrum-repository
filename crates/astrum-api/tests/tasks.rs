@@ -1126,3 +1126,194 @@ async fn purge_unused_deletes_cached_content_nobody_downloaded() {
     .await;
     assert_eq!(hosted.json()[0]["id"], "properties.repositoryName");
 }
+
+fn age_blob(fixture: &Fixture, id: astrum_blob::BlobId) {
+    std::fs::File::options()
+        .write(true)
+        .open(
+            fixture
+                .data
+                .path()
+                .join("blobs/default/content")
+                .join(id.location()),
+        )
+        .unwrap()
+        .set_modified(SystemTime::now() - Duration::from_secs(3 * 86_400))
+        .unwrap();
+}
+
+async fn compact_everything(fixture: &Fixture) -> String {
+    let task = create_task(
+        fixture,
+        json!({"type": "blobstore.compact", "name": "Compact", "properties": {"blobstoreName": "*", "blobsOlderThan": "1"}}),
+    )
+    .await;
+    run_now(fixture, task["id"].as_str().unwrap()).await;
+    task["id"].as_str().unwrap().to_owned()
+}
+
+#[tokio::test]
+async fn every_hold_protects_its_blob_until_the_sweep_and_an_asset_keeps_it_even_then() {
+    let fixture = ready().await;
+    raw_hosted(&fixture, "files", None).await;
+    upload(&fixture, "files", "kept.txt", b"kept").await;
+    let store = fixture.state.blob_stores().get("default").await.unwrap();
+    let conn = fixture.state.db().conn();
+    let named = astrum_content::store::find(conn, "files", "/kept.txt")
+        .await
+        .unwrap()
+        .unwrap();
+    let named_id = astrum_blob::BlobId::from(named.blob_id);
+    let put = async |bytes: &'static [u8]| {
+        store
+            .put(astrum_blob::content_of(bytes.to_vec()))
+            .await
+            .unwrap()
+            .id
+    };
+    let held = put(b"held").await;
+    let lapsed = put(b"lapsed").await;
+    let plain = put(b"plain").await;
+    for id in [held, lapsed, plain, named_id] {
+        age_blob(&fixture, id);
+    }
+    let hour = Duration::from_secs(3600);
+    for (name, id) in [("default", held), ("default", lapsed), ("pool", named_id)] {
+        astrum_content::holds::hold(conn, name, id, hour)
+            .await
+            .unwrap();
+    }
+    execute(
+        &fixture,
+        &format!(
+            "UPDATE blob_hold SET held_until = now() - interval '1 minute' WHERE blob_id = '{}'",
+            lapsed.uuid()
+        ),
+    )
+    .await;
+
+    let compaction = compact_everything(&fixture).await;
+    assert!(store.exists(held).await.unwrap(), "a live hold protects");
+    assert!(
+        store.exists(lapsed).await.unwrap(),
+        "a hold that ran out protects until the sweep removes it"
+    );
+    assert!(store.exists(named_id).await.unwrap());
+    assert!(!store.exists(plain).await.unwrap());
+    assert_eq!(
+        last_run(&fixture, &compaction).await["counts"],
+        json!({"blobs": 1, "bytes": 5})
+    );
+    assert_eq!(
+        count(&fixture, "SELECT count(*) AS n FROM blob_hold").await,
+        3
+    );
+
+    execute(
+        &fixture,
+        "UPDATE blob_hold SET held_until = now() - interval '1 minute'",
+    )
+    .await;
+    let expire = create_task(
+        &fixture,
+        json!({"type": "security.purge-expired", "name": "Expire"}),
+    )
+    .await;
+    let done = run_now(&fixture, expire["id"].as_str().unwrap()).await;
+    assert_eq!(done["lastRunResult"], "OK", "{done}");
+    assert_eq!(
+        done["runMessage"],
+        "deleted 0 sessions, 0 client tokens and 0 unfinished uploads; released 3 expired blob holds"
+    );
+    assert_eq!(
+        count(&fixture, "SELECT count(*) AS n FROM blob_hold").await,
+        0
+    );
+    assert!(!store.exists(held).await.unwrap(), "nothing names it");
+    assert!(!store.exists(lapsed).await.unwrap(), "nothing names it");
+    assert!(
+        store.exists(named_id).await.unwrap(),
+        "an asset names it, whichever store the hold named"
+    );
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn held_duplicates_survive_compaction_that_runs_alongside_and_loose_ones_do_not() {
+    let fixture = ready().await;
+    raw_hosted(&fixture, "files", None).await;
+    upload(&fixture, "files", "kept.txt", b"kept").await;
+    let store = fixture.state.blob_stores().get("default").await.unwrap();
+    let conn = fixture.state.db().conn();
+    let source = astrum_content::store::find(conn, "files", "/kept.txt")
+        .await
+        .unwrap()
+        .unwrap();
+    let digests = astrum_blob::Digests {
+        sha1: source.sha1.clone(),
+        sha256: source.sha256.clone(),
+        sha512: source.sha512.clone(),
+        md5: source.md5.clone(),
+    };
+    let source_id = astrum_blob::BlobId::from(source.blob_id);
+    let mut orphans = Vec::new();
+    for _ in 0..3 {
+        let orphan = store
+            .put(astrum_blob::content_of(b"orphan".to_vec()))
+            .await
+            .unwrap()
+            .id;
+        age_blob(&fixture, orphan);
+        orphans.push(orphan);
+    }
+    age_blob(&fixture, source_id);
+    let task = create_task(
+        &fixture,
+        json!({"type": "blobstore.compact", "name": "Compact", "properties": {"blobstoreName": "*", "blobsOlderThan": "0"}}),
+    )
+    .await;
+    let task_id = task["id"].as_str().unwrap().to_owned();
+
+    let duplicating = async {
+        let (mut held, mut loose) = (Vec::new(), Vec::new());
+        for round in 0..30 {
+            let copy = store.duplicate(source_id, &digests).await.unwrap().id;
+            match round % 10 {
+                0 => loose.push(copy),
+                _ => {
+                    astrum_content::holds::hold(conn, "default", copy, Duration::from_secs(3600))
+                        .await
+                        .unwrap();
+                    held.push(copy);
+                }
+            }
+            age_blob(&fixture, copy);
+            tokio::task::yield_now().await;
+        }
+        (held, loose)
+    };
+    let compacting = async {
+        for _ in 0..3 {
+            let done = run_now(&fixture, &task_id).await;
+            assert_eq!(done["lastRunResult"], "OK", "{done}");
+        }
+    };
+    let ((held, loose), ()) = tokio::join!(duplicating, compacting);
+
+    age_blob(&fixture, source_id);
+    let done = run_now(&fixture, &task_id).await;
+    assert_eq!(done["lastRunResult"], "OK", "{done}");
+    for id in &held {
+        assert!(store.exists(*id).await.unwrap(), "{id} was held");
+    }
+    for id in loose.iter().chain(&orphans) {
+        assert!(!store.exists(*id).await.unwrap(), "{id} was not held");
+    }
+    assert!(
+        store.exists(source_id).await.unwrap(),
+        "an asset names the source"
+    );
+    assert_eq!(
+        count(&fixture, "SELECT count(*) AS n FROM blob_hold").await,
+        held.len() as i64
+    );
+}

@@ -38,6 +38,11 @@ impl ContentRequest {
         self.headers.get(name).and_then(|value| value.to_str().ok())
     }
 
+    pub fn content_length(&self) -> Option<u64> {
+        self.header("content-length")
+            .and_then(|value| value.trim().parse().ok())
+    }
+
     pub fn is_directory(&self) -> bool {
         self.path.is_empty() || self.path.ends_with('/')
     }

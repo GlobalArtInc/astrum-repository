@@ -369,3 +369,59 @@ fn settings_are_checked_before_use() {
     .unwrap_err();
     assert!(error.to_string().contains("certificate"), "{error}");
 }
+
+#[tokio::test]
+async fn a_remote_duplicate_is_streamed_and_checked_on_the_way() {
+    let db = Db::new().await;
+    let dir = tempfile::tempdir().unwrap();
+    let address = start(dir.path(), None).await;
+    let store = db
+        .store("remote", settings(format!("http://{address}")))
+        .await;
+    let bytes = pattern(300_000);
+    let original = store.put(chunks(&bytes, 7_000)).await.unwrap();
+
+    let copy = store
+        .duplicate(original.id, &original.digests)
+        .await
+        .unwrap();
+    assert_ne!(copy.id, original.id);
+    assert_eq!((copy.store.as_str(), copy.size), ("remote", 300_000));
+    assert_eq!(copy.digests, original.digests);
+    assert_eq!(files_under(dir.path()), 2);
+    assert!(store.delete(original.id).await.unwrap());
+    assert_eq!(
+        collect(store.read(copy.id).await.unwrap().unwrap()).await,
+        bytes
+    );
+
+    let mut wrong = copy.digests.clone();
+    wrong.sha256 = "0".repeat(64);
+    let error = store.duplicate(copy.id, &wrong).await.unwrap_err();
+    assert!(
+        matches!(
+            error,
+            Error::Digest {
+                algorithm: "SHA-256",
+                ..
+            }
+        ),
+        "{error}"
+    );
+    let mut left = 0;
+    for _ in 0..50 {
+        left = files_under(dir.path());
+        if left == 1 {
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+    }
+    assert_eq!(left, 1, "the refused copy left nothing on the agent");
+    assert_eq!(store.totals().await.unwrap().blob_count, 1);
+
+    let error = store
+        .duplicate(BlobId::new(), &copy.digests)
+        .await
+        .unwrap_err();
+    assert!(matches!(error, Error::Missing { .. }), "{error}");
+}

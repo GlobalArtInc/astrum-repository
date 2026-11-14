@@ -9,6 +9,7 @@ use astrum_repo::RepositoryType;
 
 use crate::proxy::{self, Freshness};
 use crate::store::{self, Asset, PutAsset};
+use crate::transfer::Transfer;
 use crate::{ContentError, ContentRequest, Ctx, group};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -157,6 +158,10 @@ pub trait Format: Send + Sync + 'static {
 
     fn browse_layout(&self) -> BrowseLayout {
         BrowseLayout::default()
+    }
+
+    fn transfer(&self) -> Option<&dyn Transfer> {
+        None
     }
 }
 

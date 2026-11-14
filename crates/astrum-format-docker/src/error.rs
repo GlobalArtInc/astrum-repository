@@ -139,6 +139,9 @@ impl From<ContentError> for RegistryError {
             ContentError::BadRequest(message) | ContentError::Conflict(message) => {
                 Self::refused(message)
             }
+            ContentError::QuotaExceeded { .. } => {
+                Self::new(StatusCode::PAYLOAD_TOO_LARGE, "DENIED", error.to_string())
+            }
             ContentError::RangeNotSatisfiable(size) => Self::new(
                 StatusCode::RANGE_NOT_SATISFIABLE,
                 "UNSUPPORTED",

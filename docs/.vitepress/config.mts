@@ -84,6 +84,7 @@ const sidebar: DefaultTheme.SidebarItem[] = [
     items: [
       { text: 'Repositories', link: '/repositories/overview' },
       { text: 'Cleanup policies', link: '/repositories/cleanup-policies' },
+      { text: 'Quotas', link: '/repositories/quotas' },
       { text: 'Routing rules', link: '/repositories/routing-rules' },
     ],
   },

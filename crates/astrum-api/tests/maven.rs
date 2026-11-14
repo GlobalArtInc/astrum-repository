@@ -5,6 +5,10 @@ use std::hash::{DefaultHasher, Hash as _, Hasher};
 use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
 
+use astrum_content::transfer::{
+    BundleAsset, Conflict, LocalSource, Outcome, PROMOTED, Status, Terms,
+};
+use astrum_content::{ContentError, Format};
 use astrum_format_maven::metadata::{self, Metadata};
 use astrum_security::ssrf::{SSRF_KEY, SsrfProtection};
 use axum::Router;
@@ -1710,4 +1714,298 @@ async fn content_permissions_cover_artifacts_metadata_and_checksums() {
         .call(Method::GET, "/repository/releases/org/", Auth::None, None)
         .await;
     assert_eq!(listing.status, StatusCode::UNAUTHORIZED);
+}
+
+#[tokio::test]
+async fn artifacts_are_promoted_without_copying_their_checksums() {
+    let fixture = ready().await;
+    create(
+        &fixture,
+        "hosted",
+        hosted("source", "RELEASE", "STRICT", "ALLOW"),
+    )
+    .await;
+    create(
+        &fixture,
+        "hosted",
+        hosted("target", "RELEASE", "STRICT", "ALLOW"),
+    )
+    .await;
+    deploy(&fixture, "source", "org.example", "lib", "1.0").await;
+    let jar = "/org/example/lib/1.0/lib-1.0.jar";
+    let checksum = format!("{jar}.sha1");
+    let format = astrum_format_maven::Maven;
+    let mut bundle = support::bundle_of(&fixture, &format, "source", jar).await;
+    let digest = sha1(JAR);
+    bundle.assets.push(BundleAsset {
+        path: checksum.clone(),
+        kind: "ARTIFACT".to_owned(),
+        content_type: "text/plain".to_owned(),
+        size: digest.len() as u64,
+        sha1: String::new(),
+        sha256: hex::encode(Sha256::digest(digest.as_bytes())),
+        sha512: String::new(),
+        md5: String::new(),
+        attributes: json!({}),
+    });
+    let outcome = support::receive(&fixture, &format, "source", "target", &bundle).await;
+    assert_eq!(outcome.status, Status::Copied);
+    assert!(
+        astrum_content::store::find(fixture.state.db().conn(), "target", &checksum)
+            .await
+            .unwrap()
+            .is_none()
+    );
+    let served = get(&fixture, &format!("/repository/target{jar}")).await;
+    assert_eq!(served.status, StatusCode::OK);
+    assert_eq!(served.body, JAR.to_vec());
+    let pom = get(
+        &fixture,
+        "/repository/target/org/example/lib/1.0/lib-1.0.pom",
+    )
+    .await;
+    assert_eq!(pom.status, StatusCode::OK);
+    let metadata = metadata_of(
+        &fixture,
+        "/repository/target/org/example/lib/maven-metadata.xml",
+    )
+    .await;
+    assert_eq!(versions(&metadata), ["1.0"]);
+}
+
+async fn try_promote(
+    fixture: &Fixture,
+    source: &str,
+    target: &str,
+    bundle: &astrum_content::transfer::Bundle,
+    dry_run: bool,
+) -> Result<Outcome, ContentError> {
+    let from = support::repository_ctx(fixture, source).await;
+    let to = support::repository_ctx(fixture, target).await;
+    let mut terms = Terms::new(Conflict::Fail, PROMOTED);
+    if dry_run {
+        terms = terms.dry_run();
+    }
+    astrum_format_maven::Maven
+        .transfer()
+        .expect("maven takes part in promotion")
+        .receive(&to, bundle, &LocalSource::new(from), terms)
+        .await
+}
+
+async fn blobs(fixture: &Fixture) -> usize {
+    fixture
+        .state
+        .content()
+        .blob_stores()
+        .get("default")
+        .await
+        .unwrap()
+        .list(None, 1000)
+        .await
+        .unwrap()
+        .len()
+}
+
+async fn assert_refused(
+    fixture: &Fixture,
+    source: &str,
+    target: &str,
+    bundle: &astrum_content::transfer::Bundle,
+    message: &str,
+) {
+    let before = blobs(fixture).await;
+    for dry_run in [true, false] {
+        match try_promote(fixture, source, target, bundle, dry_run).await {
+            Err(ContentError::BadRequest(found)) => assert_eq!(found, message),
+            other => panic!("expected a refusal, got {other:?}"),
+        }
+    }
+    assert_eq!(blobs(fixture).await, before);
+    for asset in &bundle.assets {
+        assert!(
+            astrum_content::store::find(fixture.state.db().conn(), target, &asset.path)
+                .await
+                .unwrap()
+                .is_none()
+        );
+    }
+}
+
+async fn promotion_world() -> Fixture {
+    let fixture = ready().await;
+    for (name, versions, layout) in [
+        ("source", "MIXED", "PERMISSIVE"),
+        ("releases", "RELEASE", "STRICT"),
+        ("snapshots", "SNAPSHOT", "STRICT"),
+        ("mixed", "MIXED", "STRICT"),
+        ("strict", "MIXED", "STRICT"),
+        ("loose", "MIXED", "PERMISSIVE"),
+    ] {
+        create(&fixture, "hosted", hosted(name, versions, layout, "ALLOW")).await;
+    }
+    deploy(&fixture, "source", "org.example", "lib", "1.0").await;
+    deploy(&fixture, "source", "org.example", "lib", "2.0-SNAPSHOT").await;
+    fixture
+}
+
+#[tokio::test]
+async fn promotion_follows_the_version_policy_of_the_target() {
+    let fixture = promotion_world().await;
+    let format = astrum_format_maven::Maven;
+    let snapshot = support::bundle_of(
+        &fixture,
+        &format,
+        "source",
+        "/org/example/lib/2.0-SNAPSHOT/lib-2.0-SNAPSHOT.jar",
+    )
+    .await;
+    let release = support::bundle_of(
+        &fixture,
+        &format,
+        "source",
+        "/org/example/lib/1.0/lib-1.0.jar",
+    )
+    .await;
+    assert_refused(
+        &fixture,
+        "source",
+        "releases",
+        &snapshot,
+        "Repository version policy: RELEASE does not allow version: 2.0-SNAPSHOT",
+    )
+    .await;
+    assert_refused(
+        &fixture,
+        "source",
+        "snapshots",
+        &release,
+        "Repository version policy: SNAPSHOT does not allow version: 1.0",
+    )
+    .await;
+    for (bundle, target, version) in [
+        (&release, "releases", "1.0"),
+        (&release, "mixed", "1.0"),
+        (&snapshot, "snapshots", "2.0-SNAPSHOT"),
+        (&snapshot, "mixed", "2.0-SNAPSHOT"),
+    ] {
+        let planned = try_promote(&fixture, "source", target, bundle, true)
+            .await
+            .unwrap();
+        assert_eq!(planned.status, Status::Copied);
+        let outcome = try_promote(&fixture, "source", target, bundle, false)
+            .await
+            .unwrap();
+        assert_eq!(outcome.status, Status::Copied);
+        let metadata = metadata_of(
+            &fixture,
+            &format!("/repository/{target}/org/example/lib/maven-metadata.xml"),
+        )
+        .await;
+        assert!(
+            versions(&metadata).contains(&version),
+            "{target}: {version}"
+        );
+    }
+}
+
+#[tokio::test]
+async fn promotion_follows_the_layout_policy_of_the_target() {
+    let fixture = promotion_world().await;
+    let format = astrum_format_maven::Maven;
+    let notes = "/org/example/lib/1.0/notes.txt";
+    let reply = put(
+        &fixture,
+        &format!("/repository/source{notes}"),
+        "release notes",
+        Auth::Admin,
+    )
+    .await;
+    assert_eq!(reply.status, StatusCode::CREATED, "{}", reply.text());
+    let mut bundle = support::bundle_of(
+        &fixture,
+        &format,
+        "source",
+        "/org/example/lib/1.0/lib-1.0.jar",
+    )
+    .await;
+    bundle.assets.push(BundleAsset {
+        path: notes.to_owned(),
+        kind: "ARTIFACT".to_owned(),
+        content_type: "text/plain".to_owned(),
+        size: 13,
+        sha1: String::new(),
+        sha256: hex::encode(Sha256::digest(b"release notes")),
+        sha512: String::new(),
+        md5: String::new(),
+        attributes: json!({}),
+    });
+    assert_refused(
+        &fixture,
+        "source",
+        "strict",
+        &bundle,
+        &format!("Invalid path for a Maven 2 repository: {notes}"),
+    )
+    .await;
+    let outcome = try_promote(&fixture, "source", "loose", &bundle, false)
+        .await
+        .unwrap();
+    assert_eq!(outcome.status, Status::Copied);
+    let served = get(&fixture, &format!("/repository/loose{notes}")).await;
+    assert_eq!(served.status, StatusCode::OK);
+    assert_eq!(served.body, b"release notes".to_vec());
+}
+
+#[tokio::test]
+async fn snapshot_components_are_promoted_whole() {
+    let fixture = promotion_world().await;
+    create(
+        &fixture,
+        "hosted",
+        hosted("stamped", "SNAPSHOT", "STRICT", "ALLOW"),
+    )
+    .await;
+    let format = astrum_format_maven::Maven;
+    let directory = "/org/example/app/3.0-SNAPSHOT";
+    for (stem, version) in [
+        ("app-3.0-SNAPSHOT", "3.0-SNAPSHOT"),
+        ("app-3.0-20260101.120000-1", "3.0-20260101.120000-1"),
+    ] {
+        for (file, body) in [
+            (format!("{stem}.jar"), JAR.to_vec()),
+            (format!("{stem}-sources.jar"), JAR.to_vec()),
+            (
+                format!("{stem}.pom"),
+                pom("org.example", "app", version, "jar"),
+            ),
+        ] {
+            let reply = put(
+                &fixture,
+                &format!("/repository/source{directory}/{file}"),
+                body,
+                Auth::Admin,
+            )
+            .await;
+            assert_eq!(
+                reply.status,
+                StatusCode::CREATED,
+                "{file}: {}",
+                reply.text()
+            );
+        }
+        let jar = format!("{directory}/{stem}.jar");
+        let bundle = support::bundle_of(&fixture, &format, "source", &jar).await;
+        assert_eq!(bundle.assets.len(), 3, "{stem}");
+        let outcome = try_promote(&fixture, "source", "stamped", &bundle, false)
+            .await
+            .unwrap();
+        assert_eq!(outcome.status, Status::Copied);
+        assert_eq!(outcome.assets.len(), 3);
+        for asset in &bundle.assets {
+            let served = get(&fixture, &format!("/repository/stamped{}", asset.path)).await;
+            assert_eq!(served.status, StatusCode::OK, "{}", asset.path);
+            assert_eq!(hex::encode(Sha256::digest(&served.body)), asset.sha256);
+        }
+    }
 }

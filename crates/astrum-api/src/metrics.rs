@@ -4,6 +4,7 @@ use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
 use astrum_blob::quota;
+use astrum_db::entity::repository_usage;
 use astrum_db::setting;
 use astrum_db::system::{PROMETHEUS_KEY, Prometheus};
 use axum::Router;
@@ -12,7 +13,7 @@ use axum::http::{Method, StatusCode, header};
 use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
 use axum::routing::get;
-use sea_orm::{ConnectionTrait, DbBackend, Statement};
+use sea_orm::{ConnectionTrait, DbBackend, EntityTrait, Statement};
 
 use crate::routes::blobstores::measure_all;
 use crate::routes::support::health;
@@ -216,10 +217,23 @@ struct Collected {
     >,
     checks: BTreeMap<String, health::Check>,
     repositories: Option<Vec<astrum_repo::config::Repository>>,
+    usage: Option<HashMap<String, i64>>,
     tasks: Option<Vec<(astrum_tasks::store::Task, astrum_tasks::store::Runs)>>,
     pending: Option<i64>,
     disk: Option<(u64, u64)>,
     alerts: Vec<(String, String)>,
+}
+
+async fn usage(state: &AppState) -> Option<HashMap<String, i64>> {
+    let rows = repository_usage::Entity::find()
+        .all(state.db().conn())
+        .await
+        .ok()?;
+    Some(
+        rows.into_iter()
+            .map(|row| (row.repository, row.bytes))
+            .collect(),
+    )
 }
 
 async fn tasks(
@@ -262,10 +276,11 @@ async fn disk(state: &AppState) -> Option<(u64, u64)> {
 }
 
 async fn collect(state: &AppState) -> Collected {
-    let (stores, checks, repositories, tasks, pending, disk, alerts) = tokio::join!(
+    let (stores, checks, repositories, usage, tasks, pending, disk, alerts) = tokio::join!(
         async { measure_all(state).await.ok() },
         health::run(state),
         async { astrum_repo::store::list(state.db().conn()).await.ok() },
+        usage(state),
         tasks(state),
         pending(state),
         disk(state),
@@ -275,6 +290,7 @@ async fn collect(state: &AppState) -> Collected {
         stores,
         checks,
         repositories,
+        usage,
         tasks,
         pending,
         disk,
@@ -430,6 +446,40 @@ pub async fn render(state: &AppState, settings: &Prometheus) -> String {
                 ],
                 flag(repository.online),
             );
+        }
+        if let Some(counted) = &collected.usage {
+            out.family(
+                "astrum_repository_bytes",
+                "gauge",
+                "Logical bytes of the assets of a repository, from its usage counter.",
+            );
+            for repository in repositories {
+                out.sample(
+                    "astrum_repository_bytes",
+                    &[("repository", &repository.name)],
+                    counted.get(&repository.name).copied().unwrap_or(0),
+                );
+            }
+            out.family(
+                "astrum_repository_quota_bytes",
+                "gauge",
+                "The quota limit of a repository in bytes, for repositories that have a quota.",
+            );
+            for repository in repositories {
+                let limit = repository
+                    .attributes
+                    .storage
+                    .as_ref()
+                    .and_then(|storage| storage.quota.as_ref())
+                    .and_then(|quota| quota.limit_bytes);
+                if let Some(limit) = limit {
+                    out.sample(
+                        "astrum_repository_quota_bytes",
+                        &[("repository", &repository.name)],
+                        limit,
+                    );
+                }
+            }
         }
     }
 

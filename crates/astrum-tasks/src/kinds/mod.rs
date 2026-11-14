@@ -15,6 +15,7 @@ pub fn register_builtin(tasks: &Tasks) {
     tasks.register(Arc::new(reconcile::Reconcile));
     tasks.register(Arc::new(purge_unused::PurgeUnused));
     tasks.register(Arc::new(expired::PurgeExpired));
+    tasks.add_expiry(Arc::new(expired::BlobHoldExpiry));
 }
 
 pub fn count(number: i64, one: &str, other: &str) -> String {

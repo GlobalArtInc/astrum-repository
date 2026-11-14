@@ -181,6 +181,8 @@ pub struct S3BlobStore {
     metrics: Metrics,
     permits: Option<Arc<Semaphore>>,
     part_size: usize,
+    copy_limit: u64,
+    copy_part: u64,
 }
 
 impl fmt::Debug for S3BlobStore {
@@ -225,12 +227,20 @@ impl S3BlobStore {
             metrics,
             permits: pool.map(|size| Arc::new(Semaphore::new(size as usize))),
             part_size: PART_SIZE,
+            copy_limit: COPY_LIMIT,
+            copy_part: COPY_PART,
             name,
         })
     }
 
     pub fn with_part_size(mut self, size: usize) -> Self {
         self.part_size = size.max(MIN_PART_SIZE);
+        self
+    }
+
+    pub fn with_copy_limits(mut self, limit: u64, part: u64) -> Self {
+        self.copy_limit = limit;
+        self.copy_part = part.max(1);
         self
     }
 
@@ -507,10 +517,22 @@ impl S3BlobStore {
                 operation: "HeadObject",
                 message: format!("{bucket}/{key} does not exist"),
             })?;
+        self.copy_object(id, bucket, key, size).await?;
+        self.metrics.added(size).await;
+        Ok((crate::Adoption::Copied, size))
+    }
+
+    async fn copy_object(
+        &self,
+        id: BlobId,
+        bucket: &str,
+        key: &str,
+        size: u64,
+    ) -> Result<(), Error> {
         let target = self.key_of(id);
         let source = format!("{bucket}/{}", copy_source_key(key));
         let _permit = self.permit().await;
-        if size <= COPY_LIMIT {
+        if size <= self.copy_limit {
             let (encryption, kms_key) = self.encryption();
             self.client
                 .copy_object()
@@ -525,14 +547,16 @@ impl S3BlobStore {
         } else {
             let mut upload = self.start(&target).await?;
             let copied = self.copy_parts(&target, &source, size, &mut upload).await;
-            if let Err(error) = copied {
+            let finished = match copied {
+                Ok(()) => self.complete(&target, &mut upload).await,
+                Err(error) => Err(error),
+            };
+            if let Err(error) = finished {
                 self.abort(&target, &upload.upload_id).await;
                 return Err(error);
             }
-            self.complete(&target, &mut upload).await?;
         }
-        self.metrics.added(size).await;
-        Ok((crate::Adoption::Copied, size))
+        Ok(())
     }
 
     async fn copy_parts(
@@ -544,7 +568,7 @@ impl S3BlobStore {
     ) -> Result<(), Error> {
         let mut offset = 0;
         while offset < size {
-            let end = (offset + COPY_PART).min(size) - 1;
+            let end = (offset + self.copy_part).min(size) - 1;
             let number = upload.parts.len() as i32 + 1;
             let output = self
                 .client
@@ -651,6 +675,26 @@ impl BlobStore for S3BlobStore {
                 Err(error)
             }
         }
+    }
+
+    async fn duplicate(&self, id: BlobId, expected: &Digests) -> Result<Written, Error> {
+        crate::digest::require(&self.name, id, expected)?;
+        let Some(size) = self.size(id).await? else {
+            return Err(Error::Missing {
+                store: self.name.clone(),
+                id,
+            });
+        };
+        let copy = BlobId::new();
+        self.copy_object(copy, &self.bucket, &self.key_of(id), size)
+            .await?;
+        self.metrics.added(size).await;
+        Ok(Written {
+            id: copy,
+            store: self.name.clone(),
+            size,
+            digests: expected.lowercased(),
+        })
     }
 
     async fn read(&self, id: BlobId) -> Result<Option<Content>, Error> {

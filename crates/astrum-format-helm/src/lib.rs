@@ -7,7 +7,9 @@ mod push;
 mod remote;
 
 use astrum_content::format::SearchTarget;
+use astrum_content::import::{Described, Imported};
 use astrum_content::store;
+use astrum_content::transfer::{GenericTransfer, Transfer};
 use astrum_content::{
     Asset, BrowseLayout, ContentError, ContentRequest, Ctx, Format, SearchKey, Serve, UploadField,
     UploadForm, UploadSpec, View, group, serve,
@@ -17,6 +19,7 @@ use async_trait::async_trait;
 use axum::body::Body;
 use axum::http::{Method, StatusCode, header};
 use axum::response::{IntoResponse, Response};
+use futures_util::future::BoxFuture;
 use sha2::{Digest, Sha256};
 
 pub use chart::Chart;
@@ -53,6 +56,18 @@ const SEARCH_KEYS: &[SearchKey] = &[
 #[derive(Default)]
 pub struct Helm {
     cache: remote::Cache,
+}
+
+static TRANSFER: GenericTransfer = GenericTransfer {
+    plan: import::plan,
+    describe: describe_imported,
+    after: None,
+    admit: None,
+    replaceable: None,
+};
+
+fn describe_imported(file: &Imported) -> BoxFuture<'_, Result<Option<Described>, String>> {
+    Box::pin(import::describe(file))
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -361,6 +376,10 @@ impl Format for Helm {
 
     fn search_keys(&self) -> &'static [SearchKey] {
         SEARCH_KEYS
+    }
+
+    fn transfer(&self) -> Option<&dyn Transfer> {
+        Some(&TRANSFER)
     }
 }
 

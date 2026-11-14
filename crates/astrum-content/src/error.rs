@@ -18,6 +18,14 @@ pub enum ContentError {
     BadRequest(String),
     #[error("{0}")]
     Conflict(String),
+    #[error(
+        "the repository {repository} would exceed its quota of {limit_bytes} bytes ({used_bytes} bytes are used)"
+    )]
+    QuotaExceeded {
+        repository: String,
+        limit_bytes: i64,
+        used_bytes: i64,
+    },
     #[error("the range is outside a blob of {0} bytes")]
     RangeNotSatisfiable(u64),
     #[error("a precondition of the request does not hold")]
@@ -47,6 +55,7 @@ impl ContentError {
             ContentError::MethodNotAllowed { .. } => StatusCode::METHOD_NOT_ALLOWED,
             ContentError::BadRequest(_) => StatusCode::BAD_REQUEST,
             ContentError::Conflict(_) => StatusCode::CONFLICT,
+            ContentError::QuotaExceeded { .. } => StatusCode::PAYLOAD_TOO_LARGE,
             ContentError::RangeNotSatisfiable(_) => StatusCode::RANGE_NOT_SATISFIABLE,
             ContentError::PreconditionFailed => StatusCode::PRECONDITION_FAILED,
             ContentError::Unavailable(_) => StatusCode::SERVICE_UNAVAILABLE,

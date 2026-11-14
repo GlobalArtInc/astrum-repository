@@ -259,3 +259,111 @@ async fn a_store_turns_into_a_group_that_keeps_its_blobs() {
         Err(Error::UnknownStore(_))
     ));
 }
+
+#[tokio::test]
+async fn a_duplicate_is_made_in_the_member_that_has_the_blob() {
+    let dir = tempfile::tempdir().unwrap();
+    let first = Member::new(&dir, "first", Some(10)).await;
+    let second = Member::new(&dir, "second", Some(10)).await;
+    let bytes = pattern(5_000);
+    let original = second.put(chunks(&bytes, 500)).await.unwrap();
+    let group = group(&[&first, &second], FillPolicy::WriteToFirst);
+
+    let copy = group
+        .duplicate(original.id, &original.digests)
+        .await
+        .unwrap();
+    assert_eq!(copy.store, "second");
+    assert_ne!(copy.id, original.id);
+    assert!(first.list(None, 10).await.unwrap().is_empty());
+    assert!(group.delete(original.id).await.unwrap());
+    assert_eq!(read_all(&group, copy.id).await, bytes);
+    assert_eq!(read_all(second.as_ref(), copy.id).await, bytes);
+}
+
+#[tokio::test]
+async fn file_members_link_the_duplicate_inside_the_member() {
+    use std::os::unix::fs::MetadataExt;
+
+    let dir = tempfile::tempdir().unwrap();
+    let first = Arc::new(
+        FileBlobStore::open(
+            "first",
+            dir.path().join("first"),
+            Metrics::detached("first"),
+        )
+        .await
+        .unwrap(),
+    );
+    let second = Arc::new(
+        FileBlobStore::open(
+            "second",
+            dir.path().join("second"),
+            Metrics::detached("second"),
+        )
+        .await
+        .unwrap(),
+    );
+    let original = second.put(chunks(&pattern(3_000), 500)).await.unwrap();
+    let group = GroupBlobStore::new(
+        "group",
+        vec![first.clone() as Arc<dyn BlobStore>, second.clone()],
+        FillPolicy::WriteToFirst,
+    )
+    .unwrap();
+
+    let copy = group
+        .duplicate(original.id, &original.digests)
+        .await
+        .unwrap();
+    assert_eq!(copy.store, "second");
+    let linked = std::fs::metadata(second.path_of(original.id)).unwrap();
+    let made = std::fs::metadata(second.path_of(copy.id)).unwrap();
+    assert_eq!((linked.ino(), made.nlink()), (made.ino(), 2));
+    assert!(first.list(None, 10).await.unwrap().is_empty());
+}
+
+#[tokio::test]
+async fn a_duplicate_looks_past_a_member_that_is_down_but_not_past_what_it_cannot_tell() {
+    let dir = tempfile::tempdir().unwrap();
+    let first = Member::new(&dir, "first", Some(10)).await;
+    let second = Member::new(&dir, "second", Some(10)).await;
+    let original = second.put(chunks(&pattern(500), 50)).await.unwrap();
+    first.down.store(true, Ordering::Relaxed);
+    let group = group(&[&first, &second], FillPolicy::WriteToFirst);
+
+    let copy = group
+        .duplicate(original.id, &original.digests)
+        .await
+        .unwrap();
+    assert_eq!(copy.store, "second");
+
+    let error = group
+        .duplicate(BlobId::new(), &original.digests)
+        .await
+        .unwrap_err();
+    assert!(matches!(error, Error::Remote { .. }), "{error}");
+
+    first.down.store(false, Ordering::Relaxed);
+    let error = group
+        .duplicate(BlobId::new(), &original.digests)
+        .await
+        .unwrap_err();
+    assert!(matches!(error, Error::Missing { .. }), "{error}");
+}
+
+#[tokio::test]
+async fn a_wrong_digest_in_a_group_fails_without_leaving_a_copy() {
+    let dir = tempfile::tempdir().unwrap();
+    let first = Member::new(&dir, "first", Some(10)).await;
+    let second = Member::new(&dir, "second", Some(10)).await;
+    let original = second.put(chunks(&pattern(500), 50)).await.unwrap();
+    let group = group(&[&first, &second], FillPolicy::WriteToFirst);
+
+    let mut wrong = original.digests.clone();
+    wrong.sha256 = "f".repeat(64);
+    let error = group.duplicate(original.id, &wrong).await.unwrap_err();
+    assert!(matches!(error, Error::Digest { .. }), "{error}");
+    assert!(first.list(None, 10).await.unwrap().is_empty());
+    assert_eq!(second.list(None, 10).await.unwrap().len(), 1);
+}

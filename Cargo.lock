@@ -1297,6 +1297,7 @@ dependencies = [
  "astrum-repo",
  "async-trait",
  "axum",
+ "futures-util",
  "serde_json",
 ]
 

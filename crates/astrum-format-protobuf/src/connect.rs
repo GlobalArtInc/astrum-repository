@@ -111,6 +111,7 @@ impl From<ContentError> for Status {
             ContentError::MethodNotAllowed { method, .. } => {
                 Status::invalid(format!("{method} is not allowed here"))
             }
+            ContentError::QuotaExceeded { .. } => Status::precondition(error.to_string()),
             ContentError::RangeNotSatisfiable(_) | ContentError::PreconditionFailed => {
                 Status::precondition("a precondition of the request does not hold")
             }

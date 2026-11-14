@@ -94,6 +94,7 @@ pub fn out_of_order(session: &Session) -> RegistryError {
 }
 
 pub async fn create(ctx: &Ctx, image: &str) -> Result<Session, ContentError> {
+    store::require_space(ctx).await?;
     let store = ctx.repository.blob_store().ok_or_else(|| {
         ContentError::internal(io::Error::other(format!(
             "the repository {} has no blob store",
@@ -145,7 +146,7 @@ pub async fn append(
         drain(body).await;
         return Err(out_of_order(session));
     }
-    let written = store::write_blob(ctx, body).await?;
+    let written = store::write_blob_after(ctx, body, session.size as u64).await?;
     if written.size == 0 {
         crate::storage::discard(ctx, &written);
         return Ok(session.clone());

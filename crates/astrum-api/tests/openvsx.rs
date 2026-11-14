@@ -1835,3 +1835,31 @@ async fn the_rest_api_and_the_upload_form_take_open_vsx_repositories() {
     .await;
     assert_eq!(other.status, StatusCode::OK, "{}", other.text());
 }
+
+#[tokio::test]
+async fn publishing_over_the_quota_answers_413_and_stores_nothing() {
+    let fixture = ready().await;
+    let mut body = hosted("vsx", "ALLOW");
+    body["storage"]["quota"] = json!({"limitBytes": 10, "enforce": true});
+    create(&fixture, "hosted", body).await;
+    let refused = publish(
+        &fixture,
+        "vsx",
+        Auth::Admin,
+        &package("hello", "1.0.0", None),
+    )
+    .await;
+    assert_eq!(
+        refused.status,
+        StatusCode::PAYLOAD_TOO_LARGE,
+        "{}",
+        refused.text()
+    );
+    assert!(refused.text().contains("vsx"), "{}", refused.text());
+    assert!(refused.text().contains("10"), "{}", refused.text());
+    let usage = astrum_content::usage::current(fixture.state.db().conn(), "vsx")
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(usage.bytes, 0);
+}

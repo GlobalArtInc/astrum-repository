@@ -7,8 +7,8 @@ use futures_util::FutureExt;
 use futures_util::future::{BoxFuture, join_all};
 
 use crate::{
-    BlobId, BlobStore, Content, ContentStream, Error, FillPolicy, StoreKind, StoredBlob, Totals,
-    Written,
+    BlobId, BlobStore, Content, ContentStream, Digests, Error, FillPolicy, StoreKind, StoredBlob,
+    Totals, Written,
 };
 
 const SPACE_TTL: Duration = Duration::from_secs(5);
@@ -142,6 +142,25 @@ impl BlobStore for GroupBlobStore {
 
     async fn put(&self, content: ContentStream) -> Result<Written, Error> {
         self.writer().await?.put(content).await
+    }
+
+    async fn duplicate(&self, id: BlobId, expected: &Digests) -> Result<Written, Error> {
+        let mut failure = None;
+        for member in &self.members {
+            match member.duplicate(id, expected).await {
+                Ok(written) => return Ok(written),
+                Err(Error::Missing { .. }) => {}
+                Err(error @ (Error::Digest { .. } | Error::NoDigest { .. })) => return Err(error),
+                Err(error) => {
+                    tracing::warn!(group = %self.name, member = member.name(), %error, "a member of a group cannot duplicate");
+                    failure.get_or_insert(error);
+                }
+            }
+        }
+        Err(failure.unwrap_or_else(|| Error::Missing {
+            store: self.name.clone(),
+            id,
+        }))
     }
 
     async fn read(&self, id: BlobId) -> Result<Option<Content>, Error> {

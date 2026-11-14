@@ -251,3 +251,114 @@ async fn listings_page_through_the_bucket_under_the_prefix() {
         15
     );
 }
+
+#[tokio::test]
+async fn a_duplicate_is_a_copy_of_the_object_that_outlives_the_original() {
+    let server = S3Server::start().await;
+    let db = Db::new().await;
+    let store = s3_store(&db, "objects", &s3_settings(&server, "copies", "p")).await;
+    let bytes = pattern(100_000);
+    let original = store.put(chunks(&bytes, 10_000)).await.unwrap();
+
+    let copy = store
+        .duplicate(original.id, &original.digests)
+        .await
+        .unwrap();
+    assert_ne!(copy.id, original.id);
+    assert_eq!((copy.store.as_str(), copy.size), ("objects", 100_000));
+    assert_eq!(copy.digests, original.digests);
+    assert_eq!(server.objects("copies").len(), 2);
+    assert_eq!(store.totals().await.unwrap().blob_count, 2);
+
+    assert!(store.delete(original.id).await.unwrap());
+    assert_eq!(server.objects("copies"), vec![store.key_of(copy.id)]);
+    assert_eq!(read_all(&store, copy.id).await, bytes);
+    assert_eq!(
+        store.totals().await.unwrap(),
+        Totals {
+            blob_count: 1,
+            total_bytes: 100_000
+        }
+    );
+}
+
+#[tokio::test]
+async fn a_duplicate_above_the_copy_limit_is_copied_in_parts() {
+    let server = S3Server::start().await;
+    let db = Db::new().await;
+    let store = s3_store(&db, "objects", &s3_settings(&server, "parted", ""))
+        .await
+        .with_copy_limits(MIN_PART_SIZE as u64, MIN_PART_SIZE as u64);
+    let bytes = pattern(2 * MIN_PART_SIZE + 12_345);
+    let original = store.put(chunks(&bytes, 1 << 20)).await.unwrap();
+
+    let copy = store
+        .duplicate(original.id, &original.digests)
+        .await
+        .unwrap();
+    assert_eq!(copy.size, bytes.len() as u64);
+    assert_eq!(read_all(&store, copy.id).await, bytes);
+    assert_eq!(server.objects("parted").len(), 2);
+    let leftovers: Vec<_> = support::files_under(server.root())
+        .into_iter()
+        .filter(|path| path.to_string_lossy().contains(".upload_id-"))
+        .collect();
+    assert!(leftovers.is_empty(), "{leftovers:?}");
+}
+
+#[tokio::test]
+async fn a_duplicate_of_an_object_that_is_not_there_or_has_no_digest_is_refused() {
+    let server = S3Server::start().await;
+    let db = Db::new().await;
+    let store = s3_store(&db, "objects", &s3_settings(&server, "refused", "")).await;
+    let original = store.put(chunks(&pattern(1_000), 1_000)).await.unwrap();
+
+    let error = store
+        .duplicate(BlobId::new(), &original.digests)
+        .await
+        .unwrap_err();
+    assert!(matches!(error, Error::Missing { .. }), "{error}");
+
+    let mut unknown = original.digests.clone();
+    unknown.sha256 = String::new();
+    let error = store.duplicate(original.id, &unknown).await.unwrap_err();
+    assert!(matches!(error, Error::NoDigest { .. }), "{error}");
+
+    assert_eq!(server.objects("refused"), vec![store.key_of(original.id)]);
+    assert_eq!(store.totals().await.unwrap().blob_count, 1);
+}
+
+#[tokio::test]
+async fn a_copy_in_parts_that_cannot_complete_is_aborted() {
+    let server = S3Server::start().await;
+    let db = Db::new().await;
+    let store = s3_store(&db, "objects", &s3_settings(&server, "unfinished", ""))
+        .await
+        .with_copy_limits(1_000, 400);
+    let original = store.put(chunks(&pattern(2_500), 2_500)).await.unwrap();
+
+    let error = store
+        .duplicate(original.id, &original.digests)
+        .await
+        .unwrap_err();
+    assert!(
+        matches!(
+            error,
+            Error::S3 {
+                operation: "CompleteMultipartUpload",
+                ..
+            }
+        ),
+        "{error}"
+    );
+    assert_eq!(
+        server.objects("unfinished"),
+        vec![store.key_of(original.id)]
+    );
+    let leftovers: Vec<_> = support::files_under(server.root())
+        .into_iter()
+        .filter(|path| path.to_string_lossy().contains(".upload_id-"))
+        .collect();
+    assert!(leftovers.is_empty(), "{leftovers:?}");
+    assert_eq!(store.totals().await.unwrap().blob_count, 1);
+}

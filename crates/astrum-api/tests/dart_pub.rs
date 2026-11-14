@@ -1136,3 +1136,58 @@ async fn cleanup_tells_pre_releases_from_releases() {
     assert_eq!(preview("PRERELEASES").await, 2);
     assert_eq!(preview("RELEASES").await, 2);
 }
+
+async fn quota_repository(fixture: &Fixture, limit: usize) {
+    let mut body = hosted("quota", "ALLOW");
+    body["storage"]["quota"] = json!({"limitBytes": limit, "enforce": true});
+    create(fixture, "hosted", body).await;
+}
+
+async fn used(fixture: &Fixture) -> i64 {
+    astrum_content::usage::current(fixture.state.db().conn(), "quota")
+        .await
+        .unwrap()
+        .unwrap()
+        .bytes
+}
+
+#[tokio::test]
+async fn an_archive_over_the_quota_is_refused_with_413_before_and_after_it_is_stored() {
+    let fixture = ready().await;
+    let first = package("first", "1.0.0", "");
+    let second = package("second", "1.0.0", "");
+    quota_repository(&fixture, 10).await;
+    let early = publish(&fixture, "quota", Auth::Admin, &first).await;
+    assert_eq!(
+        early.upload.status,
+        StatusCode::PAYLOAD_TOO_LARGE,
+        "{}",
+        early.upload.text()
+    );
+    assert!(early.finalize.is_none());
+    assert!(
+        early.upload.text().contains("quota"),
+        "{}",
+        early.upload.text()
+    );
+    assert_eq!(used(&fixture).await, 0);
+
+    let fixture = ready().await;
+    quota_repository(&fixture, first.len() + second.len() - 1).await;
+    let accepted = publish(&fixture, "quota", Auth::Admin, &first).await;
+    assert_eq!(
+        accepted.upload.status,
+        StatusCode::NO_CONTENT,
+        "{}",
+        accepted.upload.text()
+    );
+    let late = publish(&fixture, "quota", Auth::Admin, &second).await;
+    assert_eq!(
+        late.upload.status,
+        StatusCode::PAYLOAD_TOO_LARGE,
+        "{}",
+        late.upload.text()
+    );
+    assert!(late.finalize.is_none());
+    assert_eq!(used(&fixture).await, first.len() as i64);
+}

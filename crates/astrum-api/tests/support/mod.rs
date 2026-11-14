@@ -3,11 +3,15 @@
 pub mod two_factor;
 
 use std::net::{IpAddr, SocketAddr};
+use std::sync::Arc;
 
 use astrum_api::client::TrustedProxies;
 use astrum_api::{AppState, router};
-use astrum_security::SecretBox;
+use astrum_content::store;
+use astrum_content::transfer::{Bundle, Conflict, LocalSource, Outcome, PROMOTED, Terms};
+use astrum_content::{Ctx, Format};
 use astrum_security::catalogue::ADMIN_USER;
+use astrum_security::{SecretBox, SecurityModel};
 use astrum_testkit::TestDatabase;
 use astrum_testkit::ldap::{BASE, LdapTestServer, SYSTEM_DN, SYSTEM_PASSWORD};
 use axum::body::Body;
@@ -245,4 +249,57 @@ impl Fixture {
             body,
         }
     }
+}
+
+pub async fn repository_ctx(fixture: &Fixture, name: &str) -> Ctx {
+    let repository = fixture
+        .state
+        .content()
+        .repository(name)
+        .await
+        .unwrap()
+        .unwrap_or_else(|| panic!("the repository {name} exists"));
+    fixture
+        .state
+        .content()
+        .context(repository, Arc::new(SecurityModel::default()), None, "", "")
+}
+
+pub async fn bundle_of(fixture: &Fixture, format: &dyn Format, source: &str, path: &str) -> Bundle {
+    let from = repository_ctx(fixture, source).await;
+    let found = store::find(fixture.state.db().conn(), source, path)
+        .await
+        .unwrap()
+        .unwrap();
+    let component = store::component_by_id(fixture.state.db().conn(), found.component_id.unwrap())
+        .await
+        .unwrap()
+        .unwrap();
+    let transfer = format
+        .transfer()
+        .expect("the format takes part in promotion");
+    transfer.bundle(&from, &component).await.unwrap()
+}
+
+pub async fn receive(
+    fixture: &Fixture,
+    format: &dyn Format,
+    source: &str,
+    target: &str,
+    bundle: &Bundle,
+) -> Outcome {
+    let from = repository_ctx(fixture, source).await;
+    let to = repository_ctx(fixture, target).await;
+    let transfer = format
+        .transfer()
+        .expect("the format takes part in promotion");
+    transfer
+        .receive(
+            &to,
+            bundle,
+            &LocalSource::new(from),
+            Terms::new(Conflict::Fail, PROMOTED),
+        )
+        .await
+        .unwrap()
 }
