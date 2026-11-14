@@ -2,7 +2,7 @@ mod hosted;
 pub mod index;
 mod remote;
 
-use astrum_content::inventory::{Inventory, PackageRef};
+use astrum_content::inventory::{Inventory, LicenseFact, PackageRef};
 use astrum_content::store::{self, Component};
 use astrum_content::{
     Asset, BrowseLayout, CHALLENGE, ContentError, ContentRequest, Ctx, Format, Serve, View, group,
@@ -24,6 +24,7 @@ pub const INDEX_TYPE: &str = "text/plain";
 pub const REALM: &str = api_keys::CARGO;
 const MAX_PUBLISH: usize = 256 * 1024 * 1024;
 const MAX_SEARCH: u64 = 100;
+const MAX_LICENSE: usize = 1024;
 
 pub fn crate_path(name: &str, version: &str) -> String {
     format!("/crates/{name}/{version}/{name}-{version}.crate")
@@ -66,6 +67,23 @@ fn package_inventory(name: &str, version: &str) -> Option<Inventory> {
         license: None,
         complete: true,
         ..Inventory::default()
+    })
+}
+
+fn declared_license(text: &str) -> Option<String> {
+    let mut end = text.len().min(MAX_LICENSE);
+    while !text.is_char_boundary(end) {
+        end -= 1;
+    }
+    let declared = text[..end].trim();
+    (!declared.is_empty()).then(|| declared.to_owned())
+}
+
+fn license_fact(attributes: &Value) -> Option<LicenseFact> {
+    let declared = declared_license(attributes.get(ID)?.get("license")?.as_str()?)?;
+    Some(LicenseFact {
+        declared,
+        source: "cargo.manifest".to_owned(),
     })
 }
 
@@ -589,10 +607,16 @@ impl Format for Cargo {
 
     async fn inventory(
         &self,
-        _ctx: &Ctx,
+        ctx: &Ctx,
         component: &Component,
     ) -> Result<Option<Inventory>, ContentError> {
-        Ok(package_inventory(&component.name, &component.version))
+        let Some(mut inventory) = package_inventory(&component.name, &component.version) else {
+            return Ok(None);
+        };
+        if ctx.kind() == RepositoryType::Hosted {
+            inventory.license = license_fact(&component.attributes);
+        }
+        Ok(Some(inventory))
     }
 
     async fn handle(&self, ctx: Ctx, request: ContentRequest) -> Result<Response, ContentError> {
@@ -672,6 +696,32 @@ mod tests {
         let proxy = package_inventory("tokio-util", "0.7.11").unwrap();
         assert_eq!(proxy.key, "pkg:cargo/tokio-util@0.7.11");
         assert!(package_inventory("serde", "").is_none());
+    }
+
+    #[test]
+    fn crate_licence_is_the_licence_field_of_its_manifest() {
+        let fact = license_fact(&json!({ ID: { "license": "MIT OR Apache-2.0" } })).unwrap();
+        assert_eq!(fact.declared, "MIT OR Apache-2.0");
+        assert_eq!(fact.source, "cargo.manifest");
+    }
+
+    #[test]
+    fn legacy_slash_licence_is_passed_through() {
+        let fact = license_fact(&json!({ ID: { "license": "MIT/Apache-2.0" } })).unwrap();
+        assert_eq!(fact.declared, "MIT/Apache-2.0");
+    }
+
+    #[test]
+    fn crate_without_licence_has_no_fact() {
+        assert!(license_fact(&json!({ ID: { "index": {} } })).is_none());
+        assert!(license_fact(&json!({ ID: { "license": null } })).is_none());
+        assert!(license_fact(&json!({ ID: { "license": "  " } })).is_none());
+    }
+
+    #[test]
+    fn declared_licence_is_cut_at_a_kib_on_a_character_boundary() {
+        let text = format!("a{}", "é".repeat(1000));
+        assert_eq!(declared_license(&text).unwrap().len(), 1023);
     }
 
     #[test]
