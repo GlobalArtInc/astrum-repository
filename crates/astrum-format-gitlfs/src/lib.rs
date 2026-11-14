@@ -37,6 +37,7 @@ static TRANSFER: GenericTransfer = GenericTransfer {
     after: None,
     admit: Some(admit_bundle),
     replaceable: None,
+    carried: &[],
 };
 
 fn describe_imported(file: &Imported) -> BoxFuture<'_, Result<Option<Described>, String>> {

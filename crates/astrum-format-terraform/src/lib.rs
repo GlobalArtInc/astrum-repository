@@ -395,6 +395,7 @@ fn transfer_with(locks: Locks) -> GenericTransfer {
         after: None,
         admit: Some(admit_bundle),
         replaceable: None,
+        carried: &[],
     }
     .after_with(move |ctx, promoted| {
         let locks = locks.clone();

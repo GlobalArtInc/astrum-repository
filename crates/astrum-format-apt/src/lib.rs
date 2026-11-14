@@ -52,6 +52,7 @@ fn transfer_with(keys: Arc<signing::Keys>) -> GenericTransfer {
         after: None,
         admit: Some(admit_bundle),
         replaceable: None,
+        carried: &[],
     }
     .after_with(move |ctx, _| {
         let keys = keys.clone();
