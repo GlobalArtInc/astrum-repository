@@ -84,9 +84,12 @@ impl Server {
             astrum_api::revisions::spawn(self.state.clone(), astrum_api::revisions::INTERVAL);
         let space = astrum_api::space::spawn(self.state.clone());
         let replication_stop = astrum_replication::dispatch::CancellationToken::new();
-        let replication =
-            astrum_replication::dispatch::Dispatcher::new(self.state.content().clone())
-                .spawn_until(replication_stop.clone());
+        let replication = astrum_replication::dispatch::Dispatcher::with_counters(
+            self.state.content().clone(),
+            astrum_replication::dispatch::Settings::default(),
+            self.state.metrics().replication().clone(),
+        )
+        .spawn_until(replication_stop.clone());
         match crate::web::installed(&self.web_dir) {
             true => tracing::info!(dir = %self.web_dir.display(), "serving the user interface"),
             false => tracing::warn!(

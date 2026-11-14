@@ -1,4 +1,6 @@
+pub mod alert;
 pub mod client;
+pub mod counters;
 pub mod dispatch;
 pub mod error;
 pub mod filter;

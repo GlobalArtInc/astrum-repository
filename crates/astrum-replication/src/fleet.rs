@@ -70,13 +70,21 @@ impl Dispatcher {
         let mut fleet = Fleet::default();
         let mut timer = tokio::time::interval(self.settings().discover);
         timer.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+        let mut alerts = tokio::time::interval(self.settings().alerts);
+        alerts.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
         loop {
             tokio::select! {
                 () = stop.cancelled() => break,
-                _ = timer.tick() => {}
-            }
-            if let Err(error) = self.discover(&mut fleet, &stop).await {
-                tracing::warn!(%error, "replication remotes could not be looked up");
+                _ = timer.tick() => {
+                    if let Err(error) = self.discover(&mut fleet, &stop).await {
+                        tracing::warn!(%error, "replication remotes could not be looked up");
+                    }
+                }
+                _ = alerts.tick() => {
+                    if let Err(error) = self.evaluate_alerts().await {
+                        tracing::warn!(%error, "replication alerts could not be evaluated");
+                    }
+                }
             }
         }
         fleet.stop(self.settings().grace).await;

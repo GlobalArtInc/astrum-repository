@@ -7,6 +7,10 @@ use crate::messages::Markup;
 
 pub const ALERT: &str = "blobstore.alert";
 pub const RECOVERED: &str = "blobstore.recovered";
+pub const REPLICATION_FAILING: &str = "replication.failing";
+pub const REPLICATION_DEAD_ITEMS: &str = "replication.dead_items";
+pub const REPLICATION_RECOVERED: &str = "replication.recovered";
+const ERROR_EXCERPT: usize = 200;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Problem {
@@ -62,13 +66,19 @@ fn texts(channel: &Channel) -> &'static Texts {
 }
 
 pub fn is_alert(event: &str) -> bool {
-    event == ALERT || event == RECOVERED
+    matches!(
+        event,
+        ALERT | RECOVERED | REPLICATION_FAILING | REPLICATION_DEAD_ITEMS | REPLICATION_RECOVERED
+    )
 }
 
 pub fn title(channel: &Channel, event: &str) -> &'static str {
     let texts = texts(channel);
     match event {
         RECOVERED => texts.recovered,
+        REPLICATION_FAILING | REPLICATION_DEAD_ITEMS | REPLICATION_RECOVERED => {
+            replication_title(channel, event)
+        }
         _ => texts.alert,
     }
 }
@@ -120,6 +130,157 @@ pub fn render(
     text
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ReplicationReport {
+    pub replication: String,
+    pub remote: String,
+    pub pending: i64,
+    pub leased: i64,
+    pub dead: i64,
+    pub suspended: bool,
+    pub last_error: Option<String>,
+}
+
+struct ReplicationTexts {
+    failing: &'static str,
+    dead_items: &'static str,
+    recovered: &'static str,
+    remote: &'static str,
+    backlog: &'static str,
+    suspended: &'static str,
+    error: &'static str,
+}
+
+const REPLICATION_EN: ReplicationTexts = ReplicationTexts {
+    failing: "Replication is failing",
+    dead_items: "Replication has dead items",
+    recovered: "Replication is healthy again",
+    remote: "remote",
+    backlog: "{pending} waiting, {leased} in progress, {dead} dead",
+    suspended: "the remote is paused after failures",
+    error: "last error",
+};
+
+const REPLICATION_RU: ReplicationTexts = ReplicationTexts {
+    failing: "Репликация не работает",
+    dead_items: "В репликации есть мёртвые элементы",
+    recovered: "Репликация снова работает",
+    remote: "удалённый сервер",
+    backlog: "ждут {pending}, в работе {leased}, мёртвых {dead}",
+    suspended: "удалённый сервер приостановлен после сбоев",
+    error: "последняя ошибка",
+};
+
+fn replication_texts(channel: &Channel) -> &'static ReplicationTexts {
+    if channel.language == "en" {
+        &REPLICATION_EN
+    } else {
+        &REPLICATION_RU
+    }
+}
+
+fn replication_title(channel: &Channel, event: &str) -> &'static str {
+    let texts = replication_texts(channel);
+    match event {
+        REPLICATION_RECOVERED => texts.recovered,
+        REPLICATION_DEAD_ITEMS => texts.dead_items,
+        _ => texts.failing,
+    }
+}
+
+fn hide_userinfo(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    let mut rest = text;
+    while let Some(at) = rest.find("://") {
+        let (head, tail) = rest.split_at(at + 3);
+        out.push_str(head);
+        let end = tail
+            .find(|c: char| {
+                c.is_whitespace() || matches!(c, '/' | '?' | '#' | '"' | '\'' | '<' | '>')
+            })
+            .unwrap_or(tail.len());
+        let authority = &tail[..end];
+        match authority.rfind('@') {
+            Some(at) => out.push_str(&authority[at + 1..]),
+            None => out.push_str(authority),
+        }
+        rest = &tail[end..];
+    }
+    out.push_str(rest);
+    out
+}
+
+pub fn excerpt(text: &str) -> String {
+    let words: Vec<&str> = text.split_whitespace().collect();
+    let mut hidden = Vec::with_capacity(words.len());
+    let mut after_bearer = false;
+    for word in words {
+        hidden.push(match after_bearer {
+            true => "[hidden]".to_owned(),
+            false => hide_userinfo(word),
+        });
+        after_bearer = word.eq_ignore_ascii_case("bearer");
+    }
+    hidden.join(" ").chars().take(ERROR_EXCERPT).collect()
+}
+
+pub fn render_replication(channel: &Channel, event: &str, report: &ReplicationReport) -> String {
+    let markup = Markup::of(channel);
+    let texts = replication_texts(channel);
+    let recovered = event == REPLICATION_RECOVERED;
+    let mut text = format!(
+        "{} {}\n• {}\n• {}: {}",
+        if recovered { "✅" } else { "⚠️" },
+        markup.bold(replication_title(channel, event)),
+        markup.code(&report.replication),
+        markup.escape(texts.remote),
+        markup.code(&report.remote),
+    );
+    if recovered {
+        return text;
+    }
+    let backlog = texts
+        .backlog
+        .replace("{pending}", &report.pending.to_string())
+        .replace("{leased}", &report.leased.to_string())
+        .replace("{dead}", &report.dead.to_string());
+    text.push_str(&format!("\n• {}", markup.escape(&backlog)));
+    if report.suspended {
+        text.push_str(&format!("\n• {}", markup.escape(texts.suspended)));
+    }
+    if let Some(error) = report.last_error.as_deref().map(excerpt)
+        && !error.is_empty()
+    {
+        text.push_str(&format!(
+            "\n• {}: {}",
+            markup.escape(texts.error),
+            markup.escape(&error)
+        ));
+    }
+    text
+}
+
+pub async fn queue(
+    db: &impl ConnectionTrait,
+    channel: &Channel,
+    event: &str,
+    text: String,
+) -> Result<(), DbErr> {
+    db.execute(Statement::from_sql_and_values(
+        DbBackend::Postgres,
+        "INSERT INTO notification_delivery (channel_id, delivery_id, event, text, written_at) \
+         VALUES ($1, $2, $3, $4, now())",
+        [
+            channel.id.into(),
+            Uuid::new_v4().into(),
+            event.into(),
+            text.into(),
+        ],
+    ))
+    .await?;
+    Ok(())
+}
+
 impl Notifier {
     pub async fn enqueue(
         &self,
@@ -128,18 +289,7 @@ impl Notifier {
         event: &str,
         text: String,
     ) -> Result<(), DbErr> {
-        db.execute(Statement::from_sql_and_values(
-            DbBackend::Postgres,
-            "INSERT INTO notification_delivery (channel_id, delivery_id, event, text, written_at) \
-             VALUES ($1, $2, $3, $4, now())",
-            [
-                channel.id.into(),
-                Uuid::new_v4().into(),
-                event.into(),
-                text.into(),
-            ],
-        ))
-        .await?;
+        queue(db, channel, event, text).await?;
         self.wake();
         Ok(())
     }
@@ -206,5 +356,52 @@ mod tests {
                 .text
                 .starts_with("⚠️ Blob store требуют внимания\n• default: ")
         );
+    }
+
+    fn report() -> ReplicationReport {
+        ReplicationReport {
+            replication: "eu<mirror>".into(),
+            remote: "dr-site".into(),
+            pending: 5,
+            leased: 1,
+            dead: 2,
+            suspended: true,
+            last_error: Some(
+                "temporary failure: https://user:secret@remote.example/path\nAuthorization: Bearer abc123".into(),
+            ),
+        }
+    }
+
+    #[test]
+    fn replication_alerts_name_the_state_counts_and_a_clean_error() {
+        let telegram = channel(ChannelType::Telegram, "en");
+        assert_eq!(
+            render_replication(&telegram, REPLICATION_FAILING, &report()),
+            "⚠️ <b>Replication is failing</b>\n\
+             • <code>eu&lt;mirror&gt;</code>\n\
+             • remote: <code>dr-site</code>\n\
+             • 5 waiting, 1 in progress, 2 dead\n\
+             • the remote is paused after failures\n\
+             • last error: temporary failure: https://remote.example/path Authorization: Bearer [hidden]"
+        );
+        let slack = channel(ChannelType::Slack, "ru");
+        assert_eq!(
+            render_replication(&slack, REPLICATION_RECOVERED, &report()),
+            "✅ *Репликация снова работает*\n• `eu&lt;mirror&gt;`\n• удалённый сервер: `dr-site`"
+        );
+        assert!(is_alert(REPLICATION_DEAD_ITEMS));
+        assert_eq!(
+            title(&telegram, REPLICATION_DEAD_ITEMS),
+            "Replication has dead items"
+        );
+    }
+
+    #[test]
+    fn an_error_excerpt_is_cut_after_the_secrets_are_hidden() {
+        let long = format!("https://a:b@host/{}", "x".repeat(400));
+        let cut = excerpt(&long);
+        assert_eq!(cut.chars().count(), 200);
+        assert!(cut.starts_with("https://host/"));
+        assert_eq!(excerpt("a\n\tb  c"), "a b c");
     }
 }

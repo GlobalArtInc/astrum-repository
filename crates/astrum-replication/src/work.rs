@@ -350,6 +350,7 @@ impl Dispatcher {
                 .put_blob(&replication.remote_repository, digest, size, content.stream)
                 .await
                 .map_err(|error| Failure::blame(Phase::Upload, error))?;
+            self.counters().uploaded(replication.id, size);
         }
         Ok(None)
     }

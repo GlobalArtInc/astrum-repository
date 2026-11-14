@@ -19,7 +19,7 @@ use crate::{ApiError, AppState, Caller, Json, Validation};
 
 const REMOTES: &str = "/service/rest/v1/replication/remotes";
 const REPLICATIONS: &str = "/service/rest/v1/replications";
-const READ: &str = "astrum:replication:read";
+pub(super) const READ: &str = "astrum:replication:read";
 const CREATE: &str = "astrum:replication:create";
 pub(super) const UPDATE: &str = "astrum:replication:update";
 const DELETE: &str = "astrum:replication:delete";
@@ -845,7 +845,7 @@ async fn create_replication(
     Ok((StatusCode::CREATED, axum::Json(created)).into_response())
 }
 
-async fn require_current_source(
+pub(super) async fn require_current_source(
     state: &AppState,
     subject: &Subject,
     id: Uuid,

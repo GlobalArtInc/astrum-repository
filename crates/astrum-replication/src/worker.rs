@@ -125,6 +125,7 @@ impl Dispatcher {
                         true => {
                             queue::defer(db, item.id, pause.delay).await?;
                             queue::failed(db, item.replication_id, &pause.text).await?;
+                            self.counters().failed(item.replication_id);
                         }
                         false => queue::release(db, item.id).await?,
                     }
@@ -191,6 +192,7 @@ impl Dispatcher {
         match done {
             Done::Sent | Done::Deleted => {
                 pass.sent += 1;
+                self.counters().transferred(item.replication_id);
                 queue::succeeded(db, item.replication_id).await?;
                 queue::remote_ok(db, target.remote.id).await?;
             }
@@ -235,7 +237,12 @@ impl Dispatcher {
         let failed = queue::fail(db, item, failure.permanent(), delay, &text).await?;
         queue::failed(db, item.replication_id, &text).await?;
         pass.failed += 1;
-        if failed.is_some_and(|failed| failed.state == "dead") {
+        let died = failed.is_some_and(|failed| failed.state == "dead");
+        match died {
+            true => self.counters().died(item.replication_id),
+            false => self.counters().failed(item.replication_id),
+        }
+        if died {
             pass.dead += 1;
             tracing::warn!(
                 replication = %item.replication_id,

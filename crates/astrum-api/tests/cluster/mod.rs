@@ -92,11 +92,15 @@ impl Node {
     }
 
     pub fn dispatcher(&self) -> Dispatcher {
-        Dispatcher::new(self.fixture.state.content().clone())
+        self.dispatcher_with(Settings::default())
     }
 
     pub fn dispatcher_with(&self, settings: Settings) -> Dispatcher {
-        Dispatcher::with_settings(self.fixture.state.content().clone(), settings)
+        Dispatcher::with_counters(
+            self.fixture.state.content().clone(),
+            settings,
+            self.fixture.state.metrics().replication().clone(),
+        )
     }
 
     pub async fn pass(&self) -> Pass {

@@ -5223,6 +5223,15 @@
         },
         "type": "object"
       },
+      "ReplicationDiscardXO": {
+        "properties": {
+          "discarded": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
       "ReplicationInventoryCompare": {
         "properties": {
           "items": {
@@ -5295,6 +5304,87 @@
         },
         "type": "object"
       },
+      "ReplicationItemPageXO": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ReplicationItemXO"
+            },
+            "type": "array"
+          },
+          "next": {
+            "format": "int64",
+            "nullable": true,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "ReplicationItemXO": {
+        "properties": {
+          "attempts": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "firstQueuedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "key": {
+            "type": "string"
+          },
+          "lastError": {
+            "nullable": true,
+            "type": "string"
+          },
+          "notBefore": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "reason": {
+            "enum": [
+              "event",
+              "reconcile",
+              "retry"
+            ],
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "pending",
+              "leased",
+              "dead"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ReplicationItemsRequest": {
+        "description": "Give exactly one of ids and all.",
+        "properties": {
+          "all": {
+            "enum": [
+              true
+            ],
+            "type": "boolean"
+          },
+          "ids": {
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "maxItems": 1000,
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
       "ReplicationMissingReply": {
         "properties": {
           "missing": {
@@ -5356,6 +5446,15 @@
               "conflict"
             ],
             "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ReplicationReconcileXO": {
+        "properties": {
+          "run": {
+            "format": "int64",
+            "type": "integer"
           }
         },
         "type": "object"
@@ -5589,6 +5688,85 @@
           "remoteId",
           "remoteRepository"
         ],
+        "type": "object"
+      },
+      "ReplicationRetryXO": {
+        "properties": {
+          "retried": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "ReplicationStatusXO": {
+        "properties": {
+          "alertState": {
+            "enum": [
+              "ok",
+              "failing",
+              "dead_items"
+            ],
+            "type": "string"
+          },
+          "dead": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "lagSeconds": {
+            "format": "int64",
+            "nullable": true,
+            "type": "integer"
+          },
+          "lastError": {
+            "nullable": true,
+            "type": "string"
+          },
+          "lastFailureAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "lastReconcileAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "lastSuccessAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "leased": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "pending": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "remote": {
+            "properties": {
+              "failures": {
+                "format": "int32",
+                "type": "integer"
+              },
+              "lastError": {
+                "nullable": true,
+                "type": "string"
+              },
+              "suspendedUntil": {
+                "format": "date-time",
+                "nullable": true,
+                "type": "string"
+              }
+            },
+            "type": "object"
+          }
+        },
         "type": "object"
       },
       "ReplicationTombstone": {
@@ -8315,6 +8493,229 @@
           "409": {}
         },
         "summary": "Update replications",
+        "tags": [
+          "Replication"
+        ]
+      }
+    },
+    "/v1/replications/{id}/items": {
+      "get": {
+        "operationId": "getV1ReplicationsIdItems",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "state",
+            "required": true,
+            "schema": {
+              "enum": [
+                "dead",
+                "pending",
+                "leased"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "after",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "format": "int32",
+              "maximum": 200,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReplicationItemPageXO"
+                }
+              }
+            }
+          },
+          "400": {},
+          "403": {},
+          "404": {}
+        },
+        "summary": "List replications items",
+        "tags": [
+          "Replication"
+        ]
+      }
+    },
+    "/v1/replications/{id}/items/discard": {
+      "post": {
+        "operationId": "postV1ReplicationsIdItemsDiscard",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplicationItemsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReplicationDiscardXO"
+                }
+              }
+            }
+          },
+          "400": {},
+          "403": {},
+          "404": {}
+        },
+        "summary": "Create replications items discard",
+        "tags": [
+          "Replication"
+        ]
+      }
+    },
+    "/v1/replications/{id}/items/retry": {
+      "post": {
+        "operationId": "postV1ReplicationsIdItemsRetry",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplicationItemsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReplicationRetryXO"
+                }
+              }
+            }
+          },
+          "400": {},
+          "403": {},
+          "404": {}
+        },
+        "summary": "Create replications items retry",
+        "tags": [
+          "Replication"
+        ]
+      }
+    },
+    "/v1/replications/{id}/reconcile": {
+      "post": {
+        "operationId": "postV1ReplicationsIdReconcile",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReplicationReconcileXO"
+                }
+              }
+            }
+          },
+          "403": {},
+          "404": {},
+          "409": {}
+        },
+        "summary": "Reconcile for replications",
+        "tags": [
+          "Replication"
+        ]
+      }
+    },
+    "/v1/replications/{id}/status": {
+      "get": {
+        "operationId": "getV1ReplicationsIdStatus",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReplicationStatusXO"
+                }
+              }
+            }
+          },
+          "403": {},
+          "404": {}
+        },
+        "summary": "List replications status",
         "tags": [
           "Replication"
         ]

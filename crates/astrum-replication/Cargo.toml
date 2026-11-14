@@ -9,6 +9,7 @@ publish.workspace = true
 astrum-blob.workspace = true
 astrum-content.workspace = true
 astrum-db.workspace = true
+astrum-notify.workspace = true
 astrum-outbound.workspace = true
 astrum-security.workspace = true
 astrum-tasks.workspace = true

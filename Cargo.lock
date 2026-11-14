@@ -1511,6 +1511,7 @@ dependencies = [
  "astrum-blob",
  "astrum-content",
  "astrum-db",
+ "astrum-notify",
  "astrum-outbound",
  "astrum-security",
  "astrum-tasks",

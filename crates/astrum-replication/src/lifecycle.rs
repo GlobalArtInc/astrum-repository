@@ -109,12 +109,8 @@ async fn start(db: &impl ConnectionTrait, task: Uuid, initiator: &str) -> Result
     }
 }
 
-async fn make(
-    db: &impl ConnectionTrait,
-    snapshot: &Snapshot,
-    initiator: &str,
-) -> Result<(), DbErr> {
-    let task = store::create(
+async fn make_task(db: &impl ConnectionTrait, snapshot: &Snapshot) -> Result<Task, DbErr> {
+    store::create(
         db,
         NewTask {
             kind: ID.to_owned(),
@@ -127,11 +123,31 @@ async fn make(
         },
     )
     .await
-    .map_err(failed)?;
+    .map_err(failed)
+}
+
+async fn make(
+    db: &impl ConnectionTrait,
+    snapshot: &Snapshot,
+    initiator: &str,
+) -> Result<(), DbErr> {
+    let task = make_task(db, snapshot).await?;
     if snapshot.enabled {
         start(db, task.id, initiator).await?;
     }
     Ok(())
+}
+
+pub async fn run_now(
+    db: &impl ConnectionTrait,
+    snapshot: &Snapshot,
+    initiator: &str,
+) -> Result<Requested, DbErr> {
+    let task = match find(db, snapshot.id).await? {
+        Some(task) => task,
+        None => make_task(db, snapshot).await?,
+    };
+    store::request_run(db, task.id, TRIGGER, initiator).await
 }
 
 pub async fn created(

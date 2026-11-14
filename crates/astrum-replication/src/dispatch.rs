@@ -11,6 +11,7 @@ use tokio::task::{JoinHandle, JoinSet};
 pub use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
+use crate::counters::Counters;
 use crate::gate::Gated;
 use crate::queue::{self, RemoteRow};
 
@@ -31,6 +32,7 @@ pub struct Settings {
     pub idle: Duration,
     pub heartbeat: Duration,
     pub discover: Duration,
+    pub alerts: Duration,
     pub fresh: Duration,
     pub grace: Duration,
     pub keepalive: Duration,
@@ -49,6 +51,7 @@ impl Default for Settings {
             idle: Duration::from_secs(10),
             heartbeat: Duration::from_secs(15),
             discover: Duration::from_secs(30),
+            alerts: Duration::from_secs(60),
             fresh: Duration::from_secs(1),
             grace: Duration::from_secs(10),
             keepalive: Duration::from_secs(120),
@@ -139,6 +142,7 @@ pub(crate) struct Inner {
     pub own: OnceCell<Uuid>,
     pub gate: Semaphore,
     pub leading: AtomicBool,
+    pub counters: Arc<Counters>,
 }
 
 #[derive(Clone)]
@@ -152,6 +156,10 @@ impl Dispatcher {
     }
 
     pub fn with_settings(content: Content, settings: Settings) -> Self {
+        Self::with_counters(content, settings, Arc::default())
+    }
+
+    pub fn with_counters(content: Content, settings: Settings, counters: Arc<Counters>) -> Self {
         let connections = content
             .db()
             .get_postgres_connection_pool()
@@ -164,6 +172,7 @@ impl Dispatcher {
                 settings,
                 own: OnceCell::new(),
                 leading: AtomicBool::new(false),
+                counters,
             }),
         }
     }
@@ -178,6 +187,10 @@ impl Dispatcher {
 
     pub(crate) fn settings(&self) -> &Settings {
         &self.inner.settings
+    }
+
+    pub fn counters(&self) -> &Arc<Counters> {
+        &self.inner.counters
     }
 
     pub fn leading(&self) -> bool {
