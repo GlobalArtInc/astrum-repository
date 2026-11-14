@@ -268,6 +268,7 @@ dependencies = [
  "astrum-mcp",
  "astrum-notify",
  "astrum-outbound",
+ "astrum-replication",
  "astrum-repo",
  "astrum-security",
  "astrum-tasks",
@@ -1499,6 +1500,27 @@ dependencies = [
  "tracing",
  "url",
  "x509-parser",
+]
+
+[[package]]
+name = "astrum-replication"
+version = "3.0.4"
+dependencies = [
+ "astrum-content",
+ "astrum-outbound",
+ "astrum-security",
+ "axum",
+ "bytes",
+ "futures-util",
+ "percent-encoding",
+ "rand 0.9.5",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "url",
+ "uuid",
 ]
 
 [[package]]

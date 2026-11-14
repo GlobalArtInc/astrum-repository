@@ -5099,6 +5099,47 @@
         ],
         "type": "object"
       },
+      "ReplicationRemoteCheckXO": {
+        "properties": {
+          "error": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "retryable",
+                  "permanent",
+                  "refused"
+                ],
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "formats": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "instanceId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "protocol": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "ReplicationRemoteRequest": {
         "properties": {
           "allowPrivateNetwork": {
@@ -7474,6 +7515,40 @@
           "409": {}
         },
         "summary": "Update replication remotes",
+        "tags": [
+          "Replication"
+        ]
+      }
+    },
+    "/v1/replication/remotes/{id}/check": {
+      "post": {
+        "operationId": "postV1ReplicationRemotesIdCheck",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReplicationRemoteCheckXO"
+                }
+              }
+            }
+          },
+          "403": {},
+          "404": {},
+          "409": {}
+        },
+        "summary": "Check for replication remotes",
         "tags": [
           "Replication"
         ]

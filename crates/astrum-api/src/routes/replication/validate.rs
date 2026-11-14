@@ -1,7 +1,3 @@
-use std::net::{IpAddr, Ipv6Addr};
-use std::time::Duration;
-
-use astrum_security::ssrf::{Guard, SsrfProtection};
 use regex::{Regex, RegexBuilder};
 use url::Url;
 
@@ -11,9 +7,6 @@ pub const MAX_TOKEN: usize = 1024;
 pub const MAX_FILTER_BYTES: usize = 10 * 1024;
 pub const FILTER_SIZE_LIMIT: usize = 1 << 20;
 pub const MAX_REMOTE_REPOSITORY: usize = astrum_repo::routing::MAX_NAME;
-
-const LOOKUP_TIMEOUT: Duration = Duration::from_secs(5);
-const METADATA_V6: Ipv6Addr = Ipv6Addr::new(0xfd00, 0xec2, 0, 0, 0, 0, 0, 0x254);
 
 pub fn name(value: Option<&str>) -> Result<String, String> {
     let value = value.unwrap_or_default().trim();
@@ -93,79 +86,6 @@ pub fn normalized(url: &Url) -> String {
     )
 }
 
-fn canonical(ip: IpAddr) -> IpAddr {
-    match ip {
-        IpAddr::V6(v6) => v6
-            .to_ipv4_mapped()
-            .map(IpAddr::V4)
-            .unwrap_or(IpAddr::V6(v6)),
-        v4 => v4,
-    }
-}
-
-fn private_range(ip: IpAddr) -> bool {
-    match canonical(ip) {
-        IpAddr::V4(v4) => {
-            let [a, b, ..] = v4.octets();
-            v4.is_private() || (a == 100 && (64..128).contains(&b))
-        }
-        IpAddr::V6(v6) => (v6.segments()[0] & 0xfe00) == 0xfc00 && v6 != METADATA_V6,
-    }
-}
-
-pub fn address_permitted(
-    guard: &Guard,
-    ip: IpAddr,
-    host_allowed: bool,
-    allow_private_network: bool,
-) -> bool {
-    guard.ip_allowed(ip, host_allowed) || (allow_private_network && private_range(ip))
-}
-
-pub async fn refused_destination(
-    settings: &SsrfProtection,
-    url: &Url,
-    allow_private_network: bool,
-) -> Option<String> {
-    if !allow_private_network {
-        return astrum_security::ssrf::refused_destination(settings, url.as_str()).await;
-    }
-    let guard = Guard::new(settings);
-    let (addresses, host_allowed): (Vec<IpAddr>, bool) = match url.host()? {
-        url::Host::Ipv4(ip) => (vec![IpAddr::V4(ip)], false),
-        url::Host::Ipv6(ip) => (vec![IpAddr::V6(ip)], false),
-        url::Host::Domain(domain) => {
-            let port = url.port_or_known_default().unwrap_or(80);
-            let found =
-                tokio::time::timeout(LOOKUP_TIMEOUT, tokio::net::lookup_host((domain, port)))
-                    .await
-                    .ok()?
-                    .ok()?;
-            (
-                found.map(|found| found.ip()).collect(),
-                guard.host_allowed(domain),
-            )
-        }
-    };
-    if addresses.is_empty()
-        || addresses
-            .iter()
-            .any(|ip| address_permitted(&guard, *ip, host_allowed, true))
-    {
-        return None;
-    }
-    let mut shown: Vec<String> = addresses
-        .iter()
-        .map(|ip| canonical(*ip).to_string())
-        .collect();
-    shown.sort();
-    shown.dedup();
-    Some(format!(
-        "Host resolves only to addresses a remote may not use even with private networks allowed (loopback, link-local, unspecified, multicast, broadcast): {}",
-        shown.join(", ")
-    ))
-}
-
 pub fn remote_repository(value: Option<&str>) -> Result<String, String> {
     let value = value.unwrap_or_default().trim();
     if value.is_empty() {
@@ -231,45 +151,5 @@ mod tests {
     #[test]
     fn a_filter_cannot_break_out_of_its_group() {
         assert!(filter("a)|(b").is_err());
-    }
-
-    #[test]
-    fn private_ranges_open_only_with_the_flag() {
-        let guard = Guard::new(&SsrfProtection::default());
-        let ip = |text: &str| text.parse::<IpAddr>().unwrap();
-        for private in [
-            "10.1.2.3",
-            "192.168.0.9",
-            "172.16.0.1",
-            "100.64.0.1",
-            "fd12::1",
-        ] {
-            assert!(
-                !address_permitted(&guard, ip(private), false, false),
-                "{private}"
-            );
-            assert!(
-                address_permitted(&guard, ip(private), false, true),
-                "{private}"
-            );
-        }
-        for refused in [
-            "127.0.0.1",
-            "::1",
-            "169.254.1.1",
-            "169.254.169.254",
-            "fe80::1",
-            "fd00:ec2::254",
-            "0.0.0.0",
-            "224.0.0.1",
-            "255.255.255.255",
-            "::ffff:127.0.0.1",
-        ] {
-            assert!(
-                !address_permitted(&guard, ip(refused), false, true),
-                "{refused}"
-            );
-        }
-        assert!(address_permitted(&guard, ip("8.8.8.8"), false, false));
     }
 }

@@ -1,7 +1,7 @@
 use astrum_db::audit::Event;
 use astrum_db::setting;
 use astrum_security::Subject;
-use astrum_security::ssrf::{SSRF_KEY, SsrfProtection};
+use astrum_security::ssrf::{SSRF_KEY, SsrfProtection, refused_remote_destination};
 use axum::Router;
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
@@ -20,9 +20,9 @@ const REMOTES: &str = "/service/rest/v1/replication/remotes";
 const REPLICATIONS: &str = "/service/rest/v1/replications";
 const READ: &str = "astrum:replication:read";
 const CREATE: &str = "astrum:replication:create";
-const UPDATE: &str = "astrum:replication:update";
+pub(super) const UPDATE: &str = "astrum:replication:update";
 const DELETE: &str = "astrum:replication:delete";
-const DOMAIN: &str = "replication";
+pub(super) const DOMAIN: &str = "replication";
 
 const DEFAULT_CONCURRENCY: i64 = 2;
 const DEFAULT_SETTLE_SECONDS: i64 = 30;
@@ -160,7 +160,7 @@ struct Named {
 }
 
 #[derive(FromQueryResult)]
-struct Found {
+pub(super) struct Found {
     id: Uuid,
 }
 
@@ -170,7 +170,7 @@ struct SourceRepository {
     kind: String,
 }
 
-fn statement(sql: &str, values: Vec<Value>) -> Statement {
+pub(super) fn statement(sql: &str, values: Vec<Value>) -> Statement {
     Statement::from_sql_and_values(DbBackend::Postgres, sql, values)
 }
 
@@ -178,16 +178,16 @@ fn reply(status: StatusCode, body: serde_json::Value) -> Response {
     (status, axum::Json(body)).into_response()
 }
 
-fn message(status: StatusCode, text: impl Into<String>) -> Response {
+pub(super) fn message(status: StatusCode, text: impl Into<String>) -> Response {
     reply(status, json!({"id": "*", "message": text.into()}))
 }
 
-fn parse_id(id: &str, what: &str) -> Result<Uuid, ApiError> {
+pub(super) fn parse_id(id: &str, what: &str) -> Result<Uuid, ApiError> {
     Uuid::parse_str(id)
         .map_err(|_| ApiError::not_found(format!("There is no {what} with id '{id}'")))
 }
 
-fn missing(what: &str, id: Uuid) -> ApiError {
+pub(super) fn missing(what: &str, id: Uuid) -> ApiError {
     ApiError::not_found(format!("There is no {what} with id '{id}'"))
 }
 
@@ -211,7 +211,7 @@ fn is_foreign_key(error: &DbErr) -> bool {
     )
 }
 
-async fn ssrf_settings(state: &AppState) -> Result<SsrfProtection, ApiError> {
+pub(super) async fn ssrf_settings(state: &AppState) -> Result<SsrfProtection, ApiError> {
     Ok(setting::get(state.db().conn(), SSRF_KEY)
         .await?
         .unwrap_or_default())
@@ -260,8 +260,7 @@ fn remote_input(body: RemoteRequest, validation: &mut Validation) -> Option<Remo
 
 async fn check_destination(state: &AppState, input: &RemoteInput) -> Result<(), ApiError> {
     let settings = ssrf_settings(state).await?;
-    match validate::refused_destination(&settings, &input.parsed, input.allow_private_network).await
-    {
+    match refused_remote_destination(&settings, &input.parsed, input.allow_private_network).await {
         Some(text) => Err(ApiError::invalid("url", text)),
         None => Ok(()),
     }

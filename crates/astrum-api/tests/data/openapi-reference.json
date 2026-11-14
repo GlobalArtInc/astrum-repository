@@ -760,6 +760,38 @@
     ]
    }
   },
+  "/v1/replication/remotes/{id}/check": {
+   "post": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "id",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ReplicationRemoteCheckXO"
+        }
+       }
+      }
+     },
+     "403": {},
+     "404": {},
+     "409": {}
+    },
+    "tags": [
+     "Replication"
+    ]
+   }
+  },
   "/v1/replications": {
    "get": {
     "responses": {
@@ -17736,6 +17768,47 @@
      "preemptivePullEnabled"
     ],
     "type": "object"
+   },
+   "ReplicationRemoteCheckXO": {
+    "type": "object",
+    "properties": {
+     "ok": {
+      "type": "boolean"
+     },
+     "protocol": {
+      "type": "integer",
+      "format": "int32"
+     },
+     "instanceId": {
+      "type": "string",
+      "format": "uuid"
+     },
+     "version": {
+      "type": "string"
+     },
+     "formats": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "error": {
+      "type": "object",
+      "properties": {
+       "kind": {
+        "type": "string",
+        "enum": [
+         "retryable",
+         "permanent",
+         "refused"
+        ]
+       },
+       "message": {
+        "type": "string"
+       }
+      }
+     }
+    }
    },
    "ReplicationRemoteRequest": {
     "type": "object",
