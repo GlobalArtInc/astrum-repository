@@ -3,7 +3,9 @@ pub mod import;
 mod locks;
 
 use astrum_blob::Written;
+use astrum_content::import::{Described, Imported};
 use astrum_content::store::{self, ComponentKey, PutAsset};
+use astrum_content::transfer::{Bundle, GenericTransfer, Transfer};
 use astrum_content::{
     Asset, ContentError, ContentRequest, Ctx, Format, Serve, UploadField, UploadForm, UploadSpec,
     View, mime, serve,
@@ -15,6 +17,7 @@ use axum::body::Body;
 use axum::http::{Method, StatusCode, header};
 use axum::response::Response;
 use futures_util::TryStreamExt;
+use futures_util::future::BoxFuture;
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use serde_json::{Value, json};
 
@@ -27,6 +30,40 @@ const MAX_JSON: usize = 4 * 1024 * 1024;
 
 #[derive(Default)]
 pub struct GitLfs;
+
+static TRANSFER: GenericTransfer = GenericTransfer {
+    plan: import::plan,
+    describe: describe_imported,
+    after: None,
+    admit: Some(admit_bundle),
+    replaceable: None,
+};
+
+fn describe_imported(file: &Imported) -> BoxFuture<'_, Result<Option<Described>, String>> {
+    Box::pin(import::describe(file))
+}
+
+fn admit_bundle<'a>(ctx: &'a Ctx, bundle: &'a Bundle) -> BoxFuture<'a, Result<(), ContentError>> {
+    Box::pin(std::future::ready(admit(ctx, bundle)))
+}
+
+fn admit(ctx: &Ctx, bundle: &Bundle) -> Result<(), ContentError> {
+    if read_only(ctx) {
+        return Err(ContentError::BadRequest(format!(
+            "Repository {} is read-only",
+            ctx.name()
+        )));
+    }
+    for asset in &bundle.assets {
+        if asset_path(&asset.sha256.to_ascii_lowercase()) != asset.path {
+            return Err(ContentError::BadRequest(format!(
+                "{} is not the path of the object with SHA-256 {}",
+                asset.path, asset.sha256
+            )));
+        }
+    }
+    Ok(())
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 enum Endpoint {
@@ -447,6 +484,10 @@ impl Format for GitLfs {
             component_fields: vec![],
             asset_fields: vec![UploadField::file("asset")],
         })
+    }
+
+    fn transfer(&self) -> Option<&dyn Transfer> {
+        Some(&TRANSFER)
     }
 
     async fn upload(&self, ctx: Ctx, form: UploadForm) -> Result<(), ContentError> {

@@ -2,6 +2,8 @@ mod support;
 
 use std::sync::Arc;
 
+use astrum_content::transfer::{Bundle, Conflict, LocalSource, Outcome, PROMOTED, Status, Terms};
+use astrum_content::{ContentError, Format};
 use axum::body::Body;
 use axum::http::{Method, StatusCode, header};
 use serde_json::{Value, json};
@@ -575,4 +577,139 @@ async fn objects_upload_through_the_components_api() {
         )
         .await;
     assert_eq!(reply.body, data);
+}
+
+async fn try_promote(fixture: &Fixture, bundle: &Bundle) -> Result<Outcome, ContentError> {
+    let from = support::repository_ctx(fixture, "source").await;
+    let to = support::repository_ctx(fixture, "target").await;
+    astrum_format_gitlfs::GitLfs
+        .transfer()
+        .expect("gitlfs takes part in promotion")
+        .receive(
+            &to,
+            bundle,
+            &LocalSource::new(from),
+            Terms::new(Conflict::Fail, PROMOTED),
+        )
+        .await
+}
+
+async fn blobs(fixture: &Fixture) -> usize {
+    fixture
+        .state
+        .content()
+        .blob_stores()
+        .get("default")
+        .await
+        .unwrap()
+        .list(None, 1000)
+        .await
+        .unwrap()
+        .len()
+}
+
+#[tokio::test]
+async fn objects_are_promoted_between_hosted_repositories() {
+    let fixture = ready().await;
+    create(&fixture, "source", "ALLOW").await;
+    create(&fixture, "target", "ALLOW").await;
+    let data = b"a large file of a git repository\n".repeat(100);
+    let id = oid(&data);
+    let stored = put(
+        &fixture,
+        Auth::Admin,
+        &format!("/repository/source/info/lfs/objects/{id}"),
+        &data,
+    )
+    .await;
+    assert_eq!(stored.status, StatusCode::OK, "{}", stored.text());
+    let path = astrum_format_gitlfs::asset_path(&id);
+    let format = astrum_format_gitlfs::GitLfs;
+    let bundle = support::bundle_of(&fixture, &format, "source", &path).await;
+    let outcome = support::receive(&fixture, &format, "source", "target", &bundle).await;
+    assert_eq!(outcome.status, Status::Copied);
+    let served = fixture
+        .call(
+            Method::GET,
+            &format!("/repository/target{path}"),
+            Auth::Admin,
+            None,
+        )
+        .await;
+    assert_eq!(served.status, StatusCode::OK, "{}", served.text());
+    assert_eq!(served.body, data.to_vec());
+}
+
+#[tokio::test]
+async fn a_bundle_whose_path_is_not_the_object_path_of_its_digest_is_refused_before_anything_is_written()
+ {
+    let fixture = ready().await;
+    create(&fixture, "source", "ALLOW").await;
+    create(&fixture, "target", "ALLOW").await;
+    let data = b"a large file of a git repository\n".repeat(100);
+    let id = oid(&data);
+    let stored = put(
+        &fixture,
+        Auth::Admin,
+        &format!("/repository/source/info/lfs/objects/{id}"),
+        &data,
+    )
+    .await;
+    assert_eq!(stored.status, StatusCode::OK, "{}", stored.text());
+    let format = astrum_format_gitlfs::GitLfs;
+    let mut bundle = support::bundle_of(
+        &fixture,
+        &format,
+        "source",
+        &astrum_format_gitlfs::asset_path(&id),
+    )
+    .await;
+    let wrong = astrum_format_gitlfs::asset_path(&oid(b"other"));
+    bundle.assets[0].path = wrong.clone();
+    let before = blobs(&fixture).await;
+    match try_promote(&fixture, &bundle).await {
+        Err(ContentError::BadRequest(found)) => assert_eq!(
+            found,
+            format!("{wrong} is not the path of the object with SHA-256 {id}")
+        ),
+        other => panic!("expected a refusal, got {other:?}"),
+    }
+    assert_eq!(blobs(&fixture).await, before);
+    assert!(
+        astrum_content::store::find(fixture.state.db().conn(), "target", &wrong)
+            .await
+            .unwrap()
+            .is_none()
+    );
+}
+
+#[tokio::test]
+async fn objects_are_not_promoted_into_a_read_only_repository() {
+    let fixture = ready().await;
+    create(&fixture, "source", "ALLOW").await;
+    create(&fixture, "target", "DENY").await;
+    let data = b"a large file of a git repository\n".repeat(100);
+    let id = oid(&data);
+    let stored = put(
+        &fixture,
+        Auth::Admin,
+        &format!("/repository/source/info/lfs/objects/{id}"),
+        &data,
+    )
+    .await;
+    assert_eq!(stored.status, StatusCode::OK, "{}", stored.text());
+    let format = astrum_format_gitlfs::GitLfs;
+    let bundle = support::bundle_of(
+        &fixture,
+        &format,
+        "source",
+        &astrum_format_gitlfs::asset_path(&id),
+    )
+    .await;
+    match try_promote(&fixture, &bundle).await {
+        Err(ContentError::BadRequest(found)) => {
+            assert_eq!(found, "Repository target is read-only")
+        }
+        other => panic!("expected a refusal, got {other:?}"),
+    }
 }
