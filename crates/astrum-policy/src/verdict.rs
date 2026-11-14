@@ -248,8 +248,8 @@ pub fn failed(revision: i64, message: impl Into<String>) -> Verdict {
     }
 }
 
-fn applies(exception: &Exception, policy: &str, now: DateTime<Utc>) -> bool {
-    exception.rule == Rule::Vulnerability
+fn applies(exception: &Exception, rule: Rule, policy: &str, now: DateTime<Utc>) -> bool {
+    exception.rule == rule
         && exception
             .policy
             .as_deref()
@@ -259,6 +259,29 @@ fn applies(exception: &Exception, policy: &str, now: DateTime<Utc>) -> bool {
 
 fn same(wanted: &Option<String>, actual: &str) -> bool {
     wanted.as_deref().is_none_or(|text| text == actual)
+}
+
+pub fn signature_exception<'a>(
+    exceptions: &'a [Exception],
+    policy: &str,
+    target: &Target,
+    now: DateTime<Utc>,
+) -> Option<&'a Exception> {
+    exceptions.iter().find(|exception| {
+        applies(exception, Rule::Signature, policy, now)
+            && exception.policy.is_some()
+            && exception.advisory.is_none()
+            && exception.license.is_none()
+            && (exception.name.is_some() || exception.digest.is_some())
+            && exception
+                .digest
+                .as_deref()
+                .is_none_or(|wanted| target.digest.as_deref() == Some(wanted))
+            && same(&exception.format, &target.format)
+            && same(&exception.namespace, &target.namespace)
+            && same(&exception.name, &target.name)
+            && same(&exception.version, &target.version)
+    })
 }
 
 fn covers(exception: &Exception, target: &Target, finding: &Finding) -> bool {
@@ -293,7 +316,7 @@ pub fn exception_for<'a>(
 ) -> Option<&'a Exception> {
     exceptions
         .iter()
-        .filter(|exception| applies(exception, policy, now))
+        .filter(|exception| applies(exception, Rule::Vulnerability, policy, now))
         .find(|exception| covers(exception, target, finding))
 }
 
@@ -639,6 +662,95 @@ mod tests {
         let mut other_rule = exception(Some("A"));
         other_rule.rule = Rule::License;
         assert!(blocked(&[other_rule]));
+    }
+
+    fn signature_exception_for(
+        digest: Option<&str>,
+        name: Option<&str>,
+        edit: impl FnOnce(&mut Exception),
+    ) -> Exception {
+        let mut held = exception(None);
+        held.rule = Rule::Signature;
+        held.policy = Some("base".to_owned());
+        held.digest = digest.map(str::to_owned);
+        held.name = name.map(str::to_owned);
+        edit(&mut held);
+        held
+    }
+
+    #[test]
+    fn a_signature_exception_covers_only_the_image_it_names_for_its_own_policy() {
+        let image = Target {
+            format: "docker".to_owned(),
+            namespace: String::new(),
+            name: "app".to_owned(),
+            version: "1.0".to_owned(),
+            digest: Some("sha256:a".to_owned()),
+        };
+        let covers =
+            |held: Exception| signature_exception(&[held], "base", &image, Utc::now()).is_some();
+        assert!(covers(signature_exception_for(
+            Some("sha256:a"),
+            None,
+            |_| {}
+        )));
+        assert!(covers(signature_exception_for(None, Some("app"), |_| {})));
+        assert!(covers(signature_exception_for(
+            Some("sha256:a"),
+            Some("app"),
+            |held| held.version = Some("1.0".to_owned())
+        )));
+        assert!(!covers(signature_exception_for(
+            Some("sha256:b"),
+            None,
+            |_| {}
+        )));
+        assert!(!covers(signature_exception_for(
+            None,
+            Some("other"),
+            |_| {}
+        )));
+        assert!(!covers(signature_exception_for(
+            None,
+            Some("app"),
+            |held| held.version = Some("2.0".to_owned())
+        )));
+        assert!(!covers(signature_exception_for(None, None, |held| {
+            held.format = Some("docker".to_owned())
+        })));
+        assert!(!covers(signature_exception_for(
+            Some("sha256:a"),
+            None,
+            |held| { held.rule = Rule::Vulnerability }
+        )));
+        assert!(!covers(signature_exception_for(
+            Some("sha256:a"),
+            None,
+            |held| { held.advisory = Some("A".to_owned()) }
+        )));
+        assert!(!covers(signature_exception_for(
+            Some("sha256:a"),
+            None,
+            |held| { held.policy = Some("other".to_owned()) }
+        )));
+        assert!(!covers(signature_exception_for(
+            Some("sha256:a"),
+            None,
+            |held| { held.policy = None }
+        )));
+        assert!(!covers(signature_exception_for(
+            Some("sha256:a"),
+            None,
+            |held| { held.expires_at = Some(Utc::now() - Duration::seconds(1)) }
+        )));
+        assert!(covers(signature_exception_for(
+            Some("sha256:a"),
+            None,
+            |held| {
+                held.policy = Some("base".to_owned());
+                held.expires_at = Some(Utc::now() + Duration::hours(1));
+            }
+        )));
     }
 
     #[test]

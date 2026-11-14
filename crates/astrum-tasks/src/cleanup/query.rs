@@ -8,6 +8,18 @@ use super::{Criteria, ReleaseType, prerelease_rule};
 
 pub const SUMMARY_LIMIT: Duration = Duration::from_secs(120);
 const BATCH: i64 = 1000;
+const DOCKER: &str = "docker";
+const KEEP_DOCKER_ARTIFACTS: &str = "NOT EXISTS (\
+    SELECT 1 FROM asset t WHERE t.component_id = c.id \
+    AND t.attributes #>> '{docker,artifactKind}' IN ('signature', 'attestation', 'sbom') \
+    AND ((c.version ~ '^sha256-[0-9a-f]{64}\\.(sig|att|sbom)$' AND EXISTS (\
+            SELECT 1 FROM asset s WHERE s.repository = c.repository AND s.format = 'docker' \
+            AND s.kind IN ('manifest', 'tag') \
+            AND s.attributes #>> '{docker,digest}' = 'sha256:' || substr(c.version, 8, 64))) \
+        OR EXISTS (\
+            SELECT 1 FROM asset s WHERE s.repository = t.repository AND s.format = 'docker' \
+            AND s.kind IN ('manifest', 'tag') \
+            AND s.attributes #>> '{docker,digest}' = t.attributes #>> '{docker,subject}')))";
 
 #[derive(Clone, Debug)]
 pub struct Matcher {
@@ -84,6 +96,9 @@ impl Matcher {
                 },
                 None => "false".to_owned(),
             });
+        }
+        if self.format == DOCKER {
+            filters.push(KEEP_DOCKER_ARTIFACTS.to_owned());
         }
         if let Order::ById { after } = order {
             values.push(after.into());
@@ -304,5 +319,20 @@ mod tests {
         let empty =
             Matcher::new("raw", "raw", Criteria::default()).statement(Order::ById { after: 0 }, 5);
         assert!(empty.sql.contains("HAVING false"));
+    }
+
+    #[test]
+    fn only_docker_statements_keep_the_artifacts_of_existing_images() {
+        let criteria = Criteria {
+            last_blob_updated: Some(1),
+            ..Criteria::default()
+        };
+        let docker = Matcher::new("images", "docker", criteria.clone())
+            .statement(Order::ById { after: 0 }, 5);
+        assert!(docker.sql.contains("(sig|att|sbom)"));
+        assert!(docker.sql.contains("{docker,subject}"));
+        assert!(docker.sql.contains("artifactKind"));
+        let other = Matcher::new("files", "raw", criteria).statement(Order::ById { after: 0 }, 5);
+        assert!(!other.sql.contains("{docker,subject}"));
     }
 }

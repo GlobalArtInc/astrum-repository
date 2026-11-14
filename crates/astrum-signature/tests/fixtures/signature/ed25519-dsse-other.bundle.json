@@ -1,0 +1,17 @@
+{
+  "mediaType": "application/vnd.dev.sigstore.bundle.v0.3+json",
+  "verificationMaterial": {
+    "publicKey": {
+      "hint": "ed25519-fixture"
+    }
+  },
+  "dsseEnvelope": {
+    "payload": "b3BhcXVlIGZpeHR1cmUgYnl0ZXM=",
+    "payloadType": "application/octet-stream",
+    "signatures": [
+      {
+        "sig": "5OZ6VN0lF3c/VQ5U2ANaUDDozsgbsZlqcyf8Dsx8uogGiEhgCSy1/jWWpes8p5rVJ3Pw0eT3N3dVIgB00GgIBQ=="
+      }
+    ]
+  }
+}

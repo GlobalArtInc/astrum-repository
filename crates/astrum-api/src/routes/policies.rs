@@ -8,6 +8,7 @@ use astrum_policy::policy::{
     UnknownLicense, Unscanned, VulnerabilityRule,
 };
 use astrum_repo::Writer;
+use astrum_signature::PublicKey;
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
@@ -565,6 +566,9 @@ async fn checked_exception(
             format!("a {rule} exception cannot target a license"),
         );
     }
+    if request.rule == Rule::Signature && request.policy.is_none() {
+        validation.add("policy", "a signature exception needs a policy");
+    }
     if request.rule == Rule::Signature && advisory.is_some() {
         validation.add(
             "advisory",
@@ -748,7 +752,16 @@ async fn create_key(
             None
         }
         Some(pem) => match key::parse_public_key(pem) {
-            Ok(parsed) => Some(parsed),
+            Ok(mut parsed) => match PublicKey::from_pem(&parsed.public_key) {
+                Ok(verifying) => {
+                    parsed.fingerprint = verifying.fingerprint().to_owned();
+                    Some(parsed)
+                }
+                Err(error) => {
+                    validation.add("publicKey", error.to_string());
+                    None
+                }
+            },
             Err(PolicyError::Invalid(message)) => {
                 validation.add("publicKey", message);
                 None

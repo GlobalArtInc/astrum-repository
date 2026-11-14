@@ -5,19 +5,32 @@ use astrum_api::domains::DomainRoute;
 use astrum_api::{AppState, Caller};
 use astrum_content::ContentRequest;
 use axum::Router;
-use axum::extract::{Path, Request, State};
+use axum::extract::{Path, Query, Request, State};
 use axum::http::{HeaderMap, StatusCode, Uri, header};
 use axum::response::{IntoResponse, Response};
 use axum::routing::{any, get};
+use serde::Deserialize;
 use serde_json::json;
 
+use astrum_api::ApiError;
+use astrum_content::{ContentError, View};
+
 use crate::error::RegistryError;
-use crate::{Docker, ID, Mount, admit, auth, insert, json_response, link, paginate};
+use crate::reference::Reference;
+use crate::{
+    Docker, ID, Mount, admit, auth, insert, json_response, link, paginate, storage, supply,
+};
 
 pub const FIRST_SUGGESTED_PORT: u16 = 8082;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Connector(pub u16);
+
+#[derive(Deserialize)]
+struct SupplyChainQuery {
+    image: Option<String>,
+    reference: Option<String>,
+}
 
 pub fn routes() -> Router<AppState> {
     let docker = Arc::new(Docker::default());
@@ -26,6 +39,10 @@ pub fn routes() -> Router<AppState> {
         .route(
             "/service/rest/internal/ui/docker/suggest-port",
             get(suggest_port),
+        )
+        .route(
+            "/service/rest/v1/docker/{repository}/supply-chain",
+            get(supply_chain),
         )
         .route("/v2", get(auth::ping))
         .route("/v2/", get(auth::ping))
@@ -155,6 +172,53 @@ async fn suggest_port(State(state): State<AppState>, caller: Caller, uri: Uri) -
     match port {
         Some(port) => axum::Json(port).into_response(),
         None => astrum_api::ApiError::NotFound("every port is taken".to_owned()).into_response(),
+    }
+}
+
+async fn supply_chain(
+    State(state): State<AppState>,
+    caller: Caller,
+    Path(repository): Path<String>,
+    Query(query): Query<SupplyChainQuery>,
+    headers: HeaderMap,
+    uri: Uri,
+) -> Result<Response, ApiError> {
+    let image = query
+        .image
+        .filter(|image| !image.is_empty())
+        .ok_or_else(|| ApiError::BadRequest("image is required".to_owned()))?;
+    let raw = query
+        .reference
+        .filter(|reference| !reference.is_empty())
+        .ok_or_else(|| ApiError::BadRequest("reference is required".to_owned()))?;
+    let (ctx, _) =
+        astrum_api::routes::content::context(&state, caller, &repository, &headers, &uri)
+            .await
+            .map_err(content_failure)?;
+    ctx.require(View::Read, &storage::manifest_path(&image, &raw))
+        .map_err(content_failure)?;
+    if ctx.format_id() != ID {
+        return Err(ApiError::BadRequest(format!(
+            "{repository} is not a Docker repository"
+        )));
+    }
+    let reference = Reference::parse(&raw)
+        .ok_or_else(|| ApiError::not_found(format!("{raw} is not a reference")))?;
+    let listing = supply::list(&ctx, &image, &reference, state.policy_cache())
+        .await
+        .map_err(content_failure)?
+        .ok_or_else(|| ApiError::not_found(format!("{raw} is not stored for {image}")))?;
+    Ok(axum::Json(listing).into_response())
+}
+
+fn content_failure(error: ContentError) -> ApiError {
+    match error {
+        ContentError::NotFound(message) => ApiError::NotFound(message),
+        ContentError::Unauthorized => ApiError::Unauthorized,
+        ContentError::Forbidden => ApiError::forbidden(),
+        ContentError::Blocked(message) => ApiError::Forbidden(message),
+        ContentError::BadRequest(message) => ApiError::BadRequest(message),
+        other => ApiError::internal(other),
     }
 }
 

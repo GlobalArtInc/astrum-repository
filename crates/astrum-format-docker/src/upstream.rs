@@ -9,6 +9,7 @@ use astrum_repo::config::IndexType;
 use axum::http::{HeaderName, Method, StatusCode, header};
 use serde_json::Value;
 
+use crate::children;
 use crate::manifest::{self, ACCEPTED};
 use crate::reference::{Digest, Reference};
 use crate::storage;
@@ -236,6 +237,17 @@ impl Upstreams {
                 store::put(ctx, put, astrum_blob::content_of(bytes.to_vec())).await?
             }
         };
+        if manifest::is_index(&parsed.media_type) {
+            match parsed.children.len() > children::LIMIT {
+                true => tracing::warn!(
+                    repository = ctx.name(),
+                    %digest,
+                    children = parsed.children.len(),
+                    "an index lists more manifests than are recorded, so its children are not recorded"
+                ),
+                false => children::replace(ctx.db(), ctx.name(), digest, &parsed.children).await?,
+            }
+        }
         match tag {
             Some(tag) => {
                 let mut put = storage::manifest_put(image, tag, digest, &parsed, Some(tag));
@@ -512,6 +524,60 @@ impl Upstreams {
             }
         };
         Ok(index_entries(&index))
+    }
+}
+
+impl Upstreams {
+    pub async fn manifest_bytes(
+        &self,
+        ctx: &Ctx,
+        image: &str,
+        reference: &str,
+        limit: usize,
+    ) -> Result<Option<Vec<u8>>, ContentError> {
+        let remote = self
+            .send(
+                ctx,
+                Method::GET,
+                &remote_name(ctx, image),
+                &format!("manifests/{reference}"),
+                None,
+                Some(ACCEPTED),
+            )
+            .await?;
+        match remote.status {
+            StatusCode::OK => Ok(Some(remote.bytes(limit).await?)),
+            StatusCode::NOT_FOUND => Ok(None),
+            status => Err(ContentError::BadGateway(format!(
+                "the remote answered {status}"
+            ))),
+        }
+    }
+
+    pub async fn blob_bytes(
+        &self,
+        ctx: &Ctx,
+        image: &str,
+        digest: &Digest,
+        limit: usize,
+    ) -> Result<Option<Vec<u8>>, ContentError> {
+        let remote = self
+            .send(
+                ctx,
+                Method::GET,
+                &remote_name(ctx, image),
+                &format!("blobs/{digest}"),
+                None,
+                None,
+            )
+            .await?;
+        match remote.status {
+            StatusCode::OK => Ok(Some(remote.bytes(limit).await?)),
+            StatusCode::NOT_FOUND => Ok(None),
+            status => Err(ContentError::BadGateway(format!(
+                "the remote answered {status}"
+            ))),
+        }
     }
 }
 

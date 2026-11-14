@@ -626,6 +626,46 @@
     ]
    }
   },
+  "/v1/docker/{repository}/supply-chain": {
+   "get": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "repository",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "image",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "reference",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {},
+     "400": {},
+     "401": {},
+     "403": {},
+     "404": {}
+    },
+    "tags": [
+     "Docker: supply chain"
+    ]
+   }
+  },
   "/v1/email": {
    "get": {
     "tags": [

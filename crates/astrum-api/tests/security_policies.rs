@@ -2,8 +2,11 @@ mod support;
 mod ui_support;
 
 use astrum_db::entity::audit_event;
+use astrum_signature::PublicKey;
 use axum::body::Body;
 use axum::http::{Method, StatusCode};
+use base64::Engine;
+use base64::engine::general_purpose::STANDARD;
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
 use serde_json::{Value, json};
 use support::{Auth, Fixture, Reply};
@@ -587,6 +590,68 @@ async fn a_trusted_key_is_a_public_key_of_a_supported_algorithm() {
     assert!(!rows[0].attributes.to_string().contains("BEGIN"));
 }
 
+fn pem_of(der: &[u8]) -> String {
+    format!(
+        "-----BEGIN PUBLIC KEY-----\n{}\n-----END PUBLIC KEY-----\n",
+        STANDARD.encode(der)
+    )
+}
+
+fn rsa_without_null_parameters() -> String {
+    let path = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../astrum-signature/tests/fixtures/signature/rsa2048.pub"
+    );
+    let text = std::fs::read_to_string(path).unwrap();
+    let body: String = text
+        .lines()
+        .filter(|line| !line.starts_with("-----"))
+        .collect();
+    let der = STANDARD.decode(body).unwrap();
+    assert_eq!(der[..6], [0x30, 0x82, 0x01, 0x22, 0x30, 0x0d]);
+    assert_eq!(der[17..19], [0x05, 0x00]);
+    let mut stripped = vec![0x30, 0x82, 0x01, 0x20, 0x30, 0x0b];
+    stripped.extend_from_slice(&der[6..17]);
+    stripped.extend_from_slice(&der[19..]);
+    pem_of(&stripped)
+}
+
+#[tokio::test]
+async fn the_key_route_applies_the_strict_parser_of_the_signature_library() {
+    let fixture = Fixture::new().await;
+    let mut weak = vec![
+        0x30, 0x2a, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x70, 0x03, 0x21, 0x00,
+    ];
+    weak.extend([0u8; 32]);
+    bad(
+        &fixture,
+        KEYS,
+        json!({"name": "weak", "publicKey": pem_of(&weak)}),
+        "small order",
+    )
+    .await;
+    bad(
+        &fixture,
+        KEYS,
+        json!({"name": "loose", "publicKey": rsa_without_null_parameters()}),
+        "canonical",
+    )
+    .await;
+    let created = made(
+        &fixture,
+        KEYS,
+        json!({"name": "release", "publicKey": P256}),
+    )
+    .await;
+    let expected = PublicKey::from_pem(P256).unwrap();
+    assert_eq!(created["fingerprint"], expected.fingerprint());
+    let listed = fixture
+        .call(Method::GET, KEYS, Auth::Admin, None)
+        .await
+        .json();
+    assert_eq!(listed.as_array().unwrap().len(), 1);
+}
+
 #[tokio::test]
 async fn a_key_that_a_policy_trusts_is_not_deleted() {
     let fixture = Fixture::new().await;
@@ -808,16 +873,26 @@ async fn an_exception_target_must_fit_its_rule() {
             "signature exception cannot target a license",
         ),
         (
+            json!({"rule": "signature", "digest": digest, "reason": "r"}),
+            "signature exception needs a policy",
+        ),
+        (
             json!({"rule": "cooldown", "name": "x", "reason": "r"}),
             "cooldown",
         ),
     ] {
         bad(&fixture, EXCEPTIONS, body, needle).await;
     }
+    made(
+        &fixture,
+        POLICIES,
+        json!({"name": "signed", "signatures": {"mode": "report"}}),
+    )
+    .await;
     for body in [
         json!({"rule": "license", "license": "MIT", "name": "left-pad", "reason": "r"}),
         json!({"rule": "vulnerability", "advisory": "CVE-2024-0001", "reason": "r"}),
-        json!({"rule": "signature", "digest": digest, "reason": "r"}),
+        json!({"policy": "signed", "rule": "signature", "digest": digest, "reason": "r"}),
     ] {
         made(&fixture, EXCEPTIONS, body).await;
     }
