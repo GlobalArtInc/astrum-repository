@@ -9,6 +9,7 @@ use serde_json::Value as Json;
 use sha2::{Digest, Sha256};
 use zeroize::Zeroizing;
 
+use super::passkeys::PasskeyError;
 use super::{Methods, Requirement, lock_policy, methods_in, qr};
 use crate::secrets::SecretBox;
 use crate::tokens::hex;
@@ -25,7 +26,7 @@ pub const HINT_WINDOW: u8 = 10;
 
 const LOCK_LEVEL_CAP: i32 = 16;
 const HANDLE_BYTES: usize = 32;
-const HANDLE_MAX_LENGTH: usize = 128;
+pub(super) const HANDLE_MAX_LENGTH: usize = 128;
 const CODE_MAX_LENGTH: usize = 64;
 const DUMMY_SECRET: [u8; totp::SECRET_BYTES] = [0x5a; totp::SECRET_BYTES];
 
@@ -53,6 +54,12 @@ pub enum StoreError {
     Qr(#[from] qr::QrError),
     #[error("a recovery code could not be hashed")]
     Hashing,
+    #[error("a passkey ceremony failed: {0}")]
+    Passkey(#[from] PasskeyError),
+    #[error("the passkey name {0}")]
+    InvalidPasskeyName(&'static str),
+    #[error("the user already has the most passkeys that are allowed")]
+    TooManyPasskeys,
 }
 
 impl From<DbErr> for StoreError {
@@ -229,7 +236,7 @@ impl Overview {
     }
 }
 
-fn statement(sql: &str, values: impl IntoIterator<Item = Value>) -> Statement {
+pub(super) fn statement(sql: &str, values: impl IntoIterator<Item = Value>) -> Statement {
     Statement::from_sql_and_values(DbBackend::Postgres, sql, values)
 }
 
@@ -238,7 +245,7 @@ fn count(row: &QueryResult, column: &str) -> Result<u32, TryGetError> {
     Ok(u32::try_from(value).unwrap_or(u32::MAX))
 }
 
-fn handle_hash(handle: &str) -> String {
+pub(super) fn handle_hash(handle: &str) -> String {
     hex(&Sha256::digest(handle.as_bytes()))
 }
 
@@ -258,7 +265,7 @@ fn open_secret(secrets: Option<&SecretBox>, sealed: &str) -> Option<TotpSecret> 
     TotpSecret::from_base32(&plain).ok()
 }
 
-fn ceremony_from_row(row: &QueryResult) -> Result<Option<Ceremony>, TryGetError> {
+pub(super) fn ceremony_from_row(row: &QueryResult) -> Result<Option<Ceremony>, TryGetError> {
     let kind: String = row.try_get("", "kind")?;
     let Some(kind) = CeremonyKind::from_stored(&kind) else {
         return Ok(None);
@@ -278,7 +285,7 @@ const EXPIRED_CEREMONIES: &str = "DELETE FROM second_factor_ceremony WHERE handl
      (SELECT handle_hash FROM second_factor_ceremony WHERE expires_at <= now() FOR UPDATE SKIP LOCKED)";
 const CEREMONY_COLUMNS: &str = "kind, user_id, realm, state, attempts, client_ip, expires_at";
 
-async fn insert_ceremony(
+pub(super) async fn insert_ceremony(
     conn: &impl ConnectionTrait,
     new: NewCeremony<'_>,
 ) -> Result<String, StoreError> {
@@ -303,7 +310,10 @@ async fn insert_ceremony(
     Ok(handle)
 }
 
-async fn has_factor(conn: &impl ConnectionTrait, user_id: &str) -> Result<bool, StoreError> {
+pub(super) async fn has_factor(
+    conn: &impl ConnectionTrait,
+    user_id: &str,
+) -> Result<bool, StoreError> {
     let row = conn
         .query_one(statement(
             "SELECT EXISTS (SELECT 1 FROM user_second_factor WHERE user_id = $1 \
@@ -345,13 +355,13 @@ pub async fn ensure_factor_row(
         .ok_or_else(|| DbErr::RecordNotFound("second factor row".to_owned()).into())
 }
 
-struct LockedRow {
-    totp: bool,
-    passkeys: bool,
-    requirement: Requirement,
+pub(super) struct LockedRow {
+    pub(super) totp: bool,
+    pub(super) passkeys: bool,
+    pub(super) requirement: Requirement,
 }
 
-async fn lock_user_row(
+pub(super) async fn lock_user_row(
     txn: &DatabaseTransaction,
     user_id: &str,
     create: bool,
@@ -381,7 +391,9 @@ async fn lock_user_row(
     }))
 }
 
-async fn issue_codes(context: String) -> Result<(RecoveryCodes, Vec<String>), StoreError> {
+pub(super) async fn issue_codes(
+    context: String,
+) -> Result<(RecoveryCodes, Vec<String>), StoreError> {
     let issued = tokio::task::spawn_blocking(move || {
         let codes = recovery_codes::generate_set();
         let hashes: Vec<String> = codes
@@ -399,7 +411,7 @@ async fn issue_codes(context: String) -> Result<(RecoveryCodes, Vec<String>), St
     Ok((RecoveryCodes(codes), hashes))
 }
 
-async fn store_codes(
+pub(super) async fn store_codes(
     conn: &impl ConnectionTrait,
     user_id: &str,
     hashes: &[String],
@@ -940,7 +952,7 @@ impl Security {
         })
     }
 
-    async fn follow(&self, revision: i64) {
+    pub(super) async fn follow(&self, revision: i64) {
         if let Err(error) = self.catch_up(revision).await {
             tracing::error!(%error, "the security model could not be reloaded after a second factor change; it is retried on the next sync");
         }
@@ -977,7 +989,7 @@ impl Security {
         })
     }
 
-    fn effectively_required(&self, requirement: Requirement, user_id: &str) -> bool {
+    pub(super) fn effectively_required(&self, requirement: Requirement, user_id: &str) -> bool {
         self.model().requires_second_factor(requirement, user_id)
     }
 }

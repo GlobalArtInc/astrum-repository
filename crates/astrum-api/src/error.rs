@@ -21,6 +21,8 @@ pub enum ApiError {
     Invalid(Vec<FieldError>),
     #[error("{0}")]
     BadRequest(String),
+    #[error("{0}")]
+    Conflict(String),
     #[error("authentication is required")]
     Unauthorized,
     #[error("{0}")]
@@ -89,6 +91,9 @@ impl IntoResponse for ApiError {
                 }]),
             )
                 .into_response(),
+            ApiError::Conflict(message) => {
+                (StatusCode::CONFLICT, message_body(message)).into_response()
+            }
             ApiError::Unauthorized => {
                 let mut response = (
                     StatusCode::UNAUTHORIZED,

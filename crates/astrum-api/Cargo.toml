@@ -85,6 +85,7 @@ astrum-testkit.workspace = true
 hex.workspace = true
 http-body-util.workspace = true
 md-5.workspace = true
+p256.workspace = true
 prost.workspace = true
 serde_norway.workspace = true
 sha1.workspace = true

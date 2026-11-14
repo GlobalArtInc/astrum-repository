@@ -354,7 +354,7 @@ async fn codes_are_trimmed_and_oversized_input_is_refused_before_any_work() {
     let handle = start(&fixture, "jane", JANE).await;
     let long = step(&fixture, &handle, "totp", &"1".repeat(65)).await;
     assert_eq!(long.status, StatusCode::BAD_REQUEST);
-    let method = step(&fixture, &handle, "passkey", "x").await;
+    let method = step(&fixture, &handle, "sms", "x").await;
     assert_eq!(method.status, StatusCode::BAD_REQUEST);
     assert_eq!(
         number(&fixture, "SELECT sum(attempts) FROM second_factor_ceremony").await,

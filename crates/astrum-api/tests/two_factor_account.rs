@@ -745,20 +745,40 @@ async fn wrong_passwords_and_the_throttle_leave_audit_rows_without_the_password(
 }
 
 #[tokio::test]
-async fn passkeys_are_not_offered_while_they_cannot_be_enrolled() {
+async fn passkeys_are_offered_only_when_the_relying_party_is_usable() {
     let fixture = world().await;
     let login = password(&fixture, "jane", JANE, &[]).await;
     let both = status(&fixture, &login).await;
     assert_eq!(both["methods"], json!(["totp"]));
+    assert_eq!(both["passkeysAvailable"], false);
+    assert_eq!(both["passkeys"], json!([]));
 
+    let policy = json!({"totp": false, "passkeys": true});
     astrum_db::setting::put(
         fixture.state.db().conn(),
         astrum_security::two_factor::POLICY_KEY,
-        &json!({"totp": false, "passkeys": true}),
+        &policy,
     )
     .await
     .unwrap();
     fixture.state.security().changed().await.unwrap();
-    let passkeys_only = status(&fixture, &login).await;
-    assert_eq!(passkeys_only["methods"], json!([]));
+    let unusable = status(&fixture, &login).await;
+    assert_eq!(unusable["methods"], json!([]));
+    assert_eq!(unusable["passkeysAvailable"], false);
+
+    astrum_db::setting::put(
+        fixture.state.db().conn(),
+        astrum_db::system::BASE_URL_KEY,
+        &astrum_db::system::BaseUrl {
+            url: "https://astrum.example.org".to_owned(),
+            enabled: true,
+            notes: String::new(),
+        },
+    )
+    .await
+    .unwrap();
+    fixture.state.security().changed().await.unwrap();
+    let usable = status(&fixture, &login).await;
+    assert_eq!(usable["methods"], json!(["passkey"]));
+    assert_eq!(usable["passkeysAvailable"], true);
 }

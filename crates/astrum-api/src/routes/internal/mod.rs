@@ -1,6 +1,7 @@
 mod access_tokens;
 mod audit;
 pub(crate) mod session;
+mod session_passkey;
 pub mod ui;
 mod ui_state;
 

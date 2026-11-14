@@ -327,6 +327,7 @@ dependencies = [
  "hex",
  "http-body-util",
  "md-5 0.10.6",
+ "p256 0.13.2",
  "percent-encoding",
  "prost",
  "reqwest",

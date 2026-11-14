@@ -1,4 +1,5 @@
 use astrum_db::entity::{security_user, security_user_role};
+use astrum_db::system::{BASE_URL_KEY, BaseUrl};
 use astrum_db::{revision, setting};
 use astrum_security::catalogue::{ADMIN_ROLE, ADMIN_USER, ANONYMOUS_ROLE};
 use astrum_security::two_factor::{POLICY_KEY, Requirement};
@@ -375,4 +376,33 @@ async fn a_stored_policy_with_no_method_to_enroll_gates_nobody_who_could_not_enr
     world.reload().await;
     assert_eq!(world.gate("jane").await, Gate::Enroll);
     assert_eq!(world.gate("ned").await, Gate::Enroll);
+}
+
+#[tokio::test]
+async fn passkeys_alone_gate_users_only_when_the_base_url_gives_a_relying_party() {
+    let world = world().await;
+    world.user("jane", 30, &[]).await;
+    world
+        .policy(json!({"totp": false, "passkeys": true, "required": {"everyone": true}, "graceDays": 7}))
+        .await;
+    for (base, gate) in [
+        ("http://astrum.example.org", Gate::Open),
+        ("https://127.0.0.1:8081", Gate::Open),
+        ("https://astrum.example.org", Gate::Enroll),
+        ("http://localhost:8081", Gate::Enroll),
+    ] {
+        setting::put(
+            world.db.conn(),
+            BASE_URL_KEY,
+            &BaseUrl {
+                url: base.to_owned(),
+                enabled: true,
+                notes: String::new(),
+            },
+        )
+        .await
+        .unwrap();
+        world.reload().await;
+        assert_eq!(world.gate("jane").await, gate, "{base}");
+    }
 }

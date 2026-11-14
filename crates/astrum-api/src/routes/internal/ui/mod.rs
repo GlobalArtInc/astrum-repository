@@ -17,6 +17,7 @@ mod search;
 mod selectors;
 mod tasks;
 mod two_factor;
+pub(crate) mod two_factor_passkeys;
 mod usage;
 mod versions;
 
@@ -40,6 +41,7 @@ pub fn routes() -> Router<AppState> {
         .merge(selectors::routes())
         .merge(account::routes())
         .merge(two_factor::routes())
+        .merge(two_factor_passkeys::routes())
         .merge(privileges::routes())
         .merge(audit::routes())
         .merge(identity::routes())

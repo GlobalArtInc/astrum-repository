@@ -4,7 +4,8 @@ use astrum_db::audit::Event;
 use astrum_security::catalogue::DEFAULT_SOURCE;
 use astrum_security::sessions::{KEY_ADDRESS_LENGTH, KEY_USER_LENGTH};
 use astrum_security::two_factor::store::{
-    CEREMONY_ATTEMPTS, CeremonyKind, NewCeremony, RecoveryOutcome, StoreError, Verification,
+    CEREMONY_ATTEMPTS, Ceremony, CeremonyKind, NewCeremony, RecoveryOutcome, StoreError,
+    Verification,
 };
 use astrum_security::{AuthError, Gate, Pending, Subject};
 use axum::Router;
@@ -16,20 +17,23 @@ use chrono::{Duration, Utc};
 use serde::Deserialize;
 use serde_json::{Value, json};
 
-use super::{INTERNAL, is_https};
+use super::{INTERNAL, is_https, session_passkey};
 use crate::auth::{CSRF_COOKIE, RestrictedSession, SESSION_COOKIE, client_address, cookie};
 use crate::{ApiError, AppState, Caller, Json};
 
 const COOKIE_AGE: u64 = 400 * 24 * 60 * 60;
 const SIGN_IN_PATH: &str = "/service/rest/internal/session";
-const SIGN_IN_COOKIE: &str = "astrum_signin";
-const SIGN_IN_LIFETIME: Duration = Duration::minutes(5);
+pub(super) const SIGN_IN_COOKIE: &str = "astrum_signin";
+pub(super) const SIGN_IN_LIFETIME: Duration = Duration::minutes(5);
 const SIGN_IN_EXPIRED: &str = "sign-in-expired";
 const CODE_WRONG: &str = "second-factor-invalid";
 const CODE_MAX_BYTES: usize = 64;
+const CEREMONY_MAX_BYTES: usize = 128;
+const CREDENTIAL_MAX_BYTES: usize = 16 * 1024;
 const TOTP: &str = "totp";
 const RECOVERY: &str = "recovery";
-const TWO_FACTOR_DOMAIN: &str = "security.twofactor";
+const PASSKEY: &str = "passkey";
+pub(super) const TWO_FACTOR_DOMAIN: &str = "security.twofactor";
 
 pub fn routes() -> Router<AppState> {
     Router::new()
@@ -40,6 +44,10 @@ pub fn routes() -> Router<AppState> {
         .route(
             &format!("{INTERNAL}/session/second-factor"),
             post(second_factor),
+        )
+        .route(
+            &format!("{INTERNAL}/session/second-factor/passkey-options"),
+            post(session_passkey::options),
         )
 }
 
@@ -54,6 +62,10 @@ struct SecondStep {
     method: String,
     #[serde(default)]
     code: String,
+    #[serde(default)]
+    ceremony: String,
+    #[serde(default)]
+    credential: Option<Value>,
 }
 
 #[derive(Default)]
@@ -176,6 +188,9 @@ async fn start_second_step(
     if overview.totp {
         methods.push(TOTP);
     }
+    if session_passkey::usable(state, &pending.user_id).await? {
+        methods.push(PASSKEY);
+    }
     if overview.recovery_codes_left > 0 {
         methods.push(RECOVERY);
     }
@@ -208,11 +223,11 @@ async fn start_second_step(
     Ok(response)
 }
 
-fn store_error(error: StoreError) -> ApiError {
+pub(super) fn store_error(error: StoreError) -> ApiError {
     ApiError::internal(error)
 }
 
-fn expired(headers: &HeaderMap) -> Response {
+pub(super) fn expired(headers: &HeaderMap) -> Response {
     let mut response = (
         StatusCode::UNAUTHORIZED,
         axum::Json(json!({
@@ -226,19 +241,53 @@ fn expired(headers: &HeaderMap) -> Response {
     response
 }
 
-fn wrong_code() -> Response {
+fn wrong_code(method: &str) -> Response {
+    let message = match method {
+        PASSKEY => "the passkey was not accepted or was already used",
+        _ => "the code is wrong or was already used",
+    };
     (
         StatusCode::UNAUTHORIZED,
         axum::Json(json!({
             "id": "*",
-            "message": "the code is wrong or was already used",
+            "message": message,
             "code": CODE_WRONG,
         })),
     )
         .into_response()
 }
 
-enum Step {
+pub(super) async fn verified_subject(
+    state: &AppState,
+    ceremony: &Ceremony,
+    handle: &str,
+) -> Result<Option<Subject>, ApiError> {
+    let security = state.security();
+    let pending = Pending {
+        user_id: ceremony.user_id.clone(),
+        realm: ceremony.realm.clone(),
+        gate: Gate::Verify,
+    };
+    let stamp = ceremony
+        .state
+        .as_ref()
+        .and_then(|state| state.get("stamp"))
+        .and_then(Value::as_str);
+    match subject_of(state, &pending) {
+        Some(subject) if stamp == Some(security.sign_in_stamp(&subject).as_str()) => {
+            Ok(Some(subject))
+        }
+        _ => {
+            security
+                .take_ceremony(handle, CeremonyKind::SignIn)
+                .await
+                .map_err(store_error)?;
+            Ok(None)
+        }
+    }
+}
+
+pub(super) enum Step {
     Accepted {
         left: Option<u32>,
         offset: Option<i8>,
@@ -255,15 +304,31 @@ async fn second_factor(
     let method = match body.method.as_str() {
         TOTP => TOTP,
         RECOVERY => RECOVERY,
+        PASSKEY => PASSKEY,
         _ => {
             return Err(ApiError::invalid(
                 "method",
-                "the method must be totp or recovery",
+                "the method must be totp, recovery or passkey",
             ));
         }
     };
     if body.code.len() > CODE_MAX_BYTES {
         return Err(ApiError::invalid("code", "the code is too long"));
+    }
+    if method == PASSKEY {
+        if body.ceremony.is_empty() || body.ceremony.len() > CEREMONY_MAX_BYTES {
+            return Err(ApiError::invalid("ceremony", "is not valid"));
+        }
+        match &body.credential {
+            Some(credential @ Value::Object(_))
+                if credential.to_string().len() <= CREDENTIAL_MAX_BYTES => {}
+            _ => {
+                return Err(ApiError::invalid(
+                    "credential",
+                    "must be the object the authenticator returned",
+                ));
+            }
+        }
     }
     let Some(handle) = cookie(&headers, SIGN_IN_COOKIE).filter(|handle| !handle.is_empty()) else {
         return Ok(expired(&headers));
@@ -277,26 +342,8 @@ async fn second_factor(
         return Ok(expired(&headers));
     };
     let user = ceremony.user_id.clone();
-    let pending = Pending {
-        user_id: user.clone(),
-        realm: ceremony.realm.clone(),
-        gate: Gate::Verify,
-    };
-    let current = subject_of(&state, &pending);
-    let stamp = ceremony
-        .state
-        .as_ref()
-        .and_then(|state| state.get("stamp"))
-        .and_then(Value::as_str);
-    let subject = match current {
-        Some(subject) if stamp == Some(security.sign_in_stamp(&subject).as_str()) => subject,
-        _ => {
-            security
-                .take_ceremony(handle, CeremonyKind::SignIn)
-                .await
-                .map_err(store_error)?;
-            return Ok(expired(&headers));
-        }
+    let Some(subject) = verified_subject(&state, &ceremony, handle).await? else {
+        return Ok(expired(&headers));
     };
     if security.sign_in_blocked(&user) {
         return Ok(refused(
@@ -306,6 +353,9 @@ async fn second_factor(
     }
     let step = if method == TOTP {
         check_totp(&state, &user, &body.code).await?
+    } else if method == PASSKEY {
+        let credential = body.credential.unwrap_or(Value::Null);
+        session_passkey::check(&state, &user, handle, &body.ceremony, &credential).await?
     } else {
         match security
             .consume_recovery_code(&user, &body.code)
@@ -374,7 +424,7 @@ async fn second_factor(
             }
             match step {
                 Step::Locked(seconds) => Err(ApiError::TooManyAttempts(seconds)),
-                _ => Ok(wrong_code()),
+                _ => Ok(wrong_code(method)),
             }
         }
     }
@@ -593,7 +643,7 @@ pub(crate) async fn audit_rate_limited(
         .await;
 }
 
-fn refused(status: StatusCode, message: &str) -> Response {
+pub(super) fn refused(status: StatusCode, message: &str) -> Response {
     (status, axum::Json(json!({"id": "*", "message": message}))).into_response()
 }
 

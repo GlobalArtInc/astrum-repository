@@ -2,6 +2,8 @@ use astrum_db::audit::Event;
 use astrum_security::catalogue::DEFAULT_SOURCE;
 use astrum_security::realm;
 use astrum_security::two_factor::FAILURE_WRONG_PASSWORD;
+use astrum_security::two_factor::passkey_store::MAX_PASSKEYS;
+use astrum_security::two_factor::passkeys::RelyingParty;
 use astrum_security::two_factor::store::{Confirmation, RemoveOutcome, StoreError};
 use astrum_security::{AuthError, Subject};
 use axum::Router;
@@ -13,16 +15,18 @@ use chrono::Utc;
 use serde::Deserialize;
 use serde_json::{Value, json};
 
+use super::two_factor_passkeys::passkey_json;
 use super::{UI, time};
 use crate::auth::{RestrictedSession, SESSION_COOKIE, client_address, cookie};
 use crate::routes::internal::session;
 use crate::{ApiError, AppState, Caller, Json, Validation};
 
-const DOMAIN: &str = "security.twofactor";
+pub(super) const DOMAIN: &str = "security.twofactor";
 const CODE_MAX_BYTES: usize = 64;
-const CEREMONY_MAX_BYTES: usize = 128;
+pub(super) const CEREMONY_MAX_BYTES: usize = 128;
 const PRODUCT: &str = "Astrum";
 const TOTP: &str = "totp";
+const PASSKEY: &str = "passkey";
 
 pub fn routes() -> Router<AppState> {
     Router::new()
@@ -43,9 +47,9 @@ pub fn routes() -> Router<AppState> {
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct PasswordBody {
+pub(super) struct PasswordBody {
     #[serde(alias = "password")]
-    current_password: Option<String>,
+    pub(super) current_password: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -57,7 +61,7 @@ struct ConfirmBody {
     current_password: Option<String>,
 }
 
-fn owner(caller: &Caller) -> Result<&Subject, ApiError> {
+pub(super) fn owner(caller: &Caller) -> Result<&Subject, ApiError> {
     let subject = caller.signed_in()?;
     let source = match subject.source.is_empty() {
         true => DEFAULT_SOURCE,
@@ -77,7 +81,7 @@ fn owner(caller: &Caller) -> Result<&Subject, ApiError> {
     ))
 }
 
-fn store_error(error: StoreError) -> ApiError {
+pub(super) fn store_error(error: StoreError) -> ApiError {
     match error {
         StoreError::AlreadyEnrolled => ApiError::BadRequest(
             "an authenticator app is already set up; remove it before adding another".to_owned(),
@@ -85,6 +89,12 @@ fn store_error(error: StoreError) -> ApiError {
         StoreError::NotEnrolled => {
             ApiError::BadRequest("no second factor is set up for this account".to_owned())
         }
+        StoreError::InvalidPasskeyName(reason) => {
+            ApiError::invalid("name", format!("the name {reason}"))
+        }
+        StoreError::TooManyPasskeys => ApiError::BadRequest(format!(
+            "at most {MAX_PASSKEYS} passkeys can be registered; remove one before adding another"
+        )),
         other => ApiError::internal(other),
     }
 }
@@ -97,7 +107,7 @@ fn throttled() -> Response {
         .into_response()
 }
 
-async fn confirm_password(
+pub(super) async fn confirm_password(
     state: &AppState,
     user_id: &str,
     password: Option<String>,
@@ -137,7 +147,21 @@ async fn confirm_password(
     ))
 }
 
-fn private(mut response: Response) -> Response {
+pub(super) async fn settle(state: &AppState, user_id: &str, headers: &HeaderMap) {
+    let keep = match headers.contains_key(header::AUTHORIZATION) {
+        true => None,
+        false => cookie(headers, SESSION_COOKIE),
+    };
+    if let Err(error) = state
+        .security()
+        .settle_after_enrollment(user_id, keep)
+        .await
+    {
+        tracing::error!(%error, user = %user_id, "closing the other sessions after enrolment failed");
+    }
+}
+
+pub(super) fn private(mut response: Response) -> Response {
     response
         .headers_mut()
         .insert(header::CACHE_CONTROL, HeaderValue::from_static("no-store"));
@@ -176,13 +200,28 @@ async fn status(
         .iter()
         .filter(|token| token.expires_at.is_none_or(|expires| expires > now))
         .count();
+    let relying_party = model.relying_party().ok();
+    let passkeys_available = relying_party.is_some();
     let mut methods = Vec::new();
     if model.two_factor.totp {
         methods.push(TOTP);
     }
+    if model.two_factor.passkeys && passkeys_available {
+        methods.push(PASSKEY);
+    }
+    let held = security
+        .list_passkeys(&subject.user_id)
+        .await
+        .map_err(store_error)?;
+    let passkeys: Vec<Value> = held
+        .iter()
+        .map(|passkey| passkey_json(passkey, relying_party.as_ref().map(RelyingParty::id)))
+        .collect();
     Ok(axum::Json(json!({
         "enrolled": overview.enrolled(),
         "totp": overview.totp,
+        "passkeys": passkeys,
+        "passkeysAvailable": passkeys_available,
         "required": standing.required,
         "requirementSource": overview.requirement.as_str(),
         "enrollBy": standing
@@ -317,13 +356,7 @@ async fn confirm_totp(
                         .with(json!({"userId": user_id})),
                 )
                 .await;
-            let keep = match headers.contains_key(header::AUTHORIZATION) {
-                true => None,
-                false => cookie(&headers, SESSION_COOKIE),
-            };
-            if let Err(error) = security.settle_after_enrollment(&user_id, keep).await {
-                tracing::error!(%error, user = %user_id, "closing the other sessions after enrolment failed");
-            }
+            settle(&state, &user_id, &headers).await;
             Ok(private(
                 axum::Json(json!({"recoveryCodes": codes.as_slice()})).into_response(),
             ))

@@ -58,9 +58,8 @@ const POLICY_FIELDS: [&str; 6] = [
 ];
 const REQUIRED_FIELDS: [&str; 3] = ["everyone", "administrators", "roles"];
 const RELYING_PARTY_FIELDS: [&str; 2] = ["id", "origins"];
-const NO_METHOD: &str = "turn on authenticator apps (totp) before requiring a second factor: passkeys cannot be used for enrollment yet";
-const PASSKEYS_WITHOUT_ID: &str =
-    "passkeys need a relying party id: set the base URL or relyingParty.id";
+const NO_METHOD: &str = "no second factor method can be enrolled: turn on authenticator apps (totp), or turn on passkeys and set an https base URL or a relying party id";
+const PASSKEYS_WITHOUT_ID: &str = "passkeys need a usable relying party: set an https base URL (or http://localhost), or a relying party id with an origin";
 
 #[derive(Debug, Deserialize)]
 struct RequirementBody {

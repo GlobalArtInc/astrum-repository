@@ -225,6 +225,22 @@ pub enum PasskeyError {
     Refused(WebauthnError),
 }
 
+impl PasskeyError {
+    pub fn kind(&self) -> &'static str {
+        match self {
+            PasskeyError::Configuration => "configuration",
+            PasskeyError::NoCredentials => "no credentials",
+            PasskeyError::State => "state",
+            PasskeyError::Malformed => "malformed",
+            PasskeyError::UnknownCredential => "unknown credential",
+            PasskeyError::CounterRegression => "counter regression",
+            PasskeyError::StoredPasskey => "stored passkey",
+            PasskeyError::Encode(_) => "encode",
+            PasskeyError::Refused(_) => "refused",
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Challenge {
     pub public_key: Value,
@@ -321,7 +337,7 @@ pub fn finish_authentication(
         .find(|candidate| candidate.cred_id() == result.cred_id())
         .cloned()
         .ok_or(PasskeyError::UnknownCredential)?;
-    let stored = stored_counter(&credential)?;
+    let stored = facts(&credential)?.counter;
     let presented = result.counter();
     if (presented > 0 || stored > 0) && presented <= stored {
         return Err(PasskeyError::CounterRegression);
@@ -342,10 +358,32 @@ fn cross_origin(response: &PublicKeyCredential) -> bool {
         .unwrap_or(false)
 }
 
-fn stored_counter(credential: &Passkey) -> Result<u32, PasskeyError> {
-    serde_json::to_value(credential)
-        .ok()
-        .and_then(|value| value.pointer("/cred/counter").and_then(Value::as_u64))
-        .and_then(|counter| u32::try_from(counter).ok())
-        .ok_or(PasskeyError::StoredPasskey)
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct PasskeyFacts {
+    pub counter: u32,
+    pub backup_eligible: bool,
+    pub backed_up: bool,
+}
+
+pub fn facts(credential: &Passkey) -> Result<PasskeyFacts, PasskeyError> {
+    let value = serde_json::to_value(credential).map_err(|_| PasskeyError::StoredPasskey)?;
+    let flag = |pointer: &str| {
+        value
+            .pointer(pointer)
+            .and_then(Value::as_bool)
+            .ok_or(PasskeyError::StoredPasskey)
+    };
+    Ok(PasskeyFacts {
+        counter: value
+            .pointer("/cred/counter")
+            .and_then(Value::as_u64)
+            .and_then(|counter| u32::try_from(counter).ok())
+            .ok_or(PasskeyError::StoredPasskey)?,
+        backup_eligible: flag("/cred/backup_eligible")?,
+        backed_up: flag("/cred/backup_state")?,
+    })
+}
+
+pub fn credential_id(credential: &Passkey) -> Vec<u8> {
+    credential.cred_id().as_slice().to_vec()
 }

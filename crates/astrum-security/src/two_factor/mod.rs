@@ -11,11 +11,13 @@ use crate::catalogue::DEFAULT_SOURCE;
 use crate::model::{SecurityModel, tolerant};
 use crate::{Error, realm};
 
+pub mod passkey_sign_in;
+pub mod passkey_store;
 pub mod passkeys;
 pub mod qr;
 pub mod store;
 
-use self::passkeys::RelyingParty;
+use self::passkeys::{RelyingParty, RelyingPartyError};
 
 pub const POLICY_KEY: &str = "security.twoFactor";
 pub const POLICY_LOCK: i64 = i64::from_be_bytes(*b"astr2fpl");
@@ -24,10 +26,6 @@ pub const FAILURE_VERIFY: &str = "SECOND_FACTOR_REQUIRED";
 pub const FAILURE_ENROLL: &str = "SECOND_FACTOR_ENROLLMENT_REQUIRED";
 pub const FAILURE_WRONG_PASSWORD: &str = "INCORRECT_CREDENTIALS";
 const ADMINISTRATORS: &str = "astrum:*";
-
-pub const fn passkey_flow_implemented() -> bool {
-    false
-}
 
 pub async fn lock_policy(db: &impl ConnectionTrait) -> Result<(), DbErr> {
     db.execute_unprepared(&format!("SELECT pg_advisory_xact_lock({POLICY_LOCK})"))
@@ -176,7 +174,6 @@ impl TwoFactorPolicy {
         match (self.totp, self.passkeys) {
             (true, _) => Methods::Available,
             (false, false) => Methods::NoneEnabled,
-            (false, true) if !passkey_flow_implemented() => Methods::NoneEnabled,
             (false, true) if self.relying_party_usable(base_url) => Methods::Available,
             (false, true) => Methods::PasskeysWithoutId,
         }
@@ -263,6 +260,10 @@ impl SecurityModel {
             return Gate::Open;
         }
         gate
+    }
+
+    pub fn relying_party(&self) -> Result<RelyingParty, RelyingPartyError> {
+        RelyingParty::resolve(&self.two_factor.relying_party, self.base_url.as_deref())
     }
 
     pub(crate) fn report_unenrollable_requirement(&self) {
@@ -369,22 +370,38 @@ mod tests {
     }
 
     #[test]
-    fn passkeys_do_not_count_as_a_method_before_they_can_be_enrolled() {
+    fn passkeys_alone_are_a_method_only_with_a_usable_relying_party() {
         let base = Some("https://astrum.example.org");
         assert_eq!(policy(true, true, None).methods(base), Methods::Available);
         assert_eq!(policy(true, false, None).methods(None), Methods::Available);
-        for known in [None, Some("example.org")] {
+        assert_eq!(policy(false, true, None).methods(base), Methods::Available);
+        assert_eq!(
+            policy(false, true, Some("example.org")).methods(base),
+            Methods::Available
+        );
+        for unusable in [
+            None,
+            Some("http://astrum.example.org"),
+            Some("https://127.0.0.1"),
+        ] {
             assert_eq!(
-                policy(false, true, known).methods(base),
-                Methods::NoneEnabled
+                policy(false, true, None).methods(unusable),
+                Methods::PasskeysWithoutId,
+                "{unusable:?}"
             );
         }
+        assert_eq!(
+            policy(false, true, Some("example.org")).methods(None),
+            Methods::PasskeysWithoutId
+        );
         assert_eq!(
             policy(false, false, None).methods(base),
             Methods::NoneEnabled
         );
         assert!(policy(true, false, None).enrollable(None));
-        assert!(!policy(false, true, None).enrollable(base));
+        assert!(policy(false, true, None).enrollable(base));
+        assert!(!policy(false, true, None).enrollable(None));
+        assert!(!policy(false, false, None).enrollable(base));
     }
 
     #[test]
