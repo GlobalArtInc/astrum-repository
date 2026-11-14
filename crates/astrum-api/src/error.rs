@@ -37,6 +37,8 @@ pub enum ApiError {
     #[error("the request body must be {0}")]
     UnsupportedMediaType(&'static str),
     #[error("{0}")]
+    PayloadTooLarge(String),
+    #[error("{0}")]
     Internal(#[from] anyhow::Error),
 }
 
@@ -142,6 +144,9 @@ impl IntoResponse for ApiError {
                     .headers_mut()
                     .insert(header::RETRY_AFTER, HeaderValue::from(1u64));
                 response
+            }
+            ApiError::PayloadTooLarge(message) => {
+                (StatusCode::PAYLOAD_TOO_LARGE, message_body(message)).into_response()
             }
             ApiError::UnsupportedMediaType(expected) => (
                 StatusCode::UNSUPPORTED_MEDIA_TYPE,

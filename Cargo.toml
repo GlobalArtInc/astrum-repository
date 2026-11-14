@@ -59,6 +59,7 @@ astrum-format-yum = { path = "crates/astrum-format-yum" }
 astrum-db = { path = "crates/astrum-db" }
 astrum-logging = { path = "crates/astrum-logging" }
 astrum-notify = { path = "crates/astrum-notify" }
+astrum-replication = { path = "crates/astrum-replication" }
 astrum-repo = { path = "crates/astrum-repo" }
 astrum-security = { path = "crates/astrum-security" }
 astrum-server = { path = "crates/astrum-server" }

@@ -5309,6 +5309,27 @@
         },
         "type": "object"
       },
+      "ReplicationAssetOutcome": {
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "size": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "new",
+              "replaced",
+              "unchanged",
+              "conflict"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "ReplicationAttributes": {
         "properties": {
           "assetPathRegex": {
@@ -5322,6 +5343,791 @@
         "required": [
           "preemptivePullEnabled"
         ],
+        "type": "object"
+      },
+      "ReplicationBundle": {
+        "properties": {
+          "assets": {
+            "items": {
+              "$ref": "#/components/schemas/ReplicationBundleAsset"
+            },
+            "type": "array"
+          },
+          "format": {
+            "type": "string"
+          },
+          "meta": {
+            "type": "object"
+          },
+          "name": {
+            "type": "string"
+          },
+          "namespace": {
+            "type": "string"
+          },
+          "origin": {
+            "nullable": true,
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "format",
+          "namespace",
+          "name",
+          "version",
+          "assets"
+        ],
+        "type": "object"
+      },
+      "ReplicationBundleAsset": {
+        "properties": {
+          "attributes": {
+            "type": "object"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "md5": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "sha1": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string"
+          },
+          "sha512": {
+            "type": "string"
+          },
+          "size": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "path",
+          "kind",
+          "contentType",
+          "size",
+          "sha1",
+          "sha256",
+          "sha512",
+          "md5",
+          "attributes"
+        ],
+        "type": "object"
+      },
+      "ReplicationCapabilities": {
+        "properties": {
+          "formats": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "instanceId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "protocol": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ReplicationDiscardXO": {
+        "properties": {
+          "discarded": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "ReplicationInventoryCompare": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ReplicationInventoryKey"
+            },
+            "maxItems": 1000,
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "ReplicationInventoryCompareReply": {
+        "properties": {
+          "differing": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "ReplicationInventoryEntry": {
+        "properties": {
+          "fingerprint": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "origin": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ReplicationInventoryKey": {
+        "properties": {
+          "fingerprint": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "fingerprint"
+        ],
+        "type": "object"
+      },
+      "ReplicationInventoryPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ReplicationInventoryEntry"
+            },
+            "type": "array"
+          },
+          "next": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ReplicationItemPageXO": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ReplicationItemXO"
+            },
+            "type": "array"
+          },
+          "next": {
+            "format": "int64",
+            "nullable": true,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "ReplicationItemXO": {
+        "properties": {
+          "attempts": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "firstQueuedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "key": {
+            "type": "string"
+          },
+          "lastError": {
+            "nullable": true,
+            "type": "string"
+          },
+          "notBefore": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "reason": {
+            "enum": [
+              "event",
+              "reconcile",
+              "retry"
+            ],
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "pending",
+              "leased",
+              "dead"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ReplicationItemsRequest": {
+        "description": "Give exactly one of ids and all.",
+        "properties": {
+          "all": {
+            "enum": [
+              true
+            ],
+            "type": "boolean"
+          },
+          "ids": {
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "maxItems": 1000,
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "ReplicationMissingReply": {
+        "properties": {
+          "missing": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "ReplicationMissingRequest": {
+        "properties": {
+          "sha256": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "sha256"
+        ],
+        "type": "object"
+      },
+      "ReplicationOutcome": {
+        "properties": {
+          "assets": {
+            "items": {
+              "$ref": "#/components/schemas/ReplicationAssetOutcome"
+            },
+            "type": "array"
+          },
+          "bytesCopied": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "bytesReused": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "componentId": {
+            "format": "int64",
+            "nullable": true,
+            "type": "integer"
+          },
+          "componentIds": {
+            "items": {
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "copied",
+              "unchanged",
+              "skipped",
+              "conflict"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ReplicationReconcileXO": {
+        "properties": {
+          "run": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "ReplicationRemoteCheckXO": {
+        "properties": {
+          "error": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "retryable",
+                  "permanent",
+                  "refused"
+                ],
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "formats": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "instanceId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "protocol": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ReplicationRemoteRequest": {
+        "properties": {
+          "allowPrivateNetwork": {
+            "type": "boolean"
+          },
+          "maxBytesPerSecond": {
+            "format": "int64",
+            "minimum": 1,
+            "nullable": true,
+            "type": "integer"
+          },
+          "maxConcurrency": {
+            "default": 2,
+            "format": "int32",
+            "maximum": 16,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "token": {
+            "description": "Required on create. On update, absent or null keeps the stored value.",
+            "type": "string",
+            "writeOnly": true
+          },
+          "url": {
+            "type": "string"
+          },
+          "useTrustStore": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "url"
+        ],
+        "type": "object"
+      },
+      "ReplicationRemoteXO": {
+        "properties": {
+          "allowPrivateNetwork": {
+            "type": "boolean"
+          },
+          "checkedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "failures": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "hasToken": {
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "lastError": {
+            "nullable": true,
+            "type": "string"
+          },
+          "maxBytesPerSecond": {
+            "format": "int64",
+            "nullable": true,
+            "type": "integer"
+          },
+          "maxConcurrency": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "remoteInstanceId": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
+          "remoteVersion": {
+            "nullable": true,
+            "type": "string"
+          },
+          "suspendedUntil": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "useTrustStore": {
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "ReplicationRequest": {
+        "properties": {
+          "alertChannels": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "direction": {
+            "default": "push",
+            "description": "push sends the components of the local repository to the remote; pull fetches the components of the remote repository into the local one. The direction cannot be changed after the replication is created.",
+            "enum": [
+              "push",
+              "pull"
+            ],
+            "type": "string"
+          },
+          "enabled": {
+            "default": true,
+            "type": "boolean"
+          },
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "nameFilter": {
+            "maxLength": 10240,
+            "nullable": true,
+            "type": "string"
+          },
+          "propagateDeletes": {
+            "default": false,
+            "type": "boolean"
+          },
+          "reconcileMinutes": {
+            "default": 360,
+            "description": "Minutes between two reconciles of the replication with its remote; one of the listed values",
+            "enum": [
+              5,
+              10,
+              15,
+              20,
+              30,
+              60,
+              120,
+              180,
+              240,
+              360,
+              480,
+              720,
+              1440
+            ],
+            "format": "int32",
+            "type": "integer"
+          },
+          "remoteId": {
+            "description": "For a pull replication it cannot be changed after the replication is created.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "remoteRepository": {
+            "description": "The repository of the remote: the target of a push replication, the source of a pull replication. For a pull replication it cannot be changed after the replication is created.",
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "settleSeconds": {
+            "default": 30,
+            "format": "int32",
+            "maximum": 3600,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "sourceRepository": {
+            "description": "The local repository: the source of a push replication, the target of a pull replication. For a pull it must be hosted and writable.",
+            "type": "string"
+          },
+          "versionFilter": {
+            "maxLength": 10240,
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "sourceRepository",
+          "remoteId",
+          "remoteRepository"
+        ],
+        "type": "object"
+      },
+      "ReplicationRetryXO": {
+        "properties": {
+          "retried": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "ReplicationStatusXO": {
+        "properties": {
+          "alertState": {
+            "enum": [
+              "ok",
+              "failing",
+              "dead_items"
+            ],
+            "type": "string"
+          },
+          "dead": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "lagSeconds": {
+            "format": "int64",
+            "nullable": true,
+            "type": "integer"
+          },
+          "lastError": {
+            "nullable": true,
+            "type": "string"
+          },
+          "lastFailureAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "lastReconcileAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "lastSuccessAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "leased": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "pending": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "remote": {
+            "properties": {
+              "failures": {
+                "format": "int32",
+                "type": "integer"
+              },
+              "lastError": {
+                "nullable": true,
+                "type": "string"
+              },
+              "suspendedUntil": {
+                "format": "date-time",
+                "nullable": true,
+                "type": "string"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
+      "ReplicationTombstone": {
+        "properties": {
+          "fingerprint": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "namespace": {
+            "type": "string"
+          },
+          "origin": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "namespace",
+          "name",
+          "version",
+          "fingerprint",
+          "origin"
+        ],
+        "type": "object"
+      },
+      "ReplicationXO": {
+        "properties": {
+          "alertChannels": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "alertState": {
+            "enum": [
+              "ok",
+              "failing",
+              "dead_items"
+            ],
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "direction": {
+            "enum": [
+              "push",
+              "pull"
+            ],
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "lastError": {
+            "nullable": true,
+            "type": "string"
+          },
+          "lastFailureAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "lastReconcileAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "lastSuccessAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "nameFilter": {
+            "nullable": true,
+            "type": "string"
+          },
+          "propagateDeletes": {
+            "type": "boolean"
+          },
+          "reconcileMinutes": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "remoteId": {
+            "description": "For a pull replication it cannot be changed after the replication is created.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "remoteRepository": {
+            "description": "The repository of the remote: the target of a push replication, the source of a pull replication. For a pull replication it cannot be changed after the replication is created.",
+            "type": "string"
+          },
+          "settleSeconds": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "sourceRepository": {
+            "description": "The local repository: the source of a push replication, the target of a pull replication",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "versionFilter": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
         "type": "object"
       },
       "RepositoryXO": {
@@ -7364,6 +8170,973 @@
         "summary": "Create promotions",
         "tags": [
           "Promotions"
+        ]
+      }
+    },
+    "/v1/replication/capabilities": {
+      "get": {
+        "description": "Tells the protocol version, the instance id and the formats this server takes part in replication with. Needs the privilege astrum:replication:receive or astrum:replication:pull.",
+        "operationId": "getV1ReplicationCapabilities",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReplicationCapabilities"
+                }
+              }
+            }
+          },
+          "401": {},
+          "403": {}
+        },
+        "summary": "List replication capabilities",
+        "tags": [
+          "Replication"
+        ]
+      }
+    },
+    "/v1/replication/remotes": {
+      "get": {
+        "operationId": "getV1ReplicationRemotes",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ReplicationRemoteXO"
+                  },
+                  "type": "array"
+                }
+              }
+            }
+          },
+          "403": {}
+        },
+        "summary": "List replication remotes",
+        "tags": [
+          "Replication"
+        ]
+      },
+      "post": {
+        "operationId": "postV1ReplicationRemotes",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplicationRemoteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReplicationRemoteXO"
+                }
+              }
+            }
+          },
+          "400": {},
+          "403": {},
+          "409": {}
+        },
+        "summary": "Create replication remotes",
+        "tags": [
+          "Replication"
+        ]
+      }
+    },
+    "/v1/replication/remotes/{id}": {
+      "delete": {
+        "operationId": "deleteV1ReplicationRemotesId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {},
+          "403": {},
+          "404": {},
+          "409": {}
+        },
+        "summary": "Delete replication remotes",
+        "tags": [
+          "Replication"
+        ]
+      },
+      "get": {
+        "operationId": "getV1ReplicationRemotesId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReplicationRemoteXO"
+                }
+              }
+            }
+          },
+          "403": {},
+          "404": {}
+        },
+        "summary": "Get replication remotes",
+        "tags": [
+          "Replication"
+        ]
+      },
+      "put": {
+        "operationId": "updateV1ReplicationRemotesId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplicationRemoteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReplicationRemoteXO"
+                }
+              }
+            }
+          },
+          "400": {},
+          "403": {},
+          "404": {},
+          "409": {}
+        },
+        "summary": "Update replication remotes",
+        "tags": [
+          "Replication"
+        ]
+      }
+    },
+    "/v1/replication/remotes/{id}/check": {
+      "post": {
+        "operationId": "postV1ReplicationRemotesIdCheck",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReplicationRemoteCheckXO"
+                }
+              }
+            }
+          },
+          "403": {},
+          "404": {},
+          "409": {}
+        },
+        "summary": "Check for replication remotes",
+        "tags": [
+          "Replication"
+        ]
+      }
+    },
+    "/v1/replication/{repo}/blobs/missing": {
+      "post": {
+        "operationId": "postV1ReplicationRepoBlobsMissing",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplicationMissingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReplicationMissingReply"
+                }
+              }
+            }
+          },
+          "400": {},
+          "401": {},
+          "403": {},
+          "404": {}
+        },
+        "summary": "Create replication blobs missing",
+        "tags": [
+          "Replication"
+        ]
+      }
+    },
+    "/v1/replication/{repo}/blobs/{sha256}": {
+      "get": {
+        "description": "Streams the blob of an asset that belongs to a component of the hosted repository, for a server that pulls. Needs the privilege astrum:replication:pull (astrum:replication:receive alone is not enough) and Read on the whole repository. The blob is found by its digest among the assets of components of this repository only.",
+        "operationId": "getV1ReplicationRepoBlobsSha256",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "sha256",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {},
+          "401": {},
+          "403": {},
+          "404": {}
+        },
+        "summary": "Get replication blobs",
+        "tags": [
+          "Replication"
+        ]
+      },
+      "put": {
+        "operationId": "updateV1ReplicationRepoBlobsSha256",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "sha256",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "format": "binary",
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {},
+          "201": {},
+          "400": {},
+          "401": {},
+          "403": {},
+          "404": {},
+          "413": {},
+          "422": {},
+          "429": {}
+        },
+        "summary": "Update replication blobs",
+        "tags": [
+          "Replication"
+        ]
+      }
+    },
+    "/v1/replication/{repo}/bundle": {
+      "get": {
+        "description": "Returns the bundle of one component of the hosted repository, for a server that pulls: its coordinates, the descriptors of its assets and the origin mark of the component (or the instance id of this server when the component was published here). Needs the privilege astrum:replication:pull (astrum:replication:receive alone is not enough) and Read on the whole repository. Answers 404 with the code component_not_found when the repository has no such component.",
+        "operationId": "getV1ReplicationRepoBundle",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "namespace",
+            "required": false,
+            "schema": {
+              "default": "",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "version",
+            "required": false,
+            "schema": {
+              "default": "",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReplicationBundle"
+                }
+              }
+            }
+          },
+          "400": {},
+          "401": {},
+          "403": {},
+          "404": {}
+        },
+        "summary": "List replication bundle",
+        "tags": [
+          "Replication"
+        ]
+      }
+    },
+    "/v1/replication/{repo}/components": {
+      "delete": {
+        "operationId": "deleteV1ReplicationRepoComponents",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplicationTombstone"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "400": {},
+          "401": {},
+          "403": {},
+          "404": {},
+          "409": {}
+        },
+        "summary": "Delete replication components",
+        "tags": [
+          "Replication"
+        ]
+      },
+      "post": {
+        "operationId": "postV1ReplicationRepoComponents",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplicationBundle"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReplicationOutcome"
+                }
+              }
+            }
+          },
+          "400": {},
+          "401": {},
+          "403": {},
+          "404": {},
+          "409": {},
+          "413": {}
+        },
+        "summary": "Components for replication",
+        "tags": [
+          "Replication"
+        ]
+      }
+    },
+    "/v1/replication/{repo}/inventory": {
+      "get": {
+        "description": "Lists the components of the hosted repository in key order, with their fingerprints and origin marks. Needs the privilege astrum:replication:receive (to push) or astrum:replication:pull (to pull), and Read on the whole repository.",
+        "operationId": "getV1ReplicationRepoInventory",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "after",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 500,
+              "format": "int32",
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReplicationInventoryPage"
+                }
+              }
+            }
+          },
+          "400": {},
+          "401": {},
+          "403": {},
+          "404": {}
+        },
+        "summary": "List replication inventory",
+        "tags": [
+          "Replication"
+        ]
+      }
+    },
+    "/v1/replication/{repo}/inventory/compare": {
+      "post": {
+        "description": "Names the keys whose fingerprint differs from the repository or that it lacks. Needs the privilege astrum:replication:receive (to push) or astrum:replication:pull (to pull), and Read on the whole repository.",
+        "operationId": "postV1ReplicationRepoInventoryCompare",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplicationInventoryCompare"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReplicationInventoryCompareReply"
+                }
+              }
+            }
+          },
+          "400": {},
+          "401": {},
+          "403": {},
+          "404": {}
+        },
+        "summary": "Create replication inventory compare",
+        "tags": [
+          "Replication"
+        ]
+      }
+    },
+    "/v1/replications": {
+      "get": {
+        "operationId": "getV1Replications",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ReplicationXO"
+                  },
+                  "type": "array"
+                }
+              }
+            }
+          },
+          "403": {}
+        },
+        "summary": "List replications",
+        "tags": [
+          "Replication"
+        ]
+      },
+      "post": {
+        "operationId": "postV1Replications",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplicationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReplicationXO"
+                }
+              }
+            }
+          },
+          "400": {},
+          "403": {},
+          "409": {}
+        },
+        "summary": "Create replications",
+        "tags": [
+          "Replication"
+        ]
+      }
+    },
+    "/v1/replications/{id}": {
+      "delete": {
+        "operationId": "deleteV1ReplicationsId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {},
+          "403": {},
+          "404": {},
+          "409": {}
+        },
+        "summary": "Delete replications",
+        "tags": [
+          "Replication"
+        ]
+      },
+      "get": {
+        "operationId": "getV1ReplicationsId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReplicationXO"
+                }
+              }
+            }
+          },
+          "403": {},
+          "404": {}
+        },
+        "summary": "Get replications",
+        "tags": [
+          "Replication"
+        ]
+      },
+      "put": {
+        "operationId": "updateV1ReplicationsId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplicationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReplicationXO"
+                }
+              }
+            }
+          },
+          "400": {},
+          "403": {},
+          "404": {},
+          "409": {}
+        },
+        "summary": "Update replications",
+        "tags": [
+          "Replication"
+        ]
+      }
+    },
+    "/v1/replications/{id}/items": {
+      "get": {
+        "operationId": "getV1ReplicationsIdItems",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "state",
+            "required": true,
+            "schema": {
+              "enum": [
+                "dead",
+                "pending",
+                "leased"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "after",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "format": "int32",
+              "maximum": 200,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReplicationItemPageXO"
+                }
+              }
+            }
+          },
+          "400": {},
+          "403": {},
+          "404": {}
+        },
+        "summary": "List replications items",
+        "tags": [
+          "Replication"
+        ]
+      }
+    },
+    "/v1/replications/{id}/items/discard": {
+      "post": {
+        "operationId": "postV1ReplicationsIdItemsDiscard",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplicationItemsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReplicationDiscardXO"
+                }
+              }
+            }
+          },
+          "400": {},
+          "403": {},
+          "404": {}
+        },
+        "summary": "Create replications items discard",
+        "tags": [
+          "Replication"
+        ]
+      }
+    },
+    "/v1/replications/{id}/items/retry": {
+      "post": {
+        "operationId": "postV1ReplicationsIdItemsRetry",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplicationItemsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReplicationRetryXO"
+                }
+              }
+            }
+          },
+          "400": {},
+          "403": {},
+          "404": {}
+        },
+        "summary": "Create replications items retry",
+        "tags": [
+          "Replication"
+        ]
+      }
+    },
+    "/v1/replications/{id}/reconcile": {
+      "post": {
+        "operationId": "postV1ReplicationsIdReconcile",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReplicationReconcileXO"
+                }
+              }
+            }
+          },
+          "403": {},
+          "404": {},
+          "409": {}
+        },
+        "summary": "Reconcile for replications",
+        "tags": [
+          "Replication"
+        ]
+      }
+    },
+    "/v1/replications/{id}/status": {
+      "get": {
+        "operationId": "getV1ReplicationsIdStatus",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReplicationStatusXO"
+                }
+              }
+            }
+          },
+          "403": {},
+          "404": {}
+        },
+        "summary": "List replications status",
+        "tags": [
+          "Replication"
         ]
       }
     },
@@ -19225,6 +20998,9 @@
     },
     {
       "name": "Promotions"
+    },
+    {
+      "name": "Replication"
     },
     {
       "name": "Repository Management"

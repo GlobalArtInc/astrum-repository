@@ -1672,10 +1672,16 @@ struct Resolved<'a> {
     created: bool,
 }
 
+pub const HOLD_LOST: &str = "a blob of the transfer lost its hold; the transfer was abandoned";
+const CHANGED_MEANWHILE: &str = " changed while the transfer ran; try again";
+
 fn changed_meanwhile(repository: &str) -> ContentError {
-    ContentError::Conflict(format!(
-        "{repository} changed while the transfer ran; try again"
-    ))
+    ContentError::Conflict(format!("{repository}{CHANGED_MEANWHILE}"))
+}
+
+pub fn transient_conflict(error: &ContentError) -> bool {
+    matches!(error, ContentError::Conflict(message)
+        if message == HOLD_LOST || message.ends_with(CHANGED_MEANWHILE))
 }
 
 struct Rules<'a> {
@@ -1707,9 +1713,7 @@ async fn write_many(
         .map(|(_, written)| (written.store.clone(), written.id))
         .collect();
     if holds::consume(txn, &new_blobs).await? != new_blobs.len() as u64 {
-        return Err(ContentError::Conflict(
-            "a blob of the transfer lost its hold; the transfer was abandoned".to_owned(),
-        ));
+        return Err(ContentError::Conflict(HOLD_LOST.to_owned()));
     }
     txn.query_one(Statement::from_sql_and_values(
         DbBackend::Postgres,

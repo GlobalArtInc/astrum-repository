@@ -1,3 +1,5 @@
+use std::error::Error;
+use std::fmt;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
 use std::sync::Arc;
 use std::time::Duration;
@@ -147,6 +149,24 @@ impl Guard {
         }
         self.networks.iter().any(|network| network.contains(ip)) || !is_internal(ip)
     }
+
+    pub fn remote_ip_allowed(&self, ip: IpAddr, host_allowed: bool, private_network: bool) -> bool {
+        self.ip_allowed(ip, host_allowed) || (private_network && permitted_for_private_remote(ip))
+    }
+}
+
+pub fn permitted_for_private_remote(ip: IpAddr) -> bool {
+    match canonical(ip) {
+        IpAddr::V4(v4) => {
+            let [a, b, ..] = v4.octets();
+            v4.is_private() || (a == 100 && (64..128).contains(&b))
+        }
+        IpAddr::V6(v6) => (v6.segments()[0] & 0xfe00) == 0xfc00 && !is_metadata(IpAddr::V6(v6)),
+    }
+}
+
+pub fn cleartext_permitted(ip: IpAddr) -> bool {
+    permitted_for_private_remote(ip) || canonical(ip).is_loopback()
 }
 
 fn canonical(ip: IpAddr) -> IpAddr {
@@ -189,33 +209,115 @@ fn is_internal(ip: IpAddr) -> bool {
     }
 }
 
+#[derive(Debug)]
+pub struct Blocked {
+    host: String,
+}
+
+impl Blocked {
+    pub fn host(&self) -> &str {
+        &self.host
+    }
+}
+
+impl fmt::Display for Blocked {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{} resolves only to addresses the SSRF protection blocks",
+            self.host
+        )
+    }
+}
+
+impl Error for Blocked {}
+
+pub fn is_blocked(error: &(dyn Error + 'static)) -> bool {
+    std::iter::successors(Some(error), |&error| error.source())
+        .any(|error| error.downcast_ref::<Blocked>().is_some())
+}
+
 pub struct GuardedResolver {
     guard: Arc<Guard>,
+    private_network: bool,
+    cleartext: bool,
+}
+
+#[derive(Debug)]
+pub enum Unverified {
+    Blocked(Blocked),
+    Lookup(String),
 }
 
 impl GuardedResolver {
     pub fn new(guard: Arc<Guard>) -> Self {
-        Self { guard }
+        Self {
+            guard,
+            private_network: false,
+            cleartext: false,
+        }
+    }
+
+    pub fn with_private_ranges(guard: Arc<Guard>) -> Self {
+        Self {
+            guard,
+            private_network: true,
+            cleartext: false,
+        }
+    }
+
+    pub fn for_cleartext(mut self) -> Self {
+        self.cleartext = true;
+        self
+    }
+
+    pub fn permits(&self, ip: IpAddr, host_allowed: bool) -> bool {
+        self.guard
+            .remote_ip_allowed(ip, host_allowed, self.private_network)
+            && (!self.cleartext || cleartext_permitted(ip))
+    }
+
+    pub async fn verify(&self, host: &str, port: u16) -> Result<(), Unverified> {
+        let found: Vec<SocketAddr> =
+            tokio::time::timeout(LOOKUP_TIMEOUT, tokio::net::lookup_host((host, port)))
+                .await
+                .map_err(|_| Unverified::Lookup(format!("{host} could not be resolved in time")))?
+                .map_err(|error| Unverified::Lookup(format!("{host} cannot be resolved: {error}")))?
+                .collect();
+        if found.is_empty() {
+            return Err(Unverified::Lookup(format!("{host} cannot be resolved")));
+        }
+        let host_allowed = self.guard.host_allowed(host);
+        match found
+            .iter()
+            .all(|address| self.permits(address.ip(), host_allowed))
+        {
+            true => Ok(()),
+            false => Err(Unverified::Blocked(Blocked {
+                host: host.to_owned(),
+            })),
+        }
     }
 }
 
 impl Resolve for GuardedResolver {
     fn resolve(&self, name: Name) -> Resolving {
-        let guard = self.guard.clone();
+        let resolver = GuardedResolver {
+            guard: self.guard.clone(),
+            private_network: self.private_network,
+            cleartext: self.cleartext,
+        };
         let host = name.as_str().to_owned();
         Box::pin(async move {
             let found: Vec<SocketAddr> =
                 tokio::net::lookup_host((host.as_str(), 0)).await?.collect();
-            let host_allowed = guard.host_allowed(&host);
+            let host_allowed = resolver.guard.host_allowed(&host);
             let allowed: Vec<SocketAddr> = found
                 .into_iter()
-                .filter(|address| guard.ip_allowed(address.ip(), host_allowed))
+                .filter(|address| resolver.permits(address.ip(), host_allowed))
                 .collect();
             if allowed.is_empty() {
-                return Err(format!(
-                    "{host} resolves only to addresses the SSRF protection blocks"
-                )
-                .into());
+                return Err(Blocked { host }.into());
             }
             let addrs: Addrs = Box::new(allowed.into_iter());
             Ok(addrs)
@@ -301,10 +403,62 @@ pub async fn refused_destination(settings: &SsrfProtection, address: &str) -> Op
     ))
 }
 
+pub async fn refused_remote_destination(
+    settings: &SsrfProtection,
+    url: &url::Url,
+    private_network: bool,
+) -> Option<String> {
+    if !private_network {
+        return refused_destination(settings, url.as_str()).await;
+    }
+    let guard = Guard::new(settings);
+    let (addresses, host_allowed): (Vec<IpAddr>, bool) = match url.host()? {
+        url::Host::Ipv4(ip) => (vec![IpAddr::V4(ip)], false),
+        url::Host::Ipv6(ip) => (vec![IpAddr::V6(ip)], false),
+        url::Host::Domain(domain) => {
+            let port = url.port_or_known_default().unwrap_or(80);
+            let found =
+                tokio::time::timeout(LOOKUP_TIMEOUT, tokio::net::lookup_host((domain, port)))
+                    .await
+                    .ok()?
+                    .ok()?;
+            (
+                found.map(|found| found.ip()).collect(),
+                guard.host_allowed(domain),
+            )
+        }
+    };
+    if addresses.is_empty()
+        || addresses
+            .iter()
+            .any(|ip| guard.remote_ip_allowed(*ip, host_allowed, true))
+    {
+        return None;
+    }
+    let mut shown: Vec<String> = addresses
+        .iter()
+        .map(|ip| canonical(*ip).to_string())
+        .collect();
+    shown.sort();
+    shown.dedup();
+    Some(format!(
+        "Host resolves only to addresses a remote may not use even with private networks allowed (loopback, link-local, unspecified, multicast, broadcast): {}",
+        shown.join(", ")
+    ))
+}
+
 pub fn literal_allowed(guard: &Guard, url: &url::Url) -> bool {
+    remote_literal_allowed(guard, url, false)
+}
+
+pub fn remote_literal_allowed(guard: &Guard, url: &url::Url, private_network: bool) -> bool {
     match url.host() {
-        Some(url::Host::Ipv4(ip)) => guard.ip_allowed(IpAddr::V4(ip), false),
-        Some(url::Host::Ipv6(ip)) => guard.ip_allowed(IpAddr::V6(ip), false),
+        Some(url::Host::Ipv4(ip)) => {
+            guard.remote_ip_allowed(IpAddr::V4(ip), false, private_network)
+        }
+        Some(url::Host::Ipv6(ip)) => {
+            guard.remote_ip_allowed(IpAddr::V6(ip), false, private_network)
+        }
         Some(url::Host::Domain(_)) => true,
         None => false,
     }
@@ -344,6 +498,47 @@ mod tests {
         ] {
             assert!(Network::parse(bad).is_none(), "{bad}");
         }
+    }
+
+    #[test]
+    fn clear_text_stays_on_private_networks_and_the_machine_itself() {
+        let ip = |text: &str| text.parse::<IpAddr>().unwrap();
+        for private in [
+            "10.1.2.3",
+            "192.168.0.9",
+            "100.64.0.1",
+            "fd12::1",
+            "::ffff:10.0.0.1",
+            "127.0.0.1",
+            "::1",
+        ] {
+            assert!(cleartext_permitted(ip(private)), "{private}");
+        }
+        for public in [
+            "203.0.113.7",
+            "8.8.8.8",
+            "2001:db8::1",
+            "169.254.169.254",
+            "fe80::1",
+            "0.0.0.0",
+        ] {
+            assert!(!cleartext_permitted(ip(public)), "{public}");
+        }
+        let off = SsrfProtection {
+            enabled: false,
+            ..SsrfProtection::default()
+        };
+        let guard = Arc::new(Guard::new(&off));
+        let plain = GuardedResolver::with_private_ranges(guard.clone());
+        let clear = GuardedResolver::with_private_ranges(guard).for_cleartext();
+        assert!(plain.permits(ip("203.0.113.7"), false));
+        assert!(!clear.permits(ip("203.0.113.7"), false));
+        assert!(clear.permits(ip("10.0.0.1"), false));
+        let on = Arc::new(Guard::new(&SsrfProtection::default()));
+        let strict = GuardedResolver::with_private_ranges(on).for_cleartext();
+        assert!(strict.permits(ip("10.0.0.1"), false));
+        assert!(!strict.permits(ip("127.0.0.1"), false));
+        assert!(!strict.permits(ip("203.0.113.7"), false));
     }
 
     #[test]
@@ -574,5 +769,149 @@ mod tests {
             &strict,
             &"https://repo1.maven.org/x".parse().unwrap()
         ));
+    }
+
+    fn ip(text: &str) -> IpAddr {
+        text.parse().unwrap()
+    }
+
+    const PRIVATE: [&str; 5] = [
+        "10.1.2.3",
+        "172.16.0.1",
+        "192.168.1.1",
+        "fd00::1",
+        "100.64.0.1",
+    ];
+    const NEVER: [&str; 11] = [
+        "127.0.0.1",
+        "::1",
+        "169.254.1.1",
+        "169.254.169.254",
+        "fe80::1",
+        "fd00:ec2::254",
+        "0.0.0.0",
+        "224.0.0.1",
+        "255.255.255.255",
+        "::ffff:127.0.0.1",
+        "::",
+    ];
+
+    #[test]
+    fn private_ranges_open_only_for_a_remote_that_allows_them() {
+        let strict = guard(true, &[], &[]);
+        for private in PRIVATE {
+            assert!(permitted_for_private_remote(ip(private)), "{private}");
+            assert!(
+                !strict.remote_ip_allowed(ip(private), false, false),
+                "{private}"
+            );
+            assert!(
+                strict.remote_ip_allowed(ip(private), false, true),
+                "{private}"
+            );
+        }
+        for never in NEVER {
+            assert!(!permitted_for_private_remote(ip(never)), "{never}");
+            assert!(!strict.remote_ip_allowed(ip(never), false, true), "{never}");
+        }
+        assert!(strict.remote_ip_allowed(ip("8.8.8.8"), false, false));
+        assert!(!permitted_for_private_remote(ip("8.8.8.8")));
+    }
+
+    #[test]
+    fn a_literal_remote_address_follows_the_same_rule() {
+        let strict = guard(true, &[], &[]);
+        let url = |text: &str| -> url::Url { text.parse().unwrap() };
+        assert!(!remote_literal_allowed(
+            &strict,
+            &url("http://10.0.0.5:8081"),
+            false
+        ));
+        assert!(remote_literal_allowed(
+            &strict,
+            &url("http://10.0.0.5:8081"),
+            true
+        ));
+        assert!(remote_literal_allowed(
+            &strict,
+            &url("http://[fd00::1]:8081"),
+            true
+        ));
+        assert!(!remote_literal_allowed(
+            &strict,
+            &url("http://127.0.0.1:8081"),
+            true
+        ));
+        assert!(!remote_literal_allowed(
+            &strict,
+            &url("http://[::1]:8081"),
+            true
+        ));
+    }
+
+    async fn resolved(resolver: &GuardedResolver, host: &str) -> Result<Vec<SocketAddr>, String> {
+        let name: Name = host.parse().unwrap();
+        match resolver.resolve(name).await {
+            Ok(addresses) => Ok(addresses.collect()),
+            Err(error) => {
+                assert!(is_blocked(&*error), "{host}: {error}");
+                Err(error.to_string())
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn the_resolver_takes_private_ranges_only_when_built_for_them() {
+        let global = Arc::new(guard(true, &[], &[]));
+        let plain = GuardedResolver::new(global.clone());
+        let private = GuardedResolver::with_private_ranges(global);
+        for address in PRIVATE {
+            assert!(resolved(&plain, address).await.is_err(), "{address}");
+            assert!(resolved(&private, address).await.is_ok(), "{address}");
+        }
+        for address in NEVER {
+            assert!(resolved(&plain, address).await.is_err(), "{address}");
+            assert!(resolved(&private, address).await.is_err(), "{address}");
+        }
+        assert!(resolved(&plain, "8.8.8.8").await.is_ok());
+    }
+
+    #[test]
+    fn only_the_blocked_error_counts_as_blocked() {
+        let blocked: Box<dyn Error + Send + Sync> = Blocked {
+            host: "a.example".to_owned(),
+        }
+        .into();
+        assert!(is_blocked(&*blocked));
+        let other: Box<dyn Error + Send + Sync> = "connection refused".into();
+        assert!(!is_blocked(&*other));
+    }
+
+    #[tokio::test]
+    async fn a_remote_destination_with_private_networks_still_refuses_loopback() {
+        let strict = SsrfProtection::default();
+        let url = |text: &str| -> url::Url { text.parse().unwrap() };
+        assert!(
+            refused_remote_destination(&strict, &url("http://10.1.2.3:8081"), false)
+                .await
+                .is_some()
+        );
+        assert!(
+            refused_remote_destination(&strict, &url("http://10.1.2.3:8081"), true)
+                .await
+                .is_none()
+        );
+        for refused in [
+            "http://127.0.0.1:8081",
+            "http://[::1]:8081",
+            "http://169.254.169.254",
+        ] {
+            assert!(
+                refused_remote_destination(&strict, &url(refused), true)
+                    .await
+                    .is_some(),
+                "{refused}"
+            );
+        }
     }
 }

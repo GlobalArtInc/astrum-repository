@@ -12,6 +12,7 @@ pub mod oauth;
 pub mod oidc;
 pub mod outbound;
 pub mod promotions;
+pub mod replication;
 pub mod repositories;
 pub mod routing_rules;
 pub mod security;

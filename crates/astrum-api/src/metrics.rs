@@ -1,12 +1,13 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fmt::{Display, Write};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use astrum_blob::quota;
 use astrum_db::entity::repository_usage;
 use astrum_db::setting;
 use astrum_db::system::{PROMETHEUS_KEY, Prometheus};
+use astrum_replication::counters::Counters;
 use axum::Router;
 use axum::extract::{Request, State};
 use axum::http::{Method, StatusCode, header};
@@ -14,6 +15,8 @@ use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
 use axum::routing::get;
 use sea_orm::{ConnectionTrait, DbBackend, EntityTrait, Statement};
+
+mod replication;
 
 use crate::routes::blobstores::measure_all;
 use crate::routes::support::health;
@@ -32,6 +35,7 @@ const REVISION: Option<&str> = option_env!("ASTRUM_GIT_REVISION");
 #[derive(Default)]
 pub struct Registry {
     counts: Mutex<Counts>,
+    replication: Arc<Counters>,
 }
 
 #[derive(Default)]
@@ -114,6 +118,10 @@ fn classify(path: &str) -> (&'static str, Option<&str>) {
 }
 
 impl Registry {
+    pub fn replication(&self) -> &Arc<Counters> {
+        &self.replication
+    }
+
     fn record(&self, path: &str, method: &'static str, status: StatusCode, elapsed: Duration) {
         let (area, repository) = classify(path);
         let status = status_label(status);
@@ -222,6 +230,7 @@ struct Collected {
     pending: Option<i64>,
     disk: Option<(u64, u64)>,
     alerts: Vec<(String, String)>,
+    replication: Option<replication::Measured>,
 }
 
 async fn usage(state: &AppState) -> Option<HashMap<String, i64>> {
@@ -276,7 +285,7 @@ async fn disk(state: &AppState) -> Option<(u64, u64)> {
 }
 
 async fn collect(state: &AppState) -> Collected {
-    let (stores, checks, repositories, usage, tasks, pending, disk, alerts) = tokio::join!(
+    let (stores, checks, repositories, usage, tasks, pending, disk, alerts, replication) = tokio::join!(
         async { measure_all(state).await.ok() },
         health::run(state),
         async { astrum_repo::store::list(state.db().conn()).await.ok() },
@@ -285,6 +294,7 @@ async fn collect(state: &AppState) -> Collected {
         pending(state),
         disk(state),
         crate::space::tracked(state),
+        replication::measure(state),
     );
     Collected {
         stores,
@@ -295,6 +305,7 @@ async fn collect(state: &AppState) -> Collected {
         pending,
         disk,
         alerts,
+        replication,
     }
 }
 
@@ -631,6 +642,10 @@ pub async fn render(state: &AppState, settings: &Prometheus) -> String {
             &[],
             seconds(at),
         );
+    }
+
+    if let Some(measured) = &collected.replication {
+        replication::render(&mut out, state, measured);
     }
 
     if let Some(tasks) = &collected.tasks {

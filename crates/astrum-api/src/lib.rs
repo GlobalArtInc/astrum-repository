@@ -70,6 +70,7 @@ struct Inner {
     metrics: metrics::Registry,
     stars: github::Stars,
     ip_allow_denials: ip_allow::Denials,
+    replication_instance: tokio::sync::OnceCell<uuid::Uuid>,
 }
 
 impl AppState {
@@ -114,6 +115,7 @@ impl AppState {
                 metrics: metrics::Registry::default(),
                 stars: github::Stars::default(),
                 ip_allow_denials: ip_allow::Denials::default(),
+                replication_instance: tokio::sync::OnceCell::new(),
             }),
         }
     }
@@ -253,6 +255,10 @@ impl AppState {
         &self.inner.ip_allow_denials
     }
 
+    pub(crate) fn replication_instance(&self) -> &tokio::sync::OnceCell<uuid::Uuid> {
+        &self.inner.replication_instance
+    }
+
     pub async fn audit(&self, caller: &Caller, event: Event) {
         let initiator = match auth::client_address() {
             Some(address) => format!("{}/{address}", caller.initiator()),
@@ -337,6 +343,7 @@ fn endpoints(extra: Router<AppState>) -> Router<AppState> {
         .merge(routes::capabilities::routes())
         .merge(routes::routing_rules::routes())
         .merge(routes::outbound::routes())
+        .merge(routes::replication::routes())
         .merge(routes::email::routes())
         .merge(routes::mcp::routes())
         .merge(routes::oauth::routes())

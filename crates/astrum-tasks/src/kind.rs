@@ -202,6 +202,19 @@ pub trait TaskKind: Send + Sync + 'static {
         false
     }
 
+    fn system(&self) -> bool {
+        false
+    }
+
+    async fn validate(
+        &self,
+        _content: &astrum_content::Content,
+        _stored: Option<&Properties>,
+        _given: &Properties,
+    ) -> Result<(), crate::Problem> {
+        Ok(())
+    }
+
     fn describe(&self, properties: &Properties) -> String;
 
     async fn run(&self, run: &Run) -> Result<String, TaskError>;

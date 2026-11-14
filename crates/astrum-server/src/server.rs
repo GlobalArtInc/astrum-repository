@@ -13,6 +13,7 @@ use crate::config::Config;
 use crate::version_line;
 
 const TASK_SHUTDOWN: std::time::Duration = std::time::Duration::from_secs(10);
+const REPLICATION_SHUTDOWN: std::time::Duration = std::time::Duration::from_secs(12);
 const LOGGING_SYNC: std::time::Duration = std::time::Duration::from_secs(30);
 
 pub struct Server {
@@ -42,6 +43,15 @@ impl Server {
         crate::formats::register(state.content());
         crate::formats::register_tasks(state.tasks());
         crate::formats::register_image_transfers(&state);
+        let backfilled = astrum_replication::lifecycle::backfill(state.db().conn())
+            .await
+            .context("the reconcile tasks of the replications could not be checked")?;
+        if backfilled > 0 {
+            tracing::info!(
+                count = backfilled,
+                "created the reconcile tasks of existing replications"
+            );
+        }
         let listener = TcpListener::bind(config.listen)
             .await
             .with_context(|| format!("cannot listen on {}", config.listen))?;
@@ -81,6 +91,13 @@ impl Server {
         let revisions =
             astrum_api::revisions::spawn(self.state.clone(), astrum_api::revisions::INTERVAL);
         let space = astrum_api::space::spawn(self.state.clone());
+        let replication_stop = astrum_replication::dispatch::CancellationToken::new();
+        let replication = astrum_replication::dispatch::Dispatcher::with_counters(
+            self.state.content().clone(),
+            astrum_replication::dispatch::Settings::default(),
+            self.state.metrics().replication().clone(),
+        )
+        .spawn_until(replication_stop.clone());
         match crate::web::installed(&self.web_dir) {
             true => tracing::info!(dir = %self.web_dir.display(), "serving the user interface"),
             false => tracing::warn!(
@@ -107,6 +124,7 @@ impl Server {
         .with_graceful_shutdown(shutdown)
         .await
         .context("the HTTP server failed")?;
+        replication_stop.cancel();
         connector_loop.abort();
         connectors.close().await;
         self.state.tasks().shutdown(TASK_SHUTDOWN).await;
@@ -117,6 +135,12 @@ impl Server {
         heartbeat.abort();
         revisions.abort();
         space.abort();
+        if tokio::time::timeout(REPLICATION_SHUTDOWN, replication)
+            .await
+            .is_err()
+        {
+            tracing::warn!("the replication dispatcher did not stop in time");
+        }
         astrum_api::nodes::leave(&self.state).await;
         if let Err(error) = self.state.content().flush_downloads().await {
             tracing::warn!(%error, "download counts were not saved");

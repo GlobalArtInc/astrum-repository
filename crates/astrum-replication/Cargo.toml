@@ -1,0 +1,37 @@
+[package]
+name = "astrum-replication"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+astrum-blob.workspace = true
+astrum-content.workspace = true
+astrum-db.workspace = true
+astrum-notify.workspace = true
+astrum-outbound.workspace = true
+astrum-security.workspace = true
+astrum-tasks.workspace = true
+async-trait.workspace = true
+bytes.workspace = true
+chrono.workspace = true
+futures-util.workspace = true
+httpdate.workspace = true
+percent-encoding.workspace = true
+rand.workspace = true
+regex.workspace = true
+reqwest.workspace = true
+sea-orm.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tokio-util.workspace = true
+tracing.workspace = true
+url.workspace = true
+uuid.workspace = true
+
+[dev-dependencies]
+axum.workspace = true
+tokio = { workspace = true, features = ["test-util"] }
