@@ -5,7 +5,7 @@ use sea_orm::{
     ConnectionTrait, DatabaseConnection, DbBackend, DbErr, RuntimeErr, Statement, TransactionTrait,
 };
 
-use crate::worker::EXTRACTOR;
+use crate::worker::extractor_case;
 
 pub const CHUNK: i64 = 10_000;
 
@@ -67,7 +67,8 @@ fn chunk_sql(selection: Selection) -> String {
              LEFT JOIN sca_inventory i ON i.id = s.inventory_id \
              WHERE s.component_id = c.id AND s.state NOT IN ('failed', 'incomplete') \
              AND NOT (s.state = 'unsupported' AND c.format = 'docker') \
-             AND (i.id IS NULL OR i.extractor >= {EXTRACTOR}))"
+             AND (i.id IS NULL OR i.extractor >= {}))",
+                extractor_case("c")
             ),
             "ON CONFLICT (component_id) DO NOTHING".to_owned(),
         ),

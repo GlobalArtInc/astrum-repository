@@ -9,7 +9,7 @@ use sea_orm::{
     TransactionTrait,
 };
 
-use super::{Claimed, EXTRACTOR, State};
+use super::{Claimed, State, extractor_of};
 use crate::PACKAGE_LOCK;
 
 mod clean;
@@ -234,7 +234,7 @@ pub async fn record_inventory(
         return Ok(false);
     }
     let before = previous_digest(&txn, component.id).await?;
-    let inventory_id = upsert_inventory(&txn, inventory).await?;
+    let inventory_id = upsert_inventory(&txn, inventory, extractor_of(&component.format)).await?;
     let package_ids = lock_packages(&txn, &packages).await?;
     replace_links(&txn, inventory_id, &package_ids).await?;
     upsert_scan(
@@ -309,7 +309,11 @@ fn distinct(packages: &[PackageRef]) -> Vec<&PackageRef> {
     kept
 }
 
-async fn upsert_inventory(txn: &DatabaseTransaction, inventory: &Inventory) -> Result<i64, DbErr> {
+async fn upsert_inventory(
+    txn: &DatabaseTransaction,
+    inventory: &Inventory,
+    extractor: i32,
+) -> Result<i64, DbErr> {
     let row = txn
         .query_one(Statement::from_sql_and_values(
             DbBackend::Postgres,
@@ -321,7 +325,7 @@ async fn upsert_inventory(txn: &DatabaseTransaction, inventory: &Inventory) -> R
             [
                 inventory.key.clone().into(),
                 inventory.source.as_str().into(),
-                EXTRACTOR.into(),
+                extractor.into(),
                 inventory.complete.into(),
             ],
         ))

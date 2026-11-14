@@ -559,23 +559,13 @@ async fn scanned_with(s: &Setup, id: i64, state: &str, extractor: Option<i32>) {
         .unwrap();
 }
 
-#[tokio::test]
-async fn images_scanned_before_the_layers_were_read_are_picked_again_and_other_formats_are_not() {
-    let s = setup().await;
-    let unsupported_image = component_of(&s, "docker", "bare").await;
-    scanned_with(&s, unsupported_image, "unsupported", None).await;
-    let old_image = component_of(&s, "docker", "old").await;
-    scanned_with(&s, old_image, "scanned", Some(worker::EXTRACTOR - 1)).await;
-    let current_image = component_of(&s, "docker", "current").await;
-    scanned_with(&s, current_image, "scanned", Some(worker::EXTRACTOR)).await;
-    let unsupported_package = component_of(&s, "maven2", "plain").await;
-    scanned_with(&s, unsupported_package, "unsupported", None).await;
+async fn picked(s: &Setup) -> Vec<i64> {
     s.db.conn()
         .execute_unprepared("DELETE FROM scan_queue")
         .await
         .unwrap();
     let never = || false;
-    let picked = queue::enqueue_repository(
+    queue::enqueue_repository(
         s.db.conn(),
         "releases",
         "test",
@@ -585,8 +575,7 @@ async fn images_scanned_before_the_layers_were_read_are_picked_again_and_other_f
     )
     .await
     .unwrap();
-    assert_eq!((picked.components, picked.queued), (2, 2));
-    let queued =
+    let rows =
         s.db.conn()
             .query_all(Statement::from_string(
                 DbBackend::Postgres,
@@ -594,9 +583,37 @@ async fn images_scanned_before_the_layers_were_read_are_picked_again_and_other_f
             ))
             .await
             .unwrap();
-    let ids: Vec<i64> = queued
-        .iter()
+    rows.iter()
         .map(|row| row.try_get("", "component_id").unwrap())
-        .collect();
-    assert_eq!(ids, vec![unsupported_image, old_image]);
+        .collect()
+}
+
+#[tokio::test]
+async fn the_extractor_is_versioned_per_format_so_only_stale_images_are_picked_again() {
+    assert_eq!(worker::extractor_of("npm"), 1);
+    assert!(worker::extractor_of("docker") > worker::extractor_of("npm"));
+    let s = setup().await;
+    let docker = worker::extractor_of("docker");
+    let package = component_of(&s, "npm", "plain").await;
+    scanned_with(&s, package, "scanned", Some(worker::extractor_of("npm"))).await;
+    let bare = component_of(&s, "docker", "bare").await;
+    scanned_with(&s, bare, "unsupported", None).await;
+    let old = component_of(&s, "docker", "old").await;
+    scanned_with(&s, old, "scanned", Some(docker - 1)).await;
+    let current = component_of(&s, "docker", "current").await;
+    scanned_with(&s, current, "scanned", Some(docker)).await;
+    let unsupported_package = component_of(&s, "maven2", "none").await;
+    scanned_with(&s, unsupported_package, "unsupported", None).await;
+    assert_eq!(picked(&s).await, vec![bare, old]);
+
+    s.db.conn()
+        .execute_unprepared(&format!(
+            "WITH inventory AS (INSERT INTO sca_inventory (key, source, extractor) \
+               VALUES ('later', 'layers', {docker}) RETURNING id) \
+             UPDATE component_scan SET state = 'scanned', \
+               inventory_id = (SELECT id FROM inventory) WHERE component_id = {bare}"
+        ))
+        .await
+        .unwrap();
+    assert_eq!(picked(&s).await, vec![old]);
 }

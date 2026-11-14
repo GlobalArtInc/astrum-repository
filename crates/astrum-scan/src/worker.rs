@@ -14,7 +14,23 @@ use tokio::task::JoinHandle;
 pub use metrics::{BUCKETS, Metrics, Snapshot};
 pub use store::{Claim, claim_component, queue_component};
 
-pub const EXTRACTOR: i32 = 2;
+pub const EXTRACTOR: i32 = 1;
+const FORMAT_EXTRACTORS: [(&str, i32); 1] = [("docker", 2)];
+
+pub fn extractor_of(format: &str) -> i32 {
+    FORMAT_EXTRACTORS
+        .iter()
+        .find(|(name, _)| *name == format)
+        .map_or(EXTRACTOR, |(_, version)| *version)
+}
+
+pub fn extractor_case(alias: &str) -> String {
+    let arms: String = FORMAT_EXTRACTORS
+        .iter()
+        .map(|(name, version)| format!("WHEN {alias}.format = '{name}' THEN {version} "))
+        .collect();
+    format!("CASE {arms}ELSE {EXTRACTOR} END")
+}
 pub const WORKERS_KEY: &str = "scan.workers";
 pub const DEFAULT_WORKERS: usize = 2;
 pub const MAX_WORKERS: usize = 8;
