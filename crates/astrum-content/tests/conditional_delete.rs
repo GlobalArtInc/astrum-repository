@@ -29,7 +29,8 @@ async fn a_component_goes_only_when_its_assets_are_exactly_the_expected_ones() {
         ("another digest", wrong),
         ("more", extra),
     ] {
-        let refused = store::delete_component_matching(&dev.content, component, &expected).await;
+        let refused =
+            store::delete_component_matching(&dev.content, component, &expected, None).await;
         assert!(
             matches!(refused, Err(ContentError::Conflict(_))),
             "{label}: {refused:?}"
@@ -40,7 +41,7 @@ async fn a_component_goes_only_when_its_assets_are_exactly_the_expected_ones() {
         );
     }
     assert!(
-        store::delete_component_matching(&dev.content, component, &both)
+        store::delete_component_matching(&dev.content, component, &both, None)
             .await
             .unwrap()
     );
@@ -51,7 +52,7 @@ async fn a_component_goes_only_when_its_assets_are_exactly_the_expected_ones() {
             .is_empty()
     );
     assert!(
-        !store::delete_component_matching(&dev.content, component, &both)
+        !store::delete_component_matching(&dev.content, component, &both, None)
             .await
             .unwrap()
     );

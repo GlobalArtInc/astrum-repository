@@ -4,7 +4,7 @@ use std::time::{Duration, Instant};
 use astrum_content::store::{self, Component};
 use astrum_content::transfer::{
     AssetOutcome, AssetStatus, Bundle, Conflict, LocalSource, MAX_COMPONENTS, Outcome, PROMOTED,
-    Status, Terms,
+    SkipFn, Status, Terms,
 };
 use astrum_content::{ContentError, Ctx, Format, View, ids};
 use astrum_db::audit::Event;
@@ -269,6 +269,8 @@ struct ItemResult {
     skipped_children: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
     warning: Option<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    warnings: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     error: Option<String>,
 }
@@ -288,6 +290,7 @@ impl ItemResult {
             retryable: None,
             skipped_children: None,
             warning: None,
+            warnings: Vec::new(),
             error: None,
         }
     }
@@ -446,6 +449,7 @@ enum Removal<'a> {
     Component {
         component: &'a Component,
         bundle: &'a Bundle,
+        skip: Option<SkipFn>,
     },
     Tag {
         image: &'a str,
@@ -702,6 +706,7 @@ impl Job {
         let removal = Removal::Component {
             component: &component,
             bundle: &bundle,
+            skip: transfer.bundle_skip(),
         };
         Ok(self
             .settle(&entry.item, &outcome, &component_name, removal)
@@ -747,7 +752,11 @@ impl Job {
 
     async fn withdraw(&self, removal: Removal<'_>) -> Result<(), Kept> {
         match removal {
-            Removal::Component { component, bundle } => self.remove(component, bundle).await,
+            Removal::Component {
+                component,
+                bundle,
+                skip,
+            } => self.remove(component, bundle, skip).await,
             Removal::Tag { image, tag, digest } => self.remove_tag(image, tag, digest).await,
         }
     }
@@ -1001,6 +1010,7 @@ impl Job {
         result.asset_count = outcome.assets.len();
         result.bytes_copied = outcome.bytes_copied;
         result.bytes_reused = outcome.bytes_reused;
+        result.warnings = outcome.warnings.clone();
         if outcome.status == Status::Conflict {
             result.retryable = Some(false);
             result.error = Some(conflict_text(outcome));
@@ -1008,13 +1018,19 @@ impl Job {
         result
     }
 
-    async fn remove(&self, component: &Component, bundle: &Bundle) -> Result<(), Kept> {
+    async fn remove(
+        &self,
+        component: &Component,
+        bundle: &Bundle,
+        skip: Option<SkipFn>,
+    ) -> Result<(), Kept> {
         let expected: Vec<(String, String)> = bundle
             .assets
             .iter()
             .map(|asset| (asset.path.clone(), asset.sha256.clone()))
             .collect();
-        match store::delete_component_matching(self.state.content(), component.id, &expected).await
+        match store::delete_component_matching(self.state.content(), component.id, &expected, skip)
+            .await
         {
             Ok(true) => Ok(()),
             Ok(false) => Err(Kept::new(SOURCE_GONE)),

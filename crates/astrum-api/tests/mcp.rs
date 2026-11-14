@@ -965,6 +965,29 @@ async fn a_promotion_copies_a_raw_component_between_hosted_repositories() {
 }
 
 #[tokio::test]
+async fn a_promotion_answer_carries_the_warnings_of_the_copy() {
+    let fixture = ready().await;
+    two_raw_repositories(&fixture).await;
+    fixture
+        .state
+        .content()
+        .register(std::sync::Arc::new(support::flaky::FlakyRaw::new()));
+    let token = token(&fixture, "WRITE").await;
+    let item = source_item(&fixture, &token).await;
+    let copied = ok(&fixture, &token, PROMOTE, promotion(item)).await;
+    assert_eq!(copied["results"][0]["status"], "copied");
+    let warnings = &copied["results"][0]["warnings"];
+    assert_eq!(warnings.as_array().map(Vec::len), Some(1), "{copied}");
+    assert!(
+        warnings[0]
+            .as_str()
+            .unwrap()
+            .contains(support::flaky::REFRESH_FAILURE),
+        "{copied}"
+    );
+}
+
+#[tokio::test]
 async fn a_promotion_through_mcp_is_audited_via_mcp_without_secrets() {
     let fixture = ready().await;
     two_raw_repositories(&fixture).await;

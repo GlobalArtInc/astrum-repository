@@ -21,7 +21,9 @@ use serde_json::Value;
 use uuid::Uuid;
 
 use crate::mime;
-use crate::transfer::{AssetOutcome, AssetStatus, Conflict, MAX_COMPONENTS, Outcome, Status};
+use crate::transfer::{
+    AssetOutcome, AssetStatus, Conflict, MAX_COMPONENTS, Outcome, SkipFn, Status,
+};
 use crate::usage::{self, Usage};
 use crate::{Content, ContentError, Ctx, holds};
 
@@ -1090,26 +1092,28 @@ async fn remove_asset(
 }
 
 pub async fn delete_component(content: &Content, component_id: i64) -> Result<bool, ContentError> {
-    delete_component_checked(content, component_id, None).await
+    delete_component_checked(content, component_id, None, None).await
 }
 
 pub async fn delete_component_matching(
     content: &Content,
     component_id: i64,
     expected: &[(String, String)],
+    skip: Option<SkipFn>,
 ) -> Result<bool, ContentError> {
-    delete_component_checked(content, component_id, Some(expected)).await
+    delete_component_checked(content, component_id, Some(expected), skip).await
 }
 
 async fn delete_component_checked(
     content: &Content,
     component_id: i64,
     expected: Option<&[(String, String)]>,
+    skip: Option<SkipFn>,
 ) -> Result<bool, ContentError> {
     let txn = content.db().begin().await?;
     let attempt = async {
         if let Some(expected) = expected {
-            confirm_component(&txn, component_id, expected).await?;
+            confirm_component(&txn, component_id, expected, skip).await?;
         }
         remove_component(content, &txn, component_id).await
     }
@@ -1135,6 +1139,7 @@ async fn confirm_component(
     txn: &DatabaseTransaction,
     component_id: i64,
     expected: &[(String, String)],
+    skip: Option<SkipFn>,
 ) -> Result<(), ContentError> {
     let Some(found) = component_by_id(txn, component_id).await? else {
         return Ok(());
@@ -1148,7 +1153,11 @@ async fn confirm_component(
     {
         return Ok(());
     }
-    let assets = assets_of(txn, component_id).await?;
+    let assets: Vec<Asset> = assets_of(txn, component_id)
+        .await?
+        .into_iter()
+        .filter(|asset| !skip.is_some_and(|skip| skip(asset)))
+        .collect();
     let wanted: HashMap<&str, &str> = expected
         .iter()
         .map(|(path, sha256)| (path.as_str(), sha256.as_str()))

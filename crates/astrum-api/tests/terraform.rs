@@ -1293,3 +1293,68 @@ async fn a_provider_bundle_leaves_out_the_files_the_sender_generates() {
     assert_eq!(plain.assets[0].path, path);
     assert_eq!(digests(&plain), digests(&signed));
 }
+
+async fn promote_item(fixture: &Fixture, item: &Value, relocate: bool) -> Value {
+    let reply = fixture
+        .call(
+            Method::POST,
+            "/service/rest/v1/promotions",
+            Auth::Admin,
+            Some(
+                json!({"source": "tf-source", "target": "tf-target", "items": [item], "move": relocate}),
+            ),
+        )
+        .await;
+    assert_eq!(reply.status, StatusCode::OK, "{}", reply.text());
+    reply.json()["results"][0].clone()
+}
+
+#[tokio::test]
+async fn a_signed_provider_is_copied_and_then_moved_with_its_generated_files() {
+    let fixture = repositories().await;
+    sign(&fixture, "tf-source").await;
+    release(&fixture, "tf-source", "2.0.0", "linux").await;
+    let sums = format!("{DEMO}/2.0.0/terraform-provider-demo_2.0.0_SHA256SUMS");
+    let signature = format!("{sums}.sig");
+    let package = format!("{DEMO}/2.0.0/{}", demo_file("2.0.0", "linux"));
+    let db = fixture.state.db().conn();
+    for generated in [&sums, &signature] {
+        let stored = astrum_content::store::find(db, "tf-source", generated)
+            .await
+            .unwrap();
+        assert!(stored.is_some(), "{generated} is generated in the source");
+    }
+    let component = astrum_content::store::find(db, "tf-source", &package)
+        .await
+        .unwrap()
+        .and_then(|asset| asset.component_id)
+        .expect("the package has a component");
+    let item = json!({"componentId": astrum_content::ids::encode("tf-source", component)});
+    let copied = promote_item(&fixture, &item, false).await;
+    assert_eq!(copied["status"], "copied", "{copied}");
+    assert!(copied.get("sourceKept").is_none(), "{copied}");
+    assert!(
+        astrum_content::store::find(db, "tf-source", &package)
+            .await
+            .unwrap()
+            .is_some()
+    );
+
+    let moved = promote_item(&fixture, &item, true).await;
+    assert_eq!(moved["status"], "unchanged", "{moved}");
+    assert_eq!(moved["sourceKept"], false, "{moved}");
+    assert!(moved.get("error").is_none(), "{moved}");
+    for gone in [&package, &sums, &signature] {
+        let left = astrum_content::store::find(db, "tf-source", gone)
+            .await
+            .unwrap();
+        assert!(left.is_none(), "{gone} left in the source");
+    }
+    let served = get(
+        &fixture,
+        &format!("/repository/tf-target{package}"),
+        Auth::Admin,
+    )
+    .await;
+    assert_eq!(served.status, StatusCode::OK);
+}

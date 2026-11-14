@@ -250,6 +250,10 @@ pub trait Transfer: Send + Sync {
         blobs: &dyn BlobSource,
         terms: Terms,
     ) -> Result<Outcome, ContentError>;
+
+    fn bundle_skip(&self) -> Option<SkipFn> {
+        None
+    }
 }
 
 pub type PlanFn = fn(RepositoryType, &str, &str) -> Plan;
@@ -952,6 +956,10 @@ impl GenericTransfer {
 
 #[async_trait]
 impl Transfer for GenericTransfer {
+    fn bundle_skip(&self) -> Option<SkipFn> {
+        self.bundle_skip
+    }
+
     async fn bundle(&self, source: &Ctx, component: &Component) -> Result<Bundle, ContentError> {
         if component.repository != source.name() {
             return Err(ContentError::not_found(format!(

@@ -530,7 +530,7 @@ fn defs() -> Vec<Def> {
         Def {
             name: "promote_components",
             title: "Promote components between repositories",
-            description: "Copy components from one hosted repository to another, or move them with move: true, which deletes each source after it is copied. This WRITES to the server. dryRun: true previews the result and writes nothing. conflict decides what happens when the target already holds different content: fail (the default) refuses that item, skip leaves it, replace overwrites it. The answer has one status per item in results.",
+            description: "Copy components from one hosted repository to another, or move them with move: true, which deletes each source after it is copied. This WRITES to the server. dryRun: true previews the result and writes nothing. conflict decides what happens when the target already holds different content: fail (the default) refuses that item, skip leaves it, replace overwrites it. The answer has one status per item in results; an item whose copy is complete but whose derived data (an index or checksum file) could not be refreshed also lists warnings.",
             schema: || {
                 schema(
                     json!({

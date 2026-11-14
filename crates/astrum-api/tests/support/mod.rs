@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+pub mod flaky;
 pub mod two_factor;
 
 use std::net::{IpAddr, SocketAddr};

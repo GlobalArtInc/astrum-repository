@@ -17129,6 +17129,13 @@
      "warning": {
       "description": "Docker: set for a digest-only image copied without any tag; an untagged image is removed by the next garbage collection",
       "type": "string"
+     },
+     "warnings": {
+      "description": "Derived data (an index or checksum file) of a copied component that could not be refreshed in the target after the copy; the copy itself is complete. Absent when there is nothing to report",
+      "items": {
+       "type": "string"
+      },
+      "type": "array"
      }
     },
     "type": "object"

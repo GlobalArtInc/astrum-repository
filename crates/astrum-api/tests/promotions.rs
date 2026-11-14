@@ -679,6 +679,44 @@ async fn raw_components_are_copied_by_id_and_by_coordinates_and_items_fail_alone
 }
 
 #[tokio::test]
+async fn a_failed_refresh_of_derived_data_is_reported_as_a_warning_of_the_item() {
+    let fixture = world().await;
+    raw_pair(&fixture, "ALLOW", "ALLOW").await;
+    put(&fixture, "source", "/a.txt", b"alpha").await;
+    fixture
+        .state
+        .content()
+        .register(Arc::new(support::flaky::FlakyRaw::new()));
+    let item = json!({"namespace": "/", "name": "/a.txt", "version": ""});
+    let first = promote(
+        &fixture,
+        Auth::Admin,
+        request("source", "target", vec![item.clone()]),
+    )
+    .await;
+    assert_eq!(statuses(&first), ["copied"]);
+    let warnings = first.json()["results"][0]["warnings"].clone();
+    assert_eq!(warnings.as_array().map(Vec::len), Some(1), "{warnings}");
+    assert!(
+        warnings[0]
+            .as_str()
+            .unwrap()
+            .contains(support::flaky::REFRESH_FAILURE),
+        "{warnings}"
+    );
+    assert_eq!(served(&fixture, "target", "/a.txt").await.body, b"alpha");
+
+    let again = promote(
+        &fixture,
+        Auth::Admin,
+        request("source", "target", vec![item]),
+    )
+    .await;
+    assert_eq!(statuses(&again), ["unchanged"]);
+    assert!(again.json()["results"][0].get("warnings").is_none());
+}
+
+#[tokio::test]
 async fn maven_artifacts_are_copied_and_the_target_metadata_lists_the_version() {
     let fixture = world().await;
     for name in ["source", "target"] {
@@ -1007,8 +1045,12 @@ async fn a_move_without_delete_on_the_source_leaves_an_unchanged_component_alone
 #[tokio::test]
 async fn formats_without_transfer_are_unsupported() {
     let fixture = world().await;
+    fixture
+        .state
+        .content()
+        .register(Arc::new(astrum_format_go::Go));
     for name in ["source", "target"] {
-        create(&fixture, "pypi", "hosted", plain_repository(name, "ALLOW")).await;
+        create(&fixture, "go", "hosted", plain_repository(name, "ALLOW")).await;
     }
     let reply = promote(
         &fixture,
