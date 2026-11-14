@@ -7,7 +7,8 @@ use crate::reference::Digest;
 
 const REASON: &str = "sbom";
 const PARENTS: u64 = 16;
-const TAGS: i64 = 1000;
+const BATCH: usize = 500;
+const LIMIT: usize = 5000;
 
 fn legacy_subject(tag: &str) -> Option<Digest> {
     let stem = tag
@@ -16,7 +17,18 @@ fn legacy_subject(tag: &str) -> Option<Digest> {
     Digest::parse(&stem.replacen('-', ":", 1))
 }
 
-pub(crate) async fn after_store(
+pub(crate) async fn after_store(ctx: &Ctx, image: &str, parsed: &Manifest, tags: &[String]) {
+    if let Err(error) = queue(ctx, image, parsed, tags).await {
+        tracing::warn!(
+            %error,
+            repository = ctx.name(),
+            image,
+            "the images of a stored SBOM or attestation were not queued for a new scan"
+        );
+    }
+}
+
+async fn queue(
     ctx: &Ctx,
     image: &str,
     parsed: &Manifest,
@@ -47,13 +59,29 @@ pub(crate) async fn after_store(
                    AND attributes #>> '{docker,name}' = $2 \
                    AND attributes #>> '{docker,digest}' = ANY($3) \
                  ORDER BY component_id LIMIT $4",
-                [ctx.name().into(), image.into(), digests.into(), TAGS.into()],
+                [
+                    ctx.name().into(),
+                    image.into(),
+                    digests.into(),
+                    (LIMIT as i64 + 1).into(),
+                ],
             ))
             .await?;
+        let mut ids = Vec::with_capacity(rows.len());
         for row in rows {
-            let component_id: i64 = row.try_get("", "component_id")?;
-            astrum_scan::queue::enqueue_component(ctx.db(), ctx.name(), component_id, REASON)
-                .await?;
+            ids.push(row.try_get::<i64>("", "component_id")?);
+        }
+        if ids.len() > LIMIT {
+            ids.truncate(LIMIT);
+            tracing::warn!(
+                repository = ctx.name(),
+                image,
+                limit = LIMIT,
+                "more tags hold the image of a stored SBOM than are queued for a new scan; the rest wait for the next sweep"
+            );
+        }
+        for batch in ids.chunks(BATCH) {
+            astrum_scan::queue::enqueue_components(ctx.db(), ctx.name(), batch, REASON).await?;
         }
     }
     Ok(())

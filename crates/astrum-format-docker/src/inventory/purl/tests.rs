@@ -38,7 +38,7 @@ fn every_language_purl_type_maps_to_its_osv_ecosystem_and_name() {
         ("pkg:cargo/serde@1.0.1", row("crates.io", "serde", "1.0.1")),
         (
             "pkg:nuget/Newtonsoft.Json@13.0.1",
-            row("NuGet", "Newtonsoft.Json", "13.0.1"),
+            row("NuGet", "newtonsoft.json", "13.0.1"),
         ),
         ("pkg:gem/rails@7.0.0", row("RubyGems", "rails", "7.0.0")),
         (
@@ -100,6 +100,8 @@ fn unknown_types_and_unusable_purls_are_skipped_and_a_missing_purl_is_not_listed
         "pkg:maven/log4j-core@2.14.1",
         "pkg:npm/lodash",
         "pkg:npm/%FF@1",
+        "pkg:npm/bad%00name@1",
+        "pkg:npm/lodash@4%0A1",
         "not a purl",
     ] {
         assert_eq!(map(Some(purl), ""), Mapped::Skipped, "{purl}");
@@ -108,6 +110,25 @@ fn unknown_types_and_unusable_purls_are_skipped_and_a_missing_purl_is_not_listed
     assert_eq!(map(Some(""), "1"), Mapped::Unlisted);
     let long = format!("pkg:npm/{}@1", "a".repeat(2000));
     assert_eq!(map(Some(&long), ""), Mapped::Skipped);
+}
+
+#[test]
+fn a_control_character_in_the_name_the_purl_or_the_fallback_version_skips_the_package() {
+    assert_eq!(map(Some("pkg:npm/lodash"), "4\u{0}0"), Mapped::Skipped);
+    assert_eq!(map(Some("pkg:npm/lodash\u{7}@1"), ""), Mapped::Skipped);
+    assert_eq!(
+        map(Some("pkg:npm/lodash@1"), "ignored"),
+        mapped_package("pkg:npm/lodash@1")
+    );
+}
+
+fn mapped_package(purl: &str) -> Mapped {
+    Mapped::Package(PackageRef {
+        ecosystem: "npm".to_owned(),
+        name: "lodash".to_owned(),
+        version: "1".to_owned(),
+        purl: purl.to_owned(),
+    })
 }
 
 #[test]

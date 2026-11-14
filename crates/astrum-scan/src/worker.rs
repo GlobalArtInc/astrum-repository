@@ -267,7 +267,8 @@ async fn scan(
             true => Ok(State::Unsupported),
             false => Ok(State::Gone),
         },
-        Some(inventory) => {
+        Some(mut inventory) => {
+            store::sanitise(&mut inventory);
             let state = match inventory.complete {
                 true => State::Scanned,
                 false => State::Incomplete,

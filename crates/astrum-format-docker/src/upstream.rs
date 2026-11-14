@@ -258,7 +258,7 @@ impl Upstreams {
             None => stored,
         };
         let tags: Vec<String> = tag.map(str::to_owned).into_iter().collect();
-        inventory::requeue::after_store(ctx, image, &parsed, &tags).await?;
+        inventory::requeue::after_store(ctx, image, &parsed, &tags).await;
         Ok(kept)
     }
 

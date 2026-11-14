@@ -72,24 +72,6 @@ fn parse(text: &str) -> Option<Purl> {
     })
 }
 
-fn pep503(name: &str) -> String {
-    let mut out = String::with_capacity(name.len());
-    let mut separated = false;
-    for ch in name.chars() {
-        match ch {
-            '-' | '_' | '.' => separated = true,
-            _ => {
-                if separated && !out.is_empty() {
-                    out.push('-');
-                }
-                separated = false;
-                out.extend(ch.to_lowercase());
-            }
-        }
-    }
-    out
-}
-
 fn numeric(text: &str) -> bool {
     !text.is_empty() && text.bytes().all(|byte| byte.is_ascii_digit())
 }
@@ -186,7 +168,7 @@ pub fn map(purl: Option<&str>, fallback_version: &str) -> Mapped {
             format!("{}:{}", parsed.namespace, parsed.name),
             version,
         ),
-        "pypi" => ("PyPI".to_owned(), pep503(&parsed.name), version),
+        "pypi" => ("PyPI".to_owned(), parsed.name.clone(), version),
         "golang" => ("Go".to_owned(), joined(&parsed), version),
         "cargo" => ("crates.io".to_owned(), parsed.name.clone(), version),
         "nuget" => ("NuGet".to_owned(), parsed.name.clone(), version),
@@ -210,7 +192,9 @@ pub fn map(purl: Option<&str>, fallback_version: &str) -> Mapped {
         }
         _ => return Mapped::Skipped,
     };
-    if name.is_empty() {
+    let name = astrum_scan::osv::normalise_name(&ecosystem, &name);
+    let unsafe_text = |text: &str| text.chars().any(char::is_control);
+    if name.is_empty() || unsafe_text(&name) || unsafe_text(&version) || unsafe_text(text) {
         return Mapped::Skipped;
     }
     Mapped::Package(PackageRef {

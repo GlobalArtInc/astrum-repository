@@ -148,12 +148,20 @@ pub struct Finding {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Peer {
+    pub namespace: String,
+    pub name: String,
+    pub version: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Target {
     pub format: String,
     pub namespace: String,
     pub name: String,
     pub version: String,
     pub digest: Option<String>,
+    pub peers: Vec<Peer>,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -276,12 +284,19 @@ fn covers(exception: &Exception, target: &Target, finding: &Finding) -> bool {
         .digest
         .as_deref()
         .is_none_or(|wanted| target.digest.as_deref() == Some(wanted));
+    let named = |namespace: &str, name: &str, version: &str| {
+        same(&exception.namespace, namespace)
+            && same(&exception.name, name)
+            && same(&exception.version, version)
+    };
     advisory
         && digest
         && same(&exception.format, &target.format)
-        && same(&exception.namespace, &target.namespace)
-        && same(&exception.name, &target.name)
-        && same(&exception.version, &target.version)
+        && (named(&target.namespace, &target.name, &target.version)
+            || target
+                .peers
+                .iter()
+                .any(|peer| named(&peer.namespace, &peer.name, &peer.version)))
 }
 
 fn reaches(finding: &Finding, rule: &crate::policy::VulnerabilityRule) -> bool {
@@ -426,6 +441,7 @@ mod tests {
             name: "lib".to_owned(),
             version: "1.0.0".to_owned(),
             digest: None,
+            peers: Vec::new(),
         }
     }
 
@@ -563,6 +579,42 @@ mod tests {
         assert_eq!(clean.counts.low, 1);
         assert_eq!(clean.max_severity, Some(Severity::Low));
         assert_eq!(clean.policy_revision, 3);
+    }
+
+    #[test]
+    fn an_exception_by_name_covers_a_target_through_any_of_its_peers() {
+        let block = policy(Mode::Block, Some(Severity::Low));
+        let found = [finding("A", Severity::High)];
+        let peer = |name: &str, version: &str| Peer {
+            namespace: String::new(),
+            name: name.to_owned(),
+            version: version.to_owned(),
+        };
+        let image = Target {
+            format: "docker".to_owned(),
+            digest: Some("sha256:x".to_owned()),
+            peers: vec![peer("app", "1.0"), peer("tool", "2.0")],
+            ..Target::default()
+        };
+        let blocked = |name: &str, version: Option<&str>| {
+            let mut by_name = exception(None);
+            by_name.name = Some(name.to_owned());
+            by_name.version = version.map(str::to_owned);
+            evaluate(&Input {
+                policy: &block,
+                exceptions: &[by_name],
+                target: &image,
+                scan: Scan::Scanned,
+                findings: &found,
+                now: Utc::now(),
+            })
+            .unwrap()
+            .blocked
+        };
+        assert!(!blocked("tool", None));
+        assert!(!blocked("app", Some("1.0")));
+        assert!(blocked("app", Some("2.0")));
+        assert!(blocked("other", None));
     }
 
     #[test]

@@ -75,6 +75,13 @@ impl Format for Fake {
             }
             "plain" => Ok(None),
             "boom" => Err(ContentError::BadRequest("cannot read it".to_owned())),
+            "hostile" => Ok(Some(Inventory {
+                key: "pkg:maven/hostile@1".to_owned(),
+                packages: vec![package("hostile"), package("bad\u{0}name")],
+                license: None,
+                complete: true,
+                ..Inventory::default()
+            })),
             name => Ok(Some(Inventory {
                 key: format!("pkg:maven/{name}@1"),
                 packages: vec![package(name), package("shared"), package("shared")],
@@ -208,6 +215,24 @@ async fn two_workers_on_one_queue_never_take_the_same_row() {
         .await,
         30
     );
+}
+
+#[tokio::test]
+async fn a_package_with_a_control_character_is_left_out_and_the_inventory_is_incomplete() {
+    let s = setup().await;
+    let hostile = add(&s, "hostile").await;
+    drain_all(&s, &quick()).await;
+
+    assert_eq!(
+        text(
+            &s,
+            &format!("SELECT state AS t FROM component_scan WHERE component_id = {hostile}")
+        )
+        .await
+        .as_deref(),
+        Some("incomplete")
+    );
+    assert_eq!(scalar(&s, "SELECT count(*) AS n FROM sca_package").await, 1);
 }
 
 #[tokio::test]

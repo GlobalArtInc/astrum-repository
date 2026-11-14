@@ -2,8 +2,7 @@ use std::collections::HashSet;
 use std::time::Duration;
 
 use astrum_content::Component;
-use astrum_content::inventory::{Inventory, PackageRef, Source};
-use astrum_policy::subject;
+use astrum_content::inventory::{Inventory, PackageRef};
 use chrono::{DateTime, Utc};
 use sea_orm::{
     ConnectionTrait, DatabaseConnection, DatabaseTransaction, DbBackend, DbErr, Statement,
@@ -12,6 +11,12 @@ use sea_orm::{
 
 use super::{Claimed, EXTRACTOR, State};
 use crate::PACKAGE_LOCK;
+
+mod clean;
+mod oci;
+
+pub use clean::sanitise;
+use oci::{mark_subjects, previous_digest};
 
 const MAX_ERROR_CHARS: usize = 1000;
 
@@ -180,7 +185,7 @@ pub async fn give_up(db: &DatabaseConnection, item: Claimed, message: &str) -> R
         ],
     ))
     .await?;
-    mark_dirty(&txn, item.component_id, &images(&before, None)).await?;
+    mark_subjects(&txn, item.component_id, before.as_deref(), None).await?;
     dequeue(&txn, item).await?;
     txn.commit().await
 }
@@ -201,7 +206,7 @@ pub async fn record_unsupported(
     }
     let before = previous_digest(&txn, component.id).await?;
     upsert_scan(&txn, component, None, None, State::Unsupported).await?;
-    mark_dirty(&txn, component.id, &images(&before, None)).await?;
+    mark_subjects(&txn, component.id, before.as_deref(), None).await?;
     dequeue(&txn, item).await?;
     txn.commit().await?;
     Ok(true)
@@ -229,7 +234,7 @@ pub async fn record_inventory(
         return Ok(false);
     }
     let before = previous_digest(&txn, component.id).await?;
-    let inventory_id = upsert_inventory(&txn, &inventory.key, inventory.source).await?;
+    let inventory_id = upsert_inventory(&txn, inventory).await?;
     let package_ids = lock_packages(&txn, &packages).await?;
     replace_links(&txn, inventory_id, &package_ids).await?;
     upsert_scan(
@@ -240,15 +245,11 @@ pub async fn record_inventory(
         state,
     )
     .await?;
-    mark_dirty(
-        &txn,
-        component.id,
-        &images(&before, inventory.digest.as_deref()),
-    )
-    .await?;
-    if inventory.digest.is_some() {
-        mark_sharing(&txn, inventory_id, component.id).await?;
-    }
+    let marked = inventory
+        .digest
+        .as_deref()
+        .map(|digest| (digest, inventory_id));
+    mark_subjects(&txn, component.id, before.as_deref(), marked).await?;
     dequeue(&txn, item).await?;
     txn.commit().await?;
     Ok(true)
@@ -299,6 +300,7 @@ fn distinct(packages: &[PackageRef]) -> Vec<&PackageRef> {
     let mut seen = HashSet::new();
     let mut kept: Vec<&PackageRef> = packages
         .iter()
+        .filter(|package| clean::writable(package))
         .filter(|package| seen.insert((&package.ecosystem, &package.name, &package.version)))
         .collect();
     kept.sort_by(|a, b| {
@@ -307,19 +309,21 @@ fn distinct(packages: &[PackageRef]) -> Vec<&PackageRef> {
     kept
 }
 
-async fn upsert_inventory(
-    txn: &DatabaseTransaction,
-    key: &str,
-    source: Source,
-) -> Result<i64, DbErr> {
+async fn upsert_inventory(txn: &DatabaseTransaction, inventory: &Inventory) -> Result<i64, DbErr> {
     let row = txn
         .query_one(Statement::from_sql_and_values(
             DbBackend::Postgres,
-            "INSERT INTO sca_inventory (key, source, extractor) VALUES ($1, $2, $3) \
+            "INSERT INTO sca_inventory (key, source, extractor, complete) VALUES ($1, $2, $3, $4) \
              ON CONFLICT (key) DO UPDATE SET source = EXCLUDED.source, \
-               extractor = EXCLUDED.extractor, extracted_at = now() \
+               extractor = EXCLUDED.extractor, complete = EXCLUDED.complete, \
+               extracted_at = now() \
              RETURNING id",
-            [key.into(), source.as_str().into(), EXTRACTOR.into()],
+            [
+                inventory.key.clone().into(),
+                inventory.source.as_str().into(),
+                EXTRACTOR.into(),
+                inventory.complete.into(),
+            ],
         ))
         .await?
         .ok_or_else(|| DbErr::RecordNotFound("the inventory upsert returned no row".to_owned()))?;
@@ -431,87 +435,6 @@ async fn upsert_scan(
             digest.map(str::to_owned).into(),
             state.as_str().into(),
         ],
-    ))
-    .await?;
-    Ok(())
-}
-
-async fn previous_digest(
-    txn: &DatabaseTransaction,
-    component_id: i64,
-) -> Result<Option<String>, DbErr> {
-    let row = txn
-        .query_one(Statement::from_sql_and_values(
-            DbBackend::Postgres,
-            "SELECT digest FROM component_scan WHERE component_id = $1 FOR UPDATE",
-            [component_id.into()],
-        ))
-        .await?;
-    match row {
-        Some(row) => row.try_get("", "digest"),
-        None => Ok(None),
-    }
-}
-
-fn images(before: &Option<String>, now: Option<&str>) -> Vec<String> {
-    let mut digests: Vec<String> = before
-        .iter()
-        .map(String::clone)
-        .chain(now.map(str::to_owned))
-        .collect();
-    digests.sort();
-    digests.dedup();
-    digests
-}
-
-async fn mark_dirty(
-    txn: &DatabaseTransaction,
-    component_id: i64,
-    digests: &[String],
-) -> Result<(), DbErr> {
-    txn.execute(Statement::from_sql_and_values(
-        DbBackend::Postgres,
-        "INSERT INTO policy_dirty (repository, subject) \
-         SELECT repository, $2 FROM component WHERE id = $1 \
-         ON CONFLICT (repository, subject) DO NOTHING",
-        [component_id.into(), subject::component(component_id).into()],
-    ))
-    .await?;
-    for digest in digests {
-        txn.execute(Statement::from_sql_and_values(
-            DbBackend::Postgres,
-            "INSERT INTO policy_dirty (repository, subject) \
-             SELECT repository, $2 FROM component WHERE id = $1 \
-             ON CONFLICT (repository, subject) DO NOTHING",
-            [component_id.into(), subject::image(digest).into()],
-        ))
-        .await?;
-    }
-    Ok(())
-}
-
-async fn mark_sharing(
-    txn: &DatabaseTransaction,
-    inventory_id: i64,
-    component_id: i64,
-) -> Result<(), DbErr> {
-    txn.execute(Statement::from_sql_and_values(
-        DbBackend::Postgres,
-        format!(
-            "INSERT INTO policy_dirty (repository, subject) \
-             SELECT repository, subject FROM (\
-               SELECT repository, '{prefix}' || component_id AS subject, 0 AS kind, component_id AS n \
-               FROM component_scan WHERE inventory_id = $1 AND component_id <> $2 \
-               UNION ALL \
-               SELECT DISTINCT repository, '{image}' || digest, 1, 0::bigint \
-               FROM component_scan WHERE inventory_id = $1 AND component_id <> $2 \
-                 AND digest IS NOT NULL) shared \
-             ORDER BY kind, n, subject \
-             ON CONFLICT (repository, subject) DO NOTHING",
-            prefix = subject::COMPONENT_PREFIX,
-            image = subject::IMAGE_PREFIX,
-        ),
-        [inventory_id.into(), component_id.into()],
     ))
     .await?;
     Ok(())

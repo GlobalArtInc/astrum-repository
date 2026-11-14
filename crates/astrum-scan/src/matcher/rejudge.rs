@@ -1,9 +1,11 @@
-use astrum_policy::subject::{COMPONENT_PREFIX, IMAGE_PREFIX};
+use astrum_policy::subject::COMPONENT_PREFIX;
 use chrono::{DateTime, Utc};
 use sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, DbErr, Statement};
 
 use super::Config;
 use super::store::Marked;
+
+mod oci;
 
 const SWEEP_LIMIT: i64 = 100;
 
@@ -91,25 +93,19 @@ async fn fan_out_package(
 ) -> Result<u64, DbErr> {
     let sql = format!(
         "WITH page AS (\
-           SELECT cs.component_id, cs.repository, cs.digest FROM sca_inventory_package ip \
+           SELECT cs.component_id, cs.repository FROM sca_inventory_package ip \
            JOIN component_scan cs ON cs.inventory_id = ip.inventory_id \
            JOIN repository r ON r.name = cs.repository \
            WHERE ip.package_id = $1 AND cs.component_id > $2 \
            ORDER BY cs.component_id LIMIT $3), \
          queued AS (\
            INSERT INTO policy_dirty (repository, subject) \
-           SELECT repository, subject FROM (\
-             SELECT repository, '{COMPONENT_PREFIX}' || component_id AS subject, 0 AS kind, \
-               component_id AS n FROM page \
-             UNION ALL \
-             SELECT DISTINCT repository, '{IMAGE_PREFIX}' || digest, 1, 0::bigint FROM page \
-             WHERE digest IS NOT NULL) marks \
-           ORDER BY kind, n, subject \
+           SELECT repository, '{COMPONENT_PREFIX}' || component_id FROM page \
            ON CONFLICT (repository, subject) DO NOTHING) \
          SELECT count(*) AS n, COALESCE(max(component_id), $2) AS last FROM page"
     );
+    let mut subjects = oci::fan_out(db, chunk, marked.package_id).await?;
     let mut after = 0i64;
-    let mut subjects = 0u64;
     loop {
         let row = db
             .query_one(Statement::from_sql_and_values(

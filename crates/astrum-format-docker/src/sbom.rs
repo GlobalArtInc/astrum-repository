@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use astrum_content::{ContentError, Ctx, View};
 use astrum_sbom::{Format, Package, Sbom};
@@ -35,6 +35,15 @@ impl Limit {
     pub fn take(&self) -> Option<SemaphorePermit<'_>> {
         self.0.try_acquire().ok()
     }
+
+    pub async fn wait(&self) -> Result<SemaphorePermit<'_>, ContentError> {
+        self.0.acquire().await.map_err(ContentError::internal)
+    }
+}
+
+pub fn shared() -> &'static Limit {
+    static SHARED: OnceLock<Limit> = OnceLock::new();
+    SHARED.get_or_init(|| Limit::new(PERMITS))
 }
 
 pub enum Outcome {

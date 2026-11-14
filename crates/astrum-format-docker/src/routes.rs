@@ -43,13 +43,16 @@ struct SbomQuery {
 }
 
 pub fn routes() -> Router<AppState> {
-    routes_with_sbom_limit(sbom::PERMITS)
+    routes_with_limit(sbom::shared().clone())
 }
 
 pub fn routes_with_sbom_limit(permits: usize) -> Router<AppState> {
+    routes_with_limit(sbom::Limit::new(permits))
+}
+
+fn routes_with_limit(limit: sbom::Limit) -> Router<AppState> {
     let docker = Arc::new(Docker::default());
     let catalog_docker = docker.clone();
-    let limit = sbom::Limit::new(permits);
     Router::new()
         .route(
             "/service/rest/internal/ui/docker/suggest-port",

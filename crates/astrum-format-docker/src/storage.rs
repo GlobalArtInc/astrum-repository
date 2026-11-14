@@ -116,6 +116,31 @@ pub async fn referrers(
     .await
 }
 
+pub async fn document_referrers(
+    ctx: &Ctx,
+    image: &str,
+    subject: &Digest,
+    limit: i64,
+) -> Result<Vec<Asset>, ContentError> {
+    Ok(asset::Entity::find()
+        .from_raw_sql(Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            "SELECT * FROM asset WHERE format = 'docker' AND repository = $1 \
+             AND kind = 'manifest' AND attributes #>> '{docker,name}' = $2 \
+             AND attributes #>> '{docker,subject}' = $3 \
+             AND attributes #>> '{docker,artifactKind}' IN ('sbom', 'attestation') \
+             ORDER BY id DESC LIMIT $4",
+            vec![
+                ctx.name().into(),
+                image.into(),
+                subject.to_string().into(),
+                limit.into(),
+            ],
+        ))
+        .all(ctx.db())
+        .await?)
+}
+
 pub async fn has_image(ctx: &Ctx, image: &str) -> Result<bool, ContentError> {
     #[derive(FromQueryResult)]
     struct Found {

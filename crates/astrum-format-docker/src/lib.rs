@@ -704,7 +704,8 @@ impl Docker {
         if manifest::is_index(&parsed.media_type) {
             children::replace(target.db(), target.name(), digest, &parsed.children).await?;
         }
-        inventory::requeue::after_store(target, image, parsed, tags).await
+        inventory::requeue::after_store(target, image, parsed, tags).await;
+        Ok(())
     }
 
     async fn delete_manifest(
