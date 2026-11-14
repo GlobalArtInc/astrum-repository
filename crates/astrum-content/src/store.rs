@@ -6,7 +6,7 @@ use std::task::{Context as TaskContext, Poll};
 
 use astrum_blob::{ContentStream, Written};
 use astrum_db::entity::{asset, component};
-use astrum_repo::config::WritePolicy;
+use astrum_repo::config::{Repository, WritePolicy};
 use bytes::Bytes;
 use chrono::{DateTime, FixedOffset, Utc};
 use futures_util::Stream;
@@ -51,7 +51,11 @@ pub struct PutAsset {
 
 impl PutAsset {
     pub fn hosted(ctx: &Ctx, path: impl Into<String>) -> Self {
-        let storage = ctx.repository.attributes.storage.as_ref();
+        Self::hosted_in(&ctx.repository, path)
+    }
+
+    pub fn hosted_in(repository: &Repository, path: impl Into<String>) -> Self {
+        let storage = repository.attributes.storage.as_ref();
         Self {
             path: path.into(),
             check_content_type: storage
@@ -885,6 +889,7 @@ impl Decision {
             assets: self.assets,
             bytes_copied: self.bytes_copied,
             bytes_reused: self.bytes_reused,
+            warnings: Vec::new(),
         }
     }
 }

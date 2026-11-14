@@ -160,6 +160,38 @@ pub trait Format: Send + Sync + 'static {
         BrowseLayout::default()
     }
 
+    /// The transfer of components this format takes part in (promotion and replication), or `None`.
+    ///
+    /// A format with no state returns a `static` `GenericTransfer`. A format whose `after` hook needs
+    /// its own state (a scheduler, signing keys, a lock map) builds its `GenericTransfer` once, in
+    /// `new` or in a `std::sync::OnceLock` field, with `GenericTransfer::after_with` and a closure
+    /// that captures `Arc` clones of that state, and returns a reference to the field:
+    ///
+    /// ```ignore
+    /// struct Indexed {
+    ///     pending: Arc<Mutex<BTreeSet<String>>>,
+    ///     transfer: GenericTransfer,
+    /// }
+    ///
+    /// impl Indexed {
+    ///     fn new() -> Self {
+    ///         let pending = Arc::new(Mutex::new(BTreeSet::new()));
+    ///         let seen = pending.clone();
+    ///         let transfer = base().after_with(move |ctx, promoted| {
+    ///             let seen = seen.clone();
+    ///             Box::pin(async move { schedule(&seen, ctx, promoted).await })
+    ///         });
+    ///         Self { pending, transfer }
+    ///     }
+    /// }
+    ///
+    /// fn transfer(&self) -> Option<&dyn Transfer> {
+    ///     Some(&self.transfer)
+    /// }
+    /// ```
+    ///
+    /// The hook gets the repository and a `Promoted` listing what the transfer wrote; a failing hook
+    /// does not fail the transfer, its error comes back in `Outcome::warnings`.
     fn transfer(&self) -> Option<&dyn Transfer> {
         None
     }

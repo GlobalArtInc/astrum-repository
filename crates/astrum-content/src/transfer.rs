@@ -4,6 +4,7 @@ use std::time::Duration;
 
 use astrum_blob::{BlobStore, Digests, Written, content_of};
 use astrum_repo::RepositoryType;
+use astrum_repo::config::WritePolicy;
 use async_trait::async_trait;
 use futures_util::future::BoxFuture;
 use serde::{Deserialize, Serialize};
@@ -63,6 +64,22 @@ pub struct Outcome {
     pub assets: Vec<AssetOutcome>,
     pub bytes_copied: u64,
     pub bytes_reused: u64,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub warnings: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct PromotedComponent {
+    pub namespace: String,
+    pub name: String,
+    pub version: String,
+    pub paths: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Promoted {
+    pub components: Vec<PromotedComponent>,
+    pub loose: Vec<String>,
 }
 
 impl Outcome {
@@ -74,6 +91,7 @@ impl Outcome {
             assets: Vec::new(),
             bytes_copied: 0,
             bytes_reused: 0,
+            warnings: Vec::new(),
         }
     }
 }
@@ -226,15 +244,35 @@ pub trait Transfer: Send + Sync {
 pub type PlanFn = fn(RepositoryType, &str, &str) -> Plan;
 pub type DescribeFn = for<'a> fn(&'a Imported) -> BoxFuture<'a, Result<Option<Described>, String>>;
 pub type AfterFn = for<'a> fn(&'a Ctx) -> BoxFuture<'a, Result<(), ContentError>>;
+pub type AfterHook = Arc<
+    dyn for<'a> Fn(&'a Ctx, &'a Promoted) -> BoxFuture<'a, Result<(), ContentError>> + Send + Sync,
+>;
 pub type ReplaceFn = for<'a> fn(&'a Ctx, &'a str, &'a BundleAsset) -> bool;
 pub type AdmitFn = for<'a> fn(&'a Ctx, &'a Bundle) -> BoxFuture<'a, Result<(), ContentError>>;
 
 pub struct GenericTransfer {
     pub plan: PlanFn,
     pub describe: DescribeFn,
-    pub after: Option<AfterFn>,
+    pub after: Option<AfterHook>,
     pub admit: Option<AdmitFn>,
     pub replaceable: Option<ReplaceFn>,
+}
+
+impl GenericTransfer {
+    pub fn after_with<F>(mut self, hook: F) -> Self
+    where
+        F: for<'a> Fn(&'a Ctx, &'a Promoted) -> BoxFuture<'a, Result<(), ContentError>>
+            + Send
+            + Sync
+            + 'static,
+    {
+        self.after = Some(Arc::new(hook));
+        self
+    }
+
+    pub fn after_fn(self, after: AfterFn) -> Self {
+        self.after_with(move |ctx, _| after(ctx))
+    }
 }
 
 struct Staged<'a> {
@@ -295,6 +333,57 @@ impl<'a> Staged<'a> {
             .collect();
         store::abandon(self.content, blobs, true).await;
     }
+}
+
+fn strictness(policy: Option<WritePolicy>) -> u8 {
+    match policy {
+        None | Some(WritePolicy::Allow) => 0,
+        Some(WritePolicy::AllowOnce) => 1,
+        Some(WritePolicy::Deny) => 2,
+    }
+}
+
+fn stricter(target: Option<WritePolicy>, described: Option<WritePolicy>) -> Option<WritePolicy> {
+    match strictness(described) > strictness(target) {
+        true => described,
+        false => target,
+    }
+}
+
+type Placed = (String, Option<ComponentKey>);
+
+fn promoted(placed: &[Placed], outcome: &Outcome) -> Promoted {
+    let written: HashSet<&str> = outcome
+        .assets
+        .iter()
+        .filter(|asset| matches!(asset.status, AssetStatus::New | AssetStatus::Replaced))
+        .map(|asset| asset.path.as_str())
+        .collect();
+    let mut promoted = Promoted::default();
+    for (path, component) in placed {
+        if !written.contains(path.as_str()) {
+            continue;
+        }
+        let Some(key) = component else {
+            promoted.loose.push(path.clone());
+            continue;
+        };
+        let position = promoted.components.iter().position(|found| {
+            found.namespace == key.namespace
+                && found.name == key.name
+                && found.version == key.version
+        });
+        match position {
+            Some(index) => promoted.components[index].paths.push(path.clone()),
+            None => promoted.components.push(PromotedComponent {
+                namespace: key.namespace.clone(),
+                name: key.name.clone(),
+                version: key.version.clone(),
+                paths: vec![path.clone()],
+            }),
+        }
+    }
+    promoted
 }
 
 fn text(field: &str, value: &str) -> Result<(), ContentError> {
@@ -522,12 +611,6 @@ impl GenericTransfer {
                 staged.drop_blob(&written).await;
                 continue;
             };
-            if described.keep_component {
-                return Err(ContentError::BadRequest(format!(
-                    "{} needs its component kept, which the transfer does not support yet",
-                    asset.path
-                )));
-            }
             let Described {
                 put, body, extra, ..
             } = described;
@@ -598,8 +681,8 @@ impl GenericTransfer {
         sample: &[u8],
     ) -> Result<(PutAsset, Written), ContentError> {
         let hosted = PutAsset::hosted(target, put.path.clone());
-        put.write_policy = hosted.write_policy;
-        put.check_content_type = hosted.check_content_type;
+        put.write_policy = stricter(hosted.write_policy, put.write_policy);
+        put.check_content_type = hosted.check_content_type && put.check_content_type;
         if normalize(&put.path)? != put.path || put.path.ends_with('/') {
             return Err(ContentError::BadRequest(format!(
                 "the path {} is not a normalised file path",
@@ -679,14 +762,23 @@ impl Transfer for GenericTransfer {
             return Ok(Outcome::nothing());
         }
         let allowed = self.allowance(target, origins);
-        let outcome =
+        let placed: Vec<Placed> = items
+            .iter()
+            .map(|(put, _)| (put.path.clone(), put.component.clone()))
+            .collect();
+        let mut outcome =
             store::record_many_with(target, items, terms.conflict, terms.action, Some(&allowed))
                 .await?;
         if outcome.status == Status::Copied
-            && let Some(after) = self.after
-            && let Err(error) = after(target).await
+            && let Some(after) = &self.after
         {
-            tracing::warn!(%error, repository = target.name(), "derived data of a transferred component was not refreshed");
+            let promoted = promoted(&placed, &outcome);
+            if let Err(error) = after(target, &promoted).await {
+                tracing::warn!(%error, repository = target.name(), "derived data of a transferred component was not refreshed");
+                outcome
+                    .warnings
+                    .push(format!("derived data was not refreshed: {error}"));
+            }
         }
         Ok(outcome)
     }

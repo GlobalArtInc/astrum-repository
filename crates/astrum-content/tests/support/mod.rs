@@ -1,20 +1,25 @@
 #![allow(dead_code)]
 
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use astrum_blob::{BlobStores, FileSettings, Settings, StoreConfig, content_of};
+use astrum_content::format::Format;
 use astrum_content::import::{Described, Imported, Plan};
+use astrum_content::store::Asset;
 use astrum_content::store::{self, ComponentKey, PutAsset};
 use astrum_content::transfer::{
-    Bundle, Conflict, DescribeFn, GenericTransfer, LocalSource, Outcome, PROMOTED, Terms, Transfer,
+    Bundle, Conflict, DescribeFn, GenericTransfer, LocalSource, Outcome, PROMOTED, Promoted, Terms,
+    Transfer,
 };
-use astrum_content::{Content, ContentError, Ctx};
+use astrum_content::{Content, ContentError, ContentRequest, Ctx};
 use astrum_repo::config::{Attributes, Group, Repository, Storage, WritePolicy};
 use astrum_repo::{RepositoryType, format};
 use astrum_security::{SecretBox, SecurityModel};
 use astrum_testkit::TestDatabase;
+use async_trait::async_trait;
+use axum::response::Response;
 use futures_util::future::BoxFuture;
 use sea_orm::{ConnectionTrait, DbBackend, Statement};
 
@@ -69,6 +74,29 @@ pub async fn repository_of(
     policy: WritePolicy,
     kind: RepositoryType,
 ) -> Ctx {
+    repository_with(world, name, store, policy, kind, false).await
+}
+
+pub async fn strict_repository(world: &World, name: &str) -> Ctx {
+    repository_with(
+        world,
+        name,
+        "default",
+        WritePolicy::Allow,
+        RepositoryType::Hosted,
+        true,
+    )
+    .await
+}
+
+async fn repository_with(
+    world: &World,
+    name: &str,
+    store: &str,
+    policy: WritePolicy,
+    kind: RepositoryType,
+    strict: bool,
+) -> Ctx {
     let created = astrum_repo::store::Writer::begin(world.db.conn())
         .await
         .unwrap()
@@ -84,7 +112,7 @@ pub async fn repository_of(
                 }),
                 storage: Some(Storage {
                     blob_store_name: Some(store.to_owned()),
-                    strict_content_type_validation: Some(false),
+                    strict_content_type_validation: Some(strict),
                     write_policy: Some(policy),
                     latest_policy: None,
                 }),
@@ -158,6 +186,110 @@ pub fn describe_rewritten(file: &Imported) -> BoxFuture<'_, Result<Option<Descri
             Described::bytes(put, b"rewritten".to_vec()).with(note, b"note".to_vec()),
         ))
     })
+}
+
+pub fn describe_by_version(file: &Imported) -> BoxFuture<'_, Result<Option<Described>, String>> {
+    Box::pin(async move {
+        let version = file.path.split('/').nth(2).unwrap_or_default().to_owned();
+        let mut put = file.put(file.path.clone());
+        put.component = Some(ComponentKey { version, ..key() });
+        Ok(Some(Described::source(put)))
+    })
+}
+
+pub fn describe_companion(file: &Imported) -> BoxFuture<'_, Result<Option<Described>, String>> {
+    Box::pin(async move {
+        let mut put = file.put(file.path.clone());
+        put.component = file.component.as_ref().map(|found| found.key());
+        let described = Described::source(put);
+        Ok(Some(match file.path.ends_with(".snupkg") {
+            true => described.keeping_component(),
+            false => described,
+        }))
+    })
+}
+
+pub fn describe_unchecked(file: &Imported) -> BoxFuture<'_, Result<Option<Described>, String>> {
+    Box::pin(async move {
+        let mut put = file.put(file.path.clone());
+        put.component = file.component.as_ref().map(|found| found.key());
+        put.check_content_type = false;
+        Ok(Some(Described::source(put)))
+    })
+}
+
+pub fn describe_loosening(file: &Imported) -> BoxFuture<'_, Result<Option<Described>, String>> {
+    Box::pin(async move {
+        let mut put = file.put(file.path.clone());
+        put.component = file.component.as_ref().map(|found| found.key());
+        put.write_policy = Some(WritePolicy::Allow);
+        Ok(Some(Described::source(put)))
+    })
+}
+
+pub struct Recording {
+    pub seen: Arc<Mutex<Vec<Promoted>>>,
+    transfer: GenericTransfer,
+}
+
+impl Recording {
+    pub fn new(describe: DescribeFn, failure: Option<&'static str>) -> Self {
+        let seen = Arc::new(Mutex::new(Vec::new()));
+        let state = seen.clone();
+        let transfer = transfer_of(describe).after_with(move |_, promoted| {
+            let state = state.clone();
+            Box::pin(async move {
+                state.lock().unwrap().push(promoted.clone());
+                match failure {
+                    Some(message) => Err(ContentError::BadRequest(message.to_owned())),
+                    None => Ok(()),
+                }
+            })
+        });
+        Self { seen, transfer }
+    }
+
+    pub fn calls(&self) -> Vec<Promoted> {
+        self.seen.lock().unwrap().clone()
+    }
+}
+
+#[async_trait]
+impl Format for Recording {
+    fn id(&self) -> &'static str {
+        "raw"
+    }
+
+    async fn handle(&self, _: Ctx, _: ContentRequest) -> Result<Response, ContentError> {
+        Err(ContentError::not_found("the double serves nothing"))
+    }
+
+    async fn get(&self, _: &Ctx, _: &str) -> Result<Option<Asset>, ContentError> {
+        Ok(None)
+    }
+
+    fn transfer(&self) -> Option<&dyn Transfer> {
+        Some(&self.transfer)
+    }
+}
+
+pub async fn receive_with(
+    format: &dyn Format,
+    source: &Ctx,
+    target: &Ctx,
+    bundle: &Bundle,
+    conflict: Conflict,
+) -> Result<Outcome, ContentError> {
+    format
+        .transfer()
+        .unwrap()
+        .receive(
+            target,
+            bundle,
+            &LocalSource::new(source.clone()),
+            Terms::new(conflict, PROMOTED),
+        )
+        .await
 }
 
 pub fn transfer_of(describe: DescribeFn) -> GenericTransfer {

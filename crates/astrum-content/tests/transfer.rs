@@ -3,7 +3,9 @@ use std::time::Duration;
 
 use astrum_blob::content_of;
 use astrum_content::store::{self, PutAsset};
-use astrum_content::transfer::{AssetStatus, Conflict, PROMOTED, Status};
+use astrum_content::transfer::{
+    AssetStatus, Conflict, LocalSource, PROMOTED, Status, Terms, Transfer,
+};
 use astrum_content::{ContentError, holds};
 use astrum_repo::config::WritePolicy;
 use sea_orm::{ConnectionTrait, DbBackend, Statement, TransactionTrait};
@@ -296,4 +298,195 @@ async fn a_path_the_format_refuses_stops_the_transfer_before_any_copy() {
         .unwrap_err();
     assert!(matches!(error, ContentError::BadRequest(_)), "{error}");
     assert_eq!(blobs_in(&world, "default").await, blobs);
+}
+
+fn terms(conflict: Conflict) -> Terms {
+    Terms::new(conflict, PROMOTED)
+}
+
+#[tokio::test]
+async fn an_asset_that_keeps_its_component_is_recorded_beside_its_companion() {
+    let world = world().await;
+    let dev = repository(&world, "dev", "default", WritePolicy::Allow).await;
+    let target = repository(&world, "target", "default", WritePolicy::Allow).await;
+    seed(&dev, "/g/lib.1.nupkg", b"package").await;
+    seed(&dev, "/g/lib.1.snupkg", b"symbols").await;
+    let bundle = bundle_of(&dev).await;
+
+    let outcome = transfer_of(describe_companion)
+        .receive(
+            &target,
+            &bundle,
+            &LocalSource::new(dev.clone()),
+            terms(Conflict::Fail),
+        )
+        .await
+        .unwrap();
+    assert_eq!(outcome.status, Status::Copied);
+    assert_eq!(outcome.component_ids.len(), 1);
+    let assets = store::assets_of(target.db(), outcome.component_id.unwrap())
+        .await
+        .unwrap();
+    let mut paths: Vec<&str> = assets.iter().map(|asset| asset.path.as_str()).collect();
+    paths.sort_unstable();
+    assert_eq!(paths, ["/g/lib.1.nupkg", "/g/lib.1.snupkg"]);
+    assert_eq!(target_rows(&world, "target").await, (1, 2));
+}
+
+#[tokio::test]
+async fn the_after_hook_gets_what_was_copied_or_replaced_and_a_failure_becomes_a_warning() {
+    let world = world().await;
+    let dev = repository(&world, "dev", "default", WritePolicy::Allow).await;
+    let target = repository(&world, "target", "default", WritePolicy::Allow).await;
+    seed(&dev, "/g/1/a.txt", b"alpha").await;
+    seed(&dev, "/g/2/b.txt", b"bravo").await;
+    let bundle = bundle_of(&dev).await;
+    let format = Recording::new(describe_by_version, None);
+
+    let first = receive_with(&format, &dev, &target, &bundle, Conflict::Fail)
+        .await
+        .unwrap();
+    assert!(first.warnings.is_empty());
+    let json = serde_json::to_value(&first).unwrap();
+    assert!(!json.as_object().unwrap().contains_key("warnings"));
+    let calls = format.calls();
+    assert_eq!(calls.len(), 1);
+    let mut written: Vec<(&str, Vec<&str>)> = calls[0]
+        .components
+        .iter()
+        .map(|found| {
+            let paths = found.paths.iter().map(String::as_str).collect();
+            (found.version.as_str(), paths)
+        })
+        .collect();
+    written.sort_unstable();
+    assert_eq!(
+        written,
+        [("1", vec!["/g/1/a.txt"]), ("2", vec!["/g/2/b.txt"])]
+    );
+
+    let again = receive_with(&format, &dev, &target, &bundle, Conflict::Fail)
+        .await
+        .unwrap();
+    assert_eq!(again.status, Status::Unchanged);
+    assert_eq!(format.calls().len(), 1, "nothing was written");
+
+    seed(&dev, "/g/2/b.txt", b"bravo, again").await;
+    let changed = bundle_of(&dev).await;
+    let skipped = receive_with(&format, &dev, &target, &changed, Conflict::Skip)
+        .await
+        .unwrap();
+    assert_eq!(skipped.status, Status::Skipped);
+    assert_eq!(
+        format.calls().len(),
+        1,
+        "a skipped transfer promotes nothing"
+    );
+
+    receive_with(&format, &dev, &target, &changed, Conflict::Replace)
+        .await
+        .unwrap();
+    let calls = format.calls();
+    assert_eq!(calls.len(), 2);
+    assert_eq!(
+        calls[1].components.len(),
+        1,
+        "the unchanged component is left out"
+    );
+    assert_eq!(calls[1].components[0].version, "2");
+    assert_eq!(calls[1].components[0].paths, ["/g/2/b.txt"]);
+
+    let failing = Recording::new(describe_by_version, Some("the index is locked"));
+    let other = repository(&world, "other", "default", WritePolicy::Allow).await;
+    let outcome = receive_with(&failing, &dev, &other, &changed, Conflict::Fail)
+        .await
+        .unwrap();
+    assert_eq!(outcome.status, Status::Copied);
+    assert_eq!(outcome.warnings.len(), 1);
+    assert!(outcome.warnings[0].contains("the index is locked"));
+    assert_eq!(failing.calls().len(), 1);
+    assert_eq!(target_rows(&world, "other").await, (2, 2));
+    assert_eq!(hold_rows(&world).await, 0);
+}
+
+#[tokio::test]
+async fn a_conflict_the_policy_refuses_calls_no_hook() {
+    let world = world().await;
+    let dev = repository(&world, "dev", "default", WritePolicy::Allow).await;
+    let once = repository(&world, "once", "default", WritePolicy::AllowOnce).await;
+    seed(&dev, "/g/a.txt", b"alpha").await;
+    let bundle = bundle_of(&dev).await;
+    seed(&once, "/g/a.txt", b"older").await;
+    let format = Recording::new(describe, None);
+
+    for conflict in [Conflict::Fail, Conflict::Replace] {
+        let error = receive_with(&format, &dev, &once, &bundle, conflict)
+            .await
+            .unwrap_err();
+        assert!(matches!(error, ContentError::Conflict(_)), "{error}");
+    }
+    assert!(format.calls().is_empty());
+}
+
+#[tokio::test]
+async fn a_hook_in_the_old_function_form_still_runs() {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    use futures_util::future::BoxFuture;
+
+    static CALLS: AtomicUsize = AtomicUsize::new(0);
+
+    fn count(_: &astrum_content::Ctx) -> BoxFuture<'_, Result<(), ContentError>> {
+        Box::pin(async {
+            CALLS.fetch_add(1, Ordering::SeqCst);
+            Ok(())
+        })
+    }
+
+    let world = world().await;
+    let dev = repository(&world, "dev", "default", WritePolicy::Allow).await;
+    let target = repository(&world, "target", "default", WritePolicy::Allow).await;
+    seed(&dev, "/g/a.txt", b"alpha").await;
+    let bundle = bundle_of(&dev).await;
+    transfer()
+        .after_fn(count)
+        .receive(
+            &target,
+            &bundle,
+            &LocalSource::new(dev.clone()),
+            terms(Conflict::Fail),
+        )
+        .await
+        .unwrap();
+    assert_eq!(CALLS.load(Ordering::SeqCst), 1);
+}
+
+#[tokio::test]
+async fn the_description_may_switch_the_content_check_off_but_never_loosen_the_policy() {
+    let world = world().await;
+    let dev = repository(&world, "dev", "default", WritePolicy::Allow).await;
+    seed(&dev, "/g/picture.png", b"this is plain text").await;
+    let bundle = bundle_of(&dev).await;
+    let strict = strict_repository(&world, "strict").await;
+    let source = LocalSource::new(dev.clone());
+
+    let error = transfer_of(describe)
+        .receive(&strict, &bundle, &source, terms(Conflict::Fail))
+        .await
+        .unwrap_err();
+    assert!(matches!(error, ContentError::BadRequest(_)), "{error}");
+    assert_eq!(target_rows(&world, "strict").await, (0, 0));
+    transfer_of(describe_unchecked)
+        .receive(&strict, &bundle, &source, terms(Conflict::Fail))
+        .await
+        .unwrap();
+    assert_eq!(target_rows(&world, "strict").await, (1, 1));
+
+    let once = repository(&world, "once", "default", WritePolicy::AllowOnce).await;
+    seed(&once, "/g/picture.png", b"older").await;
+    let error = transfer_of(describe_loosening)
+        .receive(&once, &bundle, &source, terms(Conflict::Replace))
+        .await
+        .unwrap_err();
+    assert!(matches!(error, ContentError::Conflict(_)), "{error}");
 }
