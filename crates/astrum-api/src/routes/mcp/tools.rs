@@ -482,6 +482,51 @@ fn defs() -> Vec<Def> {
             idempotent: true,
         },
         Def {
+            name: "list_replications",
+            title: "List replications",
+            description: "Every replication with its source repository, remote name and remote repository, enabled state, filters, propagate deletes, settle seconds, reconcile minutes and alert state. Tokens are never shown.",
+            schema: || schema(json!({}), &[]),
+            need: Need::Permissions(&["astrum:replication:read"]),
+            write: false,
+            idempotent: true,
+        },
+        Def {
+            name: "get_replication_status",
+            title: "Replication status",
+            description: "Pending, leased and dead items, lag, last success and failure, last error, last reconcile, alert state and the remote's suspension. When items are dead, the first 20 of them with their id, key, attempts and last error (the ids can be passed to retry_replication_items).",
+            schema: || schema(json!({ "id": string("Replication id") }), &["id"]),
+            need: Need::Permissions(&["astrum:replication:read"]),
+            write: false,
+            idempotent: true,
+        },
+        Def {
+            name: "retry_replication_items",
+            title: "Retry dead replication items",
+            description: "Requeue dead items of a replication: the ones with the given ids, or all of them with all set to true. Only dead items are affected; the tool needs update rights on replications.",
+            schema: || {
+                schema(
+                    json!({
+                        "id": string("Replication id"),
+                        "ids": { "type": "array", "items": { "type": "integer" }, "maxItems": 100, "description": "Ids of dead items, at most 100; give ids or all, not both" },
+                        "all": { "type": "boolean", "description": "true to retry every dead item; give ids or all, not both" },
+                    }),
+                    &["id"],
+                )
+            },
+            need: Need::Permissions(&["astrum:replication:update"]),
+            write: true,
+            idempotent: true,
+        },
+        Def {
+            name: "run_replication_reconcile",
+            title: "Start a replication reconcile",
+            description: "Queue a reconcile of a replication now, which compares both sides and requeues what differs. When a reconcile is already running or about to run, the answer says so. The tool needs update rights on replications.",
+            schema: || schema(json!({ "id": string("Replication id") }), &["id"]),
+            need: Need::Permissions(&["astrum:replication:update"]),
+            write: true,
+            idempotent: false,
+        },
+        Def {
             name: "request_upload",
             title: "Upload a file by one-time URL",
             description: "Upload a file of any size to a hosted repository without passing it through this conversation: you get a one-time PUT URL and a curl command to run on the machine that holds the file. Use it for every file larger than a few KB and never paste file contents into the conversation. The URL works once, for five minutes, with your rights.",
@@ -712,6 +757,10 @@ impl Handler for AstrumTools {
                 )
                 .await
             }
+            "list_replications" => list_replications(api).await,
+            "get_replication_status" => replication_status(api, &arguments).await,
+            "retry_replication_items" => retry_replication_items(api, &arguments).await,
+            "run_replication_reconcile" => run_replication_reconcile(api, &arguments).await,
             "request_upload" => {
                 upload::request_upload(&self.state, &self.subject, &self.base, &arguments).await
             }
@@ -1687,6 +1736,141 @@ async fn set_user_roles(
         return Err(ToolError::failed(format!("the user {user_id} is gone")));
     };
     Ok(user_view(&saved))
+}
+
+const REPLICATIONS: &str = "/service/rest/v1/replications";
+const REMOTES: &str = "/service/rest/v1/replication/remotes";
+const DEAD_SAMPLE: usize = 20;
+const RETRY_IDS_MAX: usize = 100;
+
+async fn list_replications(api: &Loopback) -> Result<Value, ToolError> {
+    let Value::Array(replications) = api.get(REPLICATIONS).await? else {
+        return Err(ToolError::failed("the replication list was not a list"));
+    };
+    let Value::Array(remotes) = api.get(REMOTES).await? else {
+        return Err(ToolError::failed("the remote list was not a list"));
+    };
+    let kept: Vec<Value> = replications
+        .iter()
+        .map(|replication| {
+            let remote = remotes
+                .iter()
+                .find(|remote| remote["id"] == replication["remoteId"]);
+            json!({
+                "id": replication["id"],
+                "name": replication["name"],
+                "sourceRepository": replication["sourceRepository"],
+                "remote": remote.map_or(Value::Null, |remote| remote["name"].clone()),
+                "remoteRepository": replication["remoteRepository"],
+                "enabled": replication["enabled"],
+                "nameFilter": replication["nameFilter"],
+                "versionFilter": replication["versionFilter"],
+                "propagateDeletes": replication["propagateDeletes"],
+                "settleSeconds": replication["settleSeconds"],
+                "reconcileMinutes": replication["reconcileMinutes"],
+                "alertState": replication["alertState"],
+            })
+        })
+        .collect();
+    Ok(json!({ "count": kept.len(), "replications": kept }))
+}
+
+async fn replication_status(
+    api: &Loopback,
+    arguments: &Map<String, Value>,
+) -> Result<Value, ToolError> {
+    let base = format!(
+        "{REPLICATIONS}/{}",
+        segment(&required_text(arguments, "id")?)
+    );
+    let mut status = api.get(&format!("{base}/status")).await?;
+    if status["dead"].as_i64().is_some_and(|dead| dead > 0) {
+        let page = api
+            .get(&format!("{base}/items?state=dead&limit={DEAD_SAMPLE}"))
+            .await?;
+        let dead: Vec<Value> = page["items"]
+            .as_array()
+            .map(|items| {
+                items
+                    .iter()
+                    .map(|item| {
+                        json!({
+                            "id": item["id"],
+                            "key": item["key"],
+                            "attempts": item["attempts"],
+                            "lastError": item["lastError"],
+                        })
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
+        status["deadItems"] = Value::Array(dead);
+    }
+    Ok(status)
+}
+
+async fn retry_replication_items(
+    api: &Loopback,
+    arguments: &Map<String, Value>,
+) -> Result<Value, ToolError> {
+    let id = required_text(arguments, "id")?;
+    let body = match (arguments.get("ids"), arguments.get("all")) {
+        (Some(ids), None) => json!({ "ids": item_ids(ids)? }),
+        (None, Some(Value::Bool(true))) => json!({ "all": true }),
+        _ => {
+            return Err(ToolError::invalid(
+                "give either ids, a list of up to 100 dead item ids, or all set to true",
+            ));
+        }
+    };
+    let answer = api
+        .json(
+            Method::POST,
+            &format!("{REPLICATIONS}/{}/items/retry", segment(&id)),
+            Some(&body),
+        )
+        .await?;
+    Ok(json!({ "id": id, "retried": answer["retried"] }))
+}
+
+fn item_ids(value: &Value) -> Result<Vec<i64>, ToolError> {
+    let Value::Array(ids) = value else {
+        return Err(ToolError::invalid("ids must be a list of item ids"));
+    };
+    if ids.is_empty() || ids.len() > RETRY_IDS_MAX {
+        return Err(ToolError::invalid(format!(
+            "ids must hold between 1 and {RETRY_IDS_MAX} item ids"
+        )));
+    }
+    ids.iter()
+        .map(|id| {
+            id.as_i64()
+                .ok_or_else(|| ToolError::invalid("ids must be whole numbers"))
+        })
+        .collect()
+}
+
+async fn run_replication_reconcile(
+    api: &Loopback,
+    arguments: &Map<String, Value>,
+) -> Result<Value, ToolError> {
+    let id = required_text(arguments, "id")?;
+    let fetched = api
+        .fetch(
+            Method::POST,
+            &format!("{REPLICATIONS}/{}/reconcile", segment(&id)),
+            None,
+            4096,
+        )
+        .await?;
+    let answer: Value = serde_json::from_slice(&fetched.body).unwrap_or(Value::Null);
+    if fetched.status == StatusCode::CONFLICT {
+        return Ok(json!({ "id": id, "started": false, "message": answer["message"] }));
+    }
+    if !fetched.status.is_success() {
+        return Err(refusal(&fetched));
+    }
+    Ok(json!({ "id": id, "started": true, "run": answer["run"] }))
 }
 
 #[cfg(test)]
