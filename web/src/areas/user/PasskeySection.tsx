@@ -106,33 +106,34 @@ export function PasskeysCard({ status, onChanged, onClosed }: PasskeysCardProps)
     setEditing(null);
     onClosed();
   };
+  const addable = status.passkeysAvailable && status.methods.includes('passkey');
   return (
     <Card size="2" className={styles.section}>
       <h2 className={styles.cardTitle}>{t('user.security.passkeys')}</h2>
-      {status.passkeysAvailable ? (
-        <>
-          <p className={styles.hint}>{t('user.security.passkeysIntro')}</p>
-          {status.passkeys.length === 0 ? (
-            <p className={styles.line}>{t('user.security.passkeysEmpty')}</p>
-          ) : (
-            <ul className={styles.passkeys}>
-              {status.passkeys.map((passkey) => (
-                <PasskeyItem
-                  key={passkey.id}
-                  passkey={passkey}
-                  onEdit={(action) => setEditing({ passkey, action })}
-                />
-              ))}
-            </ul>
-          )}
-          <Flex gap="2" wrap="wrap" mt="4">
-            <Button variant="soft" onClick={() => setAdding(true)}>
-              {t('user.security.passkeyAdd')}
-            </Button>
-          </Flex>
-        </>
+      <p className={styles.hint}>{t('user.security.passkeysIntro')}</p>
+      {status.passkeys.length === 0 ? (
+        <p className={styles.line}>{t('user.security.passkeysEmpty')}</p>
       ) : (
-        <p className={styles.line}>{t('user.security.passkeysUnavailable')}</p>
+        <ul className={styles.passkeys}>
+          {status.passkeys.map((passkey) => (
+            <PasskeyItem
+              key={passkey.id}
+              passkey={passkey}
+              onEdit={(action) => setEditing({ passkey, action })}
+            />
+          ))}
+        </ul>
+      )}
+      {!status.passkeysAvailable && <p className={styles.line}>{t('user.security.passkeysUnavailable')}</p>}
+      {status.passkeysAvailable && !status.methods.includes('passkey') && (
+        <p className={styles.line}>{t('user.security.passkeysOff')}</p>
+      )}
+      {addable && (
+        <Flex gap="2" wrap="wrap" mt="4">
+          <Button variant="soft" onClick={() => setAdding(true)}>
+            {t('user.security.passkeyAdd')}
+          </Button>
+        </Flex>
       )}
       {adding && <AddPasskeyDialog onClose={close} onChanged={onChanged} />}
       {editing?.action === 'rename' && (

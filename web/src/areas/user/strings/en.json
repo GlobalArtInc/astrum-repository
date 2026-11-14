@@ -153,6 +153,7 @@
   "user.security.passkeys": "Passkeys",
   "user.security.passkeysEmpty": "No passkey is added yet.",
   "user.security.passkeysIntro": "Use a passkey from this device or a security key as a second step after your password.",
+  "user.security.passkeysOff": "An administrator turned passkeys off on this server.",
   "user.security.passkeysUnavailable": "Passkeys are not available here: this server has no base URL to make them for. Ask an administrator to set one.",
   "user.security.password": "Current Password",
   "user.security.qrAlt": "QR code for the authenticator app",

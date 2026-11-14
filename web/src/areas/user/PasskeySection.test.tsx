@@ -210,3 +210,30 @@ describe('the passkeys section', () => {
     });
   });
 });
+
+describe('the passkey limits', () => {
+  it('keeps stored passkeys listed, renameable and removable when no relying party is usable', async () => {
+    serverFor({ ...STATUS, passkeysAvailable: false, passkeys: [OTHER] });
+    renderWithApp(<SecurityPage />);
+    expect(await screen.findByText('Old key')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Rename Old key' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Remove Old key' })).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Passkeys are not available here: this server has no base URL to make them for. Ask an administrator to set one.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Add a Passkey' })).toBeNull();
+  });
+
+  it('offers no Add when the policy turns passkeys off, and keeps the list manageable', async () => {
+    serverFor({ ...STATUS, methods: ['totp'], passkeys: [LAPTOP] });
+    renderWithApp(<SecurityPage />);
+    expect(
+      await screen.findByText('An administrator turned passkeys off on this server.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Add a Passkey' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Rename Laptop' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Remove Laptop' })).toBeInTheDocument();
+  });
+});

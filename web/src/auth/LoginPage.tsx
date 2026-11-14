@@ -42,7 +42,17 @@ export function signInError(t: ReturnType<typeof useT>, error: unknown): string 
 
 function challengeOf(answer: SignInAnswer): SecondFactorMethod[] | null {
   const methods = answer.secondFactor?.methods;
-  return Array.isArray(methods) && methods.length > 0 ? methods : null;
+  return Array.isArray(methods) ? methods : null;
+}
+
+function startMode(methods: SecondFactorMethod[]): SecondFactorMethod {
+  if (methods.includes('totp')) {
+    return 'totp';
+  }
+  if (methods.includes('passkey')) {
+    return 'passkey';
+  }
+  return 'recovery';
 }
 
 function codeValue(mode: CodeMethod, code: string): string {
@@ -63,7 +73,7 @@ export function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [methods, setMethods] = useState<SecondFactorMethod[] | null>(null);
-  const [mode, setMode] = useState<CodeMethod>('totp');
+  const [mode, setMode] = useState<SecondFactorMethod>('totp');
   const [code, setCode] = useState('');
   const [expired, setExpired] = useState(false);
   const [lockUntil, setLockUntil] = useState(0);
@@ -99,7 +109,7 @@ export function LoginPage() {
   }
 
   const ready = username.trim() !== '' && password !== '';
-  const canSubmit = methods ? codeReady(mode, code) : ready;
+  const canSubmit = methods ? mode !== 'passkey' && codeReady(mode, code) : ready;
   const lockedText = t('auth.secondStep.locked', { count: locked });
   const message = error ?? (methods && locked > 0 ? lockedText : null);
 
@@ -123,10 +133,15 @@ export function LoginPage() {
       const answer = await signIn(username.trim(), password);
       const second = challengeOf(answer);
       if (second) {
+        const usable = second.filter((method) => method !== 'passkey' || isPasskeySupported());
         setPassword('');
-        setMethods(second);
-        setMode(second.includes('totp') ? 'totp' : 'recovery');
         setBusy(false);
+        if (usable.length === 0) {
+          setError(t('auth.secondStep.passkeysUnusable'));
+          return;
+        }
+        setMethods(usable);
+        setMode(startMode(usable));
         return;
       }
       await refresh();
@@ -142,7 +157,7 @@ export function LoginPage() {
 
   const submitCode = async (event: FormEvent) => {
     event.preventDefault();
-    if (!methods || !codeReady(mode, code) || busy || locked > 0) {
+    if (!methods || mode === 'passkey' || !codeReady(mode, code) || busy || locked > 0) {
       return;
     }
     setBusy(true);
@@ -208,7 +223,7 @@ export function LoginPage() {
     }
   };
 
-  const switchMode = (next: CodeMethod) => {
+  const switchMode = (next: SecondFactorMethod) => {
     setMode(next);
     setCode('');
     setError(null);
@@ -240,7 +255,9 @@ export function LoginPage() {
                 {methods
                   ? mode === 'totp'
                     ? t('auth.secondStep.totpHint')
-                    : t('auth.secondStep.recoveryHint')
+                    : mode === 'recovery'
+                      ? t('auth.secondStep.recoveryHint')
+                      : t('auth.secondStep.passkeyHint')
                   : t('auth.login.subtitle')}
               </Text>
             </div>
@@ -262,7 +279,7 @@ export function LoginPage() {
                 </Callout.Root>
               )}
               {!methods && !error && <SsoFailure code={params.get('sso')} />}
-              {methods ? (
+              {methods && mode !== 'passkey' && (
                 <div className={styles.field}>
                   <label htmlFor={codeId} className={styles.label}>
                     {mode === 'totp' ? t('auth.secondStep.codeLabel') : t('auth.secondStep.recoveryLabel')}
@@ -286,7 +303,8 @@ export function LoginPage() {
                     onChange={(event) => setCode(event.target.value)}
                   />
                 </div>
-              ) : (
+              )}
+              {!methods && (
                 <>
                   <div className={styles.field}>
                     <label htmlFor={usernameId} className={styles.label}>
@@ -331,20 +349,22 @@ export function LoginPage() {
                   <Text size="2">{message}</Text>
                 </div>
               )}
-              <Button
-                type="submit"
-                size="3"
-                className={styles.submit}
-                disabled={!canSubmit || locked > 0}
-                loading={busy}
-              >
-                {t('auth.login.submit')}
-              </Button>
-              {methods?.includes('passkey') && isPasskeySupported() && (
+              {(!methods || mode !== 'passkey') && (
+                <Button
+                  type="submit"
+                  size="3"
+                  className={styles.submit}
+                  disabled={!canSubmit || locked > 0}
+                  loading={busy}
+                >
+                  {t('auth.login.submit')}
+                </Button>
+              )}
+              {methods?.includes('passkey') && (
                 <Button
                   type="button"
                   size="3"
-                  variant="soft"
+                  variant={mode === 'passkey' ? 'solid' : 'soft'}
                   className={styles.submit}
                   disabled={busy || locked > 0}
                   onClick={() => void signInWithPasskey()}
@@ -354,7 +374,7 @@ export function LoginPage() {
               )}
               {methods && (
                 <div className={styles.links}>
-                  {mode === 'totp' && methods.includes('recovery') && (
+                  {mode !== 'recovery' && methods.includes('recovery') && (
                     <button
                       type="button"
                       className={styles.linkButton}

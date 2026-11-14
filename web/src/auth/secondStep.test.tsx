@@ -214,6 +214,14 @@ describe('a restricted session', () => {
   });
 });
 
+function supportPasskeys(get: () => Promise<unknown>) {
+  vi.stubGlobal('PublicKeyCredential', class {});
+  Object.defineProperty(navigator, 'credentials', {
+    configurable: true,
+    value: { create: vi.fn(), get: vi.fn(get) },
+  });
+}
+
 describe('the passkey option of the second step', () => {
   const OPTIONS = '/service/rest/internal/session/second-factor/passkey-options';
   const challenge = {
@@ -232,14 +240,6 @@ describe('the passkey option of the second step', () => {
     },
     getClientExtensionResults: () => ({}),
   };
-
-  function supportPasskeys(get: () => Promise<unknown>) {
-    vi.stubGlobal('PublicKeyCredential', class {});
-    Object.defineProperty(navigator, 'credentials', {
-      configurable: true,
-      value: { create: vi.fn(), get: vi.fn(get) },
-    });
-  }
 
   afterEach(() => {
     Reflect.deleteProperty(navigator, 'credentials');
@@ -315,4 +315,59 @@ describe('the passkey option of the second step', () => {
     );
     expect(screen.getByRole('heading', { name: 'Two-factor authentication' })).toBeInTheDocument();
   });
+
+  it('starts in passkey mode without a code field when the passkey is the only method', async () => {
+    supportPasskeys(async () => assertion);
+    await atCodeStep(['passkey']);
+    expect(screen.getByRole('button', { name: 'Use a passkey' })).toBeEnabled();
+    expect(screen.queryByLabelText('Authentication code')).toBeNull();
+    expect(screen.queryByLabelText('Recovery code')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Sign in' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Use a recovery code instead' })).toBeNull();
+  });
+
+  it('starts in passkey mode with a link to the recovery code when both are offered', async () => {
+    supportPasskeys(async () => assertion);
+    await atCodeStep(['passkey', 'recovery']);
+    expect(screen.queryByLabelText('Recovery code')).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Use a recovery code instead' }));
+    expect(screen.getByLabelText('Recovery code')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Use a passkey' })).toBeInTheDocument();
+  });
+
+  it('starts with the code field when an authenticator app is offered, the passkey below it', async () => {
+    supportPasskeys(async () => assertion);
+    await atCodeStep(['totp', 'passkey']);
+    expect(screen.getByLabelText('Authentication code')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sign in' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Use a passkey' })).toBeInTheDocument();
+  });
+
+  it('shows the unusable message on the password step when no method is offered', async () => {
+    await passwordStepAnswering([]);
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'None of your second factors can be used on this address. Ask an administrator for help.',
+    );
+    expect(screen.getByLabelText('Password')).toHaveValue('');
+  });
+
+  it('shows the unusable message when the only method is a passkey this browser lacks', async () => {
+    await passwordStepAnswering(['passkey']);
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'None of your second factors can be used on this address. Ask an administrator for help.',
+    );
+    expect(screen.getByLabelText('Password')).toHaveValue('');
+  });
 });
+
+async function passwordStepAnswering(methods: string[]) {
+  const server = fakeServer({
+    [`POST ${SESSION}`]: () => challenge(methods),
+    [`GET ${STATE}`]: () => jsonResponse(ADMIN_STATE),
+  });
+  vi.stubGlobal('fetch', server.fetch);
+  renderWithApp(null, { path: '/login', state: STRANGER, areas: AREAS, routes: buildRoutes(AREAS) });
+  await userEvent.type(await screen.findByLabelText('User name'), 'admin');
+  await userEvent.type(screen.getByLabelText('Password'), 'secret');
+  await userEvent.click(screen.getByRole('button', { name: 'Sign in' }));
+}
