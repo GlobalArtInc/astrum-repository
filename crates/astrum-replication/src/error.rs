@@ -20,6 +20,7 @@ pub enum Error {
     Retryable {
         reason: String,
         retry_after: Option<Duration>,
+        status: Option<u16>,
     },
     #[error("the remote refused with status {status} ({code}): {message}")]
     Permanent {
@@ -80,6 +81,14 @@ impl Error {
         }
     }
 
+    pub fn status(&self) -> Option<u16> {
+        match self {
+            Error::Retryable { status, .. } => *status,
+            Error::Permanent { status, .. } => Some(*status),
+            _ => None,
+        }
+    }
+
     pub fn kind(&self) -> &'static str {
         match self {
             Error::Retryable { .. } => "retryable",
@@ -97,9 +106,11 @@ impl Error {
             Error::Retryable {
                 reason,
                 retry_after,
+                status,
             } => Error::Retryable {
                 reason: hide(reason),
                 retry_after,
+                status,
             },
             Error::Permanent {
                 status,
@@ -135,6 +146,7 @@ impl Error {
             return Error::Retryable {
                 reason,
                 retry_after,
+                status: Some(status.as_u16()),
             };
         }
         if status == StatusCode::CONFLICT
@@ -184,6 +196,7 @@ impl Error {
         Error::Retryable {
             reason,
             retry_after: None,
+            status: None,
         }
     }
 }

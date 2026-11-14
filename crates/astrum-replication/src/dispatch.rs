@@ -1,23 +1,27 @@
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use astrum_content::Content;
-use astrum_db::setting;
-use astrum_security::ssrf::{Guard, SSRF_KEY, SsrfProtection};
 use sea_orm::DbErr;
 use sea_orm::sqlx::pool::PoolConnection;
 use sea_orm::sqlx::{self, Postgres};
-use tokio::sync::OnceCell;
+use tokio::sync::{OnceCell, Semaphore};
 use tokio::task::{JoinHandle, JoinSet};
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
-use crate::error::backoff;
-use crate::queue::{self, Finished, Item, RemoteRow};
-use crate::work::{Done, Failure};
-use crate::{Client, Remote};
+use crate::queue::{self, RemoteRow};
 
 pub const LOCK_KEY: i64 = i64::from_be_bytes(*b"astrrepl");
+pub const MAX_WORKERS: usize = 32;
+pub const API_CONNECTIONS: u32 = 5;
+const LOST_SLACK: Duration = Duration::from_secs(1);
+
+pub fn permits(max_connections: u32, cap: usize) -> usize {
+    let spare = max_connections.saturating_sub(API_CONNECTIONS + 1);
+    usize::try_from(spare).unwrap_or(usize::MAX).clamp(1, cap)
+}
 
 #[derive(Clone, Debug)]
 pub struct Settings {
@@ -25,8 +29,13 @@ pub struct Settings {
     pub tick: Duration,
     pub idle: Duration,
     pub heartbeat: Duration,
-    pub per_worker: usize,
+    pub discover: Duration,
+    pub fresh: Duration,
+    pub grace: Duration,
+    pub batch: usize,
+    pub rounds: usize,
     pub max_remotes: i64,
+    pub workers: usize,
 }
 
 impl Default for Settings {
@@ -36,8 +45,13 @@ impl Default for Settings {
             tick: Duration::from_secs(5),
             idle: Duration::from_secs(10),
             heartbeat: Duration::from_secs(15),
-            per_worker: 20,
+            discover: Duration::from_secs(30),
+            fresh: Duration::from_secs(1),
+            grace: Duration::from_secs(10),
+            batch: 20,
+            rounds: 10,
             max_remotes: 256,
+            workers: MAX_WORKERS,
         }
     }
 }
@@ -52,10 +66,12 @@ pub struct Pass {
     pub dead: u32,
     pub again: u32,
     pub abandoned: u32,
+    pub released: u32,
+    pub suspended: u32,
 }
 
 impl Pass {
-    fn merge(&mut self, other: Pass) {
+    pub(crate) fn merge(&mut self, other: Pass) {
         self.expired += other.expired;
         self.leased += other.leased;
         self.sent += other.sent;
@@ -64,6 +80,8 @@ impl Pass {
         self.dead += other.dead;
         self.again += other.again;
         self.abandoned += other.abandoned;
+        self.released += other.released;
+        self.suspended += other.suspended;
     }
 }
 
@@ -100,24 +118,13 @@ impl Lock {
     async fn lost(&mut self, every: Duration) -> DbErr {
         loop {
             tokio::time::sleep(every).await;
-            if let Err(error) = sqlx::query("SELECT 1").execute(&mut *self.connection).await {
-                return DbErr::Custom(error.to_string());
+            let beat = sqlx::query("SELECT 1").execute(&mut *self.connection);
+            match tokio::time::timeout(every, beat).await {
+                Ok(Ok(_)) => {}
+                Ok(Err(error)) => return DbErr::Custom(error.to_string()),
+                Err(_) => return DbErr::Custom("the heartbeat of the lock timed out".to_owned()),
             }
         }
-    }
-}
-
-pub(crate) struct Target {
-    pub remote: RemoteRow,
-    pub client: Result<Client, String>,
-    pub learned: OnceCell<Uuid>,
-}
-
-impl Target {
-    pub(crate) fn client(&self) -> Result<&Client, Failure> {
-        self.client
-            .as_ref()
-            .map_err(|reason| Failure::Local(reason.clone()))
     }
 }
 
@@ -125,6 +132,8 @@ pub(crate) struct Inner {
     pub content: Content,
     pub settings: Settings,
     pub own: OnceCell<Uuid>,
+    pub gate: Semaphore,
+    pub leading: AtomicBool,
 }
 
 #[derive(Clone)]
@@ -138,11 +147,18 @@ impl Dispatcher {
     }
 
     pub fn with_settings(content: Content, settings: Settings) -> Self {
+        let connections = content
+            .db()
+            .get_postgres_connection_pool()
+            .options()
+            .get_max_connections();
         Self {
             inner: Arc::new(Inner {
+                gate: Semaphore::new(permits(connections, settings.workers)),
                 content,
                 settings,
                 own: OnceCell::new(),
+                leading: AtomicBool::new(false),
             }),
         }
     }
@@ -153,6 +169,10 @@ impl Dispatcher {
 
     pub(crate) fn settings(&self) -> &Settings {
         &self.inner.settings
+    }
+
+    pub fn leading(&self) -> bool {
+        self.inner.leading.load(Ordering::SeqCst)
     }
 
     pub async fn instance(&self) -> Result<Uuid, DbErr> {
@@ -176,46 +196,37 @@ impl Dispatcher {
                     tracing::warn!(%error, "the replication lock could not be asked for");
                 }
             }
-            tokio::select! {
-                () = stop.cancelled() => return,
-                () = tokio::time::sleep(self.settings().idle) => {}
-            }
+            self.nap(&stop, self.settings().idle).await;
+        }
+    }
+
+    pub(crate) async fn nap(&self, stop: &CancellationToken, time: Duration) {
+        tokio::select! {
+            () = stop.cancelled() => {}
+            () = tokio::time::sleep(time) => {}
         }
     }
 
     async fn hold(&self, mut lock: Lock, stop: &CancellationToken) {
+        let leading = stop.child_token();
+        let mut running = std::pin::pin!(self.lead(leading.clone()));
+        self.inner.leading.store(true, Ordering::SeqCst);
         tokio::select! {
-            () = self.pump(stop) => {
+            () = &mut running => {
                 if let Err(error) = lock.release().await {
                     tracing::warn!(%error, "the replication lock was not released");
                 }
             }
             error = lock.lost(self.settings().heartbeat) => {
                 tracing::warn!(%error, "the replication lock was lost; the workers stop");
+                leading.cancel();
+                let grace = self.settings().grace + LOST_SLACK;
+                if tokio::time::timeout(grace, &mut running).await.is_err() {
+                    tracing::warn!("the replication workers did not stop in time and were dropped");
+                }
             }
         }
-    }
-
-    async fn pump(&self, stop: &CancellationToken) {
-        loop {
-            let busy = tokio::select! {
-                () = stop.cancelled() => return,
-                pass = self.run_once() => match pass {
-                    Ok(pass) => pass.leased > 0,
-                    Err(error) => {
-                        tracing::warn!(%error, "a replication pass failed");
-                        false
-                    }
-                },
-            };
-            if busy {
-                continue;
-            }
-            tokio::select! {
-                () = stop.cancelled() => return,
-                () = tokio::time::sleep(self.settings().tick) => {}
-            }
-        }
+        self.inner.leading.store(false, Ordering::SeqCst);
     }
 
     pub async fn run_once(&self) -> Result<Pass, DbErr> {
@@ -228,7 +239,7 @@ impl Dispatcher {
         let mut serving = JoinSet::new();
         for remote in remotes {
             let dispatcher = self.clone();
-            serving.spawn(async move { dispatcher.serve_remote(remote).await });
+            serving.spawn(async move { dispatcher.round_of(remote).await });
         }
         while let Some(joined) = serving.join_next().await {
             match joined {
@@ -239,23 +250,25 @@ impl Dispatcher {
         Ok(pass)
     }
 
-    async fn serve_remote(&self, remote: RemoteRow) -> Pass {
-        let workers = usize::try_from(remote.max_concurrency)
-            .unwrap_or(1)
-            .clamp(1, 16);
-        let client = self
-            .client_for(&remote)
-            .await
-            .map_err(|failure| failure.text());
-        let target = Arc::new(Target {
-            remote,
-            client,
-            learned: OnceCell::new(),
-        });
+    async fn round_of(&self, remote: RemoteRow) -> Pass {
+        let workers = Self::workers_of(&remote);
+        let target = Arc::new(self.target(remote).await);
+        let stop = CancellationToken::new();
         let mut pool = JoinSet::new();
         for _ in 0..workers {
-            let (dispatcher, target) = (self.clone(), target.clone());
-            pool.spawn(async move { dispatcher.work(&target).await });
+            let (dispatcher, target, stop) = (self.clone(), target.clone(), stop.clone());
+            pool.spawn(async move {
+                let mut pass = Pass::default();
+                for _ in 0..dispatcher.settings().rounds {
+                    let part = dispatcher.drain(&target, &stop).await;
+                    let idle = part.leased == 0;
+                    pass.merge(part);
+                    if idle {
+                        break;
+                    }
+                }
+                pass
+            });
         }
         let mut pass = Pass::default();
         while let Some(joined) = pool.join_next().await {
@@ -267,108 +280,24 @@ impl Dispatcher {
         pass
     }
 
-    async fn client_for(&self, remote: &RemoteRow) -> Result<Client, Failure> {
-        let content = self.content();
-        let token = content.secrets().open(&remote.token).map_err(|_| {
-            Failure::Local(
-                "the stored token cannot be opened with the key of this server".to_owned(),
-            )
-        })?;
-        let snapshot = content
-            .outbound()
-            .snapshot()
-            .await
-            .map_err(|error| Failure::Local(error.to_string()))?;
-        let ssrf: SsrfProtection = setting::get(content.db(), SSRF_KEY)
-            .await
-            .map_err(|error| Failure::Local(error.to_string()))?
-            .unwrap_or_default();
-        let guard = Guard::new(&snapshot.guard_settings(&ssrf));
-        let settings = Remote {
-            url: remote.url.clone(),
-            use_trust_store: remote.use_trust_store,
-            allow_private_network: remote.allow_private_network,
-            max_concurrency: usize::try_from(remote.max_concurrency).unwrap_or(1),
-            max_bytes_per_second: remote
-                .max_bytes_per_second
-                .and_then(|rate| u64::try_from(rate).ok()),
-        };
-        let own = self.instance().await?;
-        Ok(
-            Client::new(&settings, &token, &snapshot, content.secrets(), &guard)?
-                .with_instance(&own.to_string())?,
-        )
+    pub(crate) fn workers_of(remote: &RemoteRow) -> usize {
+        usize::try_from(remote.max_concurrency)
+            .unwrap_or(1)
+            .clamp(1, 16)
     }
+}
 
-    async fn work(&self, target: &Target) -> Pass {
-        let mut pass = Pass::default();
-        for _ in 0..self.settings().per_worker {
-            match self.next(target, &mut pass).await {
-                Ok(true) => {}
-                Ok(false) => break,
-                Err(error) => {
-                    tracing::warn!(%error, "a replication worker stopped on a database error");
-                    break;
-                }
-            }
-        }
-        pass
-    }
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    async fn next(&self, target: &Target, pass: &mut Pass) -> Result<bool, DbErr> {
-        let db = self.content().db();
-        let mut leased = queue::lease(db, target.remote.id, self.settings().lease, 1).await?;
-        let Some(item) = leased.pop() else {
-            return Ok(false);
-        };
-        pass.leased += 1;
-        match self.transfer(target, &item).await {
-            Ok(Done::Lost) => pass.abandoned += 1,
-            Ok(Done::Released) => queue::release(db, item.id).await?,
-            Ok(done) => self.complete(&item, done, pass).await?,
-            Err(failure) => self.abandon(&item, failure, pass).await?,
-        }
-        Ok(true)
-    }
-
-    async fn complete(&self, item: &Item, done: Done, pass: &mut Pass) -> Result<(), DbErr> {
-        let db = self.content().db();
-        match done {
-            Done::Sent | Done::Deleted => {
-                pass.sent += 1;
-                queue::succeeded(db, item.replication_id).await?;
-            }
-            Done::Dropped(reason) => {
-                pass.dropped += 1;
-                tracing::debug!(replication = %item.replication_id, reason, "a replication item was dropped");
-            }
-            Done::Lost | Done::Released => {}
-        }
-        if queue::finish(db, item).await? == Finished::Again {
-            pass.again += 1;
-        }
-        Ok(())
-    }
-
-    async fn abandon(&self, item: &Item, failure: Failure, pass: &mut Pass) -> Result<(), DbErr> {
-        let db = self.content().db();
-        let attempts = u32::try_from(item.attempts).unwrap_or(0);
-        let delay = failure
-            .retry_after()
-            .map_or_else(|| backoff(attempts), |after| backoff(attempts).max(after));
-        let text = failure.text();
-        let failed = queue::fail(db, item, failure.permanent(), delay, &text).await?;
-        queue::failed(db, item.replication_id, &text).await?;
-        pass.failed += 1;
-        if failed.is_some_and(|failed| failed.state == "dead") {
-            pass.dead += 1;
-            tracing::warn!(
-                replication = %item.replication_id,
-                component = %crate::protocol::component_key(&item.namespace, &item.name, &item.version),
-                error = %text,
-                "a replication item is dead"
-            );
-        }
-        Ok(())
+    #[test]
+    fn the_workers_leave_connections_to_the_api() {
+        assert_eq!(permits(100, MAX_WORKERS), MAX_WORKERS);
+        assert_eq!(permits(20, MAX_WORKERS), 14);
+        assert_eq!(permits(10, MAX_WORKERS), 4);
+        assert_eq!(permits(6, MAX_WORKERS), 1);
+        assert_eq!(permits(1, MAX_WORKERS), 1);
+        assert_eq!(permits(100, 3), 3);
     }
 }

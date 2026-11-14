@@ -11,11 +11,11 @@ use sea_orm::{ColumnTrait, DbErr, EntityTrait, QueryFilter};
 use uuid::Uuid;
 
 use crate::Client;
-use crate::dispatch::{Dispatcher, Target};
+use crate::dispatch::Dispatcher;
 use crate::error::{Error, clean};
-use crate::filter::{compile, component_name};
 use crate::protocol::{MAX_MISSING, Tombstone};
 use crate::queue::{self, Item, ReplicationRow};
+use crate::target::Target;
 
 const DISABLED: &str = "the replication is disabled or gone";
 const FILTERED: &str = "the component is outside the filters of the replication";
@@ -34,14 +34,46 @@ pub(crate) enum Done {
     Lost,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum Phase {
+    Handshake,
+    Negotiate,
+    Upload,
+    Commit,
+    Retract,
+}
+
 #[derive(Debug)]
 pub(crate) enum Failure {
+    Down(Error),
     Remote(Error),
     Local(String),
     Rejected(String),
 }
 
+fn unreachable_for(phase: Phase, error: &Error) -> bool {
+    match error {
+        Error::Retryable { status: None, .. } => true,
+        Error::Retryable {
+            status: Some(408 | 429),
+            ..
+        } => true,
+        Error::Retryable { .. } => matches!(phase, Phase::Handshake | Phase::Negotiate),
+        Error::Permanent {
+            status: 401 | 403, ..
+        } => true,
+        _ => false,
+    }
+}
+
 impl Failure {
+    pub(crate) fn blame(phase: Phase, error: Error) -> Self {
+        match unreachable_for(phase, &error) {
+            true => Failure::Down(error),
+            false => Failure::Remote(error),
+        }
+    }
+
     pub(crate) fn permanent(&self) -> bool {
         matches!(
             self,
@@ -51,22 +83,16 @@ impl Failure {
 
     pub(crate) fn retry_after(&self) -> Option<Duration> {
         match self {
-            Failure::Remote(error) => error.retry_after(),
+            Failure::Remote(error) | Failure::Down(error) => error.retry_after(),
             _ => None,
         }
     }
 
     pub(crate) fn text(&self) -> String {
         match self {
-            Failure::Remote(error) => clean(&error.to_string()),
+            Failure::Remote(error) | Failure::Down(error) => clean(&error.to_string()),
             Failure::Local(text) | Failure::Rejected(text) => clean(text),
         }
-    }
-}
-
-impl From<Error> for Failure {
-    fn from(error: Error) -> Self {
-        Failure::Remote(error)
     }
 }
 
@@ -88,19 +114,14 @@ impl From<astrum_blob::Error> for Failure {
     }
 }
 
-fn matches_filter(pattern: Option<&str>, text: &str) -> Result<bool, Failure> {
-    let Some(pattern) = pattern else {
-        return Ok(true);
-    };
-    let regex = compile(pattern)
-        .map_err(|reason| Failure::Rejected(format!("a filter of the replication {reason}")))?;
-    Ok(regex.is_match(text))
+enum Pause {
+    Lost,
+    Stale,
 }
 
-fn passes(replication: &ReplicationRow, item: &Item) -> Result<bool, Failure> {
-    let name = component_name(&item.namespace, &item.name);
-    Ok(matches_filter(replication.name_filter.as_deref(), &name)?
-        && matches_filter(replication.version_filter.as_deref(), &item.version)?)
+enum Round {
+    Committed(Outcome),
+    Paused(Pause),
 }
 
 fn digests_of(bundle: &Bundle) -> Vec<String> {
@@ -126,7 +147,7 @@ impl Dispatcher {
         if !replication.enabled {
             return Ok(Done::Dropped(DISABLED));
         }
-        if !passes(&replication, item)? {
+        if !target.passes(&replication, item)? {
             return Ok(Done::Dropped(FILTERED));
         }
         let client = target.client()?;
@@ -141,31 +162,33 @@ impl Dispatcher {
         match found {
             Some(found) => {
                 let own = self.instance().await?;
-                self.send(client, &replication, item, &found, remote, own)
+                self.send(target, &replication, item, &found, remote, own)
                     .await
             }
-            None => self.retract(client, &replication, item).await,
+            None => self.retract(target, &replication, item, remote).await,
         }
     }
 
     async fn remote_instance(&self, target: &Target, client: &Client) -> Result<Uuid, Failure> {
-        if let Some(known) = target.remote.remote_instance_id {
-            return Ok(known);
-        }
         let learned = target
             .learned
             .get_or_try_init(|| async {
-                let capabilities = client.check().await?;
+                let capabilities = client
+                    .check()
+                    .await
+                    .map_err(|error| Failure::blame(Phase::Handshake, error))?;
                 let instance = Uuid::parse_str(&capabilities.instance_id).map_err(|_| {
                     Failure::Local("the remote reported an instance id that is no UUID".to_owned())
                 })?;
-                queue::learned(
-                    self.content().db(),
-                    &target.remote,
-                    instance,
-                    &capabilities.version,
-                )
-                .await?;
+                if target.remote.remote_instance_id != Some(instance) {
+                    queue::learned(
+                        self.content().db(),
+                        &target.remote,
+                        instance,
+                        &capabilities.version,
+                    )
+                    .await?;
+                }
                 Ok::<Uuid, Failure>(instance)
             })
             .await?;
@@ -191,7 +214,7 @@ impl Dispatcher {
 
     async fn send(
         &self,
-        client: &Client,
+        target: &Target,
         replication: &ReplicationRow,
         item: &Item,
         found: &Component,
@@ -219,16 +242,18 @@ impl Dispatcher {
             return Ok(Done::Dropped(EMPTY));
         }
         bundle.origin = Some(origin.clone());
-        let first = self.round(client, replication, item, found, &bundle).await;
-        let outcome = match first {
+        let first = self.round(target, replication, item, found, &bundle).await;
+        let round = match first {
             Err(Failure::Remote(Error::BlobsMissing(_))) => {
-                self.round(client, replication, item, found, &bundle)
+                self.round(target, replication, item, found, &bundle)
                     .await?
             }
             other => other?,
         };
-        let Some(outcome) = outcome else {
-            return Ok(Done::Lost);
+        let outcome = match round {
+            Round::Committed(outcome) => outcome,
+            Round::Paused(Pause::Lost) => return Ok(Done::Lost),
+            Round::Paused(Pause::Stale) => return Ok(Done::Released),
         };
         if !matches!(outcome.status, Status::Copied | Status::Unchanged) {
             return Err(Failure::Rejected(format!(
@@ -236,51 +261,61 @@ impl Dispatcher {
                 outcome.status
             )));
         }
-        queue::record_sent(self.content().db(), item, &fingerprint(&bundle), &origin).await?;
+        if replication.propagate_deletes {
+            queue::record_sent(self.content().db(), item, &fingerprint(&bundle), &origin).await?;
+        }
         Ok(Done::Sent)
     }
 
     async fn round(
         &self,
-        client: &Client,
+        target: &Target,
         replication: &ReplicationRow,
         item: &Item,
         found: &Component,
         bundle: &Bundle,
-    ) -> Result<Option<Outcome>, Failure> {
-        if !self
-            .upload(client, replication, item, found, bundle)
+    ) -> Result<Round, Failure> {
+        if let Some(pause) = self
+            .upload(target, replication, item, found, bundle)
             .await?
         {
-            return Ok(None);
+            return Ok(Round::Paused(pause));
         }
-        Ok(Some(
-            client
-                .commit(&replication.remote_repository, bundle)
-                .await?,
-        ))
+        if !target
+            .fresh(self.content().db(), self.settings().fresh)
+            .await?
+        {
+            return Ok(Round::Paused(Pause::Stale));
+        }
+        let committed = target
+            .client()?
+            .commit(&replication.remote_repository, bundle)
+            .await
+            .map_err(|error| Failure::blame(Phase::Commit, error))?;
+        Ok(Round::Committed(committed))
     }
 
     async fn upload(
         &self,
-        client: &Client,
+        target: &Target,
         replication: &ReplicationRow,
         item: &Item,
         found: &Component,
         bundle: &Bundle,
-    ) -> Result<bool, Failure> {
+    ) -> Result<Option<Pause>, Failure> {
         let db = self.content().db();
+        let client = target.client()?;
         let digests = digests_of(bundle);
         let mut lacking: HashSet<String> = HashSet::new();
         for chunk in digests.chunks(MAX_MISSING) {
-            lacking.extend(
-                client
-                    .missing(&replication.remote_repository, chunk)
-                    .await?,
-            );
+            let asked = client
+                .missing(&replication.remote_repository, chunk)
+                .await
+                .map_err(|error| Failure::blame(Phase::Negotiate, error))?;
+            lacking.extend(asked);
         }
         if lacking.is_empty() {
-            return Ok(true);
+            return Ok(None);
         }
         let rows = store::assets_of(db, found.id).await?;
         let by_digest: HashMap<&str, &Asset> =
@@ -290,7 +325,10 @@ impl Dispatcher {
                 Failure::Local("the component changed while it was being sent".to_owned())
             })?;
             if !queue::renew(db, item.id, self.settings().lease).await? {
-                return Ok(false);
+                return Ok(Some(Pause::Lost));
+            }
+            if !target.fresh(db, self.settings().fresh).await? {
+                return Ok(Some(Pause::Stale));
             }
             let size = u64::try_from(row.size)
                 .map_err(|_| Failure::Local("an asset has a negative size".to_owned()))?;
@@ -303,16 +341,18 @@ impl Dispatcher {
             })?;
             client
                 .put_blob(&replication.remote_repository, digest, size, content.stream)
-                .await?;
+                .await
+                .map_err(|error| Failure::blame(Phase::Upload, error))?;
         }
-        Ok(true)
+        Ok(None)
     }
 
     async fn retract(
         &self,
-        client: &Client,
+        target: &Target,
         replication: &ReplicationRow,
         item: &Item,
+        remote: Uuid,
     ) -> Result<Done, Failure> {
         let db = self.content().db();
         if !replication.propagate_deletes {
@@ -322,6 +362,13 @@ impl Dispatcher {
         let Some(sent) = queue::sent(db, item).await? else {
             return Ok(Done::Dropped(NEVER_SENT));
         };
+        if sent.origin.eq_ignore_ascii_case(&remote.to_string()) {
+            queue::forget_sent(db, item).await?;
+            return Ok(Done::Dropped(FROM_REMOTE));
+        }
+        if !target.fresh(db, self.settings().fresh).await? {
+            return Ok(Done::Released);
+        }
         let tombstone = Tombstone {
             namespace: item.namespace.clone(),
             name: item.name.clone(),
@@ -329,7 +376,8 @@ impl Dispatcher {
             fingerprint: sent.fingerprint,
             origin: sent.origin,
         };
-        match client
+        match target
+            .client()?
             .tombstone(&replication.remote_repository, &tombstone)
             .await
         {
@@ -337,7 +385,7 @@ impl Dispatcher {
             Err(Error::Permanent {
                 status: 404, code, ..
             }) if code == ALREADY_GONE => {}
-            Err(error) => return Err(error.into()),
+            Err(error) => return Err(Failure::blame(Phase::Retract, error)),
         }
         queue::forget_sent(db, item).await?;
         Ok(Done::Deleted)
@@ -348,77 +396,67 @@ impl Dispatcher {
 mod tests {
     use super::*;
 
-    fn replication(name: Option<&str>, version: Option<&str>) -> ReplicationRow {
-        ReplicationRow {
-            id: Uuid::nil(),
-            source_repository: "source".to_owned(),
-            remote_id: Uuid::nil(),
-            remote_repository: "mirror".to_owned(),
-            enabled: true,
-            name_filter: name.map(str::to_owned),
-            version_filter: version.map(str::to_owned),
-            propagate_deletes: false,
+    fn retryable(status: Option<u16>) -> Error {
+        Error::Retryable {
+            reason: "busy".to_owned(),
+            retry_after: Some(Duration::from_secs(9)),
+            status,
         }
     }
 
-    fn item(namespace: &str, name: &str, version: &str) -> Item {
-        Item {
-            id: 1,
-            replication_id: Uuid::nil(),
-            namespace: namespace.to_owned(),
-            name: name.to_owned(),
-            version: version.to_owned(),
-            generation: 1,
-            attempts: 0,
+    fn permanent(status: u16) -> Error {
+        Error::Permanent {
+            status,
+            code: "x".to_owned(),
+            message: String::new(),
         }
     }
 
     #[test]
-    fn the_filters_match_the_whole_text_of_the_name_and_of_the_version() {
-        let wanted = replication(Some("com\\.acme/lib-.*"), Some("1\\..*"));
-        assert!(passes(&wanted, &item("com.acme", "lib-core", "1.4")).unwrap());
-        assert!(!passes(&wanted, &item("com.acme", "lib-core", "2.0")).unwrap());
-        assert!(!passes(&wanted, &item("org.acme", "lib-core", "1.4")).unwrap());
-        assert!(!passes(&wanted, &item("com.acme", "x-lib-core", "1.4")).unwrap());
-        let bare = replication(Some("app"), None);
-        assert!(passes(&bare, &item("", "app", "7")).unwrap());
-        assert!(!passes(&bare, &item("", "app2", "7")).unwrap());
-        assert!(passes(&replication(None, None), &item("", "any", "")).unwrap());
-    }
-
-    #[test]
-    fn a_filter_that_cannot_be_compiled_is_a_final_failure() {
-        let broken = replication(Some("(unclosed"), None);
-        let failure = passes(&broken, &item("", "app", "1")).unwrap_err();
-        assert!(failure.permanent());
+    fn only_what_is_not_the_fault_of_the_item_marks_the_remote_down() {
+        use Phase::*;
+        let down = |phase, error| matches!(Failure::blame(phase, error), Failure::Down(_));
+        for phase in [Handshake, Negotiate, Upload, Commit, Retract] {
+            assert!(down(phase, retryable(None)), "{phase:?}");
+            assert!(down(phase, retryable(Some(429))), "{phase:?}");
+            assert!(down(phase, permanent(401)), "{phase:?}");
+            assert!(down(phase, permanent(403)), "{phase:?}");
+            assert!(!down(phase, permanent(409)), "{phase:?}");
+            assert!(!down(phase, permanent(422)), "{phase:?}");
+            assert!(
+                !down(phase, Error::Refused("blocked".to_owned())),
+                "{phase:?}"
+            );
+            assert!(
+                !down(phase, Error::BlobsMissing(vec!["a".repeat(64)])),
+                "{phase:?}"
+            );
+        }
+        for phase in [Handshake, Negotiate] {
+            assert!(down(phase, retryable(Some(503))), "{phase:?}");
+        }
+        for phase in [Upload, Commit, Retract] {
+            assert!(!down(phase, retryable(Some(503))), "{phase:?}");
+        }
     }
 
     #[test]
     fn only_a_refusal_of_the_remote_or_a_local_rejection_is_final() {
-        let permanent = Failure::Remote(Error::Permanent {
-            status: 409,
-            code: "x".to_owned(),
-            message: String::new(),
-        });
-        let throttled = Failure::Remote(Error::Retryable {
-            reason: "busy".to_owned(),
-            retry_after: Some(Duration::from_secs(9)),
-        });
-        assert!(permanent.permanent());
+        assert!(Failure::Remote(permanent(409)).permanent());
         assert!(Failure::Rejected("no".to_owned()).permanent());
         for temporary in [
             Failure::Remote(Error::BlobsMissing(vec!["a".repeat(64)])),
             Failure::Remote(Error::Refused("blocked".to_owned())),
+            Failure::Remote(retryable(Some(503))),
+            Failure::Down(permanent(401)),
             Failure::Local("disk".to_owned()),
-            throttled,
         ] {
             assert!(!temporary.permanent());
         }
-        let throttled = Failure::Remote(Error::Retryable {
-            reason: "busy".to_owned(),
-            retry_after: Some(Duration::from_secs(9)),
-        });
-        assert_eq!(throttled.retry_after(), Some(Duration::from_secs(9)));
+        assert_eq!(
+            Failure::Down(retryable(None)).retry_after(),
+            Some(Duration::from_secs(9))
+        );
         assert_eq!(Failure::Local("x".to_owned()).retry_after(), None);
         let long = Failure::Local(format!("a\nb{}", "c".repeat(900)));
         assert_eq!(long.text().chars().count(), 500);

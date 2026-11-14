@@ -5456,11 +5456,19 @@
             "format": "date-time",
             "type": "string"
           },
+          "failures": {
+            "format": "int32",
+            "type": "integer"
+          },
           "hasToken": {
             "type": "boolean"
           },
           "id": {
             "format": "uuid",
+            "type": "string"
+          },
+          "lastError": {
+            "nullable": true,
             "type": "string"
           },
           "maxBytesPerSecond": {
@@ -5481,6 +5489,11 @@
             "type": "string"
           },
           "remoteVersion": {
+            "nullable": true,
+            "type": "string"
+          },
+          "suspendedUntil": {
+            "format": "date-time",
             "nullable": true,
             "type": "string"
           },

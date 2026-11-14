@@ -310,6 +310,7 @@ impl Client {
             Err(Unverified::Lookup(reason)) => Err(Error::Retryable {
                 reason: short(&reason, MAX_REASON),
                 retry_after: None,
+                status: None,
             }),
         }
     }
@@ -457,6 +458,7 @@ impl Client {
                         UPLOAD_IDLE.as_secs()
                     ),
                     retry_after: None,
+                    status: None,
                 });
             }
         };

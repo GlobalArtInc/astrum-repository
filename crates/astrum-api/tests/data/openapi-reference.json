@@ -18437,6 +18437,19 @@
       "format": "date-time",
       "nullable": true
      },
+     "failures": {
+      "type": "integer",
+      "format": "int32"
+     },
+     "suspendedUntil": {
+      "type": "string",
+      "format": "date-time",
+      "nullable": true
+     },
+     "lastError": {
+      "type": "string",
+      "nullable": true
+     },
      "createdAt": {
       "type": "string",
       "format": "date-time"

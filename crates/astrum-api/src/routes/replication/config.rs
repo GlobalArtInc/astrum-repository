@@ -33,7 +33,7 @@ const MIN_RECONCILE_MINUTES: i64 = 5;
 
 const REMOTE_COLUMNS: &str = "id, name, url, true AS has_token, use_trust_store, \
      allow_private_network, max_concurrency, max_bytes_per_second, remote_instance_id, \
-     remote_version, checked_at, created_at, updated_at";
+     remote_version, checked_at, failures, suspended_until, last_error, created_at, updated_at";
 
 const REPLICATION_COLUMNS: &str = "id, name, source_repository, remote_id, remote_repository, \
      enabled, name_filter, version_filter, propagate_deletes, settle_seconds, \
@@ -85,6 +85,9 @@ struct RemoteModel {
     remote_instance_id: Option<Uuid>,
     remote_version: Option<String>,
     checked_at: Option<DateTimeWithTimeZone>,
+    failures: i32,
+    suspended_until: Option<DateTimeWithTimeZone>,
+    last_error: Option<String>,
     created_at: DateTimeWithTimeZone,
     updated_at: DateTimeWithTimeZone,
 }
@@ -418,6 +421,7 @@ async fn update_remote(
         "UPDATE replication_remote SET name = $2, url = $3, token = COALESCE($4, token), \
          use_trust_store = $5, allow_private_network = $6, max_concurrency = $7, \
          max_bytes_per_second = $8, updated_at = now(), \
+         failures = 0, suspended_until = NULL, last_error = NULL, \
          remote_instance_id = CASE WHEN url = $3 THEN remote_instance_id END, \
          remote_version = CASE WHEN url = $3 THEN remote_version END, \
          checked_at = CASE WHEN url = $3 THEN checked_at END \
