@@ -6,6 +6,9 @@ use std::net::SocketAddr;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
+use astrum_content::store;
+use astrum_content::transfer::{Conflict, LocalSource, PROMOTED, Status, Terms};
+use astrum_content::{ContentError, Format};
 use astrum_security::ssrf::{SSRF_KEY, SsrfProtection};
 use axum::Router;
 use axum::body::Body;
@@ -1409,4 +1412,101 @@ async fn groups_merge_member_pages_and_read_through_members() {
         .await;
     assert_eq!(put.status, StatusCode::METHOD_NOT_ALLOWED);
     assert_eq!(put.headers[header::ALLOW], "GET,HEAD");
+}
+
+#[tokio::test]
+async fn wheels_are_promoted_and_the_target_page_lists_them() {
+    let fixture = ready().await;
+    create(&fixture, "hosted", hosted("pypi-source", "ALLOW")).await;
+    create(&fixture, "hosted", hosted("pypi-target", "ALLOW")).await;
+    let wheel_bytes = wheel("Astrum_Probe.Pkg", "0.1.0");
+    let wheel_name = "astrum_probe_pkg-0.1.0-py3-none-any.whl";
+    let uploaded = twine(
+        &fixture,
+        "pypi-source",
+        Auth::Admin,
+        "Astrum-Probe.Pkg",
+        "0.1.0",
+        wheel_name,
+        &wheel_bytes,
+    )
+    .await;
+    assert_eq!(uploaded.status, StatusCode::OK, "{}", uploaded.text());
+    let format = astrum_format_pypi::PyPi;
+    let path = format!("/packages/astrum-probe-pkg/0.1.0/{wheel_name}");
+    let bundle = support::bundle_of(&fixture, &format, "pypi-source", &path).await;
+    let outcome = support::receive(&fixture, &format, "pypi-source", "pypi-target", &bundle).await;
+    assert_eq!(outcome.status, Status::Copied);
+    let served = get(&fixture, &format!("/repository/pypi-target{path}"), None).await;
+    assert_eq!(served.status, StatusCode::OK, "{}", served.text());
+    assert_eq!(served.body, wheel_bytes);
+    let page = get(
+        &fixture,
+        "/repository/pypi-target/simple/astrum-probe-pkg/",
+        None,
+    )
+    .await;
+    assert!(
+        page.text().contains(&format!(
+            "<a href=\"../../packages/astrum-probe-pkg/0.1.0/{wheel_name}#sha256={}\"",
+            sha256(&wheel_bytes)
+        )),
+        "{}",
+        page.text()
+    );
+}
+
+#[tokio::test]
+async fn promotion_refuses_a_project_name_the_upload_would_refuse() {
+    let fixture = ready().await;
+    create(&fixture, "hosted", hosted("pypi-source", "ALLOW")).await;
+    create(&fixture, "hosted", hosted("pypi-target", "ALLOW")).await;
+    let wheel_bytes = wheel("Astrum_Probe.Pkg", "0.1.0");
+    let wheel_name = "astrum_probe_pkg-0.1.0-py3-none-any.whl";
+    let uploaded = twine(
+        &fixture,
+        "pypi-source",
+        Auth::Admin,
+        "Astrum-Probe.Pkg",
+        "0.1.0",
+        wheel_name,
+        &wheel_bytes,
+    )
+    .await;
+    assert_eq!(uploaded.status, StatusCode::OK, "{}", uploaded.text());
+    let format = astrum_format_pypi::PyPi;
+    let path = format!("/packages/astrum-probe-pkg/0.1.0/{wheel_name}");
+    let mut bundle = support::bundle_of(&fixture, &format, "pypi-source", &path).await;
+    bundle.name = "-probe".to_owned();
+    for asset in &mut bundle.assets {
+        asset.path = asset.path.replace("astrum-probe-pkg", "-probe");
+    }
+    let from = support::repository_ctx(&fixture, "pypi-source").await;
+    let to = support::repository_ctx(&fixture, "pypi-target").await;
+    let refused = format
+        .transfer()
+        .expect("pypi takes part in promotion")
+        .receive(
+            &to,
+            &bundle,
+            &LocalSource::new(from),
+            Terms::new(Conflict::Fail, PROMOTED),
+        )
+        .await;
+    match refused {
+        Err(ContentError::BadRequest(message)) => {
+            assert_eq!(message, "-probe is not a valid project name")
+        }
+        other => panic!("expected a refusal, got {other:?}"),
+    }
+    assert!(
+        store::find(
+            fixture.state.db().conn(),
+            "pypi-target",
+            &format!("/packages/-probe/0.1.0/{wheel_name}")
+        )
+        .await
+        .unwrap()
+        .is_none()
+    );
 }

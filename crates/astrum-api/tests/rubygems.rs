@@ -5,6 +5,7 @@ use std::io::{Read, Write};
 use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
 
+use astrum_content::transfer::Status;
 use astrum_format_rubygems::index::md5_hex;
 use astrum_format_rubygems::testing::gem;
 use astrum_security::catalogue::ADMIN_USER;
@@ -692,4 +693,25 @@ async fn gems_upload_through_the_components_api_and_show_in_the_tree() {
         .await
         .json();
     assert_eq!(files["children"][0]["name"], "uploaded-1.2.3.gem");
+}
+
+#[tokio::test]
+async fn gems_are_promoted_and_the_target_index_lists_them() {
+    let fixture = ready().await;
+    create(&fixture, "hosted", hosted("gems-source", "ALLOW")).await;
+    create(&fixture, "hosted", hosted("gems-target", "ALLOW")).await;
+    let data = gem("hola", "1.0.0", "ruby", &[]);
+    let pushed = push(&fixture, "gems-source", &basic(&fixture), data.clone()).await;
+    assert_eq!(pushed.status, StatusCode::OK, "{}", pushed.text());
+    let format = astrum_format_rubygems::Rubygems;
+    let bundle = support::bundle_of(&fixture, &format, "gems-source", "/gems/hola-1.0.0.gem").await;
+    let outcome = support::receive(&fixture, &format, "gems-source", "gems-target", &bundle).await;
+    assert_eq!(outcome.status, Status::Copied);
+    let served = get(&fixture, "/repository/gems-target/gems/hola-1.0.0.gem").await;
+    assert_eq!(served.status, StatusCode::OK, "{}", served.text());
+    assert_eq!(served.body, data);
+    assert_eq!(
+        text(&fixture, "/repository/gems-target/info/hola").await,
+        format!("---\n1.0.0 |checksum:{}\n", sha256(&data))
+    );
 }
