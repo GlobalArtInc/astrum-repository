@@ -438,7 +438,15 @@ export default function ComponentPage() {
           compare={compare}
         />
       )}
-      {tab === 'repos' && <RepositoriesTab versions={list} repositories={repositories.data ?? []} />}
+      {tab === 'repos' && (
+        <RepositoriesTab
+          versions={list}
+          repositories={repositories.data ?? []}
+          current={entry}
+          format={format}
+          name={name}
+        />
+      )}
       {tab === 'files' &&
         (filesError ? (
           <ErrorState error={filesError} />

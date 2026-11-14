@@ -65,6 +65,9 @@ function serve() {
       'GET /service/rest/v1/components/releases-2.0': () => jsonResponse(component('2.0', 'releases')),
       'GET /service/rest/v1/components/mirror-2.0': () => jsonResponse(component('2.0', 'mirror')),
       'GET /service/rest/v1/components/releases-1.0': () => jsonResponse(component('1.0', 'releases')),
+      'GET /service/rest/internal/ui/promotion-targets?source=releases': () =>
+        jsonResponse([{ name: 'mirror-eu', format: 'maven2', type: 'hosted' }]),
+      'GET /service/rest/internal/ui/promotion-targets?source=mirror': () => jsonResponse([]),
       'GET /service/rest/internal/ui/repositories': () =>
         jsonResponse([repository('releases', 'maven2', 'hosted'), repository('mirror', 'maven2', 'proxy')]),
     }).fetch,
@@ -86,6 +89,15 @@ afterEach(() => {
 });
 
 describe('the component page', { timeout: 20_000 }, () => {
+  it('offers Promote only on the repository rows that have targets', async () => {
+    serve();
+    page(`${URL}/repos`);
+    const releases = await screen.findByRole('row', { name: /releases/ });
+    expect(within(releases).getByRole('button', { name: 'Promote' })).toBeInTheDocument();
+    const mirror = screen.getByRole('row', { name: /mirror/ });
+    expect(within(mirror).queryByRole('button', { name: 'Promote' })).not.toBeInTheDocument();
+  });
+
   it('reads the component and the tab from the address', () => {
     expect(keyFromPath('/search/component/maven2%3Aorg.acme%3Alib')).toBe('maven2:org.acme:lib');
     expect(keyFromPath('/search/component/docker%3A%3Ateam%2Fapp/')).toBe('docker::team/app');
