@@ -14,7 +14,6 @@ use percent_encoding::{AsciiSet, NON_ALPHANUMERIC, utf8_percent_encode};
 
 use crate::AppState;
 use crate::routes::html::{self, escape};
-use crate::routes::internal::client_ip;
 
 const INDEX_LIMIT: u64 = 1000;
 const MISSING: &str = "Not found\n";
@@ -225,7 +224,7 @@ async fn answer(
     if counted && !share::permits(&link, portion, now) {
         return Err(Refusal::Gone);
     }
-    let address = crate::auth::client_address().unwrap_or_else(|| client_ip(&request.headers));
+    let address = crate::auth::client_address().unwrap_or_default();
     if counted && !share::consume(db, link.id, &address, portion).await? {
         return Err(Refusal::Gone);
     }
