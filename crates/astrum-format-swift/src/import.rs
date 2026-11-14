@@ -43,14 +43,20 @@ fn component(file: &Imported, package: &Package) -> ComponentKey {
     if !swift.contains_key("metadata") {
         swift.insert("metadata".to_owned(), json!({}));
     }
-    if !swift.contains_key("repositoryURLs")
-        && let Some(listed) = swift
+    if !swift.contains_key("repositoryURLs") {
+        let listed: Vec<String> = swift
             .get("metadata")
             .and_then(|metadata| metadata.get("repositoryURLs"))
-            .filter(|listed| listed.is_array())
-            .cloned()
-    {
-        swift.insert("repositoryURLs".to_owned(), listed);
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+            .filter_map(Value::as_str)
+            .map(|url| url.trim().to_owned())
+            .filter(|url| !url.is_empty())
+            .collect();
+        if !listed.is_empty() {
+            swift.insert("repositoryURLs".to_owned(), json!(listed));
+        }
     }
     ComponentKey {
         namespace: package.scope.clone(),

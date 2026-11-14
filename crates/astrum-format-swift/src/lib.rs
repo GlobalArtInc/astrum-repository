@@ -256,8 +256,22 @@ fn refuse_read_only(target: &Ctx) -> Result<(), Problem> {
     }
 }
 
-fn refuse_duplicate(target: &Ctx, existing: &[Component], version: &str) -> Result<(), Problem> {
-    match existing.iter().any(|found| found.version == version)
+fn refuse_duplicate(
+    target: &Ctx,
+    existing: &[Component],
+    version: &str,
+    identical: Option<&str>,
+) -> Result<(), Problem> {
+    let same = |found: &Component| {
+        identical.is_some_and(|checksum| {
+            attributes(found)["checksum"]
+                .as_str()
+                .is_some_and(|stored| stored.eq_ignore_ascii_case(checksum))
+        })
+    };
+    match existing
+        .iter()
+        .any(|found| found.version == version && !same(found))
         && write_policy(target) != WritePolicy::Allow
     {
         true => Err(Problem::new(
@@ -793,7 +807,7 @@ impl Swift {
             ctx.require(View::Add, &canonical.archive_path())?;
         }
         let version = package.version.clone().unwrap_or_default();
-        refuse_duplicate(&target, &existing, &version)?;
+        refuse_duplicate(&target, &existing, &version, None)?;
         let content_type = request
             .header("content-type")
             .unwrap_or_default()

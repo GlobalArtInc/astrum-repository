@@ -44,8 +44,15 @@ async fn admit(ctx: &Ctx, bundle: &Bundle) -> Result<(), ContentError> {
     let package = Package::new(&bundle.namespace, &bundle.name, Some(&bundle.version))
         .ok_or_else(|| bad("the bundle does not name a valid Swift package release"))?;
     let existing: Vec<Component> = releases_of(ctx, &package).await.map_err(refused)?;
-    refuse_duplicate(ctx, &existing, &bundle.version).map_err(refused)?;
     let canonical = canonical(&package, &existing);
+    if canonical.scope != bundle.namespace || canonical.name != bundle.name {
+        return Err(bad(format!(
+            "the bundle names {}.{}, the repository keeps the package as {}",
+            bundle.namespace,
+            bundle.name,
+            canonical.identifier()
+        )));
+    }
     let mut archive = None;
     for asset in &bundle.assets {
         let expected = match route(&asset.path) {
@@ -75,6 +82,7 @@ async fn admit(ctx: &Ctx, bundle: &Bundle) -> Result<(), ContentError> {
     let Some(archive) = archive else {
         return Err(bad("the bundle holds no source archive"));
     };
+    refuse_duplicate(ctx, &existing, &bundle.version, Some(&archive.sha256)).map_err(refused)?;
     let swift = &bundle.meta[ID];
     if let Some(checksum) = swift.get("checksum").filter(|value| !value.is_null())
         && !checksum

@@ -99,18 +99,28 @@ async fn ready() -> Fixture {
 }
 
 async fn publish(fixture: &Fixture, repository: &str, version: &str, archive: &[u8]) -> Reply {
-    let content_type = format!("multipart/form-data;boundary=\"{BOUNDARY}\"");
     let metadata = json!({
         "description": "One linked list",
         "repositoryURLs": ["https://github.com/mona/LinkedList.git"],
         "author": {"name": "Mona"}
     });
+    publish_with(fixture, repository, version, archive, &metadata).await
+}
+
+async fn publish_with(
+    fixture: &Fixture,
+    repository: &str,
+    version: &str,
+    archive: &[u8],
+    metadata: &Value,
+) -> Reply {
+    let content_type = format!("multipart/form-data;boundary=\"{BOUNDARY}\"");
     fixture
         .send_body(
             Method::PUT,
             &format!("/repository/{repository}/mona/LinkedList/{version}"),
             Auth::Admin,
-            Body::from(form(archive, &metadata)),
+            Body::from(form(archive, metadata)),
             &[("accept", JSON), ("content-type", content_type.as_str())],
         )
         .await
@@ -532,8 +542,51 @@ async fn a_crafted_path_a_duplicate_version_and_a_read_only_target_are_refused()
     promote(&fixture, "source", "target", &genuine)
         .await
         .unwrap();
-    let error = promote(&fixture, "source", "target", &genuine)
+    let replay = promote(&fixture, "source", "target", &genuine)
+        .await
+        .unwrap();
+    assert_eq!(replay.status, Status::Unchanged);
+
+    repository(&fixture, "other", "allow").await;
+    publish_signed(&fixture, "other", "1.0.0", &source("1.0.1")).await;
+    let different = bundle(&fixture, "other", "1.0.0").await;
+    let error = promote(&fixture, "other", "target", &different)
         .await
         .unwrap_err();
     assert!(matches!(error, ContentError::Conflict(_)), "{error}");
+}
+
+#[tokio::test]
+async fn blank_repository_urls_are_left_out_of_a_promoted_release_as_publish_leaves_them_out() {
+    let fixture = ready().await;
+    repository(&fixture, "source", "allow").await;
+    repository(&fixture, "target", "allow").await;
+    let published = publish_with(
+        &fixture,
+        "source",
+        "1.0.0",
+        &source("1.0.0"),
+        &json!({"description": "d", "repositoryURLs": [" ", ""]}),
+    )
+    .await;
+    assert_eq!(
+        published.status,
+        StatusCode::CREATED,
+        "{}",
+        published.text()
+    );
+    promote(
+        &fixture,
+        "source",
+        "target",
+        &bundle(&fixture, "source", "1.0.0").await,
+    )
+    .await
+    .unwrap();
+    let (from, to) = (
+        swift_attributes(&fixture, "source", "1.0.0").await,
+        swift_attributes(&fixture, "target", "1.0.0").await,
+    );
+    assert!(from.get("repositoryURLs").is_none(), "{from}");
+    assert_eq!(from, to);
 }
