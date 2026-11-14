@@ -17,8 +17,10 @@ import { useApi, withQuery } from '../../api';
 import { formatBytes, formatNumber, useI18n, useT } from '../../i18n';
 import { ErrorState, FormatLogo, formatName, Page, RelativeTime } from '../../ui';
 import { browseUrl } from '../browse/tree/model';
+import { type UsageSeries, useUsageSeries } from '../repositories/api';
 import styles from './Dashboard.module.css';
 import { CHART_HEIGHT, DownloadsChart, shortDay } from './DownloadsChart';
+import { GrowthCard } from './GrowthCard';
 import {
   componentName,
   PERIODS,
@@ -172,7 +174,12 @@ function ChartCard({ data }: { data: Usage }) {
           )}
         </div>
         {peak ? (
-          <DownloadsChart days={data.downloadsPerDay} />
+          <DownloadsChart
+            days={data.downloadsPerDay}
+            value={(entry) => entry.downloads}
+            format={formatNumber}
+            ariaLabel={t('dashboard.chart.label')}
+          />
         ) : (
           <div className={styles.chartEmpty} style={{ height: CHART_HEIGHT }}>
             <ChartColumn size={28} strokeWidth={1.5} aria-hidden="true" />
@@ -523,11 +530,12 @@ function Loading() {
   );
 }
 
-function Board({ data }: { data: Usage }) {
+function Board({ data, growth }: { data: Usage; growth: UsageSeries | undefined }) {
   return (
     <div className={styles.board}>
       <Tiles data={data} />
       <ChartCard data={data} />
+      <GrowthCard series={growth} />
       <div className={styles.row}>
         <TopCard data={data} />
         <RepositoriesCard data={data} />
@@ -548,6 +556,7 @@ export function DashboardPage() {
   const query = useApi<Usage>(withQuery(USAGE_PATH, { days, repository }), {
     placeholderData: keepPreviousData,
   });
+  const growth = useUsageSeries(30);
   const data = query.data;
   const description = repository
     ? t('dashboard.home.subtitleRepository', { repository, period: period(days) })
@@ -581,7 +590,7 @@ export function DashboardPage() {
             <p className={styles.cardEmpty}>{t('dashboard.home.noRepositories')}</p>
           </Card>
         ) : (
-          <Board data={data} />
+          <Board data={data} growth={growth.data} />
         )}
       </div>
     </Page>

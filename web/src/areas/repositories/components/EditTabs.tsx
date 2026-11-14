@@ -1,5 +1,6 @@
 import { Badge, Button, Table, Text } from '@radix-ui/themes';
 import {
+  Activity,
   CircleCheck,
   CircleX,
   Clock,
@@ -25,6 +26,7 @@ import { Count } from './bits';
 import { OnlineDot } from './RepositoryHeader';
 import styles from './tabs.module.css';
 import { UsageBar } from './UsageBar';
+import { UsageHistory } from './UsageHistory';
 
 export function Card({
   icon,
@@ -190,6 +192,9 @@ export function SummaryTab({ repository, online }: { repository: UiRepository; o
           </dl>
         </Card>
       )}
+      <Card icon={<Activity size={18} />} title={t('repositories.usage.title')} plain>
+        <UsageHistory name={repository.name} />
+      </Card>
       <Card icon={<Package size={18} />} title={t('repositories.summary.metrics')} plain>
         <dl className={styles.grid} data-columns="2" style={{ margin: 0 }}>
           <Item

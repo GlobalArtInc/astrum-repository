@@ -101,6 +101,26 @@ last check and the problems that last; the metric `astrum_blobstore_space_alert`
 Messages follow the language of the channel. A webhook receives the events `blobstore.alert` and
 `blobstore.recovered` with the message in `text`; `repository` and `component` are `null`.
 
+## Usage history
+
+The daily task **Record repository usage** (at 00:30 UTC, see [scheduled tasks](tasks.md)) keeps one row per
+day for every repository, with its components, assets, bytes and downloads, and one per blob store, with its
+blob count, bytes and free space. It records the day before. A run for a day that already has rows replaces
+them. Rows older than the setting `usage.history.daysKept` (default `730`) are deleted. Downloads are taken
+from the download records of the assets, so downloads of assets deleted on the same day are lost.
+
+Two routes read the repository rows:
+
+- `GET /service/rest/v1/repositories/{name}/usage/history?days=` returns the days that have a row, oldest
+  first, as objects with `day`, `components`, `assets`, `bytes` and `downloads`. `days` is from 1 to 730,
+  default 90; any other value is answered with 400 and the field `days`. Rights are those of the repository
+  summary: anonymous callers get 401, callers without access to the repository get 403, and an unknown
+  repository gets 404.
+- `GET /service/rest/internal/ui/usage-history?days=` serves the web interface. It answers an object that
+  maps each repository the caller may browse to the `bytes` of its days, oldest first, for the last `days`
+  days that have a row. `days` is from 1 to 730, default 30; other values get 400 as above. A repository the
+  caller may not browse has no key, and anonymous callers get 401.
+
 ## What to watch
 
 With the Prometheus metrics above, alert on `astrum_blobstore_up == 0`,

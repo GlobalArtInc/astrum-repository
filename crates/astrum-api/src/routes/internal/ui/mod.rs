@@ -19,6 +19,7 @@ mod tasks;
 mod two_factor;
 pub(crate) mod two_factor_passkeys;
 mod usage;
+mod usage_history;
 mod versions;
 
 use axum::Router;
@@ -37,6 +38,7 @@ pub fn routes() -> Router<AppState> {
         .merge(browse_asset::routes())
         .merge(search::routes())
         .merge(usage::routes())
+        .merge(usage_history::routes())
         .merge(blobstores::routes())
         .merge(selectors::routes())
         .merge(account::routes())

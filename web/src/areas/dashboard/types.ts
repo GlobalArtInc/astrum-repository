@@ -26,8 +26,11 @@ export interface Totals {
   componentsDownloadedInPeriod: number;
 }
 
-export interface DayDownloads {
+export interface DayEntry {
   day: string;
+}
+
+export interface DayDownloads extends DayEntry {
   downloads: number;
 }
 
@@ -121,14 +124,18 @@ export interface Peak {
   downloads: number;
 }
 
-export function peakOf(days: DayDownloads[]): Peak | null {
-  let peak: Peak | null = null;
+export function peakBy<T extends DayEntry>(days: T[], value: (entry: T) => number): T | null {
+  let peak: T | null = null;
   for (const entry of days) {
-    if (entry.downloads > 0 && (peak === null || entry.downloads > peak.downloads)) {
+    if (value(entry) > 0 && (peak === null || value(entry) > value(peak))) {
       peak = entry;
     }
   }
   return peak;
+}
+
+export function peakOf(days: DayDownloads[]): Peak | null {
+  return peakBy(days, (entry) => entry.downloads);
 }
 
 export function componentName(component: Pick<UsageComponent, 'format' | 'group' | 'name'>): string {

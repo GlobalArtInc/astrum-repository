@@ -1,3 +1,4 @@
+import { keepPreviousData } from '@tanstack/react-query';
 import { INTERNAL, path, type RepositoryDomain, type RepositoryType, useApi, V1, withQuery } from '../../api';
 
 export const UI_REPOSITORIES = `${INTERNAL}/ui/repositories`;
@@ -78,6 +79,32 @@ export function useUiRepositories() {
 
 export function useRecipes() {
   return useApi<Recipe[]>(RECIPES);
+}
+
+export const USAGE_HISTORY = `${INTERNAL}/ui/usage-history`;
+export const USAGE_PERIODS = [30, 90, 365] as const;
+export type UsagePeriod = (typeof USAGE_PERIODS)[number];
+
+export interface UsageHistoryPoint {
+  day: string;
+  components: number;
+  assets: number;
+  bytes: number;
+  downloads: number;
+}
+
+export type UsageSeries = Record<string, number[]>;
+
+export function usageHistoryPath(name: string, days: number): string {
+  return withQuery(path`/service/rest/v1/repositories/${name}/usage/history`, { days });
+}
+
+export function useUsageSeries(days: number) {
+  return useApi<UsageSeries>(withQuery(USAGE_HISTORY, { days }));
+}
+
+export function useUsageHistory(name: string, days: number) {
+  return useApi<UsageHistoryPoint[]>(usageHistoryPath(name, days), { placeholderData: keepPreviousData });
 }
 
 export function documentPath(apiFormat: string, type: RepositoryType, name: string): string {

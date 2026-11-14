@@ -16,6 +16,18 @@
   "repositories.list.blobStore": "Blob store",
   "repositories.list.url": "URL",
   "repositories.list.size": "Size",
+  "repositories.list.trend": "Trend, 30 days",
+  "repositories.usage.title": "Usage",
+  "repositories.usage.period": "Period",
+  "repositories.usage.days": {
+    "one": "{count} day",
+    "other": "{count} days"
+  },
+  "repositories.usage.bytes": "Stored bytes per day",
+  "repositories.usage.downloads": "Downloads per day",
+  "repositories.usage.empty": "No usage has been recorded for this repository yet.",
+  "repositories.usage.loading": "Loading the usage of the repository…",
+  "repositories.usage.error": "The usage of the repository could not be loaded",
   "repositories.list.copyUrl": "Copy the URL to the clipboard",
   "repositories.list.empty": "No repositories",
   "repositories.list.noMatches": "No repositories match the current filters",

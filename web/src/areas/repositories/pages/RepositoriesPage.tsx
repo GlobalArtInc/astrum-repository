@@ -6,7 +6,7 @@ import type { RepositoryType } from '../../../api';
 import { useCan } from '../../../auth/state';
 import { type Translate, useT } from '../../../i18n';
 import { FileSize, formatName, Page, useToast } from '../../../ui';
-import { CREATE_ADDRESS, editAddress, type UiRepository, useUiRepositories } from '../api';
+import { CREATE_ADDRESS, editAddress, type UiRepository, useUiRepositories, useUsageSeries } from '../api';
 import { type AdminColumn, AdminTable, compareText } from '../components/admin/AdminTable';
 import styles from '../components/admin/admin.module.css';
 import {
@@ -20,6 +20,7 @@ import {
 } from '../components/admin/FilterPanel';
 import { HelpCard } from '../components/admin/HelpCard';
 import { Pager } from '../components/admin/Pager';
+import { Sparkline } from '../components/Sparkline';
 import { canInvalidate, canRebuild, useRepositoryActions } from '../components/useRepositoryActions';
 
 export const HEALTH_CHECK_FORMATS = new Set([
@@ -113,6 +114,7 @@ export default function RepositoriesPage() {
   const [params, setParams] = useSearchParams();
   const canCreate = useCan({ some: 'astrum:repository-admin:*:*:add' });
   const query = useUiRepositories();
+  const usage = useUsageSeries(30);
   const actions = useRepositoryActions();
   const [sortField, setSortField] = useState<SortField>('name');
   const [direction, setDirection] = useState<Direction>('asc');
@@ -177,6 +179,11 @@ export default function RepositoriesPage() {
       cell: (row) => <span className={styles.name}>{row.name}</span>,
     },
     { id: 'size', header: t('repositories.list.size'), cell: (row) => <SizeCell row={row} /> },
+    {
+      id: 'trend',
+      header: t('repositories.list.trend'),
+      cell: (row) => <Sparkline values={usage.data?.[row.name]} />,
+    },
     {
       id: 'type',
       header: t('repositories.list.type'),
