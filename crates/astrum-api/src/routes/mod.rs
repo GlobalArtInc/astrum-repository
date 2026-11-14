@@ -9,6 +9,7 @@ pub mod findings;
 pub(crate) mod html;
 pub mod internal;
 pub mod legacy;
+pub mod licenses;
 pub mod mcp;
 pub mod oauth;
 pub mod oidc;

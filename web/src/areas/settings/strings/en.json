@@ -53,6 +53,8 @@
   "settings.tile.vulnerabilityDataText": "Imported advisory feeds and how old they are",
   "settings.tile.systemInformation": "System Information",
   "settings.tile.systemInformationText": "Version, environment and diagnostics of this server",
+  "settings.tile.licenses": "Licences",
+  "settings.tile.licensesText": "Which components carry which licence, and the verdict of their policy",
   "settings.tile.logs": "Logs",
   "settings.tile.logsText": "Read the log of the application",
   "settings.tile.logging": "Logging",

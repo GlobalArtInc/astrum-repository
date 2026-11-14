@@ -25,7 +25,7 @@ fn strict(name: &str) -> Policy {
         },
         licenses: LicenseRule {
             mode: Mode::Report,
-            list: Some(LicenseList::Deny),
+            list: LicenseList::Deny,
             ids: vec!["GPL-3.0-only".to_owned()],
             unknown: UnknownLicense::Block,
         },

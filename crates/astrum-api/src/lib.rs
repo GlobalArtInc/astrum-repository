@@ -74,6 +74,7 @@ struct Inner {
     gate_metrics: Arc<gate::Metrics>,
     selector_row_cap: AtomicUsize,
     examine_cap: AtomicUsize,
+    licence_export_cap: AtomicUsize,
     stars: github::Stars,
     ip_allow_denials: ip_allow::Denials,
 }
@@ -128,6 +129,7 @@ impl AppState {
                 gate_metrics,
                 selector_row_cap: AtomicUsize::new(routes::findings::SELECTOR_ROW_CAP),
                 examine_cap: AtomicUsize::new(routes::findings::EXAMINE_CAP),
+                licence_export_cap: AtomicUsize::new(routes::licenses::EXPORT_ROW_CAP),
                 stars: github::Stars::default(),
                 ip_allow_denials: ip_allow::Denials::default(),
             }),
@@ -273,6 +275,14 @@ impl AppState {
         self.inner.examine_cap.store(cap, Ordering::Relaxed);
     }
 
+    pub fn licence_export_cap(&self) -> usize {
+        self.inner.licence_export_cap.load(Ordering::Relaxed)
+    }
+
+    pub fn set_licence_export_cap(&self, cap: usize) {
+        self.inner.licence_export_cap.store(cap, Ordering::Relaxed);
+    }
+
     pub fn set_selector_row_cap(&self, cap: usize) {
         self.inner.selector_row_cap.store(cap, Ordering::Relaxed);
     }
@@ -368,6 +378,7 @@ fn endpoints(extra: Router<AppState>) -> Router<AppState> {
         .merge(routes::policies::routes())
         .merge(routes::scan::routes())
         .merge(routes::findings::routes())
+        .merge(routes::licenses::routes())
         .merge(routes::support::routes())
         .merge(routes::capabilities::routes())
         .merge(routes::routing_rules::routes())

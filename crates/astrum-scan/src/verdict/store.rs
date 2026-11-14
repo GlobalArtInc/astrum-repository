@@ -3,8 +3,9 @@ use std::future::Future;
 
 use astrum_db::revision;
 use astrum_policy::cache::{Cache, Snapshot};
+use astrum_policy::policy::Mode;
 use astrum_policy::subject::{self, COMPONENT_PREFIX, IMAGE_PREFIX};
-use astrum_policy::verdict::{self, Finding, Input, Scan, Target, Verdict};
+use astrum_policy::verdict::{self, Finding, Input, LicenseFact, Scan, Target, Verdict};
 use chrono::{DateTime, Utc};
 use sea_orm::{
     ConnectionTrait, DatabaseConnection, DatabaseTransaction, DbBackend, DbErr, Statement,
@@ -170,8 +171,17 @@ where
             .filter(|(_, _, _, policy)| sound(policy))
             .map(|(component, ..)| component.id)
             .collect();
+        let licensed: Vec<i64> = judging
+            .iter()
+            .filter(|(_, _, _, policy)| {
+                matches!(snapshot.policies.get(policy), Some(stored)
+                    if stored.policy.as_ref().is_ok_and(|content| content.licenses.mode != Mode::Off))
+            })
+            .map(|(component, ..)| component.id)
+            .collect();
         let scans = load_scans(&txn, &readable).await?;
         let findings = load_findings(&txn, &readable).await?;
+        let licenses = load_licenses(&txn, &licensed).await?;
         let readable_images: Vec<oci::Key> = picked
             .iter()
             .filter(|(_, _, policy)| sound(policy))
@@ -184,11 +194,15 @@ where
                 &snapshot,
                 &policy,
                 &component.target,
-                scans.get(&component.id).copied().unwrap_or(Scan::Missing),
-                findings
-                    .get(&component.id)
-                    .map(Vec::as_slice)
-                    .unwrap_or_default(),
+                Basis {
+                    scan: scans.get(&component.id).copied().unwrap_or(Scan::Missing),
+                    findings: findings
+                        .get(&component.id)
+                        .map(Vec::as_slice)
+                        .unwrap_or_default(),
+                    license: licenses.get(&component.id),
+                    evaluate: verdict::evaluate,
+                },
                 now,
             );
             match verdict {
@@ -210,8 +224,12 @@ where
                 &snapshot,
                 &policy,
                 &target,
-                known.map_or(Scan::Missing, |known| known.scan),
-                known.map_or(&[][..], |known| known.findings.as_slice()),
+                Basis {
+                    scan: known.map_or(Scan::Missing, |known| known.scan),
+                    findings: known.map_or(&[][..], |known| known.findings.as_slice()),
+                    license: None,
+                    evaluate: verdict::evaluate_vulnerabilities,
+                },
                 now,
             );
             match verdict {
@@ -256,12 +274,18 @@ where
     Ok(judged)
 }
 
+struct Basis<'a> {
+    scan: Scan,
+    findings: &'a [Finding],
+    license: Option<&'a LicenseFact>,
+    evaluate: fn(&Input) -> Option<Verdict>,
+}
+
 fn evaluate_for(
     snapshot: &Snapshot,
     policy: &str,
     target: &Target,
-    scan: Scan,
-    findings: &[Finding],
+    basis: Basis,
     now: DateTime<Utc>,
 ) -> Option<Verdict> {
     match snapshot.policies.get(policy) {
@@ -274,12 +298,13 @@ fn evaluate_for(
                 stored.revision,
                 format!("the content policy \"{policy}\" cannot be read: {reason}"),
             )),
-            Ok(content) => verdict::evaluate(&Input {
+            Ok(content) => (basis.evaluate)(&Input {
                 policy: content,
                 exceptions: &snapshot.exceptions,
                 target,
-                scan,
-                findings,
+                scan: basis.scan,
+                findings: basis.findings,
+                license: basis.license,
                 now,
             }),
         },
@@ -507,6 +532,36 @@ async fn load_findings(
     Ok(found)
 }
 
+async fn load_licenses(
+    txn: &DatabaseTransaction,
+    ids: &[i64],
+) -> Result<HashMap<i64, LicenseFact>, DbErr> {
+    let mut found = HashMap::new();
+    if ids.is_empty() {
+        return Ok(found);
+    }
+    let rows = txn
+        .query_all(Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            "SELECT component_id, state, expression, ids FROM component_license \
+             WHERE component_id = ANY($1)",
+            [ids.to_vec().into()],
+        ))
+        .await?;
+    for row in rows {
+        let state: String = row.try_get("", "state")?;
+        found.insert(
+            row.try_get("", "component_id")?,
+            LicenseFact::stored(
+                &state,
+                row.try_get("", "expression")?,
+                row.try_get("", "ids")?,
+            ),
+        );
+    }
+    Ok(found)
+}
+
 async fn write_rows(
     txn: &DatabaseTransaction,
     rows: &[Row],
@@ -525,19 +580,21 @@ async fn write_rows(
     txn.execute(Statement::from_sql_and_values(
         DbBackend::Postgres,
         "INSERT INTO policy_verdict (repository, subject, policy, component_id, blocked, state, \
-           critical, high, medium, low, unknown, max_severity, reasons, policy_revision, computed_at) \
+           critical, high, medium, low, unknown, max_severity, license_state, reasons, policy_revision, \
+           computed_at) \
          SELECT repository, subject, policy, NULLIF(component_id, 0), blocked, state, crit, hi, med, lo, unk, \
-           NULLIF(top, ''), reasons::jsonb, revision, $15 \
+           NULLIF(top, ''), NULLIF(licensed, ''), reasons::jsonb, revision, $16 \
          FROM unnest($1::text[], $2::text[], $3::text[], $4::bigint[], $5::bool[], $6::text[], \
-           $7::int[], $8::int[], $9::int[], $10::int[], $11::int[], $12::text[], $13::text[], $14::bigint[]) \
+           $7::int[], $8::int[], $9::int[], $10::int[], $11::int[], $12::text[], $13::text[], \
+           $14::bigint[], $15::text[]) \
            AS v(repository, subject, policy, component_id, blocked, state, crit, hi, med, lo, unk, \
-             top, reasons, revision) \
+             top, reasons, revision, licensed) \
          ORDER BY 1, 2 \
          ON CONFLICT (repository, subject) DO UPDATE SET policy = EXCLUDED.policy, \
            component_id = EXCLUDED.component_id, blocked = EXCLUDED.blocked, state = EXCLUDED.state, \
            critical = EXCLUDED.critical, high = EXCLUDED.high, medium = EXCLUDED.medium, \
            low = EXCLUDED.low, unknown = EXCLUDED.unknown, max_severity = EXCLUDED.max_severity, \
-           reasons = EXCLUDED.reasons, policy_revision = EXCLUDED.policy_revision, \
+           license_state = EXCLUDED.license_state, reasons = EXCLUDED.reasons, policy_revision = EXCLUDED.policy_revision, \
            computed_at = EXCLUDED.computed_at",
         [
             text(|row| row.repository.clone()).into(),
@@ -569,6 +626,13 @@ async fn write_rows(
                 .map(|row| row.verdict.policy_revision)
                 .collect::<Vec<i64>>()
                 .into(),
+            text(|row| {
+                row.verdict
+                    .license_state
+                    .map(|state| state.as_str().to_owned())
+                    .unwrap_or_default()
+            })
+            .into(),
             now.into(),
         ],
     ))

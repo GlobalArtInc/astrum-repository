@@ -106,6 +106,11 @@ export const securityArea: Area = {
       load: () => import('./policy/VulnerabilityDataPage'),
       need: POLICY_READ,
     },
+    {
+      path: 'admin/security/licenses',
+      load: () => import('./licenses/LicensesPage'),
+      need: ADMINISTRATOR,
+    },
   ],
   settings: [
     {
@@ -162,6 +167,11 @@ export const securityArea: Area = {
       id: 'vulnerability-data',
       to: '/admin/security/vulnerability-data',
       need: POLICY_READ,
+    },
+    {
+      id: 'licenses',
+      to: '/admin/security/licenses',
+      need: ADMINISTRATOR,
     },
   ],
 };

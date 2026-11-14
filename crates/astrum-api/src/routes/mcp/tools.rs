@@ -196,6 +196,26 @@ fn defs() -> Vec<Def> {
             idempotent: true,
         },
         Def {
+            name: "list_license_findings",
+            title: "Licences of components",
+            description: "The licence of each component you can see: declared text, SPDX expression, licence ids, state (spdx, mapped, unknown or none) and the verdict of its repository's policy (pass, blocked, reported or unjudged). Filter by repository, licence id, state or format. Pass continuationToken from a previous answer for the next page.",
+            schema: || {
+                schema(
+                    json!({
+                        "repository": string("Repository name"),
+                        "license": string("Licence id, such as MIT or Apache-2.0; deprecated ids match their replacement"),
+                        "state": string("spdx, mapped, unknown or none"),
+                        "format": string("Format, such as maven2, npm, raw"),
+                        "continuationToken": string("Token of the next page"),
+                    }),
+                    &[],
+                )
+            },
+            need: Need::SignedIn,
+            write: false,
+            idempotent: true,
+        },
+        Def {
             name: "list_blob_stores",
             title: "Blob stores and space",
             description: "Every blob store with its type, blob count, size used, free space, soft quota state, the fill forecast, the repositories that use it and the group it belongs to.",
@@ -693,6 +713,7 @@ impl Handler for AstrumTools {
             "search_assets" => search_assets(api, &arguments).await,
             "read_text_asset" => read_text_asset(api, &arguments).await,
             "list_docker_tags" => list_docker_tags(api, &arguments).await,
+            "list_license_findings" => list_license_findings(api, &arguments).await,
             "list_blob_stores" => list_blob_stores(api).await,
             "list_tasks" => list_tasks(api, &arguments).await,
             "get_task" => {
@@ -1314,6 +1335,27 @@ async fn list_docker_tags(
         "incomplete": more,
         "tags": tags,
     }))
+}
+
+async fn list_license_findings(
+    api: &Loopback,
+    arguments: &Map<String, Value>,
+) -> Result<Value, ToolError> {
+    let pairs = picked(
+        arguments,
+        &[
+            "repository",
+            "license",
+            "state",
+            "format",
+            "continuationToken",
+        ],
+    );
+    let uri = match pairs.is_empty() {
+        true => "/service/rest/v1/security/licenses".to_owned(),
+        false => format!("/service/rest/v1/security/licenses?{}", query(&pairs)),
+    };
+    api.get(&uri).await
 }
 
 async fn list_blob_stores(api: &Loopback) -> Result<Value, ToolError> {

@@ -41,6 +41,25 @@ fn finding(item: &Value) -> Option<String> {
     Some(line)
 }
 
+fn license(item: &Value) -> Option<String> {
+    if item.get("blocking").and_then(Value::as_bool) != Some(true) {
+        return None;
+    }
+    let expression = text(item, "expression").map(clean);
+    let breach = text(item, "breach");
+    Some(match (breach, expression) {
+        (Some("undeclared"), _) => "no license is declared".to_owned(),
+        (Some("not-allowed"), Some(expression)) => {
+            format!("license {expression}: not on the allow list")
+        }
+        (Some("denied"), Some(expression)) => format!("license {expression}: on the deny list"),
+        (Some("unknown"), Some(expression)) => format!("license {expression}: not recognised"),
+        (Some("unknown"), None) => "the license is not recognised".to_owned(),
+        (_, Some(expression)) => format!("license {expression}: breaks the license rule"),
+        (_, None) => "the license breaks the license rule".to_owned(),
+    })
+}
+
 fn problem(item: &Value) -> Option<String> {
     text(item, "message").map(clean)
 }
@@ -63,6 +82,7 @@ fn collect(items: &[Value], kind: &str, line: fn(&Value) -> Option<String>) -> V
 pub fn details(reasons: &Value) -> String {
     let items: &[Value] = reasons.as_array().map_or(&[], Vec::as_slice);
     let mut lines = collect(items, "vulnerability", finding);
+    lines.extend(collect(items, "license", license));
     if lines.is_empty() {
         lines = collect(items, "policy-error", problem);
     }
@@ -129,6 +149,37 @@ mod tests {
         ] {
             assert_eq!(details(&nothing), "the component is blocked");
         }
+    }
+
+    #[test]
+    fn license_failures_join_the_findings_and_only_the_blocking_ones_are_named() {
+        let reasons = json!([
+            {"kind": "vulnerability", "advisory": "GHSA-1", "severity": "high",
+             "malicious": false, "package": "npm/lib@1.0.0", "blocking": true},
+            {"kind": "license", "expression": "MIT AND GPL-3.0-only", "breach": "denied",
+             "blocking": true},
+            {"kind": "license", "expression": "ISC", "breach": "not-allowed", "blocking": true},
+            {"kind": "license", "expression": "LicenseRef-Own", "breach": "unknown",
+             "blocking": true},
+            {"kind": "license", "expression": "MIT", "breach": "denied", "blocking": false,
+             "exception": {"id": "x", "reason": "accepted"}},
+            {"kind": "license", "breach": "undeclared", "blocking": false}
+        ]);
+        assert_eq!(
+            details(&reasons),
+            "GHSA-1: high in npm/lib@1.0.0; license MIT AND GPL-3.0-only: on the deny list; \
+             license ISC: not on the allow list; license LicenseRef-Own: not recognised"
+        );
+        let lone = json!([
+            {"kind": "license", "breach": "undeclared", "blocking": true},
+            {"kind": "unscanned", "scan": "missing"}
+        ]);
+        assert_eq!(details(&lone), "no license is declared");
+        let hidden = json!([
+            {"kind": "license", "expression": "GPL\n-3.0\u{202E}", "breach": "denied",
+             "blocking": true}
+        ]);
+        assert_eq!(details(&hidden), "license GPL-3.0: on the deny list");
     }
 
     #[test]

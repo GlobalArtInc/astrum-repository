@@ -242,3 +242,85 @@ async fn policy_dirty_rows_follow_their_repository() {
         .unwrap();
     assert_eq!(left.try_get::<i64>("", "n").unwrap(), 0);
 }
+
+async fn number(db: &astrum_db::Database, sql: &str) -> i64 {
+    db.conn()
+        .query_one(Statement::from_string(DbBackend::Postgres, sql.to_owned()))
+        .await
+        .unwrap()
+        .unwrap()
+        .try_get("", "n")
+        .unwrap()
+}
+
+#[tokio::test]
+async fn policies_with_the_license_rule_on_are_marked_stale_when_the_license_migration_runs() {
+    let test = TestDatabase::create().await;
+    let db = test.migrated().await;
+    let conn = db.conn();
+    let all = MIGRATIONS.all().unwrap();
+    let since = all.len()
+        - all
+            .iter()
+            .position(|migration| migration.name.starts_with("JudgeLicenceChanges"))
+            .unwrap();
+    MIGRATIONS.revert(conn, since).await.unwrap();
+    conn.execute_unprepared(
+        "INSERT INTO repository (name, format, type, attributes) \
+           VALUES ('one', 'npm', 'hosted', '{\"policy\":{\"name\":\"lic\"}}'); \
+         INSERT INTO content_policy (name, licenses) VALUES \
+           ('lic', '{\"mode\":\"block\",\"list\":\"deny\",\"ids\":[\"GPL-3.0-only\"]}'), \
+           ('watch', '{\"mode\":\"report\"}'), ('quiet', '{\"mode\":\"off\"}'); \
+         INSERT INTO content_policy (name) VALUES ('plain'); \
+         INSERT INTO policy_verdict (repository, subject, policy, blocked, state, policy_revision) \
+           VALUES ('one', 'c:1', 'lic', false, 'pass', 1); \
+         INSERT INTO revision (name, value) VALUES ('policies', 7)",
+    )
+    .await
+    .unwrap();
+
+    assert_eq!(db.migrate().await.unwrap().len(), since);
+
+    for (policy, revision) in [("lic", 2), ("watch", 2), ("quiet", 1), ("plain", 1)] {
+        assert_eq!(
+            number(
+                &db,
+                &format!("SELECT revision AS n FROM content_policy WHERE name = '{policy}'")
+            )
+            .await,
+            revision,
+            "{policy}"
+        );
+    }
+    assert_eq!(
+        number(
+            &db,
+            "SELECT value AS n FROM revision WHERE name = 'policies'"
+        )
+        .await,
+        8
+    );
+    assert_eq!(
+        number(
+            &db,
+            "SELECT count(*) AS n FROM policy_verdict v JOIN content_policy p ON p.name = v.policy \
+             WHERE v.policy_revision <> p.revision"
+        )
+        .await,
+        1
+    );
+
+    MIGRATIONS.revert(conn, since).await.unwrap();
+    conn.execute_unprepared("DELETE FROM content_policy WHERE name IN ('lic', 'watch')")
+        .await
+        .unwrap();
+    assert_eq!(db.migrate().await.unwrap().len(), since);
+    assert_eq!(
+        number(
+            &db,
+            "SELECT value AS n FROM revision WHERE name = 'policies'"
+        )
+        .await,
+        8
+    );
+}

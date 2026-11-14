@@ -41,8 +41,6 @@ pub const MAX_NAME: usize = 64;
 pub const MAX_NOTES: usize = 1000;
 pub const MAX_REASON: usize = 1000;
 pub const MAX_TARGET: usize = 256;
-pub const MAX_LICENSE_IDS: usize = 1000;
-pub const MAX_LICENSE_ID: usize = 128;
 pub const MAX_KEYS_PER_POLICY: usize = 64;
 pub const MAX_AUDITED_IDS: usize = 100;
 
@@ -175,7 +173,7 @@ impl LicenseBody {
     fn into_rule(self, validation: &mut Validation) -> LicenseRule {
         LicenseRule {
             mode: required_mode("licenses", self.mode, validation),
-            list: self.list,
+            list: self.list.unwrap_or_default(),
             ids: self.ids,
             unknown: self.unknown,
         }
@@ -222,32 +220,8 @@ impl PolicyRequest {
 }
 
 fn check_licenses(rule: &LicenseRule, validation: &mut Validation) {
-    let ids = &rule.ids;
-    if ids.len() > MAX_LICENSE_IDS {
-        validation.add(
-            "licenses.ids",
-            format!("must hold at most {MAX_LICENSE_IDS} ids"),
-        );
-    }
-    if rule.mode == Mode::Block && rule.list == Some(LicenseList::Allow) && ids.is_empty() {
-        validation.add(
-            "licenses.ids",
-            "must hold at least one id when the mode is block and the list is allow",
-        );
-    }
-    for id in ids {
-        let usable = !id.is_empty()
-            && id.chars().count() <= MAX_LICENSE_ID
-            && !id
-                .chars()
-                .any(|character| character.is_control() || character.is_whitespace());
-        if !usable {
-            validation.add(
-                "licenses.ids",
-                format!("every id must be 1 to {MAX_LICENSE_ID} characters without spaces"),
-            );
-            break;
-        }
+    if let Err(message) = rule.check() {
+        validation.add("licenses.ids", message);
     }
 }
 
@@ -554,9 +528,6 @@ async fn checked_exception(
         );
     }
     let rule = request.rule.as_str();
-    if request.rule == Rule::License && license.is_none() {
-        validation.add("license", "a license exception needs a license target");
-    }
     if request.rule == Rule::License && advisory.is_some() {
         validation.add("advisory", "a license exception cannot target an advisory");
     }

@@ -6,13 +6,15 @@ use std::time::{Duration, Instant};
 use astrum_content::{Asset, ContentError, Ctx, Gate};
 use astrum_db::audit::{self, Event};
 use astrum_policy::cache::{Cache, Snapshot as Policies};
+use astrum_policy::exception::Exception;
 use astrum_policy::policy::{Mode, Policy, Unscanned};
 use astrum_policy::refusal;
 use astrum_policy::subject;
-use astrum_policy::verdict::{State, clean};
+use astrum_policy::verdict::{self, Input, LicenseFact, Scan, State, Target, clean};
 use astrum_scan::inline;
 use astrum_scan::worker::ScanError;
 use async_trait::async_trait;
+use chrono::{DateTime, Utc};
 use sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, DbErr, Statement};
 use serde_json::{Value, json};
 use tokio::sync::{OwnedSemaphorePermit, Semaphore, watch};
@@ -477,7 +479,7 @@ impl PolicyGate {
         let matching = held
             .verdict
             .filter(|verdict| verdict.policy == name && verdict.revision == stored.revision);
-        match policy.vulnerabilities.mode {
+        match policy.judged_mode() {
             Mode::Off => Ok(Judgement::Allowed(Outcome::Pass)),
             Mode::Report => {
                 let would = matching.is_some_and(|verdict| verdict.state == State::Report.as_str());
@@ -494,8 +496,15 @@ impl PolicyGate {
                     Outcome::Blocked,
                 )),
                 None => {
-                    self.inline(ctx, asset, component_id, policy, stored.revision)
-                        .await
+                    self.inline(
+                        ctx,
+                        asset,
+                        component_id,
+                        policy,
+                        stored.revision,
+                        &snapshot.exceptions,
+                    )
+                    .await
                 }
             },
         }
@@ -597,6 +606,7 @@ impl PolicyGate {
         component_id: i64,
         policy: &Policy,
         revision: i64,
+        exceptions: &[Exception],
     ) -> Result<Judgement, Unchecked> {
         let db = ctx.db();
         let Scanned { mut ended, leader } = self.scan(ctx, &asset.repository, component_id).await;
@@ -630,13 +640,16 @@ impl PolicyGate {
         if leader {
             self.queue_mark(db, &asset.repository, component_id).await;
         }
+        if let Some(refused) = license_refusal(db, component_id, policy, exceptions).await? {
+            return Ok(Judgement::Refused(Outcome::InlineBlocked, refused));
+        }
         let outcome = match ended {
             Ended::TimedOut => Outcome::InlineTimeout,
             _ => Outcome::InlineError,
         };
-        Ok(match policy.vulnerabilities.unscanned {
-            Unscanned::Allow => Judgement::Allowed(outcome),
-            Unscanned::Block => Judgement::Refused(
+        let rule = &policy.vulnerabilities;
+        Ok(match (rule.mode, rule.unscanned) {
+            (Mode::Block, Unscanned::Block) => Judgement::Refused(
                 outcome,
                 Refusal {
                     policy: policy.name.clone(),
@@ -644,6 +657,7 @@ impl PolicyGate {
                     error: ContentError::blocked_by(&clean(&policy.name), refusal::UNSCANNED),
                 },
             ),
+            _ => Judgement::Allowed(outcome),
         })
     }
 
@@ -770,6 +784,63 @@ async fn enqueue_notice(
         .ok_or_else(|| DbErr::RecordNotFound("the notice claim returned no row".to_owned()))?;
     let queued: i64 = row.try_get("", "n")?;
     Ok(queued.max(0) as u64)
+}
+
+async fn license_refusal(
+    db: &DatabaseConnection,
+    component_id: i64,
+    policy: &Policy,
+    exceptions: &[Exception],
+) -> Result<Option<Refusal>, Unchecked> {
+    if policy.licenses.mode == Mode::Off {
+        return Ok(None);
+    }
+    let row = db
+        .query_one(Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            "SELECT c.format, c.namespace, c.name, c.version, clock_timestamp() AS now, \
+                    l.state, l.expression, l.ids \
+             FROM component c LEFT JOIN component_license l ON l.component_id = c.id \
+             WHERE c.id = $1",
+            [component_id.into()],
+        ))
+        .await?
+        .ok_or(Unchecked::Vanished)?;
+    let target = Target {
+        format: row.try_get("", "format")?,
+        namespace: row.try_get("", "namespace")?,
+        name: row.try_get("", "name")?,
+        version: row.try_get("", "version")?,
+        digest: None,
+        peers: Vec::new(),
+    };
+    let fact = match row.try_get::<Option<String>>("", "state")? {
+        Some(state) => Some(LicenseFact::stored(
+            &state,
+            row.try_get("", "expression")?,
+            row.try_get("", "ids")?,
+        )),
+        None => None,
+    };
+    let now: DateTime<Utc> = row.try_get("", "now")?;
+    let judged = verdict::evaluate_license(&Input {
+        policy,
+        exceptions,
+        target: &target,
+        scan: Scan::Scanned,
+        findings: &[],
+        license: fact.as_ref(),
+        now,
+    });
+    Ok(judged.filter(|verdict| verdict.blocked).map(|verdict| {
+        let reasons =
+            serde_json::to_value(&verdict.reasons).expect("the verdict reasons serialize to JSON");
+        Refusal {
+            policy: policy.name.clone(),
+            state: verdict.state.as_str().to_owned(),
+            error: ContentError::blocked_by(&clean(&policy.name), &refusal::details(&reasons)),
+        }
+    }))
 }
 
 fn unreadable(policy: &str) -> Judgement {

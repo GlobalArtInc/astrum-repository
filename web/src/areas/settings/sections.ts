@@ -21,6 +21,7 @@ import {
   Network,
   Puzzle,
   Route,
+  Scale,
   ScrollText,
   ShieldAlert,
   ShieldCheck,
@@ -233,6 +234,15 @@ export const CATALOG: CatalogTile[] = [
     Bug,
     'settings.tile.vulnerabilityData',
     'settings.tile.vulnerabilityDataText',
+  ),
+  tile(
+    'licenses',
+    'security',
+    90,
+    '/admin/security/licenses',
+    Scale,
+    'settings.tile.licenses',
+    'settings.tile.licensesText',
   ),
   tile(
     'system-information',

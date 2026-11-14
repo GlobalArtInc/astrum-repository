@@ -46,7 +46,7 @@ const RANK: &str = "(CASE a.severity WHEN 'critical' THEN 4 WHEN 'high' THEN 3 \
 const HAS_ASSET: &str =
     "EXISTS (SELECT 1 FROM asset s WHERE s.component_id = c.id AND s.repository = c.repository)";
 
-const PATHS: &str = "ARRAY(SELECT s.path FROM asset s \
+pub(crate) const PATHS: &str = "ARRAY(SELECT s.path FROM asset s \
     WHERE s.component_id = c.id AND s.repository = c.repository)";
 
 pub fn routes() -> Router<AppState> {
@@ -74,21 +74,21 @@ fn blocked_now(component: &str) -> String {
     )
 }
 
-fn visible(full: &str, selected: &str) -> String {
+pub(crate) fn visible(full: &str, selected: &str) -> String {
     format!("((c.repository = ANY({full}) AND {HAS_ASSET}) OR c.repository = ANY({selected}))")
 }
 
 #[derive(Default)]
-struct Params(Vec<SqlValue>);
+pub(crate) struct Params(Vec<SqlValue>);
 
 impl Params {
-    fn bind(&mut self, value: impl Into<SqlValue>) -> String {
+    pub(crate) fn bind(&mut self, value: impl Into<SqlValue>) -> String {
         self.0.push(value.into());
         format!("${}", self.0.len())
     }
 }
 
-fn statement(sql: String, params: Params) -> Statement {
+pub(crate) fn statement(sql: String, params: Params) -> Statement {
     Statement::from_sql_and_values(DbBackend::Postgres, sql, params.0)
 }
 
@@ -104,14 +104,18 @@ fn text_array(value: Option<Vec<String>>) -> Vec<String> {
     value.unwrap_or_default()
 }
 
-struct Scope {
+pub(crate) struct Scope {
     visibility: Visibility,
-    full: Vec<String>,
-    selected: Vec<String>,
+    pub(crate) full: Vec<String>,
+    pub(crate) selected: Vec<String>,
 }
 
 impl Scope {
-    async fn open(state: &AppState, caller: &Caller, only: Option<&str>) -> Result<Self, ApiError> {
+    pub(crate) async fn open(
+        state: &AppState,
+        caller: &Caller,
+        only: Option<&str>,
+    ) -> Result<Self, ApiError> {
         if caller.subject().is_none() {
             return Err(ApiError::Unauthorized);
         }
@@ -125,11 +129,11 @@ impl Scope {
         })
     }
 
-    fn is_empty(&self) -> bool {
+    pub(crate) fn is_empty(&self) -> bool {
         self.full.is_empty() && self.selected.is_empty()
     }
 
-    fn admits(&self, repository: &str, paths: Option<&[String]>) -> bool {
+    pub(crate) fn admits(&self, repository: &str, paths: Option<&[String]>) -> bool {
         self.visibility.full.contains(repository)
             || paths.is_some_and(|paths| {
                 paths
@@ -425,7 +429,7 @@ fn limit_param(params: &HashMap<String, String>) -> Result<usize, ApiError> {
     }
 }
 
-fn repository_param(params: &HashMap<String, String>) -> Result<Option<&str>, ApiError> {
+pub(crate) fn repository_param(params: &HashMap<String, String>) -> Result<Option<&str>, ApiError> {
     match params.get("repository") {
         None => Ok(None),
         Some(value) if value.trim().is_empty() => {

@@ -890,6 +890,238 @@ async fn the_first_fetch_of_a_proxy_is_judged_before_it_is_served() {
     );
 }
 
+async fn license_policy(fixture: &Fixture, name: &str, rule: Value) {
+    let reply = admin(
+        fixture,
+        Method::POST,
+        POLICIES,
+        Some(json!({"name": name, "licenses": rule})),
+    )
+    .await;
+    assert_eq!(reply.status, StatusCode::CREATED, "{}", reply.text());
+}
+
+async fn npm_proxy(fixture: &Fixture, name: &str, address: SocketAddr, policy: &str) {
+    let created = admin(
+        fixture,
+        Method::POST,
+        &format!("{REPOSITORIES}/npm/proxy"),
+        Some(json!({
+            "name": name,
+            "online": true,
+            "storage": {"blobStoreName": "default", "strictContentTypeValidation": true},
+            "proxy": {"remoteUrl": format!("http://{address}/"), "contentMaxAge": 1440, "metadataMaxAge": 1440},
+            "negativeCache": {"enabled": true, "timeToLive": 60},
+            "httpClient": {"blocked": false, "autoBlock": false},
+            "npm": {"removeQuarantined": false, "removeNonCataloged": false},
+            "policy": {"name": policy},
+        })),
+    )
+    .await;
+    assert_eq!(created.status, StatusCode::CREATED, "{}", created.text());
+}
+
+#[tokio::test]
+async fn a_proxy_component_with_a_denied_license_is_refused_with_the_license_named_and_report_mode_serves()
+ {
+    let fixture = ready().await;
+    astrum_db::setting::put(
+        fixture.state.db().conn(),
+        astrum_security::ssrf::SSRF_KEY,
+        &astrum_security::ssrf::SsrfProtection {
+            enabled: true,
+            allowed_ips: vec!["127.0.0.1".to_owned()],
+            allowed_domains: vec![],
+        },
+    )
+    .await
+    .unwrap();
+    let address = start_upstream().await;
+    let deny =
+        json!({"mode": "block", "list": "deny", "ids": ["GPL-3.0-only"], "unknown": "allow"});
+    license_policy(&fixture, "copyleft", deny.clone()).await;
+    license_policy(
+        &fixture,
+        "watch",
+        json!({"mode": "report", "list": "deny", "ids": ["GPL-3.0-only"]}),
+    )
+    .await;
+    license_policy(
+        &fixture,
+        "declared",
+        json!({"mode": "block", "list": "deny", "unknown": "block"}),
+    )
+    .await;
+    npm_proxy(&fixture, "npm-block", address, "copyleft").await;
+    npm_proxy(&fixture, "npm-watch", address, "watch").await;
+    npm_proxy(&fixture, "npm-declared", address, "declared").await;
+    let tiny = "/tiny/-/tiny-1.0.0.tgz";
+
+    for repository in ["npm-block", "npm-watch"] {
+        let first = get(&fixture, &format!("/repository/{repository}{tiny}")).await;
+        assert_eq!(
+            first.status,
+            StatusCode::OK,
+            "{repository}: {}",
+            first.text()
+        );
+    }
+    let undeclared = get(&fixture, &format!("/repository/npm-declared{tiny}")).await;
+    assert_eq!(
+        undeclared.status,
+        StatusCode::FORBIDDEN,
+        "{}",
+        undeclared.text()
+    );
+    assert_eq!(undeclared.headers[BLOCKED_BY], "declared");
+    assert!(
+        undeclared
+            .text()
+            .contains("blocked by policy declared: no license is declared"),
+        "{}",
+        undeclared.text()
+    );
+
+    for repository in ["npm-block", "npm-watch"] {
+        let id = component(&fixture, repository, "tiny").await;
+        execute(
+            &fixture,
+            &format!(
+                "INSERT INTO component_license (component_id, declared, source, expression, ids, state) \
+                 VALUES ({id}, 'GPL-3.0-only', 'test', 'GPL-3.0-only', ARRAY['GPL-3.0-only'], 'spdx')"
+            ),
+        )
+        .await;
+    }
+    verdict::judge_batch(
+        fixture.state.db().conn(),
+        fixture.state.policy_cache(),
+        &verdict::Config::default(),
+    )
+    .await
+    .unwrap();
+
+    let refused = get(&fixture, &format!("/repository/npm-block{tiny}")).await;
+    assert_eq!(refused.status, StatusCode::FORBIDDEN, "{}", refused.text());
+    assert_eq!(refused.headers[BLOCKED_BY], "copyleft");
+    assert!(
+        refused
+            .text()
+            .contains("blocked by policy copyleft: license GPL-3.0-only: on the deny list"),
+        "{}",
+        refused.text()
+    );
+    let served = get(&fixture, &format!("/repository/npm-watch{tiny}")).await;
+    assert_eq!(served.status, StatusCode::OK, "{}", served.text());
+    assert_eq!(served.text(), "upstream tarball");
+    assert_eq!(
+        results(&fixture),
+        HashMap::from([
+            ("inline_scan_pass", 1),
+            ("pass", 1),
+            ("inline_scan_blocked", 1),
+            ("blocked", 1),
+            ("would_block", 1)
+        ])
+    );
+}
+
+#[tokio::test]
+async fn without_a_verdict_the_license_rule_is_judged_at_the_gate_when_the_scan_cannot_run() {
+    let fixture = ready().await;
+    astrum_db::setting::put(
+        fixture.state.db().conn(),
+        astrum_security::ssrf::SSRF_KEY,
+        &astrum_security::ssrf::SsrfProtection {
+            enabled: true,
+            allowed_ips: vec!["127.0.0.1".to_owned()],
+            allowed_domains: vec![],
+        },
+    )
+    .await
+    .unwrap();
+    let address = start_upstream().await;
+    let deny =
+        json!({"mode": "block", "list": "deny", "ids": ["GPL-3.0-only"], "unknown": "allow"});
+    license_policy(&fixture, "copyleft", deny).await;
+    license_policy(
+        &fixture,
+        "declared",
+        json!({"mode": "block", "list": "deny", "unknown": "block"}),
+    )
+    .await;
+    license_policy(
+        &fixture,
+        "watch",
+        json!({"mode": "report", "list": "deny", "ids": ["GPL-3.0-only"], "unknown": "block"}),
+    )
+    .await;
+    let repositories = [
+        ("npm-denied", "copyleft", Some("GPL-3.0-only")),
+        ("npm-allowed", "copyleft", Some("MIT")),
+        ("npm-undeclared", "declared", None),
+        ("npm-watch", "watch", Some("GPL-3.0-only")),
+    ];
+    let tiny = "/tiny/-/tiny-1.0.0.tgz";
+    for (repository, policy, license) in repositories {
+        npm_proxy(&fixture, repository, address, policy).await;
+        get(&fixture, &format!("/repository/{repository}{tiny}")).await;
+        if let Some(license) = license {
+            let id = component(&fixture, repository, "tiny").await;
+            execute(
+                &fixture,
+                &format!(
+                    "INSERT INTO component_license (component_id, declared, source, expression, ids, state) \
+                     VALUES ({id}, '{license}', 'test', '{license}', ARRAY['{license}'], 'spdx')"
+                ),
+            )
+            .await;
+        }
+    }
+    execute(&fixture, "DELETE FROM policy_verdict").await;
+    let gate = install_gate(&fixture, 300);
+    let holder = hold(&fixture, "LOCK TABLE sca_package IN ACCESS EXCLUSIVE MODE").await;
+
+    let denied = get(&fixture, &format!("/repository/npm-denied{tiny}")).await;
+    assert_eq!(denied.status, StatusCode::FORBIDDEN, "{}", denied.text());
+    assert_eq!(denied.headers[BLOCKED_BY], "copyleft");
+    assert!(
+        denied
+            .text()
+            .contains("blocked by policy copyleft: license GPL-3.0-only: on the deny list"),
+        "{}",
+        denied.text()
+    );
+    let undeclared = get(&fixture, &format!("/repository/npm-undeclared{tiny}")).await;
+    assert_eq!(
+        undeclared.status,
+        StatusCode::FORBIDDEN,
+        "{}",
+        undeclared.text()
+    );
+    assert!(
+        undeclared
+            .text()
+            .contains("blocked by policy declared: no license is declared"),
+        "{}",
+        undeclared.text()
+    );
+    for repository in ["npm-allowed", "npm-watch"] {
+        let served = get(&fixture, &format!("/repository/{repository}{tiny}")).await;
+        assert_eq!(
+            served.status,
+            StatusCode::OK,
+            "{repository}: {}",
+            served.text()
+        );
+        assert_eq!(served.text(), "upstream tarball");
+    }
+    assert_eq!(results(&fixture)["inline_scan_timeout"], 1);
+    assert_eq!(results(&fixture)["inline_scan_blocked"], 3);
+    holder.release().await;
+    settled(&gate, 8).await;
+}
+
 #[tokio::test]
 async fn a_refusal_is_audited_once_per_subject_without_its_reasons() {
     let fixture = ready().await;
