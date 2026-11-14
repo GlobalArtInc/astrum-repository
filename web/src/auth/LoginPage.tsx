@@ -11,8 +11,18 @@ import { useDocumentTitle } from '../ui/hooks';
 import styles from './LoginPage.module.css';
 import { safeReturnTo } from './returnTo';
 import { SsoButton, SsoFailure } from './SsoButton';
-import { type SecondFactorMethod, type SignInAnswer, secondStep, signIn, takeSessionEnded } from './session';
+import {
+  type CodeMethod,
+  passkeyChallenge,
+  passkeySecondStep,
+  type SecondFactorMethod,
+  type SignInAnswer,
+  secondStep,
+  signIn,
+  takeSessionEnded,
+} from './session';
 import { useRefreshSession, useSession } from './state';
+import { getPasskey, isPasskeySupported } from './webauthn';
 
 const THROTTLE_SECONDS = 15;
 const CODE_MAX_LENGTH = 64;
@@ -35,11 +45,11 @@ function challengeOf(answer: SignInAnswer): SecondFactorMethod[] | null {
   return Array.isArray(methods) && methods.length > 0 ? methods : null;
 }
 
-function codeValue(mode: SecondFactorMethod, code: string): string {
+function codeValue(mode: CodeMethod, code: string): string {
   return mode === 'totp' ? code.replace(/\s+/g, '') : code;
 }
 
-function codeReady(mode: SecondFactorMethod, code: string): boolean {
+function codeReady(mode: CodeMethod, code: string): boolean {
   return mode === 'totp' ? TOTP_CODE.test(codeValue(mode, code)) : code.trim() !== '';
 }
 
@@ -53,7 +63,7 @@ export function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [methods, setMethods] = useState<SecondFactorMethod[] | null>(null);
-  const [mode, setMode] = useState<SecondFactorMethod>('totp');
+  const [mode, setMode] = useState<CodeMethod>('totp');
   const [code, setCode] = useState('');
   const [expired, setExpired] = useState(false);
   const [lockUntil, setLockUntil] = useState(0);
@@ -160,7 +170,45 @@ export function LoginPage() {
     }
   };
 
-  const switchMode = (next: SecondFactorMethod) => {
+  const signInWithPasskey = async () => {
+    if (!methods || busy || locked > 0) {
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    setExpired(false);
+    try {
+      const challenge = await passkeyChallenge();
+      const result = await getPasskey(challenge.publicKey);
+      if (!result.ok) {
+        setBusy(false);
+        setError(
+          result.failure === 'cancelled'
+            ? t('auth.secondStep.passkeyCancelled')
+            : t('auth.secondStep.passkeyFailed'),
+        );
+        return;
+      }
+      await passkeySecondStep(challenge.ceremony, result.value);
+      await refresh();
+      navigate(returnTo, { replace: true });
+    } catch (failure) {
+      setBusy(false);
+      if (failure instanceof ApiError && failure.code === EXPIRED_CODE) {
+        setMethods(null);
+        setExpired(true);
+        return;
+      }
+      if (failure instanceof ApiError && failure.code === WRONG_CODE) {
+        setError(t('auth.secondStep.passkeyWrong'));
+      } else if (!(failure instanceof ApiError && failure.status === 429)) {
+        setError(describeError(t, failure));
+      }
+      lockOn(failure);
+    }
+  };
+
+  const switchMode = (next: CodeMethod) => {
     setMode(next);
     setCode('');
     setError(null);
@@ -292,6 +340,18 @@ export function LoginPage() {
               >
                 {t('auth.login.submit')}
               </Button>
+              {methods?.includes('passkey') && isPasskeySupported() && (
+                <Button
+                  type="button"
+                  size="3"
+                  variant="soft"
+                  className={styles.submit}
+                  disabled={busy || locked > 0}
+                  onClick={() => void signInWithPasskey()}
+                >
+                  {t('auth.secondStep.usePasskey')}
+                </Button>
+              )}
               {methods && (
                 <div className={styles.links}>
                   {mode === 'totp' && methods.includes('recovery') && (

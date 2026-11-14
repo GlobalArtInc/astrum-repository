@@ -145,3 +145,34 @@
 .saved {
   margin: 16px 0 0;
 }
+
+.section {
+  min-width: 0;
+  margin-top: 16px;
+}
+
+.passkeys {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.passkey {
+  padding: 12px 0;
+  border-top: 1px solid var(--gray-a4);
+}
+
+.passkeyHead {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.passkeyName {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}

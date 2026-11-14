@@ -213,3 +213,106 @@ describe('a restricted session', () => {
     expect(router.state.location.pathname).toBe('/user/security');
   });
 });
+
+describe('the passkey option of the second step', () => {
+  const OPTIONS = '/service/rest/internal/session/second-factor/passkey-options';
+  const challenge = {
+    ceremony: 's1',
+    publicKey: { challenge: 'AQI', allowCredentials: [{ id: 'Bgc', type: 'public-key' }] },
+  };
+  const assertion = {
+    id: 'AQI',
+    rawId: new Uint8Array([1, 2]).buffer,
+    type: 'public-key',
+    response: {
+      authenticatorData: new Uint8Array([7]).buffer,
+      clientDataJSON: new Uint8Array([8]).buffer,
+      signature: new Uint8Array([9, 10]).buffer,
+      userHandle: null,
+    },
+    getClientExtensionResults: () => ({}),
+  };
+
+  function supportPasskeys(get: () => Promise<unknown>) {
+    vi.stubGlobal('PublicKeyCredential', class {});
+    Object.defineProperty(navigator, 'credentials', {
+      configurable: true,
+      value: { create: vi.fn(), get: vi.fn(get) },
+    });
+  }
+
+  afterEach(() => {
+    Reflect.deleteProperty(navigator, 'credentials');
+  });
+
+  it('offers the button only with a passkey among the methods and WebAuthn in the browser', async () => {
+    supportPasskeys(async () => assertion);
+    await atCodeStep(['totp', 'passkey']);
+    expect(screen.getByRole('button', { name: 'Use a passkey' })).toBeEnabled();
+  });
+
+  it('leaves the button out when the challenge names no passkey', async () => {
+    supportPasskeys(async () => assertion);
+    await atCodeStep(['totp']);
+    expect(screen.queryByRole('button', { name: 'Use a passkey' })).toBeNull();
+  });
+
+  it('leaves the button out when the browser has no WebAuthn', async () => {
+    await atCodeStep(['totp', 'passkey']);
+    expect(screen.queryByRole('button', { name: 'Use a passkey' })).toBeNull();
+  });
+
+  it('posts the assertion with its ceremony and continues like a password sign-in', async () => {
+    supportPasskeys(async () => assertion);
+    const { router, server } = await atCodeStep(['totp', 'passkey'], {
+      [`POST ${OPTIONS}`]: () => jsonResponse(challenge),
+      [`POST ${SECOND}`]: () => jsonResponse({ authenticated: true }),
+    });
+    await userEvent.click(screen.getByRole('button', { name: 'Use a passkey' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/settings'));
+    expect(server.calls.find((call) => call.path === SECOND)?.body).toEqual({
+      method: 'passkey',
+      ceremony: 's1',
+      credential: {
+        id: 'AQI',
+        rawId: 'AQI',
+        type: 'public-key',
+        response: { authenticatorData: 'Bw', clientDataJSON: 'CA', signature: 'CQo', userHandle: null },
+        clientExtensionResults: {},
+      },
+    });
+  });
+
+  it('shows a cancelled prompt inline and keeps the step', async () => {
+    supportPasskeys(() => Promise.reject(new DOMException('refused', 'NotAllowedError')));
+    await atCodeStep(['totp', 'passkey'], {
+      [`POST ${OPTIONS}`]: () => jsonResponse(challenge),
+    });
+    await userEvent.click(screen.getByRole('button', { name: 'Use a passkey' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'The passkey prompt was closed. Try again or enter a code.',
+    );
+    expect(screen.getByRole('heading', { name: 'Two-factor authentication' })).toBeInTheDocument();
+  });
+
+  it('shows a refused passkey inline and keeps the step', async () => {
+    supportPasskeys(async () => assertion);
+    await atCodeStep(['totp', 'passkey'], {
+      [`POST ${OPTIONS}`]: () => jsonResponse(challenge),
+      [`POST ${SECOND}`]: () =>
+        reply(
+          {
+            id: '*',
+            message: 'the passkey was not accepted or was already used',
+            code: 'second-factor-invalid',
+          },
+          401,
+        ),
+    });
+    await userEvent.click(screen.getByRole('button', { name: 'Use a passkey' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'The passkey was not accepted or was already used.',
+    );
+    expect(screen.getByRole('heading', { name: 'Two-factor authentication' })).toBeInTheDocument();
+  });
+});

@@ -21,6 +21,8 @@ const STATUS: TwoFactorStatus = {
   lockedUntil: null,
   accessTokens: 0,
   methods: ['totp'],
+  passkeys: [],
+  passkeysAvailable: true,
 };
 const ENROLLED: TwoFactorStatus = { ...STATUS, enrolled: true, totp: true, recoveryCodesLeft: 8 };
 const ENROLLMENT = {
