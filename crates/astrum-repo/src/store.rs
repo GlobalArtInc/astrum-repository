@@ -253,6 +253,15 @@ impl Writer {
                 "is already used by another repository (names ignore case)",
             );
         }
+        if reserved_name(&repository.name) {
+            problems.add(
+                "name",
+                format!(
+                    "\"{}\" is reserved for the replication protocol and cannot name a repository",
+                    repository.name
+                ),
+            );
+        }
         self.check(&repository, &mut problems);
         if let Some(blob_store) = repository.blob_store()
             && let Some(group) = self.grouped.get(blob_store)
@@ -689,6 +698,14 @@ impl Writer {
             }
         }
     }
+}
+
+pub const RESERVED_NAMES: [&str; 2] = ["remotes", "capabilities"];
+
+pub fn reserved_name(name: &str) -> bool {
+    RESERVED_NAMES
+        .iter()
+        .any(|reserved| reserved.eq_ignore_ascii_case(name))
 }
 
 pub fn unchanged(existing: &Repository, spec: Spec, name: Option<&str>) -> Result<(), WriteError> {

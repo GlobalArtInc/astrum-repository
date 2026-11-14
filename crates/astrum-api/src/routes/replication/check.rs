@@ -14,6 +14,7 @@ use uuid::Uuid;
 use super::config::{DOMAIN, Found, UPDATE, message, missing, parse_id, ssrf_settings, statement};
 use crate::{ApiError, AppState, Caller};
 
+const MAX_ECHO: usize = 200;
 const CHECK: &str = "/service/rest/v1/replication/remotes/{id}/check";
 
 pub fn routes() -> Router<AppState> {
@@ -67,6 +68,10 @@ async fn probe(state: &AppState, stored: &Stored) -> Result<Result<Capabilities,
         Err(error) => return Ok(Err(error)),
     };
     Ok(client.check().await)
+}
+
+fn echoed(error: &Error) -> String {
+    error.to_string().chars().take(MAX_ECHO).collect()
 }
 
 async fn check_remote(
@@ -131,7 +136,7 @@ async fn check_remote(
             None,
         ),
         Err(error) => (
-            json!({"ok": false, "error": {"kind": error.kind(), "message": error.to_string()}}),
+            json!({"ok": false, "error": {"kind": error.kind(), "message": echoed(&error)}}),
             Some(error.kind()),
         ),
     };

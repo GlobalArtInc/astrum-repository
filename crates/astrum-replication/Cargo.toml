@@ -11,6 +11,7 @@ astrum-outbound.workspace = true
 astrum-security.workspace = true
 bytes.workspace = true
 futures-util.workspace = true
+httpdate.workspace = true
 percent-encoding.workspace = true
 rand.workspace = true
 reqwest.workspace = true

@@ -1,11 +1,14 @@
 mod support;
 
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use astrum_content::transfer::{Bundle, BundleAsset, Outcome};
+use astrum_outbound::Snapshot;
 use astrum_replication::protocol::{BLOBS_MISSING, InventoryCompareReply, InventoryKey, Tombstone};
 use astrum_replication::{Client, Error, Remote};
-use astrum_security::ssrf::Guard;
+use astrum_security::SecretBox;
+use astrum_security::ssrf::{Guard, GuardedResolver, Unverified};
 use bytes::Bytes;
 use futures_util::stream;
 use serde_json::json;
@@ -371,4 +374,58 @@ async fn an_upload_takes_as_long_as_the_rate_allows() {
         .unwrap();
     let taken = started.elapsed().as_secs_f64();
     assert!((0.9..=1.5).contains(&taken), "{taken}");
+}
+
+#[tokio::test]
+async fn clear_text_never_reaches_a_public_address() {
+    let public = remote("http://203.0.113.7:8081");
+    let error = build(&public, &guard_off()).unwrap_err();
+    assert!(
+        matches!(&error, Error::Refused(text) if text.contains("private network")),
+        "{error:?}"
+    );
+    assert!(build(&remote("http://10.0.0.5:8081"), &guard_off()).is_ok());
+    assert!(build(&remote("https://203.0.113.7"), &guard_off()).is_ok());
+
+    let guard = Arc::new(guard_off());
+    let plain = GuardedResolver::with_private_ranges(guard.clone());
+    let clear = GuardedResolver::with_private_ranges(guard).for_cleartext();
+    assert!(plain.verify("203.0.113.7", 80).await.is_ok());
+    assert!(matches!(
+        clear.verify("203.0.113.7", 80).await,
+        Err(Unverified::Blocked(_))
+    ));
+    assert!(clear.verify("10.1.2.3", 80).await.is_ok());
+}
+
+#[tokio::test]
+async fn a_remote_behind_the_proxy_is_checked_here_before_the_proxy_is_asked() {
+    let through_proxy = Snapshot {
+        http: serde_json::from_value(
+            json!({"httpProxy": {"enabled": true, "host": "127.0.0.1", "port": "9"}}),
+        )
+        .unwrap(),
+        ..Default::default()
+    };
+    let secrets = SecretBox::from_key([7; 32]);
+    let build_with = |guard: &Guard| {
+        Client::new(
+            &remote("http://localhost:8081"),
+            TOKEN,
+            &through_proxy,
+            &secrets,
+            guard,
+        )
+        .unwrap()
+    };
+    let refused = build_with(&Guard::new(&Default::default()))
+        .capabilities()
+        .await
+        .unwrap_err();
+    assert!(
+        matches!(&refused, Error::Refused(text) if text.contains("SSRF")),
+        "{refused:?}"
+    );
+    let allowed = build_with(&guard_off()).capabilities().await.unwrap_err();
+    assert!(allowed.is_retryable(), "{allowed:?}");
 }

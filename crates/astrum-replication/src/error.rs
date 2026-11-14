@@ -1,11 +1,12 @@
 use std::error::Error as StdError;
-use std::time::Duration;
+use std::time::{Duration, SystemTime};
 
 use reqwest::StatusCode;
 
 use crate::protocol::{BLOBS_MISSING, ErrorBody, valid_sha256};
 
 pub const MAX_RETRY_AFTER: Duration = Duration::from_secs(3600);
+pub const MIN_RETRY_AFTER: Duration = Duration::from_secs(1);
 pub const ERROR_BODY_LIMIT: usize = 64 * 1024;
 pub const MESSAGE_LIMIT: usize = 500;
 pub const BACKOFF_BASE: Duration = Duration::from_secs(30);
@@ -41,8 +42,18 @@ pub fn clean(text: &str) -> String {
 }
 
 pub fn parse_retry_after(value: Option<&str>) -> Option<Duration> {
-    let seconds: u64 = value?.trim().parse().ok()?;
-    Some(Duration::from_secs(seconds).min(MAX_RETRY_AFTER))
+    parse_retry_after_at(value, SystemTime::now())
+}
+
+fn parse_retry_after_at(value: Option<&str>, now: SystemTime) -> Option<Duration> {
+    let text = value?.trim();
+    let wanted = match text.parse::<u64>() {
+        Ok(seconds) => Duration::from_secs(seconds),
+        Err(_) => httpdate::parse_http_date(text)
+            .ok()
+            .map(|at| at.duration_since(now).unwrap_or(Duration::ZERO))?,
+    };
+    Some(wanted.clamp(MIN_RETRY_AFTER, MAX_RETRY_AFTER))
 }
 
 pub fn backoff(attempts: u32) -> Duration {
@@ -113,7 +124,10 @@ impl Error {
             Some(parsed) => (clean(&parsed.code), clean(&parsed.message)),
             None => (String::new(), clean(&String::from_utf8_lossy(body))),
         };
-        if status.is_server_error() || status == StatusCode::TOO_MANY_REQUESTS {
+        if status.is_server_error()
+            || status == StatusCode::TOO_MANY_REQUESTS
+            || status == StatusCode::REQUEST_TIMEOUT
+        {
             let reason = match message.is_empty() {
                 true => format!("the remote answered {}", status.as_u16()),
                 false => format!("the remote answered {}: {message}", status.as_u16()),
@@ -200,7 +214,7 @@ mod tests {
 
     #[test]
     fn server_errors_and_throttling_are_retryable_and_the_hint_is_kept() {
-        for code in [500, 502, 503, 504, 429] {
+        for code in [500, 502, 503, 504, 429, 408] {
             let error = Error::from_status(status(code), Some(Duration::from_secs(7)), b"busy");
             assert!(error.is_retryable(), "{code}");
             assert_eq!(error.retry_after(), Some(Duration::from_secs(7)), "{code}");
@@ -272,10 +286,22 @@ mod tests {
             Some(Duration::from_secs(12))
         );
         assert_eq!(parse_retry_after(Some("999999")), Some(MAX_RETRY_AFTER));
+        assert_eq!(parse_retry_after(Some("0")), Some(MIN_RETRY_AFTER));
+        let date = Some("Wed, 21 Oct 2026 07:28:00 GMT");
+        let at = |text: &str| httpdate::parse_http_date(text).unwrap();
         assert_eq!(
-            parse_retry_after(Some("Wed, 21 Oct 2026 07:28:00 GMT")),
-            None
+            parse_retry_after_at(date, at("Wed, 21 Oct 2026 07:26:30 GMT")),
+            Some(Duration::from_secs(90))
         );
+        assert_eq!(
+            parse_retry_after_at(date, at("Wed, 21 Oct 2026 05:00:00 GMT")),
+            Some(MAX_RETRY_AFTER)
+        );
+        assert_eq!(
+            parse_retry_after_at(date, at("Wed, 21 Oct 2026 09:00:00 GMT")),
+            Some(MIN_RETRY_AFTER)
+        );
+        assert_eq!(parse_retry_after(Some("tomorrow")), None);
         assert_eq!(parse_retry_after(Some("-5")), None);
         assert_eq!(parse_retry_after(None), None);
     }

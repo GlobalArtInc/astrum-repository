@@ -1,5 +1,6 @@
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{FromRequest, Request};
+use axum::http::StatusCode;
 use serde::de::DeserializeOwned;
 
 use crate::error::ApiError;
@@ -18,6 +19,9 @@ where
             Ok(axum::Json(value)) => Ok(Json(value)),
             Err(JsonRejection::MissingJsonContentType(_)) => {
                 Err(ApiError::UnsupportedMediaType("JSON (application/json)"))
+            }
+            Err(rejection) if rejection.status() == StatusCode::PAYLOAD_TOO_LARGE => {
+                Err(ApiError::PayloadTooLarge(rejection.body_text()))
             }
             Err(rejection) => Err(ApiError::BadRequest(rejection.body_text())),
         }

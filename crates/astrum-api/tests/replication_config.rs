@@ -197,6 +197,8 @@ async fn a_remote_address_must_be_a_bare_server_address() {
         ("https://10.0.0.5", false),
         ("https://127.0.0.1", true),
         ("http://127.0.0.1:8081", true),
+        ("http://203.0.113.7:8081", true),
+        ("http://[2001:db8::1]:8081", true),
         ("https://169.254.10.10", true),
         ("https://169.254.169.254", true),
         ("https://[::1]", true),
@@ -651,4 +653,51 @@ async fn a_replication_also_needs_administrative_access_to_its_source() {
     )
     .await;
     assert_eq!(denied.status, StatusCode::FORBIDDEN);
+}
+
+#[tokio::test]
+async fn changing_or_removing_a_replication_needs_access_to_its_current_source() {
+    let fixture = ready().await;
+    create_repository(&fixture, "other", "raw").await;
+    let remote_id = make_remote(&fixture, "Mirror").await;
+    let created = admin(
+        &fixture,
+        Method::POST,
+        REPLICATIONS,
+        Some(replication("One", &remote_id)),
+    )
+    .await;
+    assert_eq!(created.status, StatusCode::CREATED, "{}", created.text());
+    let id = created.json()["id"].as_str().unwrap().to_owned();
+    create_role(
+        &fixture,
+        "other-admin",
+        &[
+            "as-replication-update",
+            "as-replication-delete",
+            "as-repository-admin-raw-other-read",
+        ],
+        &[],
+    )
+    .await;
+    create_user(&fixture, "other-admin", "pw-pw-pw-1", &["other-admin"]).await;
+    let auth = || Auth::Basic("other-admin", "pw-pw-pw-1");
+    let mut moved = replication("One", &remote_id);
+    moved["sourceRepository"] = json!("other");
+    let path = format!("{REPLICATIONS}/{id}");
+    let update = api(&fixture, Method::PUT, &path, auth(), Some(moved)).await;
+    assert_eq!(update.status, StatusCode::FORBIDDEN, "{}", update.text());
+    let removal = api(&fixture, Method::DELETE, &path, auth(), None).await;
+    assert_eq!(removal.status, StatusCode::FORBIDDEN, "{}", removal.text());
+    let still = admin(&fixture, Method::GET, &path, None).await;
+    assert_eq!(still.json()["sourceRepository"], "src");
+    let unknown = api(
+        &fixture,
+        Method::DELETE,
+        &format!("{REPLICATIONS}/{UNKNOWN}"),
+        auth(),
+        None,
+    )
+    .await;
+    assert_eq!(unknown.status, StatusCode::NOT_FOUND);
 }

@@ -1,11 +1,14 @@
 use std::io;
+use std::net::IpAddr;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::time::Duration;
 
 use astrum_outbound::{ClientOptions, Snapshot};
 use astrum_security::SecretBox;
-use astrum_security::ssrf::{Guard, GuardedResolver, remote_literal_allowed};
+use astrum_security::ssrf::{
+    Guard, GuardedResolver, Unverified, cleartext_permitted, remote_literal_allowed,
+};
 use bytes::Bytes;
 use futures_util::{Stream, StreamExt};
 use percent_encoding::{AsciiSet, NON_ALPHANUMERIC, utf8_percent_encode};
@@ -37,6 +40,8 @@ const MAX_VERSION: usize = 100;
 const MAX_FORMATS: usize = 200;
 const MAX_FORMAT: usize = 64;
 const MAX_REPOSITORY: usize = 255;
+const MAX_REASON: usize = 200;
+const CLEARTEXT_REFUSED: &str = "an http:// address must name a private network address, so that the token never crosses the internet in clear";
 const SEGMENT: &AsciiSet = &NON_ALPHANUMERIC
     .remove(b'-')
     .remove(b'_')
@@ -60,6 +65,8 @@ pub struct Client {
     limiter: Option<Limiter>,
     max_concurrency: usize,
     instance: Option<HeaderValue>,
+    resolver: Arc<GuardedResolver>,
+    proxied: Option<(String, u16)>,
 }
 
 impl std::fmt::Debug for Client {
@@ -200,6 +207,15 @@ impl Client {
                 "the address of the remote is blocked by the SSRF protection",
             ));
         }
+        let cleartext = base.scheme() == "http";
+        let literal = match base.host() {
+            Some(url::Host::Ipv4(ip)) => Some(IpAddr::V4(ip)),
+            Some(url::Host::Ipv6(ip)) => Some(IpAddr::V6(ip)),
+            _ => None,
+        };
+        if cleartext && literal.is_some_and(|ip| !cleartext_permitted(ip)) {
+            return Err(refused(CLEARTEXT_REFUSED));
+        }
         if token.is_empty() {
             return Err(refused("the token of the remote is empty"));
         }
@@ -207,10 +223,26 @@ impl Client {
             .map_err(|_| refused("the token of the remote cannot be sent in a header"))?;
         authorization.set_sensitive(true);
         let guard = Arc::new(guard.clone());
-        let resolver = if remote.allow_private_network {
+        let mut resolver = if remote.allow_private_network {
             GuardedResolver::with_private_ranges(guard)
         } else {
             GuardedResolver::new(guard)
+        };
+        if cleartext {
+            resolver = resolver.for_cleartext();
+        }
+        let resolver = Arc::new(resolver);
+        let proxied = match outbound.proxied(&base) {
+            true => {
+                let host = match base.host() {
+                    Some(url::Host::Domain(domain)) => domain.to_owned(),
+                    Some(url::Host::Ipv4(ip)) => ip.to_string(),
+                    Some(url::Host::Ipv6(ip)) => ip.to_string(),
+                    None => return Err(refused("the address of the remote has no host")),
+                };
+                Some((host, base.port_or_known_default().unwrap_or(443)))
+            }
+            false => None,
         };
         let options = ClientOptions {
             user_agent_suffix: Some("replication".to_owned()),
@@ -223,7 +255,7 @@ impl Client {
             .connect_timeout(CONNECT_TIMEOUT)
             .read_timeout(READ_BACKSTOP)
             .tcp_keepalive(KEEPALIVE)
-            .dns_resolver(Arc::new(resolver))
+            .dns_resolver(resolver.clone())
             .build()
             .map_err(|error| Error::transport(&error))?;
         Ok(Self {
@@ -233,6 +265,8 @@ impl Client {
             limiter: remote.max_bytes_per_second.and_then(Limiter::new),
             max_concurrency: remote.max_concurrency,
             instance: None,
+            resolver,
+            proxied,
         })
     }
 
@@ -264,7 +298,24 @@ impl Client {
         url
     }
 
+    async fn verify_destination(&self) -> Result<(), Error> {
+        let Some((host, port)) = &self.proxied else {
+            return Ok(());
+        };
+        match self.resolver.verify(host, *port).await {
+            Ok(()) => Ok(()),
+            Err(Unverified::Blocked(_)) => Err(refused(
+                "the address of the remote is blocked by the SSRF protection",
+            )),
+            Err(Unverified::Lookup(reason)) => Err(Error::Retryable {
+                reason: short(&reason, MAX_REASON),
+                retry_after: None,
+            }),
+        }
+    }
+
     async fn send(&self, request: RequestBuilder) -> Result<Response, Error> {
+        self.verify_destination().await?;
         let request = match &self.instance {
             Some(instance) => request.header(INSTANCE_HEADER, instance.clone()),
             None => request,

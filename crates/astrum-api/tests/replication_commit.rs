@@ -537,37 +537,57 @@ async fn compare_names_absent_and_differing_keys_and_equal_content_has_equal_fin
     assert_eq!(call(bad_print).await.status, StatusCode::BAD_REQUEST);
 }
 
+fn triple(path: &str) -> (String, String, String) {
+    let parent = &path[..path.rfind('/').unwrap()];
+    let namespace = if parent.is_empty() { "/" } else { parent };
+    (namespace.to_owned(), path.to_owned(), String::new())
+}
+
+async fn push_named(fixture: &Fixture, client: &Client, repo: &str, path: &str) {
+    let seed = format!("/seed-{}.txt", sha(path.as_bytes()));
+    upload(fixture, "source", &seed, path.as_bytes()).await;
+    let mut named = bundle(fixture, &seed).await;
+    let (namespace, name, version) = triple(path);
+    (named.namespace, named.name, named.version) = (namespace, name, version);
+    named.assets[0].path = path.to_owned();
+    stage(client, repo, path.as_bytes()).await;
+    client.commit(repo, &named).await.unwrap();
+}
+
 #[tokio::test]
-async fn the_inventory_pages_in_key_order_and_shows_origins() {
+async fn the_inventory_pages_in_name_order_and_shows_origins() {
     let fixture = ready().await;
     let client = connect(&fixture).await;
-    for path in ["/d/b.txt", "/e/c@x.txt", "/z.txt"] {
-        push(&fixture, &client, "files", path, path.as_bytes())
-            .await
-            .unwrap();
+    let replicated = [
+        "/a/x.txt",
+        "/a b/x.txt",
+        "/p%q/@x/y.txt",
+        "/z.txt",
+        "/e/c@x.txt",
+        "/d/b.txt",
+    ];
+    for path in replicated {
+        push_named(&fixture, &client, "files", path).await;
     }
-    for path in ["/d/a.txt", "/d/d.txt"] {
-        upload(&fixture, "files", path, path.as_bytes()).await;
-    }
-    let names = ["/d/a.txt", "/d/b.txt", "/d/d.txt", "/e/c@x.txt", "/z.txt"];
-    let mut expected: Vec<String> = names.iter().map(|path| key(path)).collect();
-    expected.sort();
+    upload(&fixture, "files", "/d/a.txt", b"local").await;
+    let mut names = replicated.to_vec();
+    names.push("/d/a.txt");
+    names.sort_by_key(|path| triple(path));
+    let expected: Vec<String> = names.iter().map(|path| key(path)).collect();
     let mut seen = Vec::new();
     let mut after: Option<String> = None;
     let mut pages = 0;
     loop {
         let page = client
-            .inventory("files", after.as_deref(), 2)
+            .inventory("files", after.as_deref(), 3)
             .await
             .unwrap();
-        assert!(page.items.len() <= 2);
+        assert!(page.items.len() <= 3);
         for entry in &page.items {
-            let replicated = ["/d/b.txt", "/e/c@x.txt", "/z.txt"]
-                .iter()
-                .any(|path| key(path) == entry.key);
+            let sent = replicated.iter().any(|path| key(path) == entry.key);
             assert_eq!(
                 entry.origin.as_deref(),
-                replicated.then_some(SENDER),
+                sent.then_some(SENDER),
                 "{}",
                 entry.key
             );
@@ -585,7 +605,10 @@ async fn the_inventory_pages_in_key_order_and_shows_origins() {
         .await
         .unwrap();
     let rest: Vec<&str> = rest.items.iter().map(|entry| entry.key.as_str()).collect();
-    assert_eq!(rest, [expected[3].as_str(), expected[4].as_str()]);
+    assert_eq!(
+        rest,
+        expected[3..].iter().map(String::as_str).collect::<Vec<_>>()
+    );
     let call = async |query: &str| {
         fixture
             .call(
@@ -600,4 +623,173 @@ async fn the_inventory_pages_in_key_order_and_shows_origins() {
     for bad in ["limit=0", "limit=1001", "limit=x", "after=nonsense"] {
         assert_eq!(call(bad).await, StatusCode::BAD_REQUEST, "{bad}");
     }
+}
+
+#[tokio::test]
+async fn parallel_tombstones_never_exhaust_the_pool() {
+    let fixture = ready().await;
+    let client = connect(&fixture).await;
+    push_named(&fixture, &client, "files", "/same.txt").await;
+    for number in 0..40 {
+        push_named(&fixture, &client, "files", &format!("/many/{number}.txt")).await;
+    }
+    let page = client.inventory("files", None, 100).await.unwrap();
+    assert_eq!(page.items.len(), 41);
+    let removal = |entry: &astrum_replication::protocol::InventoryEntry| {
+        let (namespace, name, version) =
+            astrum_replication::protocol::parse_component_key(&entry.key).unwrap();
+        serde_json::to_value(Tombstone {
+            namespace,
+            name,
+            version,
+            fingerprint: entry.fingerprint.clone(),
+            origin: SENDER.to_owned(),
+        })
+        .unwrap()
+    };
+    let delete = |body: Value| {
+        let fixture = &fixture;
+        async move {
+            fixture
+                .call(
+                    Method::DELETE,
+                    &url("files", "components"),
+                    Auth::Admin,
+                    Some(body),
+                )
+                .await
+                .status
+        }
+    };
+    let started = std::time::Instant::now();
+    let same = page
+        .items
+        .iter()
+        .find(|entry| entry.key == key("/same.txt"))
+        .unwrap();
+    let statuses = futures_util::future::join_all((0..40).map(|_| delete(removal(same)))).await;
+    let removed = statuses
+        .iter()
+        .filter(|status| **status == StatusCode::NO_CONTENT)
+        .count();
+    let gone = statuses
+        .iter()
+        .filter(|status| **status == StatusCode::NOT_FOUND)
+        .count();
+    assert_eq!((removed, gone), (1, 39), "{statuses:?}");
+    let others: Vec<Value> = page
+        .items
+        .iter()
+        .filter(|entry| entry.key != key("/same.txt"))
+        .map(removal)
+        .collect();
+    let statuses = futures_util::future::join_all(others.into_iter().map(delete)).await;
+    assert!(
+        statuses
+            .iter()
+            .all(|status| *status == StatusCode::NO_CONTENT),
+        "{statuses:?}"
+    );
+    assert!(
+        started.elapsed() < std::time::Duration::from_secs(5),
+        "{:?}",
+        started.elapsed()
+    );
+    assert_eq!(
+        count(
+            &fixture,
+            "SELECT count(*) AS n FROM component WHERE repository = 'files'"
+        )
+        .await,
+        0
+    );
+}
+
+#[tokio::test]
+async fn names_the_protocol_routes_use_cannot_name_repositories() {
+    let fixture = ready().await;
+    for name in ["remotes", "Remotes", "capabilities"] {
+        let body = json!({
+            "name": name, "online": true,
+            "storage": {"blobStoreName": "default", "strictContentTypeValidation": false, "writePolicy": "ALLOW"},
+            "raw": {"contentDisposition": "INLINE"}
+        });
+        let path = "/service/rest/v1/repositories/raw/hosted";
+        let reply = fixture
+            .call(Method::POST, path, Auth::Admin, Some(body))
+            .await;
+        assert_eq!(
+            reply.status,
+            StatusCode::BAD_REQUEST,
+            "{name}: {}",
+            reply.text()
+        );
+        assert!(reply.text().contains("reserved"), "{}", reply.text());
+    }
+}
+
+async fn put_digest(
+    fixture: &Fixture,
+    repo: &str,
+    bytes: &[u8],
+    headers: &[(&str, &str)],
+) -> Reply {
+    let uri = url(repo, &format!("blobs/{}", sha(bytes)));
+    let body = Body::from(bytes.to_vec());
+    fixture
+        .send_body(Method::PUT, &uri, Auth::Admin, body, headers)
+        .await
+}
+
+#[tokio::test]
+async fn a_blob_is_refused_before_its_body_is_read_when_it_could_never_be_used() {
+    let fixture = ready().await;
+    repository(&fixture, "denied", "DENY").await;
+    let denied = put_digest(&fixture, "denied", b"x", &[]).await;
+    assert_eq!(denied.status, StatusCode::BAD_REQUEST, "{}", denied.text());
+    assert_eq!(denied.json()["code"], "read_only");
+
+    accounts::create_repository(&fixture, "gems", "rubygems").await;
+    let foreign = put_digest(&fixture, "gems", b"x", &[]).await;
+    assert_eq!(
+        foreign.status,
+        StatusCode::BAD_REQUEST,
+        "{}",
+        foreign.text()
+    );
+    assert_eq!(foreign.json()["code"], "unsupported_format");
+
+    let huge = (65u64 << 30).to_string();
+    let declared = put_digest(&fixture, "files", b"x", &[("content-length", &huge)]).await;
+    assert_eq!(
+        declared.status,
+        StatusCode::PAYLOAD_TOO_LARGE,
+        "{}",
+        declared.text()
+    );
+    assert_eq!(declared.json()["code"], "too_large");
+    assert_eq!(count(&fixture, STAGED).await, 0);
+
+    let fill = "INSERT INTO replication_staged_blob \
+         (repository, sha256, blob_store, blob_id, size, sha1, sha512, md5, uploaded_by) \
+         SELECT 'files', md5(g::text) || md5(g::text || 'x'), 'default', gen_random_uuid(), 1, '', '', '', 'test' \
+         FROM generate_series(1, 10000) g";
+    fixture
+        .state
+        .db()
+        .conn()
+        .execute(Statement::from_string(DbBackend::Postgres, fill))
+        .await
+        .unwrap();
+    let full = put_digest(&fixture, "files", b"one more", &[]).await;
+    assert_eq!(
+        full.status,
+        StatusCode::TOO_MANY_REQUESTS,
+        "{}",
+        full.text()
+    );
+    assert_eq!(full.json()["code"], "too_many_staged");
+    assert_eq!(count(&fixture, STAGED).await, 10_000);
+    let other = put_digest(&fixture, "once", b"one more", &[]).await;
+    assert_eq!(other.status, StatusCode::CREATED, "{}", other.text());
 }

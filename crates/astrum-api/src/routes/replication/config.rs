@@ -834,6 +834,39 @@ async fn create_replication(
     Ok((StatusCode::CREATED, axum::Json(created)).into_response())
 }
 
+async fn require_current_source(
+    state: &AppState,
+    subject: &Subject,
+    id: Uuid,
+) -> Result<(), ApiError> {
+    #[derive(FromQueryResult)]
+    struct Current {
+        source_repository: String,
+    }
+    let current = Current::find_by_statement(statement(
+        "SELECT source_repository FROM replication WHERE id = $1",
+        vec![id.into()],
+    ))
+    .one(state.db().conn())
+    .await?
+    .ok_or_else(|| missing("replication", id))?;
+    let format = SourceRepository::find_by_statement(statement(
+        "SELECT format, type AS kind FROM repository WHERE name = $1",
+        vec![current.source_repository.clone().into()],
+    ))
+    .one(state.db().conn())
+    .await?
+    .map_or_else(|| "*".to_owned(), |found| found.format);
+    let administered = format!(
+        "astrum:repository-admin:{format}:{}:read",
+        current.source_repository
+    );
+    match subject.is_permitted(&administered) {
+        true => Ok(()),
+        false => Err(ApiError::forbidden()),
+    }
+}
+
 async fn update_replication(
     State(state): State<AppState>,
     caller: Caller,
@@ -842,6 +875,7 @@ async fn update_replication(
 ) -> Result<Response, ApiError> {
     let subject = caller.require(UPDATE)?;
     let id = parse_id(&id, "replication")?;
+    require_current_source(&state, subject, id).await?;
     let Json(body) = body?;
     let input = replication_input(&state, subject, body).await?;
     let sql = format!(
@@ -874,8 +908,9 @@ async fn remove_replication(
     caller: Caller,
     Path(id): Path<String>,
 ) -> Result<Response, ApiError> {
-    caller.require(DELETE)?;
+    let subject = caller.require(DELETE)?;
     let id = parse_id(&id, "replication")?;
+    require_current_source(&state, subject, id).await?;
     let deleted = Named::find_by_statement(statement(
         "DELETE FROM replication WHERE id = $1 RETURNING name",
         vec![id.into()],

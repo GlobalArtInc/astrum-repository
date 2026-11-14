@@ -1,5 +1,8 @@
+use std::net::IpAddr;
+
+use astrum_security::ssrf::cleartext_permitted;
 use regex::{Regex, RegexBuilder};
-use url::Url;
+use url::{Host, Url};
 
 pub const MAX_NAME: usize = 100;
 pub const MAX_URL: usize = 2048;
@@ -62,6 +65,14 @@ pub fn remote_url(value: Option<&str>, allow_private_network: bool) -> Result<Ur
         }
         _ => return Err("must be an https:// address".to_owned()),
     }
+    let literal = match url.host() {
+        Some(Host::Ipv4(ip)) => Some(IpAddr::V4(ip)),
+        Some(Host::Ipv6(ip)) => Some(IpAddr::V6(ip)),
+        _ => None,
+    };
+    if url.scheme() == "http" && literal.is_some_and(|ip| !cleartext_permitted(ip)) {
+        return Err("an http:// address must name a private network address, so that the token never crosses the internet in clear; use https for other hosts".to_owned());
+    }
     if url.host().is_none()
         || !url.username().is_empty()
         || url.password().is_some()
@@ -99,6 +110,11 @@ pub fn remote_repository(value: Option<&str>) -> Result<String, String> {
     if !astrum_repo::routing::valid_name(value) {
         return Err("may hold only letters, digits, '-', '_' and '.', and must start with a letter, a digit or '-'".to_owned());
     }
+    if astrum_repo::store::reserved_name(value) {
+        return Err(format!(
+            "\"{value}\" is reserved for the replication protocol and cannot name a repository"
+        ));
+    }
     Ok(value.to_owned())
 }
 
@@ -127,6 +143,36 @@ pub fn filter(pattern: &str) -> Result<Regex, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_remote_repository_cannot_carry_a_reserved_name() {
+        for reserved in ["remotes", "Remotes", "CAPABILITIES"] {
+            assert!(
+                remote_repository(Some(reserved))
+                    .unwrap_err()
+                    .contains("reserved"),
+                "{reserved}"
+            );
+        }
+        assert_eq!(remote_repository(Some("remotes-2")).unwrap(), "remotes-2");
+    }
+
+    #[test]
+    fn clear_text_needs_a_private_address() {
+        for public in ["http://203.0.113.7:8081", "http://[2001:db8::1]:8081"] {
+            let error = remote_url(Some(public), true).unwrap_err();
+            assert!(error.contains("private network"), "{public}: {error}");
+        }
+        for private in [
+            "http://10.0.0.5:8081",
+            "http://192.168.1.2",
+            "http://[fd12::1]:80",
+            "http://repo.internal:8081",
+        ] {
+            assert!(remote_url(Some(private), true).is_ok(), "{private}");
+        }
+        assert!(remote_url(Some("https://203.0.113.7"), false).is_ok());
+    }
 
     #[test]
     fn a_filter_must_match_the_whole_text() {

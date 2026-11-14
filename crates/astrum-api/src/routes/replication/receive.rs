@@ -1,6 +1,9 @@
 use std::collections::{HashMap, HashSet};
 use std::io;
+use std::pin::Pin;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
+use std::task::{Context as TaskContext, Poll};
 use std::time::Duration;
 
 use astrum_blob::{BlobId, ContentStream, Digests, Written};
@@ -29,7 +32,8 @@ use axum::extract::{Path, Query, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post, put};
-use futures_util::{StreamExt, TryStreamExt};
+use bytes::Bytes;
+use futures_util::{Stream, StreamExt, TryStreamExt};
 use sea_orm::{
     ColumnTrait, ConnectionTrait, DbBackend, EntityTrait, FromQueryResult, QueryFilter, Statement,
     TransactionTrait, Value,
@@ -44,6 +48,8 @@ const RECEIVE: &str = "astrum:replication:receive";
 const INSTANCE_KEY: &str = "replication.instanceId";
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const STAGED_HOURS: i32 = 24;
+const MAX_STAGED: i64 = 10_000;
+const MAX_BLOB_BYTES: u64 = 64 << 30;
 const HOLD_MARGIN_HOURS: u64 = 24;
 
 const RECORD_INSTANCE: &str = "INSERT INTO setting (key, value, updated_at) \
@@ -53,6 +59,8 @@ const PRESENT: &str = "SELECT sha256 FROM asset WHERE repository = $1 AND sha256
      UNION \
      SELECT sha256 FROM replication_staged_blob \
      WHERE repository = $1 AND sha256 = ANY($2::text[]) AND expires_at > now()";
+
+const COUNT_STAGED: &str = "SELECT count(*) AS n FROM replication_staged_blob WHERE repository = $1 AND expires_at > now()";
 
 const DROP_EXPIRED: &str = "DELETE FROM replication_staged_blob \
      WHERE repository = $1 AND sha256 = $2 AND expires_at <= now() \
@@ -83,14 +91,14 @@ const LOCK_COMPONENT: &str = "SELECT id, attributes FROM component \
 
 const COMPONENT_BLOBS: &str = "SELECT blob_store, blob_id FROM asset WHERE component_id = $1";
 
+const ASSET_ROWS: &str = "SELECT path, sha256, size FROM asset WHERE component_id = $1";
+
 const DELETE_COMPONENT: &str = "DELETE FROM component WHERE id = $1";
 
 const COMPONENTS_BY_KEY: &str = "SELECT c.* FROM component c \
      JOIN unnest($2::text[], $3::text[], $4::text[]) AS k(namespace, name, version) \
      ON c.namespace = k.namespace AND c.name = k.name AND c.version = k.version \
      WHERE c.repository = $1";
-
-const ESCAPED: &str = "replace(replace(replace({}, '%', '%25'), '/', '%2F'), '@', '%40')";
 
 const STAGE: &str = "INSERT INTO replication_staged_blob \
      (repository, sha256, blob_store, blob_id, size, sha1, sha512, md5, uploaded_by, expires_at) \
@@ -388,11 +396,67 @@ async fn put_blob(
     State(state): State<AppState>,
     caller: Caller,
     Path((repository, sha256)): Path<(String, String)>,
+    headers: HeaderMap,
     body: Body,
 ) -> Response {
-    match receive_blob(&state, caller, &repository, &sha256, body).await {
+    match receive_blob(&state, caller, &repository, &sha256, &headers, body).await {
         Ok(status) => status.into_response(),
         Err(refusal) => refusal.into_response(),
+    }
+}
+
+struct Counted {
+    inner: ContentStream,
+    seen: u64,
+    limit: u64,
+    exceeded: Arc<AtomicBool>,
+}
+
+impl Stream for Counted {
+    type Item = io::Result<Bytes>;
+
+    fn poll_next(mut self: Pin<&mut Self>, cx: &mut TaskContext<'_>) -> Poll<Option<Self::Item>> {
+        let polled = self.inner.as_mut().poll_next(cx);
+        if let Poll::Ready(Some(Ok(bytes))) = &polled {
+            self.seen = self.seen.saturating_add(bytes.len() as u64);
+            if self.seen > self.limit {
+                self.exceeded.store(true, Ordering::Relaxed);
+                return Poll::Ready(Some(Err(io::Error::other(
+                    "the blob is larger than a replicated blob may be",
+                ))));
+            }
+        }
+        polled
+    }
+}
+
+fn too_large(limit: u64) -> Refusal {
+    Refusal::Status(
+        StatusCode::PAYLOAD_TOO_LARGE,
+        "too_large",
+        format!("a replicated blob may hold at most {limit} bytes"),
+    )
+}
+
+async fn staged_room(state: &AppState, repository: &str) -> Result<(), Refusal> {
+    let row = state
+        .db()
+        .conn()
+        .query_one(statement(COUNT_STAGED, vec![repository.into()]))
+        .await?
+        .ok_or_else(|| internal("the count of staged blobs was not returned"))?;
+    let staged: i64 = row
+        .try_get("", "n")
+        .map_err(|error| ApiError::internal(anyhow::Error::from(error)))?;
+    match staged >= MAX_STAGED {
+        true => Err(Refusal::Status(
+            StatusCode::TOO_MANY_REQUESTS,
+            "too_many_staged",
+            format!(
+                "{repository} already holds {MAX_STAGED} staged blobs; commit the components that need them or wait for them to expire"
+            ),
+        )),
+        false => Ok(()),
     }
 }
 
@@ -401,6 +465,7 @@ async fn receive_blob(
     caller: Caller,
     repository: &str,
     sha256: &str,
+    headers: &HeaderMap,
     body: Body,
 ) -> Result<StatusCode, Refusal> {
     let uploaded_by = caller.initiator();
@@ -411,14 +476,40 @@ async fn receive_blob(
             format!("{repository} is not a hosted repository and takes no replicated blobs"),
         ));
     }
+    format_of(state, &ctx)?;
+    if PutAsset::hosted(&ctx, "").write_policy == Some(WritePolicy::Deny) {
+        return Err(refuse(
+            "read_only",
+            format!("the repository {repository} is read-only"),
+        ));
+    }
+    let declared = headers
+        .get(axum::http::header::CONTENT_LENGTH)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| value.parse::<u64>().ok());
+    if declared.is_some_and(|length| length > MAX_BLOB_BYTES) {
+        return Err(too_large(MAX_BLOB_BYTES));
+    }
+    staged_room(state, ctx.name()).await?;
     if !valid_sha256(sha256) {
         return Err(refuse(
             "bad_digest",
             "the digest in the path is not 64 lowercase hexadecimal characters",
         ));
     }
-    let stream: ContentStream = body.into_data_stream().map_err(io::Error::other).boxed();
-    let written = store::write_blob(&ctx, stream).await?;
+    let exceeded = Arc::new(AtomicBool::new(false));
+    let stream: ContentStream = Counted {
+        inner: body.into_data_stream().map_err(io::Error::other).boxed(),
+        seen: 0,
+        limit: MAX_BLOB_BYTES,
+        exceeded: exceeded.clone(),
+    }
+    .boxed();
+    let written = match store::write_blob(&ctx, stream).await {
+        Ok(written) => written,
+        Err(_) if exceeded.load(Ordering::Relaxed) => return Err(too_large(MAX_BLOB_BYTES)),
+        Err(error) => return Err(error.into()),
+    };
     if written.digests.sha256 != sha256 {
         discard(state.content(), &written).await;
         return Err(Refusal::Status(
@@ -721,6 +812,55 @@ struct Locked {
     attributes: serde_json::Value,
 }
 
+#[derive(FromQueryResult)]
+struct Signed {
+    path: String,
+    sha256: String,
+    size: i64,
+}
+
+type Signature = Vec<(String, String, i64)>;
+
+fn signature(mut rows: Signature) -> Signature {
+    for row in &mut rows {
+        row.1.make_ascii_lowercase();
+    }
+    rows.sort();
+    rows
+}
+
+fn signature_of(bundle: &Bundle) -> Signature {
+    signature(
+        bundle
+            .assets
+            .iter()
+            .map(|asset| (asset.path.clone(), asset.sha256.clone(), asset.size as i64))
+            .collect(),
+    )
+}
+
+fn component_gone() -> Refusal {
+    Refusal::Status(
+        StatusCode::NOT_FOUND,
+        "component_not_found",
+        "the component is not in the repository".to_owned(),
+    )
+}
+
+fn not_replicated() -> Refusal {
+    conflict(
+        "origin_mismatch",
+        "the component was not replicated from the sender, so a tombstone does not apply to it",
+    )
+}
+
+fn changed_since() -> Refusal {
+    conflict(
+        "fingerprint_mismatch",
+        "the component changed after the sender last saw it",
+    )
+}
+
 async fn tombstone(
     State(state): State<AppState>,
     caller: Caller,
@@ -737,6 +877,30 @@ async fn tombstone(
             "the fingerprint is not 64 lowercase hexadecimal characters",
         ));
     }
+    let found = component::Entity::find()
+        .filter(component::Column::Repository.eq(ctx.name()))
+        .filter(component::Column::Namespace.eq(request.namespace.as_str()))
+        .filter(component::Column::Name.eq(request.name.as_str()))
+        .filter(component::Column::Version.eq(request.version.as_str()))
+        .one(state.db().conn())
+        .await?
+        .ok_or_else(component_gone)?;
+    let bundle = transfer_of(&format)?.bundle(&ctx, &found).await?;
+    let refusal = match origin_of(&found.attributes) == Some(origin.as_str()) {
+        false => Some(not_replicated()),
+        true => (fingerprint(&bundle) != request.fingerprint).then(changed_since),
+    };
+    if let Some(refusal) = refusal {
+        let present = component::Entity::find_by_id(found.id)
+            .one(state.db().conn())
+            .await?
+            .is_some();
+        return Err(match present {
+            true => refusal,
+            false => component_gone(),
+        });
+    }
+    let seen = signature_of(&bundle);
     let txn = ctx.db().begin().await?;
     txn.query_one(statement(
         SET_CONTEXT,
@@ -754,28 +918,18 @@ async fn tombstone(
     ))
     .one(&txn)
     .await?
-    .ok_or_else(|| {
-        Refusal::Status(
-            StatusCode::NOT_FOUND,
-            "component_not_found",
-            "the component is not in the repository".to_owned(),
-        )
-    })?;
-    if origin_of(&locked.attributes) != Some(origin.as_str()) {
-        return Err(conflict(
-            "origin_mismatch",
-            "the component was not replicated from the sender, so a tombstone does not apply to it",
-        ));
+    .ok_or_else(component_gone)?;
+    if locked.id != found.id || origin_of(&locked.attributes) != Some(origin.as_str()) {
+        return Err(not_replicated());
     }
-    let found = store::component_by_id(ctx.db(), locked.id)
+    let held = Signed::find_by_statement(statement(ASSET_ROWS, vec![locked.id.into()]))
+        .all(&txn)
         .await?
-        .ok_or_else(|| internal("a locked component vanished"))?;
-    let bundle = transfer_of(&format)?.bundle(&ctx, &found).await?;
-    if fingerprint(&bundle) != request.fingerprint {
-        return Err(conflict(
-            "fingerprint_mismatch",
-            "the component changed after the sender last saw it",
-        ));
+        .into_iter()
+        .map(|row| (row.path, row.sha256, row.size))
+        .collect();
+    if signature(held) != seen {
+        return Err(changed_since());
     }
     let blobs = Stale::find_by_statement(statement(COMPONENT_BLOBS, vec![locked.id.into()]))
         .all(&txn)
@@ -885,26 +1039,13 @@ struct Paging {
     limit: Option<u32>,
 }
 
-#[derive(FromQueryResult)]
-struct Keyed {
-    id: i64,
-    item_key: String,
-}
+const LISTING_FIRST: &str = "SELECT c.* FROM component c WHERE c.repository = $1 \
+     ORDER BY c.namespace COLLATE \"C\", c.name COLLATE \"C\", c.version COLLATE \"C\" LIMIT $2";
 
-fn keyed_listing() -> String {
-    let escaped = |column: &str| ESCAPED.replace("{}", column);
-    let key = format!(
-        "((CASE WHEN c.namespace = '' THEN '' ELSE {} || '/' END) || {} || '@' || {}) COLLATE \"C\"",
-        escaped("c.namespace"),
-        escaped("c.name"),
-        escaped("c.version"),
-    );
-    format!(
-        "SELECT c.id, {key} AS item_key FROM component c \
-         WHERE c.repository = $1 AND ($2::text IS NULL OR {key} > $2) \
-         ORDER BY item_key LIMIT $3"
-    )
-}
+const LISTING_AFTER: &str = "SELECT c.* FROM component c WHERE c.repository = $1 \
+     AND (c.namespace COLLATE \"C\", c.name COLLATE \"C\", c.version COLLATE \"C\") \
+         > ($2::text COLLATE \"C\", $3::text COLLATE \"C\", $4::text COLLATE \"C\") \
+     ORDER BY c.namespace COLLATE \"C\", c.name COLLATE \"C\", c.version COLLATE \"C\" LIMIT $5";
 
 async fn inventory(
     State(state): State<AppState>,
@@ -919,46 +1060,42 @@ async fn inventory(
     if limit == 0 || limit > MAX_PAGE {
         return Err(ApiError::invalid("limit", format!("must be between 1 and {MAX_PAGE}")).into());
     }
-    if let Some(after) = &paging.after
-        && parse_component_key(after).is_none()
-    {
-        return Err(refuse("bad_key", "after is not a component key"));
-    }
-    let mut rows = Keyed::find_by_statement(statement(
-        &keyed_listing(),
-        vec![
-            ctx.name().into(),
-            paging.after.into(),
-            (i64::from(limit) + 1).into(),
-        ],
-    ))
-    .all(state.db().conn())
-    .await?;
+    let ahead = i64::from(limit) + 1;
+    let listing = match paging.after.as_deref() {
+        None => statement(LISTING_FIRST, vec![ctx.name().into(), ahead.into()]),
+        Some(after) => {
+            let (namespace, name, version) = parse_component_key(after)
+                .ok_or_else(|| refuse("bad_key", "after is not a component key"))?;
+            statement(
+                LISTING_AFTER,
+                vec![
+                    ctx.name().into(),
+                    namespace.into(),
+                    name.into(),
+                    version.into(),
+                    ahead.into(),
+                ],
+            )
+        }
+    };
+    let mut rows = component::Model::find_by_statement(listing)
+        .all(state.db().conn())
+        .await?;
     let more = rows.len() > limit as usize;
     rows.truncate(limit as usize);
-    let components: HashMap<i64, component::Model> = component::Entity::find()
-        .filter(component::Column::Id.is_in(rows.iter().map(|row| row.id)))
-        .all(state.db().conn())
-        .await?
-        .into_iter()
-        .map(|found| (found.id, found))
-        .collect();
     let transfer = transfer_of(&format)?;
-    let next = match more {
-        true => rows.last().map(|row| row.item_key.clone()),
-        false => None,
-    };
     let mut items = Vec::with_capacity(rows.len());
-    for row in rows {
-        let Some(found) = components.get(&row.id) else {
-            continue;
-        };
+    for found in &rows {
         let bundle = transfer.bundle(&ctx, found).await?;
         items.push(InventoryEntry {
-            key: row.item_key,
+            key: component_key(&found.namespace, &found.name, &found.version),
             fingerprint: fingerprint(&bundle),
             origin: origin_of(&found.attributes).map(str::to_owned),
         });
     }
+    let next = match more {
+        true => items.last().map(|item| item.key.clone()),
+        false => None,
+    };
     Ok(axum::Json(InventoryPage { items, next }).into_response())
 }
