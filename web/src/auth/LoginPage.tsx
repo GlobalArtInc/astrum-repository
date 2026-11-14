@@ -28,9 +28,13 @@ const THROTTLE_SECONDS = 15;
 const CODE_MAX_LENGTH = 64;
 const EXPIRED_CODE = 'sign-in-expired';
 const WRONG_CODE = 'second-factor-invalid';
+const UNUSABLE_CODE = 'passkeys-unusable';
 const TOTP_CODE = /^\d{6}$/;
 
 export function signInError(t: ReturnType<typeof useT>, error: unknown): string {
+  if (error instanceof ApiError && error.code === UNUSABLE_CODE) {
+    return error.message;
+  }
   if (error instanceof ApiError && error.status === 401) {
     return t('auth.login.wrong');
   }
@@ -137,7 +141,7 @@ export function LoginPage() {
         setPassword('');
         setBusy(false);
         if (usable.length === 0) {
-          setError(t('auth.secondStep.passkeysUnusable'));
+          setError(second.length === 0 ? t('ui.error.unknown') : t('auth.secondStep.passkeysUnusable'));
           return;
         }
         setMethods(usable);

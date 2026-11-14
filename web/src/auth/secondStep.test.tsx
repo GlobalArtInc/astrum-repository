@@ -343,11 +343,18 @@ describe('the passkey option of the second step', () => {
     expect(screen.getByRole('button', { name: 'Use a passkey' })).toBeInTheDocument();
   });
 
-  it('shows the unusable message on the password step when no method is offered', async () => {
+  it('shows the generic error on the password step when the answer offers an empty method list', async () => {
     await passwordStepAnswering([]);
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'None of your second factors can be used on this address. Ask an administrator for help.',
-    );
+    expect(await screen.findByRole('alert')).toHaveTextContent('Something unexpected happened.');
+    expect(screen.getByLabelText('Password')).toHaveValue('');
+  });
+
+  it('shows the server message and no second step when no passkey of the user can be used', async () => {
+    const message =
+      'none of your passkeys works on this server any more and you have no recovery codes left; ask an administrator to reset your second factor';
+    await passwordStepWith(() => reply({ id: '*', message, code: 'passkeys-unusable' }, 403));
+    expect(await screen.findByRole('alert')).toHaveTextContent(message);
+    expect(screen.queryByRole('heading', { name: 'Two-factor authentication' })).toBeNull();
     expect(screen.getByLabelText('Password')).toHaveValue('');
   });
 
@@ -361,8 +368,12 @@ describe('the passkey option of the second step', () => {
 });
 
 async function passwordStepAnswering(methods: string[]) {
+  return passwordStepWith(() => challenge(methods));
+}
+
+async function passwordStepWith(answer: () => Response) {
   const server = fakeServer({
-    [`POST ${SESSION}`]: () => challenge(methods),
+    [`POST ${SESSION}`]: answer,
     [`GET ${STATE}`]: () => jsonResponse(ADMIN_STATE),
   });
   vi.stubGlobal('fetch', server.fetch);
