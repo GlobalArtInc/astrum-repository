@@ -14,8 +14,8 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex, Weak};
 
 use astrum_content::format::{SearchKey, SearchTarget};
-use astrum_content::inventory::{Inventory, PackageRef};
-use astrum_content::store::{Component, PutAsset};
+use astrum_content::inventory::{Inventory, LicenseFact, PackageRef};
+use astrum_content::store::{self, Component, PutAsset};
 use astrum_content::{
     Asset, BrowseLayout, ContentError, ContentRequest, Ctx, Format, Freshness, Serve, UploadForm,
     UploadSpec, View, serve,
@@ -26,7 +26,7 @@ use axum::http::{Method, StatusCode};
 use axum::response::Response;
 use serde_json::{Value, json};
 
-use crate::documents::not_found;
+use crate::documents::{not_found, read_json};
 use crate::path::{Name, Route};
 
 pub use login::routes;
@@ -218,15 +218,19 @@ fn whoami(ctx: &Ctx) -> Result<Response, ContentError> {
     }
 }
 
-pub(crate) fn package_inventory(namespace: &str, name: &str, version: &str) -> Option<Inventory> {
-    if name.is_empty() || version.is_empty() {
-        return None;
-    }
+fn package_name(namespace: &str, name: &str) -> Option<Name> {
     let full = match namespace {
         "" => name.to_owned(),
         scope => format!("@{scope}/{name}"),
     };
-    let package = Name::parse(&full)?;
+    Name::parse(&full)
+}
+
+pub(crate) fn package_inventory(namespace: &str, name: &str, version: &str) -> Option<Inventory> {
+    if name.is_empty() || version.is_empty() {
+        return None;
+    }
+    let package = package_name(namespace, name)?;
     let purl = match &package.scope {
         Some(scope) => format!("pkg:npm/%40{scope}/{}@{version}", package.bare),
         None => format!("pkg:npm/{}@{version}", package.bare),
@@ -245,6 +249,25 @@ pub(crate) fn package_inventory(namespace: &str, name: &str, version: &str) -> O
     })
 }
 
+async fn stored_license(
+    ctx: &Ctx,
+    component: &Component,
+) -> Result<Option<LicenseFact>, ContentError> {
+    let Some(name) = package_name(&component.namespace, &component.name) else {
+        return Ok(None);
+    };
+    let Some(asset) = store::find(ctx.db(), ctx.name(), &name.packument_path()).await? else {
+        return Ok(None);
+    };
+    let doc = read_json(ctx, &asset).await?;
+    Ok(
+        packument::license(&doc, &component.version).map(|declared| LicenseFact {
+            declared,
+            source: "npm.packument".to_owned(),
+        }),
+    )
+}
+
 #[async_trait]
 impl Format for Npm {
     fn id(&self) -> &'static str {
@@ -253,14 +276,19 @@ impl Format for Npm {
 
     async fn inventory(
         &self,
-        _ctx: &Ctx,
+        ctx: &Ctx,
         component: &Component,
     ) -> Result<Option<Inventory>, ContentError> {
-        Ok(package_inventory(
-            &component.namespace,
-            &component.name,
-            &component.version,
-        ))
+        let Some(inventory) =
+            package_inventory(&component.namespace, &component.name, &component.version)
+        else {
+            return Ok(None);
+        };
+        let license = stored_license(ctx, component).await?;
+        Ok(Some(Inventory {
+            license,
+            ..inventory
+        }))
     }
 
     async fn handle(&self, ctx: Ctx, request: ContentRequest) -> Result<Response, ContentError> {
@@ -330,5 +358,15 @@ mod tests {
         let found = package_inventory("babel", "core", "7.24.0").unwrap();
         assert_eq!(found.key, "pkg:npm/%40babel/core@7.24.0");
         assert_eq!(found.packages[0].name, "@babel/core");
+    }
+
+    #[test]
+    fn scoped_packages_read_their_packument_from_the_scoped_path() {
+        let package = package_name("babel", "core").unwrap();
+        assert_eq!(package.packument_path(), "/@babel/core");
+        assert_eq!(
+            package_name("", "left-pad").unwrap().packument_path(),
+            "/left-pad"
+        );
     }
 }

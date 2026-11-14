@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use astrum_content::inventory::{Inventory, PackageRef};
+use astrum_content::inventory::{Inventory, LicenseFact, PackageRef};
 use astrum_testkit::TestDatabase;
 use sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, Statement, TransactionTrait};
 
@@ -558,5 +558,133 @@ async fn the_first_scan_of_a_component_announces_matches_its_packages_already_ha
         scalar(&db, all).await,
         1,
         "scanned, unsupported and scanned again is not a first scan"
+    );
+}
+
+fn inventory_with(declared: Option<&str>) -> Inventory {
+    Inventory {
+        license: declared.map(|declared| LicenseFact {
+            declared: declared.to_owned(),
+            source: "npm.packument".to_owned(),
+        }),
+        ..inventory()
+    }
+}
+
+async fn record_licence(db: &DatabaseConnection, id: i64, declared: Option<&str>) {
+    db.execute_unprepared(&format!(
+        "INSERT INTO scan_queue (component_id, reason) VALUES ({id}, 'licence') ON CONFLICT DO NOTHING"
+    ))
+    .await
+    .unwrap();
+    let (item, component) = claimed_component(db, id).await;
+    assert!(
+        record_inventory(
+            db,
+            item,
+            &component,
+            &inventory_with(declared),
+            State::Scanned
+        )
+        .await
+        .unwrap()
+    );
+}
+
+async fn license_row(
+    db: &DatabaseConnection,
+    id: i64,
+) -> Option<(String, String, Option<String>, Vec<String>, String)> {
+    db.query_one(Statement::from_string(
+        DbBackend::Postgres,
+        format!(
+            "SELECT declared, source, expression, ids, state FROM component_license WHERE component_id = {id}"
+        ),
+    ))
+    .await
+    .unwrap()
+    .map(|row| {
+        (
+            row.try_get("", "declared").unwrap(),
+            row.try_get("", "source").unwrap(),
+            row.try_get("", "expression").unwrap(),
+            row.try_get("", "ids").unwrap(),
+            row.try_get("", "state").unwrap(),
+        )
+    })
+}
+
+#[tokio::test]
+async fn a_licence_fact_is_stored_replaced_and_removed_with_the_inventory() {
+    let (_test, db, id) = setup().await;
+    record_licence(&db, id, Some("MIT")).await;
+    assert_eq!(
+        license_row(&db, id).await,
+        Some((
+            "MIT".to_owned(),
+            "npm.packument".to_owned(),
+            Some("MIT".to_owned()),
+            vec!["MIT".to_owned()],
+            "spdx".to_owned(),
+        ))
+    );
+
+    record_licence(&db, id, Some("Apache-2.0")).await;
+    assert_eq!(
+        license_row(&db, id).await.map(|row| row.0),
+        Some("Apache-2.0".to_owned())
+    );
+
+    record_licence(&db, id, None).await;
+    assert_eq!(license_row(&db, id).await, None);
+}
+
+#[tokio::test]
+async fn licence_states_decide_the_expression_and_the_ids_stored() {
+    let (_test, db, id) = setup().await;
+    let cases = [
+        (
+            "MIT OR Apache-2.0",
+            Some("MIT OR Apache-2.0"),
+            vec!["MIT", "Apache-2.0"],
+            "spdx",
+        ),
+        (
+            "Apache 2.0",
+            Some("Apache-2.0"),
+            vec!["Apache-2.0"],
+            "mapped",
+        ),
+        (
+            "MIT AND Not-A-Licence",
+            None,
+            vec!["MIT", "Not-A-Licence"],
+            "unknown",
+        ),
+        ("", None, vec![], "none"),
+    ];
+    for (declared, expression, ids, state) in cases {
+        record_licence(&db, id, Some(declared)).await;
+        assert_eq!(
+            license_row(&db, id).await,
+            Some((
+                declared.to_owned(),
+                "npm.packument".to_owned(),
+                expression.map(str::to_owned),
+                ids.into_iter().map(str::to_owned).collect(),
+                state.to_owned(),
+            )),
+            "{declared}"
+        );
+    }
+}
+
+#[tokio::test]
+async fn a_licence_longer_than_a_kibibyte_is_cut_before_it_is_stored() {
+    let (_test, db, id) = setup().await;
+    record_licence(&db, id, Some(&"a".repeat(2000))).await;
+    assert_eq!(
+        license_row(&db, id).await.map(|row| row.0.len()),
+        Some(1024)
     );
 }
