@@ -77,6 +77,21 @@ function useCleanupOptions(format: string, applied: readonly string[], enabled: 
   return [...known, ...applied.filter((name) => !known.includes(name))];
 }
 
+export const SECURITY_POLICIES = `${V1}/security/policies`;
+
+interface PolicyChoice {
+  name: string;
+}
+
+function usePolicyOptions(current: string, enabled: boolean): Array<{ value: string; label: string }> {
+  const policies = useApi<PolicyChoice[]>(enabled ? SECURITY_POLICIES : null);
+  const known = (policies.data ?? []).map((policy) => ({ value: policy.name, label: policy.name }));
+  if (current !== '' && !known.some((option) => option.value === current)) {
+    known.unshift({ value: current, label: current });
+  }
+  return known;
+}
+
 export const ROUTING_RULES = `${V1}/routing-rules`;
 
 interface RoutingRuleChoice {
@@ -240,6 +255,8 @@ export function RepositoryForm(props: RepositoryFormProps) {
   const { values } = form;
   const { onSaved, onDirtyChange, onReadyChange } = props;
   const canManagePolicies = useCan('astrum:cleanup-policies:read');
+  const canReadPolicies = useCan('astrum:policies:read');
+  const policyOptions = usePolicyOptions(values.policyName, sections.policy(spec) && canReadPolicies);
   const cleanupOptions = useCleanupOptions(spec.format, values.cleanupPolicies, !sections.group(spec));
   const routingRules = useRoutingOptions(values.routingRuleName, sections.proxy(spec));
   const domainCheck = useDomainCheck(values.domainHost);
@@ -1024,6 +1041,24 @@ export function RepositoryForm(props: RepositoryFormProps) {
                 options={writableOptions}
               />
             )}
+          </Section>
+        )}
+
+        {sections.policy(spec) && canReadPolicies && (
+          <Section
+            title={t('repositories.form.sections.policy')}
+            description={t('repositories.form.sections.policyText')}
+          >
+            <SelectInput
+              name="policyName"
+              error={form.errors.policyName}
+              value={values.policyName === '' ? NONE : values.policyName}
+              onChange={(value) => form.set('policyName', value === NONE ? '' : value)}
+              disabled={readOnly}
+              label={t('repositories.form.policy')}
+              hint={t('repositories.form.policyHint')}
+              options={[{ value: NONE, label: t('repositories.form.policyNone') }, ...policyOptions]}
+            />
           </Section>
         )}
 

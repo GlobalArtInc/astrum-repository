@@ -118,3 +118,61 @@ describe('the repository list', { timeout: 20_000 }, () => {
     ).toBeInTheDocument();
   });
 });
+
+const SUMMARY = {
+  generatedAt: '2026-11-11T10:00:00.000Z',
+  totals: {
+    critical: 2,
+    high: 0,
+    medium: 0,
+    low: 0,
+    unknown: 0,
+    blocked: 1,
+    componentsScanned: 3,
+    componentsVulnerable: 1,
+    truncated: false,
+  },
+  repositories: [
+    {
+      repository: 'maven-releases',
+      format: 'maven2',
+      critical: 2,
+      high: 0,
+      medium: 0,
+      low: 0,
+      unknown: 0,
+      blocked: 1,
+      componentsScanned: 3,
+      componentsVulnerable: 1,
+      truncated: false,
+    },
+  ],
+};
+
+function row(name: string) {
+  return screen.getByRole('link', { name }).closest('tr') as HTMLElement;
+}
+
+describe('the security badges of the repository list', { timeout: 20_000 }, () => {
+  it('shows blocked and critical counts for the repositories the summary names', async () => {
+    vi.stubGlobal(
+      'fetch',
+      fakeServer({
+        'GET /service/rest/internal/ui/repositories': () => jsonResponse(ITEMS),
+        'GET /service/rest/v1/security/summary': () => jsonResponse(SUMMARY),
+      }).fetch,
+    );
+    page();
+    await screen.findByRole('table');
+    expect(await within(row('maven-releases')).findByText('1 blocked')).toBeInTheDocument();
+    expect(within(row('maven-releases')).getByText('2 critical')).toBeInTheDocument();
+    expect(within(row('maven-central')).queryByText(/blocked/)).not.toBeInTheDocument();
+  });
+
+  it('shows no security column without security data', async () => {
+    serve();
+    page();
+    await screen.findByRole('table');
+    expect(screen.queryByRole('columnheader', { name: 'Security' })).not.toBeInTheDocument();
+  });
+});

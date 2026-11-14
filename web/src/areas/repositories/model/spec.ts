@@ -32,6 +32,7 @@ export const sections = {
   proxy: (spec: Spec) => spec.type === 'proxy',
   group: (spec: Spec) => spec.type === 'group',
   quota: (spec: Spec) => spec.type !== 'group',
+  policy: (spec: Spec) => spec.type !== 'group',
   writableMember: (spec: Spec) => spec.type === 'group' && WRITABLE_MEMBER.has(spec.format),
   preemptive: (spec: Spec) => spec.format === 'maven2' && spec.type === 'proxy',
   maven: (spec: Spec) => spec.format === 'maven2' && spec.type !== 'group',

@@ -1,4 +1,5 @@
 import type { Area } from '../../app/area';
+import { EXCEPTION_READ, POLICY_CREATE, POLICY_READ } from './policy/permissions';
 
 const PRIVILEGES_READ = 'astrum:privileges:read';
 const ROLES_NEED = { all: ['astrum:roles:read', PRIVILEGES_READ] };
@@ -75,6 +76,36 @@ export const securityArea: Area = {
       load: () => import('./two-factor/TwoFactorPolicyPage'),
       need: ADMINISTRATOR,
     },
+    {
+      path: 'admin/security/policies',
+      load: () => import('./policy/PoliciesPage'),
+      need: POLICY_READ,
+    },
+    {
+      path: 'admin/security/policies/create',
+      load: () => import('./policy/PolicyPage'),
+      need: { all: [POLICY_READ, POLICY_CREATE] },
+    },
+    {
+      path: 'admin/security/policies/:name',
+      load: () => import('./policy/PolicyPage'),
+      need: POLICY_READ,
+    },
+    {
+      path: 'admin/security/policy-exceptions',
+      load: () => import('./policy/ExceptionsPage'),
+      need: EXCEPTION_READ,
+    },
+    {
+      path: 'admin/security/trusted-keys',
+      load: () => import('./policy/TrustedKeysPage'),
+      need: POLICY_READ,
+    },
+    {
+      path: 'admin/security/vulnerability-data',
+      load: () => import('./policy/VulnerabilityDataPage'),
+      need: POLICY_READ,
+    },
   ],
   settings: [
     {
@@ -111,6 +142,26 @@ export const securityArea: Area = {
       id: 'two-factor',
       to: '/admin/security/two-factor',
       need: ADMINISTRATOR,
+    },
+    {
+      id: 'policies',
+      to: '/admin/security/policies',
+      need: POLICY_READ,
+    },
+    {
+      id: 'policy-exceptions',
+      to: '/admin/security/policy-exceptions',
+      need: EXCEPTION_READ,
+    },
+    {
+      id: 'trusted-keys',
+      to: '/admin/security/trusted-keys',
+      need: POLICY_READ,
+    },
+    {
+      id: 'vulnerability-data',
+      to: '/admin/security/vulnerability-data',
+      need: POLICY_READ,
     },
   ],
 };
