@@ -1,11 +1,19 @@
 import { api, INTERNAL } from '../api';
+import type { AssertionCredential, AssertionOptions } from './webauthn';
 
 export const SESSION_PATH = `${INTERNAL}/session`;
 export const SECOND_FACTOR_PATH = `${INTERNAL}/session/second-factor`;
 export const STATE_PATH = `${INTERNAL}/ui/state`;
+export const PASSKEY_OPTIONS_PATH = `${SECOND_FACTOR_PATH}/passkey-options`;
 export const SECURITY_PATH = '/user/security';
 
-export type SecondFactorMethod = 'totp' | 'recovery';
+export type CodeMethod = 'totp' | 'recovery';
+export type SecondFactorMethod = CodeMethod | 'passkey';
+
+export interface PasskeyChallenge {
+  ceremony: string;
+  publicKey: AssertionOptions;
+}
 
 export interface SecondFactorAnswer {
   methods?: SecondFactorMethod[];
@@ -25,8 +33,20 @@ export function signIn(username: string, password: string): Promise<SignInAnswer
   return api.post<SignInAnswer>(SESSION_PATH, { username, password }, { quietUnauthorized: true });
 }
 
-export function secondStep(method: SecondFactorMethod, code: string): Promise<unknown> {
+export function secondStep(method: CodeMethod, code: string): Promise<unknown> {
   return api.post(SECOND_FACTOR_PATH, { method, code }, { quietUnauthorized: true });
+}
+
+export function passkeyChallenge(): Promise<PasskeyChallenge> {
+  return api.post<PasskeyChallenge>(PASSKEY_OPTIONS_PATH, undefined, { quietUnauthorized: true });
+}
+
+export function passkeySecondStep(ceremony: string, credential: AssertionCredential): Promise<unknown> {
+  return api.post(
+    SECOND_FACTOR_PATH,
+    { method: 'passkey', ceremony, credential },
+    { quietUnauthorized: true },
+  );
 }
 
 export function signOut(): Promise<void> {

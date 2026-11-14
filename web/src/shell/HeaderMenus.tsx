@@ -11,6 +11,7 @@ import {
   Package,
   RefreshCw,
   Search,
+  ShieldCheck,
   Sun,
   UserRound,
 } from 'lucide-react';
@@ -312,6 +313,10 @@ export function UserMenu() {
         <DropdownMenu.Item onSelect={() => navigate('/user/access-tokens')}>
           <KeyRound size={16} aria-hidden="true" />
           {t('shell.user.accessTokens')}
+        </DropdownMenu.Item>
+        <DropdownMenu.Item onSelect={() => navigate('/user/security')}>
+          <ShieldCheck size={16} aria-hidden="true" />
+          {t('shell.user.security')}
         </DropdownMenu.Item>
         {state.nugetApiKeyRealm && (
           <DropdownMenu.Item onSelect={() => navigate('/user/nuget-api-key')}>

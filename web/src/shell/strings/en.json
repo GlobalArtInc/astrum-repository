@@ -73,5 +73,6 @@
   "shell.user.nugetApiKey": "NuGet API Key",
   "shell.user.signIn": "Sign in",
   "shell.user.signOut": "Sign Out",
-  "shell.user.signOutFailed": "Could not sign out"
+  "shell.user.signOutFailed": "Could not sign out",
+  "shell.user.security": "Security"
 }

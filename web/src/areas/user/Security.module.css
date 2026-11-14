@@ -1,0 +1,178 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  max-width: 760px;
+  min-width: 0;
+  padding: 32px var(--page-gutter);
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.icon {
+  flex: none;
+  color: var(--accent-9);
+}
+
+.title {
+  margin: 0;
+  font-size: 24px;
+  line-height: 30px;
+  font-weight: 700;
+  letter-spacing: -0.15px;
+  overflow-wrap: anywhere;
+}
+
+.intro {
+  max-width: 760px;
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--gray-a11);
+}
+
+.card {
+  min-width: 0;
+}
+
+.cardTitle {
+  margin: 0 0 12px;
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 700;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+}
+
+.line {
+  margin: 0 0 4px;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.hint {
+  margin: 4px 0 12px;
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
+  color: var(--gray-a11);
+}
+
+.notice {
+  margin-top: 12px;
+}
+
+.error {
+  margin: 4px 0 0;
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
+  color: var(--red-11);
+}
+
+.dialog {
+  padding: 24px;
+}
+
+.dialogTitle {
+  margin: 0 0 12px;
+  font-size: 20px;
+  line-height: 26px;
+  font-weight: 700;
+  letter-spacing: -0.1px;
+}
+
+.qr {
+  display: block;
+  margin: 16px auto;
+  background: #fff;
+  border-radius: 8px;
+}
+
+.secret {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin-bottom: 16px;
+}
+
+.secretCode {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+.codes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 16px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.codes :global(.rt-Code) {
+  width: 100%;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.saved {
+  margin: 16px 0 0;
+}
+
+.section {
+  min-width: 0;
+  margin-top: 16px;
+}
+
+.passkeys {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.passkey {
+  padding: 12px 0;
+  border-top: 1px solid var(--gray-a4);
+}
+
+.passkeyHead {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.passkeyName {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
