@@ -5,13 +5,15 @@ use super::{Exposition, flag};
 use crate::AppState;
 
 const BACKLOG: &str = "SELECT r.id, r.name, \
-     count(i.id) FILTER (WHERE i.state = 'pending') AS pending, \
-     count(i.id) FILTER (WHERE i.state = 'dead') AS dead, \
-     coalesce(extract(epoch FROM now() - min(i.first_queued_at) \
-         FILTER (WHERE i.state IN ('pending', 'leased'))), 0)::float8 AS lag, \
+     (SELECT count(*) FROM replication_item i \
+         WHERE i.replication_id = r.id AND i.state = 'pending') AS pending, \
+     (SELECT count(*) FROM replication_item i \
+         WHERE i.replication_id = r.id AND i.state = 'dead') AS dead, \
+     coalesce(extract(epoch FROM now() - \
+         (SELECT min(i.first_queued_at) FROM replication_item i \
+             WHERE i.replication_id = r.id AND i.state IN ('pending', 'leased'))), 0)::float8 AS lag, \
      coalesce(extract(epoch FROM r.last_success_at), 0)::float8 AS last_success \
-     FROM replication r LEFT JOIN replication_item i ON i.replication_id = r.id \
-     GROUP BY r.id ORDER BY lower(r.name)";
+     FROM replication r ORDER BY lower(r.name)";
 
 const REMOTES: &str = "SELECT name, coalesce(suspended_until > now(), false) AS suspended \
      FROM replication_remote ORDER BY lower(name)";

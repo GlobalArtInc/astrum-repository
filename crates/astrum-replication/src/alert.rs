@@ -14,18 +14,21 @@ pub const SILENCE: Duration = Duration::from_secs(30 * 60);
 const EVALUATE: &str = "SELECT r.id, r.name, r.enabled, r.alert_state, r.alert_channels, \
      r.last_error, m.name AS remote_name, m.last_error AS remote_error, \
      coalesce(m.suspended_until > now(), false) AS suspended, \
-     count(i.id) FILTER (WHERE i.state = 'pending') AS pending, \
-     count(i.id) FILTER (WHERE i.state = 'leased') AS leased, \
-     count(i.id) FILTER (WHERE i.state = 'dead') AS dead, \
+     (SELECT count(*) FROM replication_item i \
+         WHERE i.replication_id = r.id AND i.state = 'pending') AS pending, \
+     (SELECT count(*) FROM replication_item i \
+         WHERE i.replication_id = r.id AND i.state = 'leased') AS leased, \
+     (SELECT count(*) FROM replication_item i \
+         WHERE i.replication_id = r.id AND i.state = 'dead') AS dead, \
      extract(epoch FROM now() - r.last_success_at)::float8 AS since_success, \
-     extract(epoch FROM now() - min(i.first_queued_at) \
-         FILTER (WHERE i.state IN ('pending', 'leased')))::float8 AS oldest, \
+     extract(epoch FROM now() - r.settle_seconds * interval '1 second' - \
+         (SELECT min(i.first_queued_at) FROM replication_item i \
+             WHERE i.replication_id = r.id AND i.state IN ('pending', 'leased')))::float8 AS oldest, \
      (SELECT d.last_error FROM replication_item d \
-         WHERE d.replication_id = r.id AND d.state = 'dead' ORDER BY d.id DESC LIMIT 1) AS dead_error \
-     FROM replication r \
-     JOIN replication_remote m ON m.id = r.remote_id \
-     LEFT JOIN replication_item i ON i.replication_id = r.id \
-     GROUP BY r.id, m.id ORDER BY r.id";
+         WHERE d.replication_id = r.id AND d.state = 'dead' LIMIT 1) AS dead_error \
+     FROM replication r JOIN replication_remote m ON m.id = r.remote_id \
+     WHERE r.enabled OR r.alert_state <> 'ok' \
+     ORDER BY r.id";
 
 const MOVE: &str = "UPDATE replication SET alert_state = $3 \
      WHERE id = $1 AND alert_state = $2 RETURNING id";
@@ -144,8 +147,16 @@ impl Dispatcher {
             if wanted.as_str() == row.alert_state {
                 continue;
             }
-            if let Some(alerted) = self.transition(&row, wanted).await? {
-                moved.push(alerted);
+            match self.transition(&row, wanted).await {
+                Ok(Some(alerted)) => moved.push(alerted),
+                Ok(None) => {}
+                Err(error) => {
+                    tracing::warn!(
+                        replication = %row.id,
+                        %error,
+                        "the alert state of a replication could not be changed"
+                    );
+                }
             }
         }
         Ok(moved)

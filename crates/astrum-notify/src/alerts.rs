@@ -210,16 +210,52 @@ fn hide_userinfo(text: &str) -> String {
     out
 }
 
+const TOKEN_PARAMETER: &str = "token=";
+
+fn hide_query_tokens(word: &str) -> String {
+    let lowered = word.to_ascii_lowercase();
+    let mut out = String::with_capacity(word.len());
+    let mut from = 0;
+    while let Some(found) = lowered[from..].find(TOKEN_PARAMETER) {
+        let start = from + found;
+        let value = start + TOKEN_PARAMETER.len();
+        let bounded = word[..start]
+            .chars()
+            .next_back()
+            .is_none_or(|before| !before.is_alphanumeric());
+        out.push_str(&word[from..value]);
+        from = value;
+        if bounded {
+            let end = word[value..]
+                .find(['&', '#', '"', '\'', '<', '>'])
+                .map_or(word.len(), |at| value + at);
+            out.push_str("[hidden]");
+            from = end;
+        }
+    }
+    out.push_str(&word[from..]);
+    out
+}
+
+fn takes_secret(word: &str, previous: &str) -> bool {
+    let word = word.to_ascii_lowercase();
+    let after_header = previous
+        .trim_end_matches(':')
+        .eq_ignore_ascii_case("authorization");
+    word == "bearer" || (after_header && matches!(word.as_str(), "basic" | "token"))
+}
+
 pub fn excerpt(text: &str) -> String {
-    let words: Vec<&str> = text.split_whitespace().collect();
-    let mut hidden = Vec::with_capacity(words.len());
-    let mut after_bearer = false;
-    for word in words {
-        hidden.push(match after_bearer {
+    let mut hidden: Vec<String> = Vec::new();
+    let mut after_scheme = false;
+    let mut previous = "";
+    for word in text.split_whitespace() {
+        hidden.push(match after_scheme {
             true => "[hidden]".to_owned(),
-            false => hide_userinfo(word),
+            false => hide_query_tokens(&hide_userinfo(word)),
         });
-        after_bearer = word.eq_ignore_ascii_case("bearer");
+        after_scheme = takes_secret(word, previous);
+        previous = word;
     }
     hidden.join(" ").chars().take(ERROR_EXCERPT).collect()
 }
@@ -403,5 +439,21 @@ mod tests {
         assert_eq!(cut.chars().count(), 200);
         assert!(cut.starts_with("https://host/"));
         assert_eq!(excerpt("a\n\tb  c"), "a b c");
+    }
+
+    #[test]
+    fn token_parameters_and_authorization_values_are_hidden() {
+        assert_eq!(
+            excerpt("GET https://h/x?a=1&Access_Token=abc123&b=2 failed, token=zzz."),
+            "GET https://h/x?a=1&Access_Token=[hidden]&b=2 failed, token=[hidden]"
+        );
+        assert_eq!(
+            excerpt("sent Authorization: BASIC dXNlcjpwdw== and authorization: token ghp_x end"),
+            "sent Authorization: BASIC [hidden] and authorization: token [hidden] end"
+        );
+        assert_eq!(
+            excerpt("Authorization: bearer abc; mytoken=keep xtoken=a the token refused"),
+            "Authorization: bearer [hidden] mytoken=keep xtoken=a the token refused"
+        );
     }
 }

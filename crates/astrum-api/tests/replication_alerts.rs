@@ -16,6 +16,8 @@ const CHANNELS: &str = "/service/rest/internal/ui/notifications";
 struct Setup {
     sender: Node,
     channels: Vec<String>,
+    remote: String,
+    id: String,
 }
 
 async fn channel(node: &Node, name: &str, language: &str) -> String {
@@ -40,23 +42,39 @@ async fn channel(node: &Node, name: &str, language: &str) -> String {
 
 impl Setup {
     async fn new() -> Self {
+        Self::settling(0).await
+    }
+
+    async fn settling(seconds: i64) -> Self {
         let sender = Node::start(&["source"]).await;
         let receiver = Node::start(&["mirror"]).await;
         let remote = connect(&sender, &receiver).await;
         let first = channel(&sender, "ops", "en").await;
         let second = channel(&sender, "oncall", "ru").await;
-        replicate(
+        let id = replicate(
             &sender,
             &remote,
             "source",
             "mirror",
-            json!({"name": "eu-mirror", "alertChannels": [first, second]}),
+            json!({"name": "eu-mirror", "alertChannels": [first, second], "settleSeconds": seconds}),
         )
         .await;
         Self {
             sender,
             channels: vec![first, second],
+            remote,
+            id,
         }
+    }
+
+    async fn retry_all(&self) {
+        let path = format!("{}/{}/items/retry", cluster::REPLICATIONS, self.id);
+        let reply = self
+            .sender
+            .fixture
+            .call(Method::POST, &path, Auth::Admin, Some(json!({"all": true})))
+            .await;
+        assert_eq!(reply.status, StatusCode::OK, "{}", reply.text());
     }
 
     async fn silent(&self, age: &str) {
@@ -260,4 +278,68 @@ async fn the_dispatcher_that_leads_evaluates_the_alerts_on_its_timer() {
     stop.cancel();
     running.await.unwrap();
     assert_eq!(setup.queued("replication.failing").await, 2);
+}
+
+#[tokio::test]
+async fn the_settle_window_is_not_counted_as_waiting_time() {
+    let patient = Setup::settling(3600).await;
+    patient.silent("2 hours").await;
+    patient.item("pending", "31 minutes").await;
+    assert!(patient.evaluate().await.is_empty());
+    assert_eq!(patient.state().await, "ok");
+
+    let prompt = Setup::settling(0).await;
+    prompt.silent("2 hours").await;
+    prompt.item("pending", "31 minutes").await;
+    assert_eq!(prompt.evaluate().await, [(State::Failing, 2)]);
+}
+
+#[tokio::test]
+async fn retrying_dead_items_restarts_the_clock_and_recovers_without_a_failing_blip() {
+    let setup = Setup::new().await;
+    setup.silent("2 hours").await;
+    setup.item("dead", "2 hours").await;
+    assert_eq!(setup.evaluate().await, [(State::DeadItems, 2)]);
+    setup.retry_all().await;
+    assert_eq!(setup.evaluate().await, [(State::Ok, 2)]);
+    assert_eq!(setup.queued("replication.failing").await, 0);
+    assert_eq!(setup.queued("replication.recovered").await, 2);
+}
+
+#[tokio::test]
+async fn a_replication_that_cannot_change_state_does_not_stop_the_others() {
+    let setup = Setup::new().await;
+    replicate(
+        &setup.sender,
+        &setup.remote,
+        "source",
+        "mirror-two",
+        json!({"name": "bad-one", "alertChannels": [setup.channels[0]]}),
+    )
+    .await;
+    setup
+        .sender
+        .sql(
+            "CREATE FUNCTION refuse_bad() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN \
+             IF NEW.name = 'bad-one' AND NEW.alert_state <> OLD.alert_state THEN \
+             RAISE EXCEPTION 'refused'; END IF; RETURN NEW; END $$",
+        )
+        .await;
+    setup
+        .sender
+        .sql(
+            "CREATE TRIGGER refuse_bad BEFORE UPDATE ON replication \
+             FOR EACH ROW EXECUTE FUNCTION refuse_bad()",
+        )
+        .await;
+    setup.silent("2 hours").await;
+    setup.item("pending", "2 hours").await;
+    assert_eq!(setup.evaluate().await, [(State::Failing, 2)]);
+    let states =
+        "SELECT string_agg(name || '=' || alert_state, ',' ORDER BY name) AS t FROM replication";
+    assert_eq!(
+        setup.sender.text(states).await.as_deref(),
+        Some("bad-one=ok,eu-mirror=failing")
+    );
+    assert_eq!(setup.all_queued().await, 2);
 }

@@ -1,6 +1,7 @@
 use astrum_db::audit::Event;
 use astrum_replication::lifecycle::{self, Snapshot};
 use astrum_replication::protocol::component_key;
+use astrum_security::Subject;
 use astrum_tasks::store::Requested;
 use axum::Router;
 use axum::extract::rejection::QueryRejection;
@@ -15,7 +16,7 @@ use serde_json::json;
 use uuid::Uuid;
 
 use super::config::{
-    DOMAIN, Found, READ, UPDATE, message, missing, parse_id, require_current_source, statement,
+    DOMAIN, READ, UPDATE, message, missing, parse_id, require_current_source, statement,
 };
 use crate::{ApiError, AppState, Caller, Json};
 
@@ -23,27 +24,31 @@ const BASE: &str = "/service/rest/v1/replications/{id}";
 const DEFAULT_PAGE: i64 = 50;
 const MAX_PAGE: i64 = 200;
 const MAX_IDS: usize = 1000;
+const DISABLED_NOTE: &str = "the replication is disabled: the run will be skipped";
 const STATES: [&str; 3] = ["dead", "pending", "leased"];
 
 const STATUS: &str = "SELECT r.enabled, r.alert_state, r.last_success_at, r.last_failure_at, \
      r.last_error, r.last_reconcile_at, \
-     count(i.id) FILTER (WHERE i.state = 'pending') AS pending, \
-     count(i.id) FILTER (WHERE i.state = 'leased') AS leased, \
-     count(i.id) FILTER (WHERE i.state = 'dead') AS dead, \
-     extract(epoch FROM now() - min(i.first_queued_at) \
-         FILTER (WHERE i.state IN ('pending', 'leased')))::bigint AS lag_seconds, \
+     (SELECT count(*) FROM replication_item i \
+         WHERE i.replication_id = r.id AND i.state = 'pending') AS pending, \
+     (SELECT count(*) FROM replication_item i \
+         WHERE i.replication_id = r.id AND i.state = 'leased') AS leased, \
+     (SELECT count(*) FROM replication_item i \
+         WHERE i.replication_id = r.id AND i.state = 'dead') AS dead, \
+     extract(epoch FROM now() - \
+         (SELECT min(i.first_queued_at) FROM replication_item i \
+             WHERE i.replication_id = r.id AND i.state IN ('pending', 'leased')))::bigint AS lag_seconds, \
      CASE WHEN m.suspended_until > now() THEN m.suspended_until END AS suspended_until, \
      m.failures, m.last_error AS remote_error \
      FROM replication r JOIN replication_remote m ON m.id = r.remote_id \
-     LEFT JOIN replication_item i ON i.replication_id = r.id \
-     WHERE r.id = $1 GROUP BY r.id, m.id";
+     WHERE r.id = $1";
 
 const ITEMS: &str = "SELECT id, namespace, name, version, state, reason, attempts, not_before, \
      first_queued_at, last_error FROM replication_item \
      WHERE replication_id = $1 AND state = $2 AND id > $3 ORDER BY id LIMIT $4";
 
 const RETRY: &str = "UPDATE replication_item SET state = 'pending', attempts = 0, \
-     reason = 'retry', not_before = now() \
+     reason = 'retry', not_before = now(), first_queued_at = now() \
      WHERE replication_id = $1 AND state = 'dead' AND ($2::bigint[] IS NULL OR id = ANY($2))";
 
 const DISCARD: &str = "DELETE FROM replication_item \
@@ -179,15 +184,33 @@ impl Selection {
     }
 }
 
-async fn require_replication(state: &AppState, id: Uuid) -> Result<(), ApiError> {
-    Found::find_by_statement(statement(
-        "SELECT id FROM replication WHERE id = $1",
+async fn require_source_view(
+    state: &AppState,
+    subject: &Subject,
+    id: Uuid,
+) -> Result<(), ApiError> {
+    #[derive(FromQueryResult)]
+    struct Source {
+        source_repository: String,
+        format: Option<String>,
+    }
+    let source = Source::find_by_statement(statement(
+        "SELECT r.source_repository, p.format FROM replication r \
+         LEFT JOIN repository p ON p.name = r.source_repository WHERE r.id = $1",
         vec![id.into()],
     ))
     .one(state.db().conn())
     .await?
-    .map(|_| ())
-    .ok_or_else(|| missing("replication", id))
+    .ok_or_else(|| missing("replication", id))?;
+    let format = source.format.as_deref().unwrap_or("*");
+    let name = &source.source_repository;
+    let viewed = ["browse", "read"].iter().any(|action| {
+        subject.is_permitted(&format!("astrum:repository-view:{format}:{name}:{action}"))
+    });
+    match viewed {
+        true => Ok(()),
+        false => Err(ApiError::forbidden()),
+    }
 }
 
 async fn read_status(
@@ -226,9 +249,9 @@ async fn list_items(
     Path(id): Path<String>,
     query: Result<Query<ItemsQuery>, QueryRejection>,
 ) -> Result<axum::Json<ItemPage>, ApiError> {
-    caller.require(READ)?;
+    let subject = caller.require(READ)?;
     let id = parse_id(&id, "replication")?;
-    require_replication(&state, id).await?;
+    require_source_view(&state, subject, id).await?;
     let Query(query) = query.map_err(|rejection| ApiError::BadRequest(rejection.body_text()))?;
     let wanted = query
         .state
@@ -377,7 +400,11 @@ async fn reconcile(
                         .with(json!({"id": id, "name": snapshot.name, "run": run})),
                 )
                 .await;
-            Ok((StatusCode::ACCEPTED, axum::Json(json!({"run": run}))).into_response())
+            let answer = match snapshot.enabled {
+                true => json!({"run": run}),
+                false => json!({"run": run, "note": DISABLED_NOTE}),
+            };
+            Ok((StatusCode::ACCEPTED, axum::Json(answer)).into_response())
         }
         Requested::AlreadyActive => Ok(message(
             StatusCode::CONFLICT,
