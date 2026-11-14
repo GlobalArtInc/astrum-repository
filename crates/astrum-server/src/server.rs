@@ -73,6 +73,8 @@ impl Server {
         let revisions =
             astrum_api::revisions::spawn(self.state.clone(), astrum_api::revisions::INTERVAL);
         let space = astrum_api::space::spawn(self.state.clone());
+        let replication =
+            astrum_replication::dispatch::Dispatcher::new(self.state.content().clone()).spawn();
         match crate::web::installed(&self.web_dir) {
             true => tracing::info!(dir = %self.web_dir.display(), "serving the user interface"),
             false => tracing::warn!(
@@ -109,6 +111,7 @@ impl Server {
         heartbeat.abort();
         revisions.abort();
         space.abort();
+        replication.abort();
         astrum_api::nodes::leave(&self.state).await;
         if let Err(error) = self.state.content().flush_downloads().await {
             tracing::warn!(%error, "download counts were not saved");

@@ -56,6 +56,7 @@ astrum-format-yum.workspace = true
 astrum-db.workspace = true
 astrum-logging.workspace = true
 astrum-security.workspace = true
+astrum-replication.workspace = true
 astrum-repo.workspace = true
 astrum-tasks.workspace = true
 axum.workspace = true

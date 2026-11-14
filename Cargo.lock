@@ -1508,7 +1508,9 @@ dependencies = [
 name = "astrum-replication"
 version = "3.0.4"
 dependencies = [
+ "astrum-blob",
  "astrum-content",
+ "astrum-db",
  "astrum-outbound",
  "astrum-security",
  "axum",
@@ -1517,11 +1519,15 @@ dependencies = [
  "httpdate",
  "percent-encoding",
  "rand 0.9.5",
+ "regex",
  "reqwest",
+ "sea-orm",
  "serde",
  "serde_json",
  "thiserror",
  "tokio",
+ "tokio-util",
+ "tracing",
  "url",
  "uuid",
 ]
@@ -1631,6 +1637,7 @@ dependencies = [
  "astrum-format-vagrant",
  "astrum-format-yum",
  "astrum-logging",
+ "astrum-replication",
  "astrum-repo",
  "astrum-security",
  "astrum-tasks",

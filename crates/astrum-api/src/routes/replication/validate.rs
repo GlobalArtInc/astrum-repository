@@ -1,14 +1,12 @@
 use std::net::IpAddr;
 
 use astrum_security::ssrf::cleartext_permitted;
-use regex::{Regex, RegexBuilder};
+use regex::Regex;
 use url::{Host, Url};
 
 pub const MAX_NAME: usize = 100;
 pub const MAX_URL: usize = 2048;
 pub const MAX_TOKEN: usize = 1024;
-pub const MAX_FILTER_BYTES: usize = 10 * 1024;
-pub const FILTER_SIZE_LIMIT: usize = 1 << 20;
 pub const MAX_REMOTE_REPOSITORY: usize = astrum_repo::routing::MAX_NAME;
 
 pub fn name(value: Option<&str>) -> Result<String, String> {
@@ -118,26 +116,8 @@ pub fn remote_repository(value: Option<&str>) -> Result<String, String> {
     Ok(value.to_owned())
 }
 
-fn build(pattern: &str) -> Result<Regex, String> {
-    RegexBuilder::new(pattern)
-        .size_limit(FILTER_SIZE_LIMIT)
-        .build()
-        .map_err(|error| match error {
-            regex::Error::Syntax(text) => format!(
-                "is not a valid regular expression: {}",
-                text.lines().last().unwrap_or("syntax error").trim()
-            ),
-            regex::Error::CompiledTooBig(_) => "is too complex".to_owned(),
-            _ => "is not a valid regular expression".to_owned(),
-        })
-}
-
 pub fn filter(pattern: &str) -> Result<Regex, String> {
-    if pattern.len() > MAX_FILTER_BYTES {
-        return Err(format!("must be at most {MAX_FILTER_BYTES} bytes"));
-    }
-    build(pattern)?;
-    build(&format!(r"\A(?:{pattern})\z"))
+    astrum_replication::filter::compile(pattern)
 }
 
 #[cfg(test)]
@@ -191,7 +171,7 @@ mod tests {
                 .unwrap_err()
                 .contains("too complex")
         );
-        assert!(filter(&"a".repeat(MAX_FILTER_BYTES + 1)).is_err());
+        assert!(filter(&"a".repeat(astrum_replication::filter::MAX_FILTER_BYTES + 1)).is_err());
     }
 
     #[test]
