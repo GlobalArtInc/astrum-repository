@@ -216,6 +216,29 @@ async fn without_a_verdict_allow_serves_and_block_refuses_queues_the_tag_and_an_
 }
 
 #[tokio::test]
+async fn refused_pulls_do_not_reset_the_schedule_of_a_scan_that_is_already_queued() {
+    let registry = Registry::new().await;
+    registry.image(Some("1.0"), b"layer").await;
+    unscanned_block(&registry).await;
+    registry.execute("DELETE FROM scan_queue").await;
+    let schedule = "SELECT component_id::text AS component, reason, attempts::text AS attempts, \
+                    queued_at::text AS queued, next_attempt_at::text AS due FROM scan_queue";
+
+    denied(&pull(&registry, "1.0").await, "being scanned");
+    assert_eq!(registry.rows(schedule).await.len(), 1);
+    registry
+        .execute("UPDATE scan_queue SET attempts = 2, next_attempt_at = now() + interval '1 hour'")
+        .await;
+    let before = registry.rows(schedule).await;
+
+    for _ in 0..4 {
+        denied(&pull(&registry, "1.0").await, "being scanned");
+    }
+    assert_eq!(registry.rows(schedule).await, before);
+    assert_eq!(before.len(), 1);
+}
+
+#[tokio::test]
 async fn an_error_reading_the_verdict_answers_503_and_is_not_a_pass() {
     let registry = Registry::new().await;
     let digest = registry.image(Some("1.0"), b"layer").await;

@@ -267,6 +267,31 @@ pub async fn enqueue_components(
     Ok(added.rows_affected())
 }
 
+pub async fn enqueue_missing_components(
+    db: &impl ConnectionTrait,
+    repository: &str,
+    component_ids: &[i64],
+    reason: &str,
+) -> Result<u64, DbErr> {
+    if component_ids.is_empty() {
+        return Ok(0);
+    }
+    let added = db
+        .execute(Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            "INSERT INTO scan_queue (component_id, reason) \
+             SELECT id, $3 FROM component WHERE id = ANY($1) AND repository = $2 \
+             ORDER BY id ON CONFLICT (component_id) DO NOTHING",
+            [
+                component_ids.to_vec().into(),
+                repository.into(),
+                reason.into(),
+            ],
+        ))
+        .await?;
+    Ok(added.rows_affected())
+}
+
 pub async fn depth(db: &impl ConnectionTrait) -> Result<Depth, DbErr> {
     let row = db
         .query_one(Statement::from_string(

@@ -157,3 +157,52 @@ async fn a_plain_scheduled_run_leaves_rows_in_backoff_and_in_lease_alone() {
         2
     );
 }
+
+#[tokio::test]
+async fn components_are_queued_without_touching_a_row_that_exists() {
+    let (_test, db) = setup(3).await;
+    super::enqueue_components(&db, "releases", &[1], "first")
+        .await
+        .unwrap();
+    db.execute_unprepared(
+        "UPDATE scan_queue SET attempts = 2, next_attempt_at = now() + interval '1 hour'",
+    )
+    .await
+    .unwrap();
+    let before = scalar(
+        &db,
+        "SELECT extract(epoch FROM next_attempt_at)::bigint AS n FROM scan_queue WHERE component_id = 1",
+    )
+    .await;
+
+    let added = super::enqueue_missing_components(&db, "releases", &[1, 2, 99], "again")
+        .await
+        .unwrap();
+
+    assert_eq!(added, 1);
+    assert_eq!(scalar(&db, "SELECT count(*) AS n FROM scan_queue").await, 2);
+    assert_eq!(
+        scalar(
+            &db,
+            "SELECT extract(epoch FROM next_attempt_at)::bigint AS n FROM scan_queue WHERE component_id = 1"
+        )
+        .await,
+        before
+    );
+    assert_eq!(
+        scalar(
+            &db,
+            "SELECT attempts::bigint AS n FROM scan_queue WHERE component_id = 1"
+        )
+        .await,
+        2
+    );
+    assert_eq!(
+        scalar(
+            &db,
+            "SELECT count(*) AS n FROM scan_queue WHERE component_id = 1 AND reason = 'first'"
+        )
+        .await,
+        1
+    );
+}

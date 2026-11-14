@@ -26,6 +26,18 @@ pub async fn set_policy(registry: &Registry, rule: Value) {
     assert_eq!(reply.status, StatusCode::OK, "{}", reply.text());
 }
 
+pub async fn seed_blocked(registry: &Registry, repository: &str, digest: &str) {
+    registry
+        .execute(&format!(
+            "INSERT INTO policy_verdict (repository, subject, policy, component_id, blocked, state, \
+               reasons, policy_revision, max_severity, high) \
+             SELECT '{repository}', 'oci:{digest}', 'strict', NULL, true, 'block', \
+               '[{{\"kind\":\"vulnerability\",\"advisory\":\"GHSA-A\",\"blocking\":true}}]'::jsonb, \
+               revision, 'high', 1 FROM content_policy WHERE name = 'strict'"
+        ))
+        .await;
+}
+
 pub async fn unscanned_block(registry: &Registry) {
     set_policy(
         registry,

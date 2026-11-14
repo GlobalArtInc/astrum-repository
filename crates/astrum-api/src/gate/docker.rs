@@ -190,17 +190,31 @@ fn decided(policy: &Policy, verdict: &Held) -> Judgement {
     }
 }
 
-fn inherited(policy: &Policy, parents: &[Held]) -> Option<Judgement> {
-    parents
-        .iter()
-        .find(|parent| refusal::blocks(&parent.state, parent.blocked))
-        .map(|parent| {
-            refuse(
-                &policy.name,
-                &parent.state,
-                &format!("{IN_BLOCKED_INDEX}{}", details(&parent.reasons)),
-            )
+fn complete_pass(verdict: &Held) -> bool {
+    verdict.state == State::Pass.as_str()
+        && !verdict.blocked
+        && !verdict.reasons.as_array().is_some_and(|items| {
+            items
+                .iter()
+                .any(|item| text(item, "kind") == Some("unscanned"))
         })
+}
+
+fn inherited(policy: &Policy, parents: &[Held]) -> Option<Judgement> {
+    let blocking = parents
+        .iter()
+        .find(|parent| refusal::blocks(&parent.state, parent.blocked));
+    match blocking {
+        Some(parent) => Some(refuse(
+            &policy.name,
+            &parent.state,
+            &format!("{IN_BLOCKED_INDEX}{}", details(&parent.reasons)),
+        )),
+        None => parents
+            .iter()
+            .any(complete_pass)
+            .then_some(Judgement::Allowed(Outcome::Pass)),
+    }
 }
 
 impl PolicyGate {
@@ -277,7 +291,7 @@ impl PolicyGate {
             let ids = tagged(db, repository, digest).await?;
             match ids.is_empty() {
                 true => Ok(false),
-                false => queue::enqueue_components(db, repository, &ids, SCAN_REASON)
+                false => queue::enqueue_missing_components(db, repository, &ids, SCAN_REASON)
                     .await
                     .map(|_| true),
             }

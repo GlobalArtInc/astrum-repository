@@ -51,13 +51,24 @@ async fn an_index_with_a_blocked_union_refuses_itself_and_its_children_and_a_cle
         );
     }
 
+    let stray = registry.image(None, b"stray").await;
     unscanned_block(&registry).await;
     rejudge(&registry).await;
-    assert_eq!(pull(&registry, "tidy").await.status, StatusCode::OK);
+    for reference in ["tidy", clean.as_str(), third.as_str()] {
+        let served = pull(&registry, reference).await;
+        assert_eq!(
+            served.status,
+            StatusCode::OK,
+            "{reference}: {}",
+            served.text()
+        );
+    }
     denied(
-        &pull(&registry, &third).await,
+        &pull(&registry, &stray).await,
         "no scan data for this image digest",
     );
+    denied(&pull(&registry, "multi").await, "GHSA-A");
+    denied(&pull(&registry, &first).await, "part of a blocked index");
 }
 
 #[tokio::test]
@@ -78,6 +89,7 @@ async fn an_incomplete_inventory_counts_as_unscanned() {
     unscanned_block(&registry).await;
     rejudge(&registry).await;
     denied(&pull(&registry, "partial").await, "scan: incomplete");
+    denied(&pull(&registry, &present).await, "part of a blocked index");
 }
 
 #[tokio::test]
@@ -97,7 +109,7 @@ async fn signatures_attestations_sboms_and_the_legacy_signature_tag_of_a_blocked
         .await;
     let notation = manifest(
         &config,
-        (&statement, LAYER),
+        (&statement, "application/jose+json"),
         Some("application/vnd.cncf.notary.signature"),
         None,
     );
@@ -126,6 +138,37 @@ async fn signatures_attestations_sboms_and_the_legacy_signature_tag_of_a_blocked
         );
     }
     denied(&pull(&registry, "1.0").await, "GHSA-A");
+}
+
+#[tokio::test]
+async fn a_runnable_image_is_judged_whatever_marks_it_carries() {
+    let registry = Registry::new().await;
+    let target = blocked_image(&registry).await;
+    let config = registry.push_blob(b"{\"os\":\"linux\"}").await;
+    let layer = registry.push_blob(&marker_layer(b"crafted")).await;
+    let with_subject = manifest(&config, (&layer, LAYER), None, Some(&target));
+    let claims_signature = manifest(
+        &config,
+        (&layer, LAYER),
+        Some("application/vnd.cncf.notary.signature"),
+        None,
+    );
+    let plain = manifest(&config, (&layer, LAYER), None, None);
+    let mut crafted = Vec::new();
+    for body in [&with_subject, &claims_signature] {
+        let digest = sha256(&serde_json::to_vec(body).unwrap());
+        crafted.push(registry.push_manifest(&digest, body).await);
+    }
+    let legacy = format!("sha256-{}.sig", "ab".repeat(32));
+    crafted.push(registry.push_manifest(&legacy, &plain).await);
+    for digest in &crafted {
+        seed_blocked(&registry, "hosted", digest).await;
+    }
+
+    for digest in &crafted {
+        denied(&pull(&registry, digest).await, "GHSA-A");
+    }
+    denied(&pull(&registry, &legacy).await, "GHSA-A");
 }
 
 #[tokio::test]
@@ -269,15 +312,7 @@ async fn a_proxy_refuses_a_cached_blocked_manifest_and_its_first_pull_follows_th
     assert_eq!(first.status, StatusCode::OK, "{}", first.text());
     assert_eq!(registry.rows(queued).await, vec![strings(&["1.0"])]);
 
-    registry
-        .execute(&format!(
-            "INSERT INTO policy_verdict (repository, subject, policy, component_id, blocked, state, \
-               reasons, policy_revision, max_severity, high) \
-             SELECT 'mirror', 'oci:{digest}', 'strict', NULL, true, 'block', \
-               '[{{\"kind\":\"vulnerability\",\"advisory\":\"GHSA-A\",\"blocking\":true}}]'::jsonb, \
-               revision, 'high', 1 FROM content_policy WHERE name = 'strict'"
-        ))
-        .await;
+    seed_blocked(&registry, "mirror", &digest).await;
     denied(
         &pull_from(&registry, "mirror", Method::GET, "1.0").await,
         "GHSA-A",
