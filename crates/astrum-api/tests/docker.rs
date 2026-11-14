@@ -1437,15 +1437,29 @@ async fn a_directory_account_gets_no_docker_token() {
             b"grant_type=password&username=alice&password=alice-secret".to_vec(),
         )
         .await;
-    for reply in [by_basic, by_grant] {
-        assert_eq!(reply.status, StatusCode::FORBIDDEN, "{}", reply.text());
-        let error = &reply.json()["errors"][0];
-        assert_eq!(error["code"], "DENIED");
-        assert_eq!(
-            error["message"],
-            "this account signs in through a directory; use an access token instead"
-        );
-    }
+    assert_eq!(
+        by_basic.status,
+        StatusCode::UNAUTHORIZED,
+        "{}",
+        by_basic.text()
+    );
+    assert!(
+        !by_basic.text().contains("directory"),
+        "{}",
+        by_basic.text()
+    );
+    assert_eq!(
+        by_grant.status,
+        StatusCode::FORBIDDEN,
+        "{}",
+        by_grant.text()
+    );
+    let error = &by_grant.json()["errors"][0];
+    assert_eq!(error["code"], "DENIED");
+    assert_eq!(
+        error["message"],
+        "this account signs in through a directory; use an access token instead"
+    );
     assert_eq!(
         number(&registry.fixture, "SELECT count(*) FROM format_token").await,
         0

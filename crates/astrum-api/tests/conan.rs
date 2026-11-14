@@ -572,22 +572,40 @@ async fn a_directory_account_gets_no_conan_token() {
     assert_eq!(realms.status, StatusCode::NO_CONTENT);
     let _directory = fixture.directory().await;
     fixture.add_user("bob", "bob-local-password-1", &[]).await;
-    for (user, password) in [("bob", "bob-secret"), ("alice", "alice-secret")] {
-        let reply = call(
-            &fixture,
-            Method::GET,
-            "/repository/conan/v2/users/authenticate",
-            Auth::Basic(user, password),
-            Vec::new(),
-            &[],
-        )
-        .await;
-        assert_eq!(reply.status, StatusCode::FORBIDDEN, "{}", reply.text());
-        assert_eq!(
-            reply.text(),
-            "this account signs in through a directory; use an access token instead"
-        );
-    }
+    let shadowed = call(
+        &fixture,
+        Method::GET,
+        "/repository/conan/v2/users/authenticate",
+        Auth::Basic("bob", "bob-secret"),
+        Vec::new(),
+        &[],
+    )
+    .await;
+    assert_eq!(
+        shadowed.status,
+        StatusCode::UNAUTHORIZED,
+        "{}",
+        shadowed.text()
+    );
+    assert!(
+        !shadowed.text().contains("directory"),
+        "{}",
+        shadowed.text()
+    );
+    let reply = call(
+        &fixture,
+        Method::GET,
+        "/repository/conan/v2/users/authenticate",
+        Auth::Basic("alice", "alice-secret"),
+        Vec::new(),
+        &[],
+    )
+    .await;
+    assert_eq!(reply.status, StatusCode::FORBIDDEN, "{}", reply.text());
+    assert_eq!(
+        reply.text(),
+        "this account signs in through a directory; use an access token instead"
+    );
     assert_eq!(
         number(&fixture, "SELECT count(*) FROM format_token").await,
         0

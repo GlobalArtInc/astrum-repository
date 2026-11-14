@@ -806,19 +806,34 @@ async fn a_directory_account_gets_no_terraform_token() {
     assert_eq!(realms.status, StatusCode::NO_CONTENT);
     let _directory = fixture.directory().await;
     fixture.add_user("bob", "bob-local-password-1", &[]).await;
-    for (user, password) in [("bob", "bob-secret"), ("alice", "alice-secret")] {
-        let reply = get(
-            &fixture,
-            "/repository/tf-hosted/token",
-            Auth::Basic(user, password),
-        )
-        .await;
-        assert_eq!(reply.status, StatusCode::FORBIDDEN, "{}", reply.text());
-        assert_eq!(
-            reply.json(),
-            json!({"errors": ["this account signs in through a directory; use an access token instead"]})
-        );
-    }
+    let shadowed = get(
+        &fixture,
+        "/repository/tf-hosted/token",
+        Auth::Basic("bob", "bob-secret"),
+    )
+    .await;
+    assert_eq!(
+        shadowed.status,
+        StatusCode::UNAUTHORIZED,
+        "{}",
+        shadowed.text()
+    );
+    assert!(
+        !shadowed.text().contains("directory"),
+        "{}",
+        shadowed.text()
+    );
+    let reply = get(
+        &fixture,
+        "/repository/tf-hosted/token",
+        Auth::Basic("alice", "alice-secret"),
+    )
+    .await;
+    assert_eq!(reply.status, StatusCode::FORBIDDEN, "{}", reply.text());
+    assert_eq!(
+        reply.json(),
+        json!({"errors": ["this account signs in through a directory; use an access token instead"]})
+    );
     assert_eq!(
         number(&fixture, "SELECT count(*) FROM format_token").await,
         0
@@ -853,7 +868,23 @@ async fn a_directory_account_cannot_revoke_the_token_of_a_local_user_of_its_id()
             &[],
         )
     };
-    let refused = revoke(Auth::Basic("bob", "bob-secret")).await;
+    let shadowed = revoke(Auth::Basic("bob", "bob-secret")).await;
+    assert_eq!(
+        shadowed.status,
+        StatusCode::UNAUTHORIZED,
+        "{}",
+        shadowed.text()
+    );
+    assert!(
+        !shadowed.text().contains("directory"),
+        "{}",
+        shadowed.text()
+    );
+    assert_eq!(
+        number(&fixture, "SELECT count(*) FROM format_token").await,
+        1
+    );
+    let refused = revoke(Auth::Basic("alice", "alice-secret")).await;
     assert_eq!(refused.status, StatusCode::FORBIDDEN, "{}", refused.text());
     assert_eq!(
         refused.json(),

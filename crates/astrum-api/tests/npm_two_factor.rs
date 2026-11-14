@@ -332,13 +332,20 @@ async fn a_directory_account_gets_no_token_even_with_the_right_directory_passwor
     let _directory = fixture.directory().await;
     fixture.add_user("bob", BOB, &[]).await;
     enroll(&fixture, "bob").await;
-    for user in ["bob", "alice"] {
-        for _ in 0..12 {
-            let reply = login(&fixture, user, &format!("{user}-secret"), None).await;
-            assert_eq!(reply.status, StatusCode::UNAUTHORIZED, "{}", reply.text());
-            assert!(!challenged(&reply));
-            assert_eq!(error_of(&reply), DIRECTORY_ACCOUNT);
-        }
+    let shadowed = login(&fixture, "bob", "bob-secret", None).await;
+    assert_eq!(
+        shadowed.status,
+        StatusCode::UNAUTHORIZED,
+        "{}",
+        shadowed.text()
+    );
+    assert!(!challenged(&shadowed));
+    assert_eq!(error_of(&shadowed), WRONG_PASSWORD);
+    for _ in 0..12 {
+        let reply = login(&fixture, "alice", "alice-secret", None).await;
+        assert_eq!(reply.status, StatusCode::UNAUTHORIZED, "{}", reply.text());
+        assert!(!challenged(&reply));
+        assert_eq!(error_of(&reply), DIRECTORY_ACCOUNT);
     }
     assert_eq!(
         number(&fixture, "SELECT count(*) FROM format_token").await,
