@@ -251,7 +251,8 @@ struct Layered {
 async fn from_layers(
     upstreams: &Upstreams,
     ctx: &Ctx,
-    component: &Component,
+    image: &str,
+    kind: &str,
     asset: &Asset,
     collector: &mut Collector,
 ) -> Result<Layered, ContentError> {
@@ -259,17 +260,17 @@ async fn from_layers(
         contributed: false,
         complete: true,
     };
-    if component.kind != manifest::Kind::Image.as_str() {
+    if kind != manifest::Kind::Image.as_str() {
         return Ok(layered);
     }
     let bytes = storage::read_all(ctx, asset, MANIFEST_LIMIT).await?;
     let layers = manifest::layers(&bytes);
-    let read = layers::read(ctx, upstreams, &component.name, &layers, collector.deadline).await?;
+    let read = layers::read(ctx, upstreams, image, &layers, collector.deadline).await?;
     if !read.complete {
         layered.complete = false;
         collector.complete = false;
         tracing::warn!(
-            image = %component.name,
+            image = %image,
             reasons = ?read.reasons,
             "the layers of an image were not read in full"
         );
@@ -290,7 +291,15 @@ async fn single(
 ) -> Result<Option<Inventory>, ContentError> {
     let mut collector = Collector::new();
     let known = gather(ctx, &component.name, digest, &mut collector).await?;
-    let layered = from_layers(upstreams, ctx, component, asset, &mut collector).await?;
+    let layered = from_layers(
+        upstreams,
+        ctx,
+        &component.name,
+        &component.kind,
+        asset,
+        &mut collector,
+    )
+    .await?;
     let source = match (known, layered.contributed) {
         (true, true) => Source::SbomAndLayers,
         (false, true) => Source::Layers,
@@ -308,7 +317,12 @@ async fn single(
     }))
 }
 
-async fn index(ctx: &Ctx, image: &str, digest: &Digest) -> Result<Option<Inventory>, ContentError> {
+async fn index(
+    upstreams: &Upstreams,
+    ctx: &Ctx,
+    image: &str,
+    digest: &Digest,
+) -> Result<Option<Inventory>, ContentError> {
     let children = children::of(ctx.db(), ctx.name(), digest, MAX_CHILDREN as u64 + 1).await?;
     let mut collector = Collector::new();
     if children.len() > MAX_CHILDREN {
@@ -332,7 +346,17 @@ async fn index(ctx: &Ctx, image: &str, digest: &Digest) -> Result<Option<Invento
             collector.complete = false;
             continue;
         }
-        match gather(ctx, image, child, &mut collector).await? {
+        let known = gather(ctx, image, child, &mut collector).await?;
+        let layered = from_layers(
+            upstreams,
+            ctx,
+            image,
+            kind_of(&asset),
+            &asset,
+            &mut collector,
+        )
+        .await?;
+        match known || layered.contributed {
             true => contributed += 1,
             false => collector.complete = false,
         }
@@ -366,7 +390,7 @@ pub(crate) async fn of(
         return Ok(None);
     };
     match manifest::is_index(&storage::media_type_of(&asset)) {
-        true => index(ctx, &component.name, &digest).await,
+        true => index(upstreams, ctx, &component.name, &digest).await,
         false => single(upstreams, ctx, component, &asset, &digest).await,
     }
 }

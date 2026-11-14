@@ -21,6 +21,7 @@ const MAX_PARENTS: i64 = 64;
 const MAX_TAGGED: i64 = 16;
 const SCAN_REASON: &str = "image pull";
 const BEING_SCANNED: &str = "the image is being scanned, retry";
+const NOT_QUEUED: &str = "the scan of the image could not be queued, retry";
 const NO_SCAN_DATA: &str = "no scan data for this image digest";
 const IN_BLOCKED_INDEX: &str = "the image is part of a blocked index: ";
 const BLOCKED: &str = "the image is blocked";
@@ -118,7 +119,6 @@ async fn parents(
     repository: &str,
     digest: &str,
     policy: &str,
-    revision: i64,
 ) -> Result<Vec<Held>, DbErr> {
     let rows = db
         .query_all(Statement::from_sql_and_values(
@@ -126,15 +126,14 @@ async fn parents(
             "SELECT v.policy, v.policy_revision, v.state, v.blocked, v.reasons \
              FROM docker_manifest_child c \
              JOIN policy_verdict v ON v.repository = c.repository AND v.subject = 'oci:' || c.parent \
-             WHERE c.repository = $1 AND c.child = $2 AND v.policy = $3 AND v.policy_revision = $4 \
+             WHERE c.repository = $1 AND c.child = $2 AND v.policy = $3 \
              ORDER BY CASE WHEN v.blocked OR v.state NOT IN ('pass', 'report', 'unscanned') THEN 0 \
                            WHEN v.state = 'report' THEN 1 ELSE 2 END, c.parent \
-             LIMIT $5",
+             LIMIT $4",
             [
                 repository.into(),
                 digest.into(),
                 policy.into(),
-                revision.into(),
                 MAX_PARENTS.into(),
             ],
         ))
@@ -174,6 +173,26 @@ async fn tagged(
     Ok(ids)
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Queued {
+    Yes,
+    NoComponent,
+    Failed,
+}
+
+fn scan_state(reasons: &Value) -> Option<&str> {
+    reasons
+        .as_array()?
+        .iter()
+        .find(|item| text(item, "kind") == Some("unscanned"))
+        .and_then(|item| text(item, "scan"))
+}
+
+fn rescannable(verdict: &Held) -> bool {
+    verdict.state == State::Unscanned.as_str()
+        && matches!(scan_state(&verdict.reasons), Some("failed" | "no-data"))
+}
+
 fn reported(verdict: &Held) -> Judgement {
     match verdict.state == State::Report.as_str() {
         true => Judgement::Allowed(Outcome::WouldBlock),
@@ -200,7 +219,7 @@ fn complete_pass(verdict: &Held) -> bool {
         })
 }
 
-fn inherited(policy: &Policy, parents: &[Held]) -> Option<Judgement> {
+fn inherited(policy: &Policy, revision: i64, parents: &[Held]) -> Option<Judgement> {
     let blocking = parents
         .iter()
         .find(|parent| refusal::blocks(&parent.state, parent.blocked));
@@ -212,7 +231,7 @@ fn inherited(policy: &Policy, parents: &[Held]) -> Option<Judgement> {
         )),
         None => parents
             .iter()
-            .any(complete_pass)
+            .any(|parent| parent.revision == revision && complete_pass(parent))
             .then_some(Judgement::Allowed(Outcome::Pass)),
     }
 }
@@ -242,26 +261,45 @@ impl PolicyGate {
         if mode == Mode::Off {
             return Ok(Judgement::Allowed(Outcome::Pass));
         }
-        let own = held
-            .verdict
-            .filter(|verdict| verdict.policy == name && verdict.revision == stored.revision);
+        let (own, stale) = match held.verdict {
+            Some(verdict) if verdict.policy == name && verdict.revision == stored.revision => {
+                (Some(verdict), None)
+            }
+            Some(verdict) if verdict.policy == name => (None, Some(verdict)),
+            _ => (None, None),
+        };
         if let Some(verdict) = &own {
-            return Ok(match mode {
+            let judged = match mode {
                 Mode::Report => reported(verdict),
                 _ => decided(policy, verdict),
-            });
+            };
+            let refused = matches!(judged, Judgement::Refused(..));
+            if refused && rescannable(verdict) {
+                self.queue_image(db, repository, digest).await;
+            }
+            return Ok(judged);
         }
-        let above = parents(db, repository, digest, &name, stored.revision).await?;
+        if mode == Mode::Block
+            && let Some(verdict) = &stale
+            && refusal::blocks(&verdict.state, verdict.blocked)
+        {
+            return Ok(refuse(
+                &policy.name,
+                &verdict.state,
+                &details(&verdict.reasons),
+            ));
+        }
+        let above = parents(db, repository, digest, &name).await?;
         if mode == Mode::Report {
-            let would = above
-                .iter()
-                .any(|parent| parent.state == State::Report.as_str());
+            let would = above.iter().any(|parent| {
+                parent.revision == stored.revision && parent.state == State::Report.as_str()
+            });
             return Ok(Judgement::Allowed(match would {
                 true => Outcome::WouldBlock,
                 false => Outcome::Pass,
             }));
         }
-        if let Some(refused) = inherited(policy, &above) {
+        if let Some(refused) = inherited(policy, stored.revision, &above) {
             return Ok(refused);
         }
         Ok(self.without_verdict(db, repository, digest, policy).await)
@@ -278,22 +316,23 @@ impl PolicyGate {
             Unscanned::Allow => Judgement::Allowed(Outcome::InlineUnscanned),
             Unscanned::Block => {
                 let details = match self.queue_image(db, repository, digest).await {
-                    true => BEING_SCANNED,
-                    false => NO_SCAN_DATA,
+                    Queued::Yes => BEING_SCANNED,
+                    Queued::NoComponent => NO_SCAN_DATA,
+                    Queued::Failed => NOT_QUEUED,
                 };
                 refuse(&policy.name, State::Unscanned.as_str(), details)
             }
         }
     }
 
-    async fn queue_image(&self, db: &DatabaseConnection, repository: &str, digest: &str) -> bool {
+    async fn queue_image(&self, db: &DatabaseConnection, repository: &str, digest: &str) -> Queued {
         let queued = async {
             let ids = tagged(db, repository, digest).await?;
             match ids.is_empty() {
-                true => Ok(false),
+                true => Ok(Queued::NoComponent),
                 false => queue::enqueue_missing_components(db, repository, &ids, SCAN_REASON)
                     .await
-                    .map(|_| true),
+                    .map(|_| Queued::Yes),
             }
         };
         let failure = match tokio::time::timeout(MARK_BUDGET, queued).await {
@@ -303,20 +342,30 @@ impl PolicyGate {
         };
         self.metrics.count(Outcome::MarkFailed);
         tracing::error!(%repository, %digest, error = %failure, "an image without a verdict was not queued for the workers");
-        true
+        Queued::Failed
     }
 
-    async fn audit_image(&self, ctx: &Ctx, repository: &str, digest: &str, refusal: &Refusal) {
+    async fn audit_image(
+        &self,
+        ctx: &Ctx,
+        repository: &str,
+        digest: &str,
+        reference: Option<&str>,
+        refusal: &Refusal,
+    ) {
         let subject = subject::image(digest);
         if !self.audited.first(repository, &subject, Instant::now()) {
             return;
         }
-        let attributes = json!({
+        let mut attributes = json!({
             "repository": repository,
-            "subject": subject,
+            "digest": digest,
             "policy": refusal.policy,
             "state": refusal.state,
         });
+        if let Some(reference) = reference {
+            attributes["reference"] = json!(reference);
+        }
         self.record(ctx, repository, &subject, &subject, attributes)
             .await;
     }
@@ -326,6 +375,7 @@ impl PolicyGate {
         ctx: &Ctx,
         repository: &str,
         digest: &str,
+        reference: Option<&str>,
     ) -> Result<(), ContentError> {
         if repository == ctx.name() && ctx.repository.policy_name().is_none() {
             return Ok(());
@@ -347,7 +397,8 @@ impl PolicyGate {
             }
             Ok(Judgement::Refused(outcome, refusal)) => {
                 self.metrics.count(outcome);
-                self.audit_image(ctx, repository, digest, &refusal).await;
+                self.audit_image(ctx, repository, digest, reference, &refusal)
+                    .await;
                 Err(refusal.error)
             }
             Err(error) => {

@@ -53,6 +53,11 @@ async fn an_index_with_a_blocked_union_refuses_itself_and_its_children_and_a_cle
 
     let stray = registry.image(None, b"stray").await;
     unscanned_block(&registry).await;
+    denied(&pull(&registry, &first).await, "part of a blocked index");
+    denied(
+        &pull(&registry, &third).await,
+        "no scan data for this image digest",
+    );
     rejudge(&registry).await;
     for reference in ["tidy", clean.as_str(), third.as_str()] {
         let served = pull(&registry, reference).await;
@@ -107,6 +112,15 @@ async fn signatures_attestations_sboms_and_the_legacy_signature_tag_of_a_blocked
     let attestation = registry
         .push_manifest(&sha256(&serde_json::to_vec(&attested).unwrap()), &attested)
         .await;
+    let dsse = manifest(
+        &config,
+        (&statement, "application/vnd.dsse.envelope.v1+json"),
+        Some("application/vnd.dsse.envelope.v1+json"),
+        Some(&digest),
+    );
+    let envelope = registry
+        .push_manifest(&sha256(&serde_json::to_vec(&dsse).unwrap()), &dsse)
+        .await;
     let notation = manifest(
         &config,
         (&statement, "application/jose+json"),
@@ -128,7 +142,7 @@ async fn signatures_attestations_sboms_and_the_legacy_signature_tag_of_a_blocked
     );
     registry.push_manifest(&legacy, &cosign).await;
 
-    for reference in [&bom, &attestation, &signature, &legacy] {
+    for reference in [&bom, &attestation, &envelope, &signature, &legacy] {
         let served = pull(&registry, reference).await;
         assert_eq!(
             served.status,
@@ -154,8 +168,19 @@ async fn a_runnable_image_is_judged_whatever_marks_it_carries() {
         None,
     );
     let plain = manifest(&config, (&layer, LAYER), None, None);
+    let mut hidden = manifest(&config, (&layer, LAYER), None, Some(&target));
+    hidden.as_object_mut().unwrap().remove("layers");
+    hidden["Layers"] = json!([{"MediaType": LAYER, "Digest": layer, "Size": 1}]);
+    let mut bodies = vec![with_subject, claims_signature, hidden];
+    for media_type in [
+        "application/vnd.docker.image.rootfs.diff.tar",
+        "application/vnd.docker.image.rootfs.foreign.diff.tar.gzip",
+        "application/vnd.oci.image.layer.v1.tar+zstd",
+    ] {
+        bodies.push(manifest(&config, (&layer, media_type), None, Some(&target)));
+    }
     let mut crafted = Vec::new();
-    for body in [&with_subject, &claims_signature] {
+    for body in &bodies {
         let digest = sha256(&serde_json::to_vec(body).unwrap());
         crafted.push(registry.push_manifest(&digest, body).await);
     }
@@ -169,6 +194,78 @@ async fn a_runnable_image_is_judged_whatever_marks_it_carries() {
         denied(&pull(&registry, digest).await, "GHSA-A");
     }
     denied(&pull(&registry, &legacy).await, "GHSA-A");
+}
+
+#[tokio::test]
+async fn a_blocked_image_pulled_through_its_sha512_alias_is_refused() {
+    use sha2::{Digest as _, Sha512};
+    let registry = Registry::new().await;
+    let digest = blocked_image(&registry).await;
+    let config = registry.push_blob(b"{\"os\":\"linux\"}").await;
+    let layer = registry.push_blob(&marker_layer(b"layer")).await;
+    let body = manifest(&config, (&layer, LAYER), None, None);
+    assert_eq!(sha256(&serde_json::to_vec(&body).unwrap()), digest);
+    let alias = format!(
+        "sha512:{}",
+        hex::encode(Sha512::digest(serde_json::to_vec(&body).unwrap()))
+    );
+    registry.push_manifest(&alias, &body).await;
+
+    denied(&pull(&registry, &alias).await, "GHSA-A");
+    denied(&pull(&registry, &digest).await, "GHSA-A");
+}
+
+#[tokio::test]
+async fn the_preview_of_a_blocked_images_manifest_is_refused_and_a_clean_one_is_shown() {
+    let registry = Registry::new().await;
+    let blocked = blocked_image(&registry).await;
+    let clean = registry.image(Some("clean"), b"other").await;
+    let bom = registry
+        .document(&clean, None, SPDX, &spdx(&["pkg:npm/fine@1.0.0"]))
+        .await;
+    registry.settle().await;
+    let preview = |path: String| {
+        let registry = &registry;
+        async move {
+            let uri = format!("/service/rest/internal/ui/browse/hosted/content?path={path}");
+            registry
+                .fixture
+                .call(Method::GET, &uri, Auth::Admin, None)
+                .await
+        }
+    };
+
+    for path in [
+        "/v2/app/manifests/1.0".to_owned(),
+        format!("/v2/app/manifests/{blocked}"),
+    ] {
+        let reply = preview(path.clone()).await;
+        assert_eq!(
+            reply.status,
+            StatusCode::FORBIDDEN,
+            "{path}: {}",
+            reply.text()
+        );
+        assert!(
+            reply
+                .text()
+                .contains("blocked by policy strict: 1 blocking advisory: GHSA-A"),
+            "{path}: {}",
+            reply.text()
+        );
+    }
+    for path in [
+        "/v2/app/manifests/clean".to_owned(),
+        format!("/v2/app/manifests/{clean}"),
+        format!("/v2/app/manifests/{bom}"),
+    ] {
+        let reply = preview(path.clone()).await;
+        assert_eq!(reply.status, StatusCode::OK, "{path}: {}", reply.text());
+        assert!(!reply.body.is_empty());
+    }
+    let config = sha256(b"{\"os\":\"linux\"}");
+    let blob = preview(format!("/v2/-/blobs/{config}")).await;
+    assert_eq!(blob.status, StatusCode::OK, "{}", blob.text());
 }
 
 #[tokio::test]

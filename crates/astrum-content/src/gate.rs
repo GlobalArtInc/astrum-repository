@@ -12,6 +12,7 @@ pub trait Gate: Send + Sync + 'static {
         ctx: &Ctx,
         repository: &str,
         digest: &str,
+        reference: Option<&str>,
     ) -> Result<(), ContentError>;
 }
 
@@ -29,6 +30,7 @@ impl Gate for Open {
         _ctx: &Ctx,
         _repository: &str,
         _digest: &str,
+        _reference: Option<&str>,
     ) -> Result<(), ContentError> {
         Ok(())
     }

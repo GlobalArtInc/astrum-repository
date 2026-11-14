@@ -126,6 +126,59 @@ async fn a_debian_image_gets_its_packages_from_dpkg_under_the_source_package() {
     );
 }
 
+async fn child(registry: &Registry, layers: &[Vec<u8>]) -> String {
+    let config = registry.push_blob(b"{\"os\":\"linux\"}").await;
+    let mut digests = Vec::new();
+    for bytes in layers {
+        digests.push(registry.push_blob(bytes).await);
+    }
+    let body = layered(&config, &digests);
+    let reference = sha256(&serde_json::to_vec(&body).unwrap());
+    registry.push_manifest(&reference, &body).await
+}
+
+#[tokio::test]
+async fn a_multi_arch_image_without_sboms_is_judged_on_the_layers_of_its_children() {
+    let registry = Registry::new().await;
+    let alpine = child(&registry, &[alpine_base()]).await;
+    let debian = child(&registry, &[debian_base()]).await;
+    let top = registry
+        .push_manifest("multi", &index(&[(&alpine, None), (&debian, None)]))
+        .await;
+    registry.settle().await;
+
+    let scan = registry.scan_of("multi").await;
+    assert_eq!(
+        (
+            scan[0].as_str(),
+            scan[1].as_str(),
+            scan[3].as_str(),
+            scan[4].as_str()
+        ),
+        ("scanned", top.as_str(), Source::Index.as_str(), "3")
+    );
+    assert_eq!(
+        registry.verdicts().await.last().unwrap(),
+        &strings(&["oci", "block", "true", "2"])
+    );
+    let refused = registry
+        .send(
+            Method::GET,
+            "/v2/hosted/app/manifests/multi",
+            Vec::new(),
+            "application/json",
+        )
+        .await;
+    assert_eq!(refused.status, StatusCode::FORBIDDEN, "{}", refused.text());
+    assert!(
+        refused
+            .text()
+            .contains("2 blocking advisories: GHSA-A, GHSA-D"),
+        "{}",
+        refused.text()
+    );
+}
+
 #[tokio::test]
 async fn an_image_without_an_os_release_and_one_whose_upper_layer_deletes_the_dpkg_status_have_no_packages()
  {

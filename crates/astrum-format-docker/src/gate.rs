@@ -3,23 +3,13 @@ use astrum_content::{ContentError, Ctx};
 use serde_json::Value;
 
 use crate::MANIFEST_LIMIT;
-use crate::manifest;
 use crate::reference::Reference;
 use crate::storage;
 use crate::supply;
 
 const ARTIFACT_KINDS: [&str; 3] = ["signature", "attestation", "sbom"];
 const ARTIFACT_SUFFIXES: [&str; 3] = [".sig", ".att", ".sbom"];
-const FILESYSTEM_LAYERS: [&str; 8] = [
-    "application/vnd.oci.image.layer.v1.tar",
-    "application/vnd.oci.image.layer.v1.tar+gzip",
-    "application/vnd.oci.image.layer.v1.tar+zstd",
-    "application/vnd.oci.image.layer.nondistributable.v1.tar",
-    "application/vnd.oci.image.layer.nondistributable.v1.tar+gzip",
-    "application/vnd.oci.image.layer.nondistributable.v1.tar+zstd",
-    "application/vnd.docker.image.rootfs.diff.tar.gzip",
-    "application/vnd.docker.image.rootfs.foreign.diff.tar.gzip",
-];
+const FILESYSTEM_MARKERS: [&str; 3] = [".tar", "rootfs", "image.layer"];
 
 fn has_artifact_suffix(tag: &str) -> bool {
     ARTIFACT_SUFFIXES.iter().any(|suffix| tag.ends_with(suffix))
@@ -39,15 +29,28 @@ fn marked(reference: &Reference, attributes: &Value) -> bool {
     }
 }
 
-fn filesystem_layer(media_type: &str) -> bool {
-    let bare = manifest::bare(media_type);
-    FILESYSTEM_LAYERS.contains(&bare.as_str())
+fn mentions_filesystem(text: &str) -> bool {
+    let lower = text.to_ascii_lowercase();
+    FILESYSTEM_MARKERS
+        .iter()
+        .any(|marker| lower.contains(marker))
+}
+
+fn any_filesystem(value: &Value) -> bool {
+    match value {
+        Value::String(text) => mentions_filesystem(text),
+        Value::Array(items) => items.iter().any(any_filesystem),
+        Value::Object(fields) => fields
+            .iter()
+            .any(|(key, value)| mentions_filesystem(key) || any_filesystem(value)),
+        _ => false,
+    }
 }
 
 fn runnable(bytes: &[u8]) -> bool {
-    match manifest::try_layer_types(bytes) {
-        Some(types) => types.iter().any(|media_type| filesystem_layer(media_type)),
-        None => true,
+    match serde_json::from_slice::<Value>(bytes) {
+        Ok(manifest) => any_filesystem(&manifest),
+        Err(_) => true,
     }
 }
 
@@ -59,20 +62,44 @@ async fn exempt(holder: &Ctx, reference: &Reference, asset: &Asset) -> Result<bo
     Ok(!runnable(&bytes))
 }
 
+fn judged_digests(asset: &Asset) -> Vec<String> {
+    let stored = format!("sha256:{}", asset.sha256);
+    match storage::digest_of(asset).map(|named| named.to_string()) {
+        Some(named) if named != stored => vec![stored, named],
+        _ => vec![stored],
+    }
+}
+
+pub(crate) fn reference_of(asset: &Asset) -> Option<Reference> {
+    match asset.kind.as_str() {
+        storage::TAG => asset
+            .attributes
+            .pointer("/docker/tag")
+            .and_then(Value::as_str)
+            .map(|tag| Reference::Tag(tag.to_owned())),
+        storage::MANIFEST => storage::digest_of(asset).map(Reference::Digest),
+        _ => None,
+    }
+}
+
 pub(crate) async fn gate_manifest(
     holder: &Ctx,
     reference: &Reference,
     asset: &Asset,
-    digest: &str,
 ) -> Result<(), ContentError> {
     if exempt(holder, reference, asset).await? {
         return Ok(());
     }
-    holder
-        .content
-        .gate()
-        .check_digest(holder, holder.name(), digest)
-        .await
+    let named = match reference {
+        Reference::Tag(tag) => Some(tag.as_str()),
+        Reference::Digest(_) => None,
+    };
+    let gate = holder.content.gate();
+    for digest in judged_digests(asset) {
+        gate.check_digest(holder, holder.name(), &digest, named)
+            .await?;
+    }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -125,33 +152,61 @@ mod tests {
         assert!(marked(&digest(), &forced));
     }
 
+    fn manifest(body: Value) -> Vec<u8> {
+        serde_json::to_vec(&body).unwrap()
+    }
+
     #[test]
-    fn a_manifest_is_runnable_when_any_layer_is_a_filesystem_layer_and_unreadable_ones_count_as_runnable()
-     {
-        let with = |types: &[&str]| {
-            let layers: Vec<Value> = types
-                .iter()
-                .map(|media_type| json!({"mediaType": media_type, "digest": "sha256:x", "size": 1}))
-                .collect();
-            serde_json::to_vec(&json!({"schemaVersion": 2, "layers": layers})).unwrap()
-        };
-        for media_type in FILESYSTEM_LAYERS {
-            assert!(runnable(&with(&[media_type])), "{media_type}");
-            assert!(runnable(&with(&["application/jose+json", media_type])));
+    fn a_manifest_is_runnable_when_any_string_anywhere_names_a_filesystem_layer() {
+        let filesystem = [
+            "application/vnd.oci.image.layer.v1.tar",
+            "application/vnd.oci.image.layer.v1.tar+gzip",
+            "application/vnd.oci.image.layer.v1.tar+zstd",
+            "application/vnd.oci.image.layer.nondistributable.v1.tar+gzip",
+            "application/vnd.docker.image.rootfs.diff.tar",
+            "application/vnd.docker.image.rootfs.diff.tar.gzip",
+            "application/vnd.docker.image.rootfs.foreign.diff.tar.gzip",
+            "Application/Vnd.OCI.Image.Layer.V1.TAR+GZIP; x=y",
+        ];
+        for media_type in filesystem {
+            for layers in ["layers", "Layers", "LAYERS"] {
+                let body = json!({layers: [{"MediaType": media_type, "digest": "sha256:x"}]});
+                assert!(runnable(&manifest(body)), "{layers} {media_type}");
+            }
+            let nested = json!({"annotations": {"a": [{"b": media_type}]}});
+            assert!(runnable(&manifest(nested)), "{media_type}");
         }
-        assert!(runnable(&with(&[
-            "Application/Vnd.OCI.image.layer.v1.TAR+gzip; x=y"
-        ])));
-        for harmless in [
+        assert!(runnable(&manifest(json!({"a.tar": 1}))));
+        assert!(runnable(&manifest(json!([["rootfs"]]))));
+        assert!(runnable(b"not json"));
+        assert!(runnable(b""));
+    }
+
+    #[test]
+    fn the_manifests_of_signatures_attestations_and_sboms_are_not_runnable() {
+        let harmless = [
             "application/vnd.dev.cosign.simplesigning.v1+json",
             "application/vnd.in-toto+json",
+            "application/vnd.dsse.envelope.v1+json",
             "application/spdx+json",
+            "application/vnd.cyclonedx+json",
+            "application/jose+json",
             "application/vnd.oci.empty.v1+json",
-        ] {
-            assert!(!runnable(&with(&[harmless])), "{harmless}");
+            "application/vnd.oci.image.config.v1+json",
+        ];
+        for media_type in harmless {
+            let body = json!({
+                "schemaVersion": 2,
+                "mediaType": "application/vnd.oci.image.manifest.v1+json",
+                "artifactType": media_type,
+                "config": {"mediaType": media_type, "digest": "sha256:x", "size": 2},
+                "layers": [{"mediaType": media_type, "digest": "sha256:y", "size": 1,
+                            "annotations": {"dev.cosignproject.cosign/signature": "MEUCIQ=="}}],
+                "subject": {"mediaType": "application/vnd.oci.image.manifest.v1+json",
+                            "digest": "sha256:z", "size": 3},
+            });
+            assert!(!runnable(&manifest(body)), "{media_type}");
         }
-        assert!(!runnable(&with(&[])));
-        assert!(!runnable(br#"{"schemaVersion": 2}"#));
-        assert!(runnable(b"not json"));
+        assert!(!runnable(&manifest(json!({"schemaVersion": 2}))));
     }
 }

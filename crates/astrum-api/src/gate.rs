@@ -707,8 +707,9 @@ impl Gate for PolicyGate {
         ctx: &Ctx,
         repository: &str,
         digest: &str,
+        reference: Option<&str>,
     ) -> Result<(), ContentError> {
-        self.check_image(ctx, repository, digest).await
+        self.check_image(ctx, repository, digest, reference).await
     }
 }
 

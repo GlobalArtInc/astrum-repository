@@ -26,16 +26,30 @@ pub async fn set_policy(registry: &Registry, rule: Value) {
     assert_eq!(reply.status, StatusCode::OK, "{}", reply.text());
 }
 
-pub async fn seed_blocked(registry: &Registry, repository: &str, digest: &str) {
+pub async fn seed_verdict(
+    registry: &Registry,
+    repository: &str,
+    digest: &str,
+    state: &str,
+    blocked: bool,
+    reasons: Value,
+) {
     registry
         .execute(&format!(
             "INSERT INTO policy_verdict (repository, subject, policy, component_id, blocked, state, \
                reasons, policy_revision, max_severity, high) \
-             SELECT '{repository}', 'oci:{digest}', 'strict', NULL, true, 'block', \
-               '[{{\"kind\":\"vulnerability\",\"advisory\":\"GHSA-A\",\"blocking\":true}}]'::jsonb, \
-               revision, 'high', 1 FROM content_policy WHERE name = 'strict'"
+             SELECT '{repository}', 'oci:{digest}', 'strict', NULL, {blocked}, '{state}', \
+               '{reasons}'::jsonb, revision, 'high', 1 FROM content_policy WHERE name = 'strict' \
+             ON CONFLICT (repository, subject) DO UPDATE SET blocked = EXCLUDED.blocked, \
+               state = EXCLUDED.state, reasons = EXCLUDED.reasons, \
+               policy_revision = EXCLUDED.policy_revision"
         ))
         .await;
+}
+
+pub async fn seed_blocked(registry: &Registry, repository: &str, digest: &str) {
+    let reasons = json!([{"kind": "vulnerability", "advisory": "GHSA-A", "blocking": true}]);
+    seed_verdict(registry, repository, digest, "block", true, reasons).await;
 }
 
 pub async fn unscanned_block(registry: &Registry) {

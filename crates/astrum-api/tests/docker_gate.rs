@@ -82,7 +82,7 @@ async fn a_refusal_is_audited_once_per_digest_without_its_reasons() {
     assert_eq!(rows[0].context, format!("oci:{digest}"));
     assert_eq!(
         rows[0].attributes,
-        json!({"repository": "hosted", "subject": format!("oci:{digest}"),
+        json!({"repository": "hosted", "digest": digest, "reference": "1.0",
                "policy": "strict", "state": "block"})
     );
     assert!(
@@ -163,16 +163,31 @@ async fn an_exception_by_advisory_or_by_name_unblocks_after_the_verdict_is_judge
 }
 
 #[tokio::test]
-async fn a_verdict_of_an_older_policy_revision_is_ignored_until_it_is_judged_again() {
+async fn a_verdict_of_an_older_policy_revision_keeps_blocking_and_a_passing_one_counts_as_missing()
+{
     let registry = Registry::new().await;
     blocked_image(&registry).await;
+    let clean = registry.image(Some("clean"), b"other").await;
+    registry
+        .document(&clean, None, SPDX, &spdx(&["pkg:npm/fine@1.0.0"]))
+        .await;
+    registry.settle().await;
+
     set_policy(&registry, json!({"mode": "block", "severity": "medium"})).await;
-    assert_eq!(pull(&registry, "1.0").await.status, StatusCode::OK);
+    denied(&pull(&registry, "1.0").await, "GHSA-A");
+    assert_eq!(pull(&registry, "clean").await.status, StatusCode::OK);
     assert_eq!(
         results(&registry),
-        HashMap::from([("inline_scan_unscanned", 1)])
+        HashMap::from([("blocked", 1), ("inline_scan_unscanned", 1)])
+    );
+
+    unscanned_block(&registry).await;
+    denied(
+        &pull(&registry, "clean").await,
+        "the image is being scanned, retry",
     );
     rejudge(&registry).await;
+    assert_eq!(pull(&registry, "clean").await.status, StatusCode::OK);
     denied(&pull(&registry, "1.0").await, "GHSA-A");
 }
 
@@ -236,6 +251,49 @@ async fn refused_pulls_do_not_reset_the_schedule_of_a_scan_that_is_already_queue
     }
     assert_eq!(registry.rows(schedule).await, before);
     assert_eq!(before.len(), 1);
+}
+
+#[tokio::test]
+async fn a_refusal_says_so_when_the_scan_could_not_be_queued() {
+    let registry = Registry::new().await;
+    registry.image(Some("1.0"), b"layer").await;
+    unscanned_block(&registry).await;
+    registry
+        .execute("ALTER TABLE scan_queue RENAME TO scan_queue_away")
+        .await;
+    let reply = pull(&registry, "1.0").await;
+    registry
+        .execute("ALTER TABLE scan_queue_away RENAME TO scan_queue")
+        .await;
+
+    denied(&reply, "could not be queued");
+    assert!(!reply.text().contains("being scanned"), "{}", reply.text());
+    assert_eq!(results(&registry)["mark_failed"], 1);
+}
+
+#[tokio::test]
+async fn a_verdict_of_a_failed_or_empty_scan_queues_it_again_and_an_incomplete_one_does_not() {
+    let registry = Registry::new().await;
+    let mut digests = Vec::new();
+    for tag in ["failed", "no-data", "incomplete"] {
+        digests.push(registry.image(Some(tag), tag.as_bytes()).await);
+    }
+    unscanned_block(&registry).await;
+    for (tag, digest) in ["failed", "no-data", "incomplete"].iter().zip(&digests) {
+        let reasons = json!([{"kind": "unscanned", "scan": tag}]);
+        seed_verdict(&registry, "hosted", digest, "unscanned", true, reasons).await;
+    }
+    let queued =
+        "SELECT c.version AS n FROM scan_queue q JOIN component c ON c.id = q.component_id";
+    registry.execute("DELETE FROM scan_queue").await;
+
+    for tag in ["failed", "no-data"] {
+        denied(&pull(&registry, tag).await, &format!("scan: {tag}"));
+        assert_eq!(registry.rows(queued).await, vec![strings(&[tag])]);
+        registry.execute("DELETE FROM scan_queue").await;
+    }
+    denied(&pull(&registry, "incomplete").await, "scan: incomplete");
+    assert!(registry.rows(queued).await.is_empty());
 }
 
 #[tokio::test]
@@ -324,33 +382,35 @@ async fn the_hot_path_of_a_pass_is_one_statement_and_a_repository_without_a_poli
     let gate = fresh_gate();
 
     assert!(
-        gate.check_digest(&hosted, "hosted", &blocked)
+        gate.check_digest(&hosted, "hosted", &blocked, None)
             .await
             .is_err()
     );
     counter.store(0, Ordering::Relaxed);
     assert!(
-        gate.check_digest(&hosted, "hosted", &blocked)
+        gate.check_digest(&hosted, "hosted", &blocked, None)
             .await
             .is_err()
     );
     assert_eq!(counter.load(Ordering::Relaxed), 1, "a refusal");
     counter.store(0, Ordering::Relaxed);
-    gate.check_digest(&hosted, "hosted", &clean).await.unwrap();
+    gate.check_digest(&hosted, "hosted", &clean, None)
+        .await
+        .unwrap();
     assert_eq!(counter.load(Ordering::Relaxed), 1, "a pass");
     counter.store(0, Ordering::Relaxed);
-    gate.check_digest(&unguarded, "free", &blocked)
+    gate.check_digest(&unguarded, "free", &blocked, None)
         .await
         .unwrap();
     assert_eq!(counter.load(Ordering::Relaxed), 0, "no policy");
 
     set_policy(&registry, json!({"mode": "off"})).await;
     let gate = fresh_gate();
-    gate.check_digest(&hosted, "hosted", &blocked)
+    gate.check_digest(&hosted, "hosted", &blocked, None)
         .await
         .unwrap();
     counter.store(0, Ordering::Relaxed);
-    gate.check_digest(&hosted, "hosted", &blocked)
+    gate.check_digest(&hosted, "hosted", &blocked, None)
         .await
         .unwrap();
     assert_eq!(counter.load(Ordering::Relaxed), 1, "mode off");

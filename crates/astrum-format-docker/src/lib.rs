@@ -521,7 +521,7 @@ impl Docker {
                 .map(|digest| digest.to_string())
                 .unwrap_or_else(|| format!("sha256:{}", asset.sha256)),
         };
-        gate::gate_manifest(&holder, &reference, &asset, &digest).await?;
+        gate::gate_manifest(&holder, &reference, &asset).await?;
         let etag = format!("\"{digest}\"");
         let mut response = Response::builder()
             .header(header::CONTENT_TYPE, storage::media_type_of(&asset))
@@ -1392,6 +1392,13 @@ impl Format for Docker {
         request.path = rest.to_owned();
         let mount = Mount::Repository(ctx.name().to_owned());
         Ok(self.serve(ctx, request, mount).await)
+    }
+
+    async fn gate_asset(&self, ctx: &Ctx, asset: &Asset) -> Result<(), ContentError> {
+        match gate::reference_of(asset) {
+            Some(reference) => gate::gate_manifest(ctx, &reference, asset).await,
+            None => Ok(()),
+        }
     }
 
     async fn get(&self, ctx: &Ctx, path: &str) -> Result<Option<Asset>, ContentError> {

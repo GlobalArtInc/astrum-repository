@@ -86,18 +86,13 @@ pub fn is_index(media_type: &str) -> bool {
 }
 
 pub fn layer_types(bytes: &[u8]) -> Vec<String> {
-    try_layer_types(bytes).unwrap_or_default()
-}
-
-pub fn try_layer_types(bytes: &[u8]) -> Option<Vec<String>> {
-    let raw = serde_json::from_slice::<RawManifest>(bytes).ok()?;
-    Some(
-        raw.layers
-            .unwrap_or_default()
-            .into_iter()
-            .map(|layer| layer.media_type)
-            .collect(),
-    )
+    serde_json::from_slice::<RawManifest>(bytes)
+        .ok()
+        .and_then(|raw| raw.layers)
+        .unwrap_or_default()
+        .into_iter()
+        .map(|layer| layer.media_type)
+        .collect()
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
