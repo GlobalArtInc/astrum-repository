@@ -1714,6 +1714,7 @@ mod tests {
                 "convert_blob_store_to_group",
                 "update_group_blob_store",
                 "set_repository_online",
+                "set_repository_quota",
                 "create_role",
                 "update_role",
                 "set_user_roles",
