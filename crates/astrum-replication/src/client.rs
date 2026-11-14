@@ -394,9 +394,9 @@ impl Client {
             }
         };
         match response.status() {
-            StatusCode::CREATED => Ok(()),
+            StatusCode::CREATED | StatusCode::OK => Ok(()),
             other => Err(Error::Refused(format!(
-                "the remote answered {} where 201 was expected",
+                "the remote answered {} where 201 or 200 was expected",
                 other.as_u16()
             ))),
         }

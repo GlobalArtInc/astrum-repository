@@ -288,6 +288,11 @@ async fn a_protocol_or_an_instance_the_client_cannot_use_is_refused() {
         Error::Refused(_)
     ));
     receiver.force(200, "");
+    client
+        .put_blob("dst", &digest("a"), 0, stream::empty())
+        .await
+        .unwrap();
+    receiver.force(204, "");
     assert!(matches!(
         client.put_blob("dst", &digest("a"), 0, stream::empty()).await.unwrap_err(),
         Error::Refused(text) if text.contains("201")

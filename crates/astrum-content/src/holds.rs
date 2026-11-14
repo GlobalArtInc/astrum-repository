@@ -32,6 +32,9 @@ const TAKE_EXPIRED: &str = "DELETE FROM blob_hold WHERE (blob_store, blob_id) IN
 const CONSUME: &str = "DELETE FROM blob_hold WHERE (blob_store, blob_id) IN ( \
      SELECT * FROM unnest($1::text[], $2::uuid[])) RETURNING 1 AS taken";
 
+const LAPSE: &str = "UPDATE blob_hold SET held_until = now() WHERE held_until > now() \
+     AND (blob_store, blob_id) IN (SELECT * FROM unnest($1::text[], $2::uuid[]))";
+
 const NAMED: &str = "SELECT DISTINCT blob_id FROM asset WHERE blob_id = ANY($1)";
 
 #[derive(Debug, FromQueryResult)]
@@ -141,6 +144,22 @@ pub async fn consume(
         ))
         .await?;
     Ok(taken.len() as u64)
+}
+
+pub async fn lapse(
+    db: &impl ConnectionTrait,
+    blobs: &[(String, BlobId)],
+) -> Result<u64, ContentError> {
+    let stores: Vec<String> = blobs.iter().map(|(store, _)| store.clone()).collect();
+    let ids: Vec<Uuid> = blobs.iter().map(|(_, id)| id.uuid()).collect();
+    let lapsed = db
+        .execute(Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            LAPSE,
+            [stores.into(), ids.into()],
+        ))
+        .await?;
+    Ok(lapsed.rows_affected())
 }
 
 pub struct Keeper {

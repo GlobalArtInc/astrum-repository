@@ -2,6 +2,7 @@ pub mod compact;
 pub mod expired;
 pub mod purge_unused;
 pub mod reconcile;
+pub mod staged;
 
 use std::sync::Arc;
 
@@ -16,6 +17,7 @@ pub fn register_builtin(tasks: &Tasks) {
     tasks.register(Arc::new(purge_unused::PurgeUnused));
     tasks.register(Arc::new(expired::PurgeExpired));
     tasks.add_expiry(Arc::new(expired::BlobHoldExpiry));
+    tasks.add_expiry(Arc::new(staged::StagedBlobExpiry));
 }
 
 pub fn count(number: i64, one: &str, other: &str) -> String {
