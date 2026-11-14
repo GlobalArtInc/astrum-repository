@@ -22,6 +22,8 @@ pub mod repositories;
 pub mod routing_rules;
 pub mod scan;
 pub mod security;
+pub mod share;
+pub mod share_links;
 pub mod status;
 pub mod support;
 pub mod tasks;

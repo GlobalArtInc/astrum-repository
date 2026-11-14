@@ -2251,6 +2251,93 @@
         ],
         "type": "object"
       },
+      "CreateShareLinkXO": {
+        "properties": {
+          "expiresInHours": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "maxDownloads": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "note": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "prefix": {
+            "type": "boolean"
+          },
+          "repository": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "repository"
+        ],
+        "type": "object"
+      },
+      "CreatedShareLinkXO": {
+        "properties": {
+          "bytesServed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "downloads": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "expired": {
+            "description": "True when the link has passed its expiry and no longer works",
+            "type": "boolean"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "lastUsedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "maxDownloads": {
+            "format": "int32",
+            "nullable": true,
+            "type": "integer"
+          },
+          "note": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "prefix": {
+            "type": "boolean"
+          },
+          "repository": {
+            "type": "string"
+          },
+          "url": {
+            "description": "The address of the link, shown only in this answer",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "DockerAttributes": {
         "properties": {
           "forceBasicAuth": {
@@ -5682,6 +5769,60 @@
           "bucketConfiguration",
           "name"
         ],
+        "type": "object"
+      },
+      "ShareLinkXO": {
+        "properties": {
+          "bytesServed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "downloads": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "expired": {
+            "description": "True when the link has passed its expiry and no longer works",
+            "type": "boolean"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "lastUsedAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "maxDownloads": {
+            "format": "int32",
+            "nullable": true,
+            "type": "integer"
+          },
+          "note": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "prefix": {
+            "type": "boolean"
+          },
+          "repository": {
+            "type": "string"
+          }
+        },
         "type": "object"
       },
       "SsrfProtectionConfigurationXO": {
@@ -19954,6 +20095,104 @@
         ]
       }
     },
+    "/v1/share-links": {
+      "get": {
+        "operationId": "getV1ShareLinks",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "all",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "repository",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ShareLinkXO"
+                  },
+                  "type": "array"
+                }
+              }
+            }
+          },
+          "401": {},
+          "403": {}
+        },
+        "summary": "List share links",
+        "tags": [
+          "Share links"
+        ]
+      },
+      "post": {
+        "operationId": "postV1ShareLinks",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateShareLinkXO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedShareLinkXO"
+                }
+              }
+            }
+          },
+          "400": {},
+          "401": {},
+          "403": {},
+          "404": {}
+        },
+        "summary": "Create share links",
+        "tags": [
+          "Share links"
+        ]
+      }
+    },
+    "/v1/share-links/{id}": {
+      "delete": {
+        "operationId": "deleteV1ShareLinksId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {},
+          "401": {},
+          "403": {},
+          "404": {}
+        },
+        "summary": "Delete share links",
+        "tags": [
+          "Share links"
+        ]
+      }
+    },
     "/v1/status": {
       "get": {
         "operationId": "getV1Status",
@@ -20379,6 +20618,9 @@
     },
     {
       "name": "Security management: users"
+    },
+    {
+      "name": "Share links"
     },
     {
       "name": "Status"

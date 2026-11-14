@@ -139,6 +139,38 @@ fn truncate_to_second(time: SystemTime) -> SystemTime {
     SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(seconds)
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub enum Delivery {
+    Body { offset: u64, length: u64 },
+    Empty,
+}
+
+fn last_modified_of(asset: &Asset) -> SystemTime {
+    truncate_to_second(asset.blob_updated_at.with_timezone(&chrono::Utc).into())
+}
+
+pub fn delivery(asset: &Asset, headers: &HeaderMap) -> Delivery {
+    let size = asset.size.max(0) as u64;
+    let etag = format!("\"{}\"", asset.sha1);
+    let last_modified = last_modified_of(asset);
+    if precondition_fails(headers, &etag, last_modified)
+        || not_modified(headers, &etag, last_modified)
+    {
+        return Delivery::Empty;
+    }
+    match wanted(headers, size, &etag, last_modified) {
+        Wanted::Unsatisfiable => Delivery::Empty,
+        Wanted::Whole => Delivery::Body {
+            offset: 0,
+            length: size,
+        },
+        Wanted::Part(first, last) => Delivery::Body {
+            offset: first,
+            length: last - first + 1,
+        },
+    }
+}
+
 pub async fn serve(
     ctx: &Ctx,
     asset: &Asset,
@@ -154,8 +186,7 @@ pub async fn serve(
         "\"{}\"",
         options.etag.as_deref().unwrap_or(asset.sha1.as_str())
     );
-    let last_modified =
-        truncate_to_second(asset.blob_updated_at.with_timezone(&chrono::Utc).into());
+    let last_modified = last_modified_of(asset);
     let mut builder = Response::builder()
         .header(header::ETAG, &etag)
         .header(

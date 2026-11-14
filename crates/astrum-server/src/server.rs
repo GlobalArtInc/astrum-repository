@@ -6,14 +6,19 @@ use anyhow::Context;
 use astrum_api::AppState;
 use astrum_db::Database;
 use astrum_security::SecretBox;
+use axum::http::{Request, Uri};
 use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;
+use tracing::{Level, Span};
 
 use crate::config::Config;
 use crate::version_line;
 
 const TASK_SHUTDOWN: std::time::Duration = std::time::Duration::from_secs(10);
 const LOGGING_SYNC: std::time::Duration = std::time::Duration::from_secs(30);
+const HIDDEN_SHARE_URI: &str = "/service/share/<hidden>";
+const SHARE_SECRET_PREFIX: &[u8] = b"astrum_share_";
+const HIDDEN_SHARE_SECRET: &str = "astrum_share_<hidden>";
 
 pub struct Server {
     listener: TcpListener,
@@ -115,8 +120,8 @@ impl Server {
         }
         let routes = astrum_api::routes_with(self.state.clone(), crate::formats::routes())
             .fallback_service(crate::web::router(self.web_dir.clone()));
-        let app =
-            astrum_api::on_domains(self.state.clone(), routes).layer(TraceLayer::new_for_http());
+        let app = astrum_api::on_domains(self.state.clone(), routes)
+            .layer(TraceLayer::new_for_http().make_span_with(request_span));
         let connectors = crate::connectors::Connectors::new(
             self.state.clone(),
             app.clone(),
@@ -153,6 +158,66 @@ impl Server {
         tracing::info!("stopped");
         Ok(())
     }
+}
+
+fn traced_uri(uri: &Uri) -> String {
+    if astrum_api::routes::share::is_endpoint(uri.path()) {
+        HIDDEN_SHARE_URI.to_owned()
+    } else {
+        hide_share_secrets(&uri.to_string())
+    }
+}
+
+fn share_prefix_end(bytes: &[u8]) -> Option<usize> {
+    let mut at = 0;
+    for expected in SHARE_SECRET_PREFIX {
+        if *expected == b'_' && bytes.get(at..at + 3).is_some_and(is_encoded_underscore) {
+            at += 3;
+        } else if bytes.get(at).is_some_and(|byte| byte == expected) {
+            at += 1;
+        } else {
+            return None;
+        }
+    }
+    Some(at)
+}
+
+fn is_encoded_underscore(bytes: &[u8]) -> bool {
+    bytes[0] == b'%' && bytes[1] == b'5' && (bytes[2] == b'F' || bytes[2] == b'f')
+}
+
+fn hide_share_secrets(text: &str) -> String {
+    let bytes = text.as_bytes();
+    let mut hidden = String::with_capacity(text.len());
+    let mut copied = 0;
+    let mut at = 0;
+    while at < bytes.len() {
+        let Some(prefix) = share_prefix_end(&bytes[at..]) else {
+            at += 1;
+            continue;
+        };
+        let mut end = at + prefix;
+        while bytes.get(end).is_some_and(u8::is_ascii_alphanumeric) {
+            end += 1;
+        }
+        hidden.push_str(&text[copied..at]);
+        hidden.push_str(HIDDEN_SHARE_SECRET);
+        copied = end;
+        at = end;
+    }
+    hidden.push_str(&text[copied..]);
+    hidden
+}
+
+fn request_span<B>(request: &Request<B>) -> Span {
+    tracing::span!(
+        target: "tower_http::trace::make_span",
+        Level::DEBUG,
+        "request",
+        method = %request.method(),
+        uri = %traced_uri(request.uri()),
+        version = ?request.version(),
+    )
 }
 
 fn spawn_logging_sync(state: AppState) -> tokio::task::JoinHandle<()> {
@@ -254,4 +319,109 @@ fn prepare_data_dir(dir: &Path) -> anyhow::Result<()> {
             .with_context(|| format!("cannot create the data directory {}", path.display()))?;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::io;
+    use std::sync::{Arc, Mutex};
+
+    use super::*;
+
+    struct Capture(Arc<Mutex<Vec<u8>>>);
+
+    impl io::Write for Capture {
+        fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+            self.0
+                .lock()
+                .expect("the capture lock is never poisoned")
+                .extend_from_slice(bytes);
+            Ok(bytes.len())
+        }
+
+        fn flush(&mut self) -> io::Result<()> {
+            Ok(())
+        }
+    }
+
+    fn recorded(uri: &str) -> String {
+        let buffer = Arc::new(Mutex::new(Vec::new()));
+        let sink = buffer.clone();
+        let subscriber = tracing_subscriber::fmt()
+            .with_max_level(Level::DEBUG)
+            .with_ansi(false)
+            .with_writer(move || Capture(sink.clone()))
+            .finish();
+        tracing::subscriber::with_default(subscriber, || {
+            let request = Request::builder().uri(uri).body(()).unwrap();
+            request_span(&request).in_scope(|| tracing::info!("audit"));
+        });
+        let bytes = buffer
+            .lock()
+            .expect("the capture lock is never poisoned")
+            .clone();
+        String::from_utf8(bytes).unwrap()
+    }
+
+    #[test]
+    fn the_span_of_a_share_request_never_holds_the_secret() {
+        let secret = "astrum_share_Zk3Qm9Lw2Xv7Rt5Yb1Nc8Hd4Jf6Gp0SaEu2Io";
+        for uri in [
+            format!("/service/share/{secret}"),
+            format!("/service/share/{secret}/notes/one.txt?x=1"),
+            format!("http://files.example.org/service/share/{secret}/"),
+        ] {
+            let line = recorded(&uri);
+            assert!(line.contains("/service/share/<hidden>"), "{line}");
+            assert!(line.contains("method=GET"), "{line}");
+            assert!(!line.contains(secret), "{line}");
+            assert!(!line.contains("one.txt"), "{line}");
+        }
+    }
+
+    #[test]
+    fn a_secret_is_hidden_wherever_it_appears_in_the_uri() {
+        let secret = "astrum_share_Zk3Qm9Lw2Xv7Rt5Yb1Nc8Hd4Jf6Gp0SaEu2Io";
+        let encoded = secret.replace('_', "%5F");
+        let lower = secret.replace('_', "%5f");
+        for (uri, expected) in [
+            (
+                format!("//service/share/{secret}"),
+                "//service/share/astrum_share_<hidden>",
+            ),
+            (
+                format!("/SERVICE/share/{secret}/notes/one.txt"),
+                "/SERVICE/share/astrum_share_<hidden>/notes/one.txt",
+            ),
+            (
+                format!("/repository/files/a?token={secret}&x=1"),
+                "/repository/files/a?token=astrum_share_<hidden>&x=1",
+            ),
+            (
+                format!("/a/b/c/d/e/{secret}/f/g/{secret}"),
+                "/a/b/c/d/e/astrum_share_<hidden>/f/g/astrum_share_<hidden>",
+            ),
+            (format!("/x/{encoded}/y"), "/x/astrum_share_<hidden>/y"),
+            (format!("/x?k={lower}"), "/x?k=astrum_share_<hidden>"),
+        ] {
+            let line = recorded(&uri);
+            assert!(line.contains(expected), "{line}");
+            assert!(!line.contains("Zk3Qm9"), "{line}");
+            assert!(!line.contains("2Io"), "{line}");
+        }
+    }
+
+    #[test]
+    fn the_span_of_an_ordinary_request_keeps_its_uri() {
+        let line = recorded("/repository/files/notes/one.txt?x=1");
+        assert!(
+            line.contains("uri=/repository/files/notes/one.txt?x=1"),
+            "{line}"
+        );
+        let line = recorded("/repository/files/astrum_share/notes_one.txt?x=astrum_");
+        assert!(
+            line.contains("uri=/repository/files/astrum_share/notes_one.txt?x=astrum_"),
+            "{line}"
+        );
+    }
 }

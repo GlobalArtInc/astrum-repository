@@ -44,6 +44,7 @@ The same pages are published as a site at https://astrum.globalart.dev.
 
 - [Web interface](use/web-interface.md)
 - [Connect build tools to repositories](use/clients.md)
+- [Share links](use/share-links.md)
 - [REST API](use/rest-api.md)
 - [Agents over MCP](use/mcp.md)
 - [Interface language](use/language.md)

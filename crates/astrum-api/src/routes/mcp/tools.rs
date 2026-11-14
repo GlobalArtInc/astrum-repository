@@ -33,6 +33,7 @@ const TAG_PAGES: usize = 10;
 const ADVISORY_LIMIT: usize = 16 * 1024 * 1024;
 const SECURITY_DEFAULT: usize = 50;
 const SECURITY_MAX: usize = 200;
+const SHARE_LINKS: &str = "/service/rest/v1/share-links";
 
 #[derive(Clone, Copy)]
 enum Need {
@@ -698,6 +699,58 @@ fn defs() -> Vec<Def> {
             write: true,
             idempotent: false,
         },
+        Def {
+            name: "create_share_link",
+            title: "Create a share link",
+            description: "Create a secret URL that lets anyone download one file, or the files under a folder, of a hosted repository without an account until it expires. The URL is shown only in this answer: pass it on and do not store it. A folder link has a path ending in a slash and cannot have a download limit. Needs read access to the file, or to the whole repository for a folder.",
+            schema: || {
+                schema(
+                    json!({
+                        "repository": string("Hosted repository, not docker"),
+                        "path": string("Path of the file, such as /releases/app-1.0.tgz, or of a folder ending in a slash"),
+                        "prefix": { "type": "boolean", "description": "true for a folder link; by default decided by the trailing slash of the path" },
+                        "expiresInHours": { "type": "integer", "minimum": 1, "description": "Lifetime in hours; 168 (7 days) by default, at most the server limit" },
+                        "maxDownloads": { "type": "integer", "minimum": 1, "description": "How many times the file can be downloaded; omit for no limit. Not for folder links" },
+                        "note": string("What the link is for, shown in the list"),
+                    }),
+                    &["repository", "path"],
+                )
+            },
+            need: Need::Permissions(&["astrum:sharelinks:create"]),
+            write: true,
+            idempotent: false,
+        },
+        Def {
+            name: "list_share_links",
+            title: "List share links",
+            description: "Your share links with their expiry and how much was downloaded, never the secret URL. all=true lists the links of everyone and needs the right to read share links.",
+            schema: || {
+                schema(
+                    json!({
+                        "repository": string("Only links into this repository"),
+                        "all": { "type": "boolean", "description": "true to list the links of all users" },
+                    }),
+                    &[],
+                )
+            },
+            need: Need::SignedIn,
+            write: false,
+            idempotent: true,
+        },
+        Def {
+            name: "revoke_share_link",
+            title: "Revoke a share link",
+            description: "Delete a share link so that its URL stops working at once. You can revoke your own links; revoking the links of others needs the right to delete share links.",
+            schema: || {
+                schema(
+                    json!({ "id": string("Id of the link, from list_share_links") }),
+                    &["id"],
+                )
+            },
+            need: Need::SignedIn,
+            write: true,
+            idempotent: true,
+        },
     ]
 }
 
@@ -861,6 +914,18 @@ impl Handler for AstrumTools {
             }
             "upload_component" => {
                 upload::upload_component(&self.state, &self.subject, &self.base, &arguments).await
+            }
+            "create_share_link" => create_share_link(api, &arguments).await,
+            "list_share_links" => list_share_links(api, &arguments).await,
+            "revoke_share_link" => {
+                let id = required_text(&arguments, "id")?;
+                api.json(
+                    Method::DELETE,
+                    &format!("{SHARE_LINKS}/{}", segment(&id)),
+                    None,
+                )
+                .await?;
+                Ok(json!({ "id": id, "revoked": true }))
             }
             other => Err(ToolError::Unknown(other.to_owned())),
         }
@@ -1790,6 +1855,42 @@ async fn get_ip_allow_list(api: &Loopback) -> Result<Value, ToolError> {
     }))
 }
 
+async fn create_share_link(
+    api: &Loopback,
+    arguments: &Map<String, Value>,
+) -> Result<Value, ToolError> {
+    let mut body = Map::new();
+    for key in [
+        "repository",
+        "path",
+        "prefix",
+        "expiresInHours",
+        "maxDownloads",
+        "note",
+    ] {
+        if let Some(value) = arguments.get(key).filter(|value| !value.is_null()) {
+            body.insert(key.to_owned(), value.clone());
+        }
+    }
+    api.json(Method::POST, SHARE_LINKS, Some(&Value::Object(body)))
+        .await
+}
+
+async fn list_share_links(
+    api: &Loopback,
+    arguments: &Map<String, Value>,
+) -> Result<Value, ToolError> {
+    let mut pairs = picked(arguments, &["repository"]);
+    if arguments.get("all").and_then(Value::as_bool) == Some(true) {
+        pairs.push(("all", "true".to_owned()));
+    }
+    let uri = match pairs.is_empty() {
+        true => SHARE_LINKS.to_owned(),
+        false => format!("{SHARE_LINKS}?{}", query(&pairs)),
+    };
+    Ok(json!({ "links": api.get(&uri).await? }))
+}
+
 async fn create_role(api: &Loopback, arguments: &Map<String, Value>) -> Result<Value, ToolError> {
     let id = required_text(arguments, "id")?;
     let body = json!({
@@ -2206,7 +2307,9 @@ mod tests {
                 "rescan",
                 "revoke_customer_tokens",
                 "request_upload",
-                "upload_component"
+                "upload_component",
+                "create_share_link",
+                "revoke_share_link"
             ]
         );
     }

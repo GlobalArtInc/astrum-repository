@@ -35,8 +35,11 @@ export function useRegistry(): Registry {
 
 export function useVisibleSettings(): SettingsTile[] {
   const { settings } = useRegistry();
-  const { can } = useSession();
-  return useMemo(() => settings.filter((tile) => can(tile.need)), [settings, can]);
+  const { can, user } = useSession();
+  return useMemo(
+    () => settings.filter((tile) => (!tile.requiresUser || user !== null) && can(tile.need)),
+    [settings, can, user],
+  );
 }
 
 export function useVisibleMenu(): MenuEntry[] {

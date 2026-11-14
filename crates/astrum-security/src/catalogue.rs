@@ -423,6 +423,30 @@ const APPLICATION: &[Application] = &[
         "Change settings",
     ),
     (
+        "as-sharelinks-all",
+        "sharelinks",
+        &[Action::All],
+        "Every action on share links",
+    ),
+    (
+        "as-sharelinks-create",
+        "sharelinks",
+        &[Action::Add],
+        "Create share links",
+    ),
+    (
+        "as-sharelinks-delete",
+        "sharelinks",
+        &[Action::Delete, Action::Read],
+        "Delete share links",
+    ),
+    (
+        "as-sharelinks-read",
+        "sharelinks",
+        &[Action::Read],
+        "Read share links",
+    ),
+    (
         "as-ssl-truststore-all",
         "ssl-truststore",
         &[Action::All],
@@ -709,11 +733,26 @@ mod tests {
         ] {
             assert!(ids.contains(id), "{id}");
         }
+        let permission = |id: &str| {
+            privileges
+                .iter()
+                .find(|privilege| privilege.id == id)
+                .and_then(Privilege::permission)
+                .map(|permission| permission.to_string())
+        };
+        for (id, expected) in [
+            ("as-sharelinks-all", "astrum:sharelinks:*"),
+            ("as-sharelinks-create", "astrum:sharelinks:create"),
+            ("as-sharelinks-delete", "astrum:sharelinks:delete,read"),
+            ("as-sharelinks-read", "astrum:sharelinks:read"),
+        ] {
+            assert_eq!(permission(id).as_deref(), Some(expected), "{id}");
+        }
         assert!(
             !ids.contains("as-healthcheck-read"),
             "the old server names it in the anonymous role but does not list it"
         );
-        assert_eq!(privileges.len(), 1 + 76 + ASTRUM_ONLY_COUNT + 12 + 12);
+        assert_eq!(privileges.len(), 1 + 80 + ASTRUM_ONLY_COUNT + 12 + 12);
         assert!(
             privileges
                 .iter()
@@ -804,9 +843,23 @@ mod tests {
             })
             .collect();
         let mut expected: Vec<serde_json::Value> = reference.iter().map(shape).collect();
-        let mut actual = ours;
         let by_name =
             |privilege: &serde_json::Value| privilege["name"].as_str().unwrap().to_owned();
+        let known: BTreeSet<String> = expected.iter().map(by_name).collect();
+        let (mut actual, added): (Vec<_>, Vec<_>) = ours
+            .into_iter()
+            .partition(|privilege| known.contains(&by_name(privilege)));
+        let mut added: Vec<String> = added.iter().map(by_name).collect();
+        added.sort();
+        assert_eq!(
+            added,
+            [
+                "as-sharelinks-all",
+                "as-sharelinks-create",
+                "as-sharelinks-delete",
+                "as-sharelinks-read"
+            ]
+        );
         expected.sort_by_key(by_name);
         actual.sort_by_key(by_name);
         assert_eq!(actual.len(), expected.len());

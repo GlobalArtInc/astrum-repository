@@ -155,6 +155,42 @@ describe('the repository page', { timeout: 20_000 }, () => {
     expect(window.localStorage.getItem('astrum.browse.treeSort')).toBe('name');
   });
 
+  it('shares a folder from its panel as a prefix link', async () => {
+    const fake = server({
+      'POST /service/rest/v1/share-links': () =>
+        jsonResponse(
+          {
+            id: 'l1',
+            repository: 'files',
+            path: '/a/',
+            prefix: true,
+            note: '',
+            createdBy: 'admin',
+            createdAt: '2026-11-11T10:00:00.000Z',
+            expiresAt: '2026-11-18T10:00:00.000Z',
+            maxDownloads: null,
+            downloads: 0,
+            bytesServed: 0,
+            lastUsedAt: null,
+            expired: false,
+            url: 'http://localhost/service/share/astrum_share_0123456789abcdefghijklmnopqrstuvwxyzABCD/',
+          },
+          201,
+        ),
+    });
+    page('/browse/files/a/');
+    await userEvent.click(await screen.findByRole('button', { name: 'Share folder' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Create a folder share link' });
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Create link' }));
+    await waitFor(() => expect(fake.calls.some((call) => call.method === 'POST')).toBe(true));
+    expect(fake.calls.find((call) => call.method === 'POST')?.body).toEqual({
+      repository: 'files',
+      path: '/a/',
+      prefix: true,
+      expiresInHours: 168,
+    });
+  });
+
   it('deletes a folder after confirming and reports the counts', async () => {
     const fake = server({
       [`DELETE ${TREE}?path=%2Fa%2F`]: () =>

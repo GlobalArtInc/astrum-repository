@@ -65,6 +65,11 @@ export const securityArea: Area = {
       need: SETTINGS_READ,
     },
     { path: 'admin/security/realms', load: () => import('./realms/RealmsPage'), need: SETTINGS_READ },
+    {
+      path: 'admin/security/share-links',
+      load: () => import('./share-links/ShareLinksPage'),
+      requiresUser: true,
+    },
     { path: 'admin/security/ssrf-protection', load: () => import('./ssrf/SsrfPage'), need: ADMINISTRATOR },
     {
       path: 'admin/security/ip-allow',
@@ -182,6 +187,11 @@ export const securityArea: Area = {
       id: 'licenses',
       to: '/admin/security/licenses',
       need: ADMINISTRATOR,
+    },
+    {
+      id: 'share-links',
+      to: '/admin/security/share-links',
+      requiresUser: true,
     },
   ],
 };

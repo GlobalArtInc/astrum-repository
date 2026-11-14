@@ -578,6 +578,9 @@ async fn remove(
         state.security().revoke_format_tokens_of(&user_id).await?;
         state.security().delete_api_keys_of(&user_id).await?;
     }
+    astrum_content::share::delete_of_user(state.db().conn(), source, &user_id)
+        .await
+        .map_err(ApiError::internal)?;
 
     changed(
         &state,
