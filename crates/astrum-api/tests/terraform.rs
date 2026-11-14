@@ -21,14 +21,15 @@ const BOUNDARY: &str = "terraformboundary0123456789";
 const SECRET_KEY: &str = include_str!("../../astrum-format-terraform/tests/data/secret.asc");
 
 async fn ready() -> Fixture {
+    ready_with(Arc::new(astrum_format_terraform::Terraform::default())).await
+}
+
+async fn ready_with(format: Arc<astrum_format_terraform::Terraform>) -> Fixture {
     let fixture = Fixture::new().await;
     astrum_blob::bootstrap(fixture.state.db().conn(), fixture.data.path())
         .await
         .unwrap();
-    fixture
-        .state
-        .content()
-        .register(Arc::new(astrum_format_terraform::Terraform::default()));
+    fixture.state.content().register(format);
     fixture
 }
 
@@ -925,23 +926,151 @@ async fn module_promotion_refuses_a_second_archive_of_a_version() {
     .await;
 }
 
+const DEMO: &str = "/v1/providers/acme/demo";
+
+fn demo_file(version: &str, os: &str) -> String {
+    format!("terraform-provider-demo_{version}_{os}_amd64.zip")
+}
+
+async fn release(fixture: &Fixture, repository: &str, version: &str, os: &str) -> Vec<u8> {
+    let package = provider_zip(&format!("terraform-provider-demo_v{version}_{os}"));
+    let uploaded = upload(
+        fixture,
+        repository,
+        &[
+            ("terraform.namespace", "acme"),
+            ("terraform.type", "demo"),
+            ("terraform.version", version),
+        ],
+        &[("terraform.asset", &demo_file(version, os), &package)],
+    )
+    .await;
+    assert_eq!(
+        uploaded.status,
+        StatusCode::NO_CONTENT,
+        "{}",
+        uploaded.text()
+    );
+    package
+}
+
+async fn sign(fixture: &Fixture, name: &str) {
+    let mut signed = hosted(name, "allow_once");
+    signed["terraformSigning"] = json!({"keypair": SECRET_KEY, "passphrase": "probe-passphrase"});
+    let updated = fixture
+        .call(
+            Method::PUT,
+            &format!("/service/rest/v1/repositories/terraform/hosted/{name}"),
+            Auth::Admin,
+            Some(signed),
+        )
+        .await;
+    assert_eq!(updated.status, StatusCode::NO_CONTENT, "{}", updated.text());
+}
+
 #[tokio::test]
-async fn provider_promotion_is_refused_with_its_reason() {
+async fn providers_are_promoted_with_their_checksums_and_signature() {
     let fixture = repositories().await;
-    let archive = "terraform-provider-demo_2.0.0_linux_amd64.zip";
+    sign(&fixture, "tf-target").await;
+    let linux = release(&fixture, "tf-source", "2.0.0", "linux").await;
+    let darwin = release(&fixture, "tf-source", "2.0.0", "darwin").await;
+    let format = astrum_format_terraform::Terraform::default();
+    let path = format!("{DEMO}/2.0.0/{}", demo_file("2.0.0", "linux"));
+    let bundle = support::bundle_of(&fixture, &format, "tf-source", &path).await;
+    assert_eq!(bundle.assets.len(), 3);
+    let outcome = support::receive(&fixture, &format, "tf-source", "tf-target", &bundle).await;
+    assert_eq!(outcome.status, Status::Copied);
+    assert!(outcome.warnings.is_empty(), "{:?}", outcome.warnings);
+    let mut copied: Vec<&str> = outcome.assets.iter().map(|a| a.path.as_str()).collect();
+    copied.sort();
+    assert_eq!(
+        copied,
+        [
+            format!("{DEMO}/2.0.0/{}", demo_file("2.0.0", "darwin")),
+            path.clone()
+        ]
+    );
+
+    let served = get(
+        &fixture,
+        &format!("/repository/tf-target{path}"),
+        Auth::Admin,
+    )
+    .await;
+    assert_eq!(served.body, linux);
+    let sums = get(
+        &fixture,
+        &format!("/repository/tf-target{DEMO}/2.0.0/terraform-provider-demo_2.0.0_SHA256SUMS"),
+        Auth::Admin,
+    )
+    .await;
+    let text = sums.text();
+    assert_eq!(text.lines().count(), 2, "{text}");
+    for (package, os) in [(&linux, "linux"), (&darwin, "darwin")] {
+        let line = format!("{}  {}", sha256(package), demo_file("2.0.0", os));
+        assert!(text.lines().any(|found| found == line), "{text}");
+    }
+    let signature = get(
+        &fixture,
+        &format!("/repository/tf-target{DEMO}/2.0.0/terraform-provider-demo_2.0.0_SHA256SUMS.sig"),
+        Auth::Admin,
+    )
+    .await;
+    assert_eq!(signature.status, StatusCode::OK, "{}", signature.text());
+    assert!(!signature.body.is_empty());
+    let versions = get(
+        &fixture,
+        &format!("/repository/tf-target{DEMO}/versions"),
+        Auth::Admin,
+    )
+    .await;
+    assert_eq!(
+        versions.json()["versions"][0]["platforms"],
+        json!([{"os": "darwin", "arch": "amd64"}, {"os": "linux", "arch": "amd64"}])
+    );
+}
+
+#[tokio::test]
+async fn provider_promotion_refuses_a_file_the_upload_would_store_elsewhere() {
+    let fixture = repositories().await;
+    release(&fixture, "tf-source", "2.0.0", "linux").await;
+    let format = astrum_format_terraform::Terraform::default();
+    let path = format!("{DEMO}/2.0.0/{}", demo_file("2.0.0", "linux"));
+    let mut bundle = support::bundle_of(&fixture, &format, "tf-source", &path).await;
+    bundle.assets[0].path =
+        format!("{DEMO}/2.0.0/terraform-provider-demo_2.0.0_SHA256SUMS.0123ABCD.sig");
+    assert_refused(
+        &fixture,
+        &bundle,
+        &format!(
+            "{DEMO}/2.0.0/terraform-provider-demo_2.0.0_SHA256SUMS.0123ABCD.sig is not the path of its provider file, which is {DEMO}/2.0.0/terraform-provider-demo_2.0.0_SHA256SUMS.sig"
+        ),
+    )
+    .await;
+}
+
+#[tokio::test]
+async fn provider_promotion_refuses_a_package_the_stored_checksums_do_not_list() {
+    let fixture = repositories().await;
+    release(&fixture, "tf-source", "2.0.0", "darwin").await;
+    let linux = provider_zip("terraform-provider-demo_v2.0.0_linux");
+    let sums = format!("{}  {}\n", sha256(&linux), demo_file("2.0.0", "linux"));
     let uploaded = upload(
         &fixture,
-        "tf-source",
+        "tf-target",
         &[
             ("terraform.namespace", "acme"),
             ("terraform.type", "demo"),
             ("terraform.version", "2.0.0"),
         ],
-        &[(
-            "terraform.asset1",
-            archive,
-            &provider_zip("terraform-provider-demo_v2.0.0"),
-        )],
+        &[
+            ("terraform.asset1", &demo_file("2.0.0", "linux"), &linux),
+            (
+                "terraform.asset2",
+                "terraform-provider-demo_2.0.0_SHA256SUMS",
+                sums.as_bytes(),
+            ),
+        ],
     )
     .await;
     assert_eq!(
@@ -951,16 +1080,73 @@ async fn provider_promotion_is_refused_with_its_reason() {
         uploaded.text()
     );
     let format = astrum_format_terraform::Terraform::default();
-    let bundle = support::bundle_of(
+    let path = format!("{DEMO}/2.0.0/{}", demo_file("2.0.0", "darwin"));
+    let mut bundle = support::bundle_of(&fixture, &format, "tf-source", &path).await;
+    bundle.assets.retain(|asset| asset.path == path);
+    assert_refused(
         &fixture,
-        &format,
-        "tf-source",
-        "/v1/providers/acme/demo/2.0.0/terraform-provider-demo_2.0.0_linux_amd64.zip",
+        &bundle,
+        &format!(
+            "terraform-provider-demo_2.0.0_SHA256SUMS does not list {}; upload the checksums of the release with its packages",
+            demo_file("2.0.0", "darwin")
+        ),
     )
     .await;
-    let message = format!(
-        "{} cannot be transferred: Terraform providers cannot be transferred yet",
-        bundle.assets[0].path
-    );
-    assert_refused(&fixture, &bundle, &message).await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn promotion_and_upload_of_two_versions_keep_their_checksums() {
+    let format = Arc::new(astrum_format_terraform::Terraform::default());
+    let fixture = Arc::new(ready_with(format.clone()).await);
+    create(&fixture, "hosted", hosted("tf-source", "allow_once")).await;
+    create(&fixture, "hosted", hosted("tf-target", "allow_once")).await;
+    sign(&fixture, "tf-target").await;
+    let first = release(&fixture, "tf-source", "1.0.0", "linux").await;
+    let path = format!("{DEMO}/1.0.0/{}", demo_file("1.0.0", "linux"));
+    let bundle = support::bundle_of(&fixture, &*format, "tf-source", &path).await;
+    let promoting = {
+        let (fixture, format) = (fixture.clone(), format.clone());
+        tokio::spawn(async move {
+            let from = support::repository_ctx(&fixture, "tf-source").await;
+            let to = support::repository_ctx(&fixture, "tf-target").await;
+            format
+                .transfer()
+                .expect("terraform takes part in promotion")
+                .receive(
+                    &to,
+                    &bundle,
+                    &LocalSource::new(from),
+                    Terms::new(Conflict::Fail, PROMOTED),
+                )
+                .await
+        })
+    };
+    let uploading = {
+        let fixture = fixture.clone();
+        tokio::spawn(async move { release(&fixture, "tf-target", "2.0.0", "linux").await })
+    };
+    let outcome = promoting.await.unwrap().unwrap();
+    let second = uploading.await.unwrap();
+    assert_eq!(outcome.status, Status::Copied);
+    assert!(outcome.warnings.is_empty(), "{:?}", outcome.warnings);
+    for (version, package) in [("1.0.0", &first), ("2.0.0", &second)] {
+        let base = format!("/repository/tf-target{DEMO}/{version}");
+        let sums = get(
+            &fixture,
+            &format!("{base}/terraform-provider-demo_{version}_SHA256SUMS"),
+            Auth::Admin,
+        )
+        .await;
+        assert_eq!(
+            sums.text(),
+            format!("{}  {}\n", sha256(package), demo_file(version, "linux"))
+        );
+        let signature = get(
+            &fixture,
+            &format!("{base}/terraform-provider-demo_{version}_SHA256SUMS.sig"),
+            Auth::Admin,
+        )
+        .await;
+        assert_eq!(signature.status, StatusCode::OK, "{}", signature.text());
+    }
 }

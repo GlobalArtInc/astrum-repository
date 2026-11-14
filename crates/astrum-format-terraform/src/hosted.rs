@@ -12,8 +12,8 @@ use crate::paths::{self, FileKind, Module, Provider};
 use crate::pgp::{self, PublicKey, SigningKey};
 use crate::sums::Sums;
 use crate::{
-    DEFAULT_PROTOCOLS, Document, Download, ID, KIND_MODULE, KIND_PROVIDER, MODULE_ARCHIVE,
-    Terraform, archive, versions,
+    DEFAULT_PROTOCOLS, Document, Download, ID, KIND_MODULE, KIND_PROVIDER, Locks, MODULE_ARCHIVE,
+    Terraform, archive, lock_in, versions,
 };
 
 const MAX_DOCUMENT: u64 = 4 * 1024 * 1024;
@@ -776,9 +776,30 @@ pub async fn refresh_checksums(
     ctx: &Ctx,
     provider: &Provider,
 ) -> Result<(), ContentError> {
-    let lock = terraform.lock(&format!("{}{}", ctx.name(), provider.directory()));
+    refresh_in(&terraform.locks, ctx, provider).await
+}
+
+pub(crate) async fn refresh_in(
+    locks: &Locks,
+    ctx: &Ctx,
+    provider: &Provider,
+) -> Result<(), ContentError> {
+    let lock = lock_in(locks, &format!("{}{}", ctx.name(), provider.directory()));
     let _held = lock.lock().await;
     refresh_locked(ctx, provider).await
+}
+
+pub(crate) async fn admit_packages(
+    ctx: &Ctx,
+    provider: &Provider,
+    packages: BTreeMap<String, String>,
+) -> Result<(), ContentError> {
+    let uploaded = Release {
+        packages,
+        ..Release::default()
+    };
+    let stored = stored(ctx, provider).await?;
+    check(provider, &uploaded, &stored, None)
 }
 
 async fn refresh_locked(ctx: &Ctx, provider: &Provider) -> Result<(), ContentError> {

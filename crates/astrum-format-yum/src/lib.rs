@@ -14,10 +14,12 @@ pub mod version;
 mod xml;
 
 use std::collections::{HashMap, HashSet};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, OnceLock};
 
 use astrum_content::format::SearchTarget;
+use astrum_content::import::{Described, Imported};
 use astrum_content::store;
+use astrum_content::transfer::{Bundle, GenericTransfer, Transfer};
 use astrum_content::{
     Asset, BrowseLayout, ContentError, ContentRequest, Ctx, Format, SearchKey, Serve, UploadField,
     UploadForm, UploadSpec, View, serve,
@@ -27,6 +29,7 @@ use async_trait::async_trait;
 use axum::body::Body;
 use axum::http::{Method, StatusCode, header};
 use axum::response::{IntoResponse, Response};
+use futures_util::future::BoxFuture;
 use uuid::Uuid;
 
 pub const ID: &str = "yum";
@@ -66,6 +69,7 @@ pub struct Yum {
     keys: Arc<signing::Keys>,
     pending: Arc<Mutex<HashSet<String>>>,
     seen: Mutex<HashMap<String, Uuid>>,
+    transfer: OnceLock<GenericTransfer>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -140,13 +144,6 @@ fn directory_page(ctx: &Ctx) -> Result<Response, ContentError> {
 }
 
 impl Yum {
-    fn pending(&self, key: &str) -> bool {
-        self.pending
-            .lock()
-            .expect("the pending rebuild lock is never poisoned")
-            .insert(key.to_owned())
-    }
-
     fn first_sight(&self, repository: &str, found: &Asset) -> bool {
         let key = format!("{repository}\n{}", found.path);
         let mut seen = self
@@ -316,6 +313,31 @@ impl Yum {
     }
 }
 
+fn transfer_with(
+    keys: Arc<signing::Keys>,
+    pending: Arc<Mutex<HashSet<String>>>,
+) -> GenericTransfer {
+    GenericTransfer {
+        plan: import::plan,
+        describe: describe_imported,
+        after: None,
+        admit: Some(admit_bundle),
+        replaceable: None,
+    }
+    .after_with(move |ctx, promoted| {
+        hosted::schedule_promoted(&keys, &pending, ctx, promoted);
+        Box::pin(std::future::ready(Ok(())))
+    })
+}
+
+fn describe_imported(file: &Imported) -> BoxFuture<'_, Result<Option<Described>, String>> {
+    Box::pin(import::describe(file))
+}
+
+fn admit_bundle<'a>(ctx: &'a Ctx, bundle: &'a Bundle) -> BoxFuture<'a, Result<(), ContentError>> {
+    Box::pin(std::future::ready(hosted::admit(ctx, bundle)))
+}
+
 fn sign(key: &signing::SigningKey, bytes: &[u8]) -> Result<Vec<u8>, ContentError> {
     key.sign(bytes)
         .map_err(|error| ContentError::internal(std::io::Error::other(error)))
@@ -405,6 +427,13 @@ impl Format for Yum {
 
     fn search_keys(&self) -> &'static [SearchKey] {
         SEARCH_KEYS
+    }
+
+    fn transfer(&self) -> Option<&dyn Transfer> {
+        Some(
+            self.transfer
+                .get_or_init(|| transfer_with(self.keys.clone(), self.pending.clone())),
+        )
     }
 }
 

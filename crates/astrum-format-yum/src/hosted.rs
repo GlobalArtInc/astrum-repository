@@ -1,7 +1,9 @@
 use std::collections::{BTreeMap, BTreeSet, HashSet};
+use std::sync::{Arc, Mutex};
 
 use astrum_blob::{ContentStream, Written};
 use astrum_content::store::{self, ComponentKey, PutAsset};
+use astrum_content::transfer::{Bundle, Promoted};
 use astrum_content::{Asset, ContentError, Ctx, View};
 use astrum_repo::config::{DeployPolicy, WritePolicy};
 use serde_json::{Value, json};
@@ -45,6 +47,27 @@ fn check_depth(settings: &Settings, path: &str) -> Result<(), ContentError> {
             "RPM packages of this repository must be stored at least {} directories deep, the depth at which its repodata is generated: {path}",
             settings.depth
         )));
+    }
+    Ok(())
+}
+
+fn check_other(settings: &Settings, path: &str) -> Result<(), ContentError> {
+    match settings.strict {
+        true => Err(ContentError::BadRequest(format!(
+            "Only RPM packages can be stored in a repository with the strict layout policy: {path}"
+        ))),
+        false => Ok(()),
+    }
+}
+
+pub(crate) fn admit(ctx: &Ctx, bundle: &Bundle) -> Result<(), ContentError> {
+    let settings = settings(ctx);
+    for asset in &bundle.assets {
+        writable(&asset.path)?;
+        match paths::is_rpm(&asset.path) {
+            true => check_depth(&settings, &asset.path)?,
+            false => check_other(&settings, &asset.path)?,
+        }
     }
     Ok(())
 }
@@ -149,11 +172,7 @@ pub async fn put(ctx: &Ctx, path: &str, body: ContentStream) -> Result<Asset, Co
         let written = store::write_blob(ctx, body).await?;
         return adopt_rpm(ctx, written, Some(path), "", None).await;
     }
-    if settings(ctx).strict {
-        return Err(ContentError::BadRequest(format!(
-            "Only RPM packages can be stored in a repository with the strict layout policy: {path}"
-        )));
-    }
+    check_other(&settings(ctx), path)?;
     authorize(ctx, path).await?;
     store::put(ctx, PutAsset::hosted(ctx, path).kind(OTHER), body).await
 }
@@ -475,16 +494,26 @@ pub async fn rebuild_all(ctx: &Ctx, keys: &Keys, force: bool) -> Result<u64, Con
 }
 
 pub fn schedule(yum: &Yum, ctx: &Ctx, path: &str) {
-    let Some(base) = paths::base(path, settings(ctx).depth) else {
-        return;
-    };
+    if let Some(base) = paths::base(path, settings(ctx).depth) {
+        schedule_base(&yum.keys, &yum.pending, ctx, base);
+    }
+}
+
+fn claim(pending: &Mutex<HashSet<String>>, key: &str) -> bool {
+    pending
+        .lock()
+        .expect("the pending rebuild lock is never poisoned")
+        .insert(key.to_owned())
+}
+
+fn schedule_base(keys: &Arc<Keys>, pending: &Arc<Mutex<HashSet<String>>>, ctx: &Ctx, base: String) {
     let key = format!("{}\n{base}", ctx.name());
-    if !yum.pending(&key) {
+    if !claim(pending, &key) {
         return;
     }
     let ctx = ctx.clone();
-    let keys = yum.keys.clone();
-    let pending = yum.pending.clone();
+    let keys = keys.clone();
+    let pending = pending.clone();
     tokio::spawn(async move {
         tokio::time::sleep(std::time::Duration::from_millis(500)).await;
         pending
@@ -497,9 +526,51 @@ pub fn schedule(yum: &Yum, ctx: &Ctx, path: &str) {
     });
 }
 
+fn promoted_bases(depth: usize, promoted: &Promoted) -> BTreeSet<String> {
+    promoted
+        .components
+        .iter()
+        .flat_map(|component| &component.paths)
+        .chain(&promoted.loose)
+        .filter(|path| paths::is_rpm(path))
+        .filter_map(|path| paths::base(path, depth))
+        .collect()
+}
+
+pub(crate) fn schedule_promoted(
+    keys: &Arc<Keys>,
+    pending: &Arc<Mutex<HashSet<String>>>,
+    ctx: &Ctx,
+    promoted: &Promoted,
+) {
+    for base in promoted_bases(settings(ctx).depth, promoted) {
+        schedule_base(keys, pending, ctx, base);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn promoted_packages_make_one_rebuild_per_base() {
+        use astrum_content::transfer::PromotedComponent;
+        let paths = |names: &[&str]| names.iter().map(|name| (*name).to_owned()).collect();
+        let promoted = Promoted {
+            components: vec![PromotedComponent {
+                paths: paths(&[
+                    "/el9/x86_64/Packages/a-1-1.x86_64.rpm",
+                    "/el9/x86_64/Packages/b-1-1.x86_64.rpm",
+                    "/el9/x86_64/notes.txt",
+                ]),
+                ..PromotedComponent::default()
+            }],
+            loose: paths(&["/el8/x86_64/c-1-1.x86_64.rpm", "/el7/d-1-1.x86_64.rpm"]),
+        };
+        let bases: Vec<String> = promoted_bases(2, &promoted).into_iter().collect();
+        assert_eq!(bases, ["/el8/x86_64", "/el9/x86_64"]);
+        assert_eq!(promoted_bases(0, &promoted).len(), 1);
+    }
 
     #[test]
     fn fingerprints_follow_paths_checksums_and_the_signer() {

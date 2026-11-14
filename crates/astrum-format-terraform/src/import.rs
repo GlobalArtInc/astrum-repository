@@ -10,12 +10,16 @@ const BASE_KEYS: &[&str] = &["kind", "namespace", "name", "provider", "version"]
 
 pub fn plan(_repository: RepositoryType, path: &str, _kind: &str) -> Plan {
     match Endpoint::parse(path) {
-        Endpoint::ModuleArchive(..) => Plan::Import,
-        Endpoint::ProviderFile(..) => {
-            Plan::Skip("Terraform providers cannot be transferred yet".to_owned())
-        }
-        _ => Plan::Skip("the path is not a module archive".to_owned()),
+        Endpoint::ModuleArchive(..) | Endpoint::ProviderFile(..) => Plan::Import,
+        _ => Plan::Skip("the path is not a module archive or a provider file".to_owned()),
     }
+}
+
+fn generated(attributes: &Value) -> bool {
+    attributes
+        .pointer("/terraform/generated")
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
 }
 
 fn extra(attributes: &Value) -> Value {
@@ -59,7 +63,18 @@ pub async fn describe(file: &Imported) -> Result<Option<Described>, String> {
                 .attributes(module_attributes(&module, subdir));
             Ok(Some(Described::source(put)))
         }
-        Endpoint::ProviderFile(provider, _, kind) => {
+        Endpoint::ProviderFile(provider, name, kind) => {
+            if matches!(kind, paths::FileKind::Shasums | paths::FileKind::Signature)
+                && generated(&file.attributes)
+            {
+                return Ok(None);
+            }
+            if matches!(kind, paths::FileKind::Archive { .. }) {
+                let head = file.head(8).await.map_err(|error| error.to_string())?;
+                if paths::sniff(&head) != Some("zip") {
+                    return Err(format!("A provider package must be a zip archive: {name}"));
+                }
+            }
             let mut extra = extra(&file.attributes);
             if let (paths::FileKind::Archive { os, arch }, Value::Object(values)) =
                 (&kind, &mut extra)
@@ -67,12 +82,13 @@ pub async fn describe(file: &Imported) -> Result<Option<Described>, String> {
                 values.insert("os".to_owned(), Value::String(os.clone()));
                 values.insert("arch".to_owned(), Value::String(arch.clone()));
             }
-            let put = file
+            let mut put = file
                 .put(file.path.clone())
                 .kind(kind.asset_kind())
                 .content_type(kind.content_type())
                 .component(provider_component(&provider))
                 .attributes(provider_attributes(&provider, extra));
+            put.check_content_type = false;
             Ok(Some(Described::source(put)))
         }
         Endpoint::Discovery
