@@ -64,6 +64,7 @@ async fn world() -> World {
                     write_policy: Some(WritePolicy::Allow),
                     latest_policy: None,
                     quota: None,
+                    immutable_tags: None,
                 }),
                 ..Default::default()
             },

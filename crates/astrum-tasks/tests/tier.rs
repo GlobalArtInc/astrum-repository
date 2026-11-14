@@ -43,6 +43,7 @@ async fn repository(db: &astrum_db::Database, content: &Content, name: &str, sto
                     write_policy: Some(WritePolicy::Allow),
                     latest_policy: None,
                     quota: None,
+                    immutable_tags: None,
                 }),
                 ..Default::default()
             },

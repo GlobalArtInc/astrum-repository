@@ -544,18 +544,22 @@ async fn promote(
     let job = prepare(&state, &caller, request).await?;
     let dry_run = job.dry_run;
     let client = crate::routes::mcp::client();
-    let address = crate::auth::client_address();
+    let address = crate::client::current();
     let results = tokio::spawn(scoped(client, address, job.run()))
         .await
         .map_err(ApiError::internal)?;
     Ok(axum::Json(json!({"dryRun": dry_run, "results": results})).into_response())
 }
 
-async fn scoped<F>(client: Option<String>, address: Option<String>, future: F) -> F::Output
+async fn scoped<F>(
+    client: Option<String>,
+    address: Option<std::net::IpAddr>,
+    future: F,
+) -> F::Output
 where
     F: Future,
 {
-    crate::auth::with_client_address(address, async move {
+    crate::client::with_address(address, async move {
         match client {
             Some(client) => crate::routes::mcp::scoped(client, future).await,
             None => future.await,

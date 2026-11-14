@@ -140,6 +140,13 @@ pub fn current() -> Option<IpAddr> {
     CLIENT.try_with(|address| *address).ok().flatten()
 }
 
+pub(crate) async fn with_address<F: std::future::Future>(
+    address: Option<IpAddr>,
+    future: F,
+) -> F::Output {
+    CLIENT.scope(address, future).await
+}
+
 pub fn throttle_bucket() -> String {
     astrum_security::sessions::throttle_address(current())
 }
