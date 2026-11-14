@@ -155,11 +155,18 @@ impl Registry {
     }
 
     pub async fn create_repository(&self, name: &str) {
-        let repository = json!({
-            "name": name, "online": true, "policy": {"name": "strict"},
+        self.create_repository_with(name, Some("strict")).await;
+    }
+
+    pub async fn create_repository_with(&self, name: &str, policy: Option<&str>) {
+        let mut repository = json!({
+            "name": name, "online": true,
             "storage": {"blobStoreName": "default", "strictContentTypeValidation": true, "writePolicy": "ALLOW", "latestPolicy": true},
             "docker": {"v1Enabled": false, "forceBasicAuth": true, "pathEnabled": true}
         });
+        if let Some(policy) = policy {
+            repository["policy"] = json!({"name": policy});
+        }
         let made = self
             .fixture
             .call(
@@ -182,6 +189,16 @@ impl Registry {
         }
     }
 
+    pub async fn repository_without_policy(&self, name: &str) -> Registry {
+        self.create_repository_with(name, None).await;
+        Registry {
+            fixture: self.fixture.clone(),
+            app: self.app.clone(),
+            admin: self.admin.clone(),
+            repository: name.to_owned(),
+        }
+    }
+
     pub async fn send(
         &self,
         method: Method,
@@ -189,13 +206,26 @@ impl Registry {
         body: Vec<u8>,
         content_type: &str,
     ) -> Reply {
-        let request = Request::builder()
+        self.send_with(method, path, body, content_type, &[]).await
+    }
+
+    pub async fn send_with(
+        &self,
+        method: Method,
+        path: &str,
+        body: Vec<u8>,
+        content_type: &str,
+        headers: &[(&str, &str)],
+    ) -> Reply {
+        let mut request = Request::builder()
             .method(method)
             .uri(path)
             .header(header::AUTHORIZATION, &self.admin)
-            .header(header::CONTENT_TYPE, content_type)
-            .body(Body::from(body))
-            .unwrap();
+            .header(header::CONTENT_TYPE, content_type);
+        for (name, value) in headers {
+            request = request.header(*name, *value);
+        }
+        let request = request.body(Body::from(body)).unwrap();
         let response = self.app.clone().oneshot(request).await.unwrap();
         let (status, headers) = (response.status(), response.headers().clone());
         let body = response

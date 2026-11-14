@@ -5,9 +5,10 @@ use std::time::{Duration, Instant};
 
 use astrum_content::{Asset, ContentError, Ctx, Gate};
 use astrum_db::audit::{self, Event};
-use astrum_policy::cache::Cache;
+use astrum_policy::cache::{Cache, Snapshot as Policies};
 use astrum_policy::policy::{Mode, Policy, Unscanned};
 use astrum_policy::refusal;
+use astrum_policy::subject;
 use astrum_policy::verdict::{State, clean};
 use astrum_scan::inline;
 use astrum_scan::worker::ScanError;
@@ -19,6 +20,8 @@ use tokio::sync::{OwnedSemaphorePermit, Semaphore, watch};
 use crate::routes::policies::POLICY_DOMAIN;
 use crate::{auth, routes};
 
+mod docker;
+
 const INLINE_BUDGET: Duration = Duration::from_secs(2);
 const MARK_BUDGET: Duration = Duration::from_millis(500);
 const INLINE_PERMITS: usize = 8;
@@ -28,7 +31,6 @@ pub const BUCKETS: [f64; 14] = [
     0.0005, 0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.0, 2.5, 5.0,
 ];
 
-const DOCKER: &str = "docker";
 const UNAVAILABLE: &str = "the content policy could not be checked; try again";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -153,7 +155,7 @@ impl Metrics {
 struct Dedupe {
     window: Duration,
     cap: usize,
-    seen: Mutex<HashMap<(String, i64), Instant>>,
+    seen: Mutex<HashMap<(String, String), Instant>>,
 }
 
 impl Dedupe {
@@ -165,8 +167,8 @@ impl Dedupe {
         }
     }
 
-    fn first(&self, repository: &str, component_id: i64, now: Instant) -> bool {
-        let key = (repository.to_owned(), component_id);
+    fn first(&self, repository: &str, subject: &str, now: Instant) -> bool {
+        let key = (repository.to_owned(), subject.to_owned());
         let mut seen = self
             .seen
             .lock()
@@ -192,11 +194,11 @@ impl Dedupe {
         true
     }
 
-    fn forget(&self, repository: &str, component_id: i64) {
+    fn forget(&self, repository: &str, subject: &str) {
         self.seen
             .lock()
             .expect("the audit dedupe lock is never poisoned")
-            .remove(&(repository.to_owned(), component_id));
+            .remove(&(repository.to_owned(), subject.to_owned()));
     }
 }
 
@@ -216,7 +218,7 @@ struct Read {
 async fn read(
     db: &DatabaseConnection,
     repository: &str,
-    component_id: i64,
+    subject: &str,
 ) -> Result<Option<Read>, DbErr> {
     let row = db
         .query_one(Statement::from_sql_and_values(
@@ -226,10 +228,7 @@ async fn read(
              FROM repository r \
              LEFT JOIN policy_verdict v ON v.repository = r.name AND v.subject = $2 \
              WHERE r.name = $1",
-            [
-                repository.into(),
-                astrum_policy::subject::component(component_id).into(),
-            ],
+            [repository.into(), subject.into()],
         ))
         .await?;
     let Some(row) = row else {
@@ -387,6 +386,18 @@ impl PolicyGate {
         self.flights.len()
     }
 
+    async fn snapshot_for(
+        &self,
+        db: &DatabaseConnection,
+        name: &str,
+    ) -> Result<Arc<Policies>, Unchecked> {
+        let snapshot = self.cache.get(db).await?;
+        match snapshot.policies.contains_key(name) {
+            true => Ok(snapshot),
+            false => Ok(self.cache.fresh(db).await?),
+        }
+    }
+
     async fn judge(
         &self,
         ctx: &Ctx,
@@ -394,16 +405,13 @@ impl PolicyGate {
         component_id: i64,
     ) -> Result<Judgement, Unchecked> {
         let db = ctx.db();
-        let held = read(db, &asset.repository, component_id)
+        let held = read(db, &asset.repository, &subject::component(component_id))
             .await?
             .ok_or(Unchecked::Vanished)?;
         let Some(name) = held.policy else {
             return Ok(Judgement::Unguarded);
         };
-        let mut snapshot = self.cache.get(db).await?;
-        if !snapshot.policies.contains_key(&name) {
-            snapshot = self.cache.fresh(db).await?;
-        }
+        let snapshot = self.snapshot_for(db, &name).await?;
         let Some(stored) = snapshot.policies.get(&name) else {
             return Ok(unreadable(&name));
         };
@@ -542,7 +550,7 @@ impl PolicyGate {
                 .policies
                 .get(&policy.name)
                 .filter(|stored| stored.policy.is_ok());
-            let verdict = read(db, &asset.repository, component_id)
+            let verdict = read(db, &asset.repository, &subject::component(component_id))
                 .await?
                 .ok_or(Unchecked::Vanished)?
                 .verdict;
@@ -584,18 +592,31 @@ impl PolicyGate {
     }
 
     async fn audit(&self, ctx: &Ctx, asset: &Asset, component_id: i64, refusal: &Refusal) {
+        let subject = subject::component(component_id);
         if !self
             .audited
-            .first(&asset.repository, component_id, Instant::now())
+            .first(&asset.repository, &subject, Instant::now())
         {
             return;
         }
-        let mut attributes = json!({
+        let attributes = json!({
             "repository": asset.repository,
             "componentId": component_id,
             "policy": refusal.policy,
             "state": refusal.state,
         });
+        self.record(ctx, &asset.repository, &subject, &asset.path, attributes)
+            .await;
+    }
+
+    async fn record(
+        &self,
+        ctx: &Ctx,
+        repository: &str,
+        subject: &str,
+        context: &str,
+        mut attributes: Value,
+    ) {
         if let Some(client) = routes::mcp::client() {
             attributes["via"] = json!("mcp");
             attributes["client"] = json!(client);
@@ -604,11 +625,11 @@ impl PolicyGate {
             Some(address) => format!("{}/{address}", ctx.uploader()),
             None => ctx.uploader(),
         };
-        let event = Event::new(POLICY_DOMAIN, "blocked", &asset.path)
+        let event = Event::new(POLICY_DOMAIN, "blocked", context)
             .by(initiator)
             .with(attributes);
         if let Err(error) = audit::record(ctx.db(), event).await {
-            self.audited.forget(&asset.repository, component_id);
+            self.audited.forget(repository, subject);
             tracing::error!(%error, "a refused download was not recorded in the audit log");
         }
     }
@@ -648,7 +669,7 @@ impl Gate for PolicyGate {
         let Some(component_id) = asset.component_id else {
             return Ok(());
         };
-        if ctx.format_id() == DOCKER
+        if docker::judged_by_digest(ctx)
             || (asset.repository == ctx.name() && ctx.repository.policy_name().is_none())
         {
             return Ok(());
@@ -683,11 +704,11 @@ impl Gate for PolicyGate {
 
     async fn check_digest(
         &self,
-        _ctx: &Ctx,
-        _repository: &str,
-        _digest: &str,
+        ctx: &Ctx,
+        repository: &str,
+        digest: &str,
     ) -> Result<(), ContentError> {
-        Ok(())
+        self.check_image(ctx, repository, digest).await
     }
 }
 
@@ -797,15 +818,15 @@ mod tests {
     fn a_subject_is_audited_once_a_window_and_the_map_stays_bounded() {
         let dedupe = Dedupe::new(Duration::from_secs(60), 2);
         let start = Instant::now();
-        assert!(dedupe.first("r", 1, start));
-        assert!(!dedupe.first("r", 1, start + Duration::from_secs(59)));
-        assert!(dedupe.first("r", 2, start + Duration::from_secs(1)));
-        assert!(dedupe.first("other", 1, start + Duration::from_secs(2)));
+        assert!(dedupe.first("r", "c:1", start));
+        assert!(!dedupe.first("r", "c:1", start + Duration::from_secs(59)));
+        assert!(dedupe.first("r", "oci:sha256:2", start + Duration::from_secs(1)));
+        assert!(dedupe.first("other", "c:1", start + Duration::from_secs(2)));
         assert_eq!(dedupe.seen.lock().unwrap().len(), 2);
-        assert!(!dedupe.first("other", 1, start + Duration::from_secs(3)));
-        assert!(dedupe.first("r", 1, start + Duration::from_secs(61)));
-        dedupe.forget("r", 1);
-        assert!(dedupe.first("r", 1, start + Duration::from_secs(62)));
+        assert!(!dedupe.first("other", "c:1", start + Duration::from_secs(3)));
+        assert!(dedupe.first("r", "c:1", start + Duration::from_secs(61)));
+        dedupe.forget("r", "c:1");
+        assert!(dedupe.first("r", "c:1", start + Duration::from_secs(62)));
         assert!(dedupe.seen.lock().unwrap().len() <= 2);
     }
 }

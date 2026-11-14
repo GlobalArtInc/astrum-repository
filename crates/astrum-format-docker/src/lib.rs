@@ -1,6 +1,7 @@
 mod auth;
 pub mod children;
 mod error;
+mod gate;
 pub mod gc;
 pub mod import;
 mod inventory;
@@ -440,14 +441,18 @@ impl Docker {
         ctx: &Ctx,
         image: &str,
         reference: &Reference,
-    ) -> Result<Option<Asset>, ContentError> {
+    ) -> Result<Option<(Ctx, Asset)>, ContentError> {
         match ctx.kind() {
-            RepositoryType::Group => Ok(group::first(ctx, |member| async move {
-                self.leaf_manifest(&member, image, reference).await
-            })
-            .await?
-            .map(|(_, asset)| asset)),
-            _ => self.leaf_manifest(ctx, image, reference).await,
+            RepositoryType::Group => {
+                group::first(ctx, |member| async move {
+                    self.leaf_manifest(&member, image, reference).await
+                })
+                .await
+            }
+            _ => Ok(self
+                .leaf_manifest(ctx, image, reference)
+                .await?
+                .map(|asset| (ctx.clone(), asset))),
         }
     }
 
@@ -506,7 +511,7 @@ impl Docker {
         let name = call.mount.name(image);
         let reference =
             Reference::parse(raw).ok_or_else(|| RegistryError::manifest_unknown(&name, raw))?;
-        let asset = self
+        let (holder, asset) = self
             .find_manifest(ctx, image, &reference)
             .await?
             .ok_or_else(|| RegistryError::manifest_unknown(&name, raw))?;
@@ -516,6 +521,7 @@ impl Docker {
                 .map(|digest| digest.to_string())
                 .unwrap_or_else(|| format!("sha256:{}", asset.sha256)),
         };
+        gate::gate_manifest(&holder, &reference, &asset, &digest).await?;
         let etag = format!("\"{digest}\"");
         let mut response = Response::builder()
             .header(header::CONTENT_TYPE, storage::media_type_of(&asset))

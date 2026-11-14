@@ -145,11 +145,8 @@ pub struct Artifact {
     pub asset: Asset,
 }
 
-fn legacy_document_tag(tag: &str) -> bool {
-    let Some(stem) = tag
-        .strip_suffix(".sbom")
-        .or_else(|| tag.strip_suffix(".att"))
-    else {
+fn legacy_tag(tag: &str, suffixes: &[&str]) -> bool {
+    let Some(stem) = suffixes.iter().find_map(|suffix| tag.strip_suffix(suffix)) else {
         return false;
     };
     stem.split_once('-').is_some_and(|(algorithm, hex)| {
@@ -159,6 +156,14 @@ fn legacy_document_tag(tag: &str) -> bool {
                 .bytes()
                 .all(|byte| matches!(byte, b'0'..=b'9' | b'a'..=b'f'))
     })
+}
+
+fn legacy_document_tag(tag: &str) -> bool {
+    legacy_tag(tag, &[".sbom", ".att"])
+}
+
+pub(crate) fn legacy_artifact_tag(tag: &str) -> bool {
+    legacy_tag(tag, &[".sig", ".att", ".sbom"])
 }
 
 pub async fn artifact(
