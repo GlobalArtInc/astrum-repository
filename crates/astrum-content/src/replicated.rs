@@ -364,6 +364,17 @@ pub async fn delete(ctx: &Ctx, request: &Removal<'_>) -> Result<String, Refusal>
     if signature(held) != seen {
         return Err(changed_since());
     }
+    let assets = store::assets_of(&txn, locked.id).await?;
+    if let Some(reason) = store::protection(
+        &txn,
+        &ctx.content,
+        ctx.name(),
+        &assets.iter().collect::<Vec<_>>(),
+    )
+    .await?
+    {
+        return Err(conflict("protected", reason));
+    }
     let blobs = Blob::find_by_statement(statement(COMPONENT_BLOBS, vec![locked.id.into()]))
         .all(&txn)
         .await?;

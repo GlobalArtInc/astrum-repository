@@ -838,7 +838,7 @@ pub(crate) async fn lock_usage(
     })
 }
 
-async fn protection(
+pub(crate) async fn protection(
     db: &impl ConnectionTrait,
     content: &Content,
     repository: &str,

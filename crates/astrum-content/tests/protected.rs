@@ -2,8 +2,9 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use astrum_blob::content_of;
-use astrum_content::store::{self, Asset, PutAsset};
-use astrum_content::transfer::{Conflict, Status};
+use astrum_content::replicated::{self, Reason, Refusal, Removal};
+use astrum_content::store::{self, Asset, ComponentKey, PutAsset};
+use astrum_content::transfer::{Conflict, GenericTransfer, Status, Transfer, fingerprint};
 use astrum_content::{ContentError, ContentRequest, Ctx, Format};
 use astrum_repo::config::{Repository, WritePolicy};
 use async_trait::async_trait;
@@ -16,8 +17,11 @@ use support::*;
 const GATE: i64 = 7_700_211;
 const MAGIC: usize = 4321;
 
+const ORIGIN: &str = "0b8e6f0a-0000-4000-8000-0000000000a1";
+
 struct Guarded {
     armed: bool,
+    transfer: GenericTransfer,
 }
 
 #[async_trait]
@@ -34,6 +38,10 @@ impl Format for Guarded {
         Ok(None)
     }
 
+    fn transfer(&self) -> Option<&dyn Transfer> {
+        Some(&self.transfer)
+    }
+
     fn can_protect(&self, asset: &Asset) -> bool {
         self.armed && asset.path.starts_with("/locked/")
     }
@@ -46,7 +54,10 @@ impl Format for Guarded {
 
 async fn guarded(armed: bool) -> (World, Ctx) {
     let world = world().await;
-    world.content.register(Arc::new(Guarded { armed }));
+    world.content.register(Arc::new(Guarded {
+        armed,
+        transfer: transfer(),
+    }));
     let target = repository(&world, "target", "default", WritePolicy::Allow).await;
     (world, target)
 }
@@ -131,6 +142,69 @@ async fn a_transfer_that_replaces_a_protected_asset_is_refused_and_leaves_nothin
         .await
         .unwrap();
     assert_eq!(same.status, Status::Skipped);
+}
+
+async fn replicated_component(ctx: &Ctx, path: &str, version: &str) -> String {
+    let key = ComponentKey {
+        version: version.to_owned(),
+        attributes: serde_json::json!({"replication": {"origin": ORIGIN}}),
+        ..key()
+    };
+    store::put(
+        ctx,
+        PutAsset::hosted(ctx, path).component(key),
+        content_of(&b"body"[..]),
+    )
+    .await
+    .unwrap();
+    let found = row(ctx, path).await;
+    let component = store::component_by_id(ctx.db(), found.component_id.unwrap())
+        .await
+        .unwrap()
+        .unwrap();
+    fingerprint(&transfer().bundle(ctx, &component).await.unwrap())
+}
+
+async fn tombstone(ctx: &Ctx, version: &str, print: &str) -> Result<String, Refusal> {
+    replicated::delete(
+        ctx,
+        &Removal {
+            namespace: "g",
+            name: "lib",
+            version,
+            fingerprint: print,
+            origin: ORIGIN,
+        },
+    )
+    .await
+}
+
+#[tokio::test]
+async fn a_replication_tombstone_refuses_a_protected_component_and_deletes_a_free_one() {
+    let (world, target) = guarded(true).await;
+    let locked = replicated_component(&target, "/locked/a", "1").await;
+    let free = replicated_component(&target, "/free/b", "2").await;
+    assert_eq!(target_rows(&world, "target").await, (2, 2));
+    match tombstone(&target, "1", &locked).await {
+        Err(Refusal::Status {
+            reason: Reason::Conflict,
+            code: "protected",
+            message,
+        }) => assert_eq!(message, "target keeps /locked/a"),
+        other => panic!("{other:?}"),
+    }
+    assert_eq!(target_rows(&world, "target").await, (2, 2));
+    assert_eq!(tombstone(&target, "2", &free).await.unwrap(), ORIGIN);
+    assert_eq!(target_rows(&world, "target").await, (1, 1));
+    row(&target, "/locked/a").await;
+}
+
+#[tokio::test]
+async fn a_replication_tombstone_of_an_unprotected_format_deletes_as_before() {
+    let (world, target) = guarded(false).await;
+    let print = replicated_component(&target, "/locked/a", "1").await;
+    assert_eq!(tombstone(&target, "1", &print).await.unwrap(), ORIGIN);
+    assert_eq!(target_rows(&world, "target").await, (0, 0));
 }
 
 async fn close_gate(world: &World) -> DatabaseTransaction {
