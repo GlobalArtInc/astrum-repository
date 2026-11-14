@@ -8,6 +8,7 @@ import { identityArea } from '../areas/identity';
 import { notifyArea } from '../areas/notify';
 import { onboardingArea } from '../areas/onboarding';
 import { outboundArea } from '../areas/outbound';
+import { replicationArea } from '../areas/replication';
 import { repositoriesArea } from '../areas/repositories';
 import { routingArea } from '../areas/routing';
 import { searchArea } from '../areas/search';
@@ -28,6 +29,7 @@ export const areas: Area[] = [
   apiArea,
   auditArea,
   settingsArea,
+  replicationArea,
   repositoriesArea,
   blobstoresArea,
   cleanupArea,
