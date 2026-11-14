@@ -6,10 +6,14 @@ import { STATE_PATH } from './session';
 
 export const STATE_KEY = ['ui', 'state'] as const;
 
+export interface SessionState extends UiState {
+  restricted?: boolean;
+}
+
 export function useUiStateQuery() {
-  return useQuery<UiState, ApiError>({
+  return useQuery<SessionState, ApiError>({
     queryKey: STATE_KEY,
-    queryFn: ({ signal }) => api.get<UiState>(STATE_PATH, { signal, quietUnauthorized: true }),
+    queryFn: ({ signal }) => api.get<SessionState>(STATE_PATH, { signal, quietUnauthorized: true }),
     staleTime: 60_000,
     refetchOnWindowFocus: 'always',
     refetchInterval: 5 * 60_000,
@@ -17,14 +21,15 @@ export function useUiStateQuery() {
 }
 
 export interface Session {
-  state: UiState;
+  state: SessionState;
   user: UiUser | null;
   anonymousAccess: boolean;
+  restricted: boolean;
   permissions: PermissionSet;
   can(need: Need | undefined): boolean;
 }
 
-const EMPTY: UiState = {
+const EMPTY: SessionState = {
   version: '',
   revision: null,
   user: null,
@@ -45,6 +50,7 @@ export function useSession(): Session {
       state,
       user: state.user,
       anonymousAccess: state.anonymousAccess,
+      restricted: state.restricted === true,
       permissions,
       can: (need: Need | undefined) => permissions.satisfies(need),
     };
@@ -55,13 +61,13 @@ export function useCan(need: Need | undefined): boolean {
   return useSession().can(need);
 }
 
-export function useRefreshSession(): () => Promise<UiState> {
+export function useRefreshSession(): () => Promise<SessionState> {
   const client = useQueryClient();
   return useCallback(async () => {
     forgetApi(client);
-    return client.fetchQuery<UiState>({
+    return client.fetchQuery<SessionState>({
       queryKey: STATE_KEY,
-      queryFn: () => api.get<UiState>(STATE_PATH, { quietUnauthorized: true }),
+      queryFn: () => api.get<SessionState>(STATE_PATH, { quietUnauthorized: true }),
       staleTime: 0,
     });
   }, [client]);
