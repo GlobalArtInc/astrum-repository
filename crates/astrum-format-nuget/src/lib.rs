@@ -16,7 +16,9 @@ pub mod version;
 mod xml;
 
 use astrum_content::format::{SearchKey, SearchTarget};
+use astrum_content::import::{Described, Imported};
 use astrum_content::store::{self};
+use astrum_content::transfer::{Bundle, GenericTransfer, Transfer};
 use astrum_content::{
     Asset, BrowseLayout, ContentError, ContentRequest, Ctx, Format, Serve, UploadField, UploadForm,
     UploadSpec, View, serve,
@@ -25,6 +27,7 @@ use astrum_repo::RepositoryType;
 use async_trait::async_trait;
 use axum::http::Method;
 use axum::response::Response;
+use futures_util::future::BoxFuture;
 use serde_json::{Value, json};
 
 use crate::docs::File;
@@ -51,6 +54,22 @@ const SEARCH_KEYS: &[SearchKey] = &[
         pointer: &[ID, "tags"],
     },
 ];
+
+static TRANSFER: GenericTransfer = GenericTransfer {
+    plan: import::plan,
+    describe: describe_imported,
+    after: None,
+    admit: Some(admit_bundle),
+    replaceable: None,
+};
+
+fn describe_imported(file: &Imported) -> BoxFuture<'_, Result<Option<Described>, String>> {
+    Box::pin(import::describe(file))
+}
+
+fn admit_bundle<'a>(ctx: &'a Ctx, bundle: &'a Bundle) -> BoxFuture<'a, Result<(), ContentError>> {
+    Box::pin(hosted::admit(ctx, bundle))
+}
 
 #[derive(Default)]
 pub struct Nuget {
@@ -438,6 +457,10 @@ impl Format for Nuget {
 
     fn search_keys(&self) -> &'static [SearchKey] {
         SEARCH_KEYS
+    }
+
+    fn transfer(&self) -> Option<&dyn Transfer> {
+        Some(&TRANSFER)
     }
 }
 
