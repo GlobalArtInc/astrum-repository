@@ -81,7 +81,7 @@ fn admit(bundle: &Bundle) -> Result<(), ContentError> {
             continue;
         }
         let filename = asset.path.rsplit('/').next().unwrap_or_default().to_owned();
-        hosted::Package {
+        let (path, _) = hosted::Package {
             metadata: metadata::CoreMetadata::from_form([
                 ("name", bundle.name.as_str()),
                 ("version", bundle.version.as_str()),
@@ -89,6 +89,12 @@ fn admit(bundle: &Bundle) -> Result<(), ContentError> {
             filename,
         }
         .path()?;
+        if path != asset.path {
+            return Err(ContentError::BadRequest(format!(
+                "the bundle path {} does not match {path}, where the upload would store it",
+                asset.path
+            )));
+        }
     }
     Ok(())
 }

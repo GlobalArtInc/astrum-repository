@@ -1510,3 +1510,85 @@ async fn promotion_refuses_a_project_name_the_upload_would_refuse() {
         .is_none()
     );
 }
+
+async fn blobs(fixture: &Fixture) -> usize {
+    fixture
+        .state
+        .content()
+        .blob_stores()
+        .get("default")
+        .await
+        .unwrap()
+        .list(None, 1000)
+        .await
+        .unwrap()
+        .len()
+}
+
+#[tokio::test]
+async fn promotion_refuses_bundle_paths_that_do_not_match_their_component() {
+    let fixture = ready().await;
+    create(&fixture, "hosted", hosted("pypi-source", "ALLOW")).await;
+    create(&fixture, "hosted", hosted("pypi-target", "ALLOW")).await;
+    let wheel_bytes = wheel("Astrum_Probe.Pkg", "0.1.0");
+    let wheel_name = "astrum_probe_pkg-0.1.0-py3-none-any.whl";
+    let uploaded = twine(
+        &fixture,
+        "pypi-source",
+        Auth::Admin,
+        "Astrum-Probe.Pkg",
+        "0.1.0",
+        wheel_name,
+        &wheel_bytes,
+    )
+    .await;
+    assert_eq!(uploaded.status, StatusCode::OK, "{}", uploaded.text());
+    let format = astrum_format_pypi::PyPi;
+    let path = format!("/packages/astrum-probe-pkg/0.1.0/{wheel_name}");
+    let bundle = support::bundle_of(&fixture, &format, "pypi-source", &path).await;
+    let before = blobs(&fixture).await;
+    for (wrong_dir, expected_dir) in [
+        (
+            "/packages/other-pkg/0.1.0/",
+            "/packages/astrum-probe-pkg/0.1.0/",
+        ),
+        (
+            "/packages/astrum-probe-pkg/0.2.0/",
+            "/packages/astrum-probe-pkg/0.1.0/",
+        ),
+    ] {
+        let mut crafted = bundle.clone();
+        for asset in &mut crafted.assets {
+            asset.path = asset.path.replacen(expected_dir, wrong_dir, 1);
+        }
+        let wrong_path = format!("{wrong_dir}{wheel_name}");
+        let from = support::repository_ctx(&fixture, "pypi-source").await;
+        let to = support::repository_ctx(&fixture, "pypi-target").await;
+        let refused = format
+            .transfer()
+            .expect("pypi takes part in promotion")
+            .receive(
+                &to,
+                &crafted,
+                &LocalSource::new(from),
+                Terms::new(Conflict::Fail, PROMOTED),
+            )
+            .await;
+        match refused {
+            Err(ContentError::BadRequest(message)) => assert_eq!(
+                message,
+                format!(
+                    "the bundle path {wrong_path} does not match {path}, where the upload would store it"
+                )
+            ),
+            other => panic!("expected a refusal, got {other:?}"),
+        }
+        assert!(
+            store::find(fixture.state.db().conn(), "pypi-target", &wrong_path)
+                .await
+                .unwrap()
+                .is_none()
+        );
+    }
+    assert_eq!(blobs(&fixture).await, before);
+}
