@@ -58,10 +58,19 @@ async fn every_migration_can_be_taken_back() {
     assert_eq!(db.migrate().await.unwrap().len(), count);
 
     let conn = db.conn();
+    let from_cooldown = MIGRATIONS
+        .all()
+        .unwrap()
+        .iter()
+        .filter(|migration| migration.stamp >= 1_794_710_000_000)
+        .count();
     let cooldown_exception = "INSERT INTO policy_exception (id, rule, name, reason, created_by) \
          VALUES (gen_random_uuid(), 'cooldown', 'left', 'audited', 'tester')";
     conn.execute_unprepared(cooldown_exception).await.unwrap();
-    assert_eq!(MIGRATIONS.revert(conn, 1).await.unwrap().len(), 1);
+    assert_eq!(
+        MIGRATIONS.revert(conn, from_cooldown).await.unwrap().len(),
+        from_cooldown
+    );
     let left = conn
         .query_one(Statement::from_string(
             DbBackend::Postgres,
@@ -72,7 +81,7 @@ async fn every_migration_can_be_taken_back() {
         .unwrap();
     assert_eq!(left.try_get::<i64>("", "n").unwrap(), 0);
     assert!(conn.execute_unprepared(cooldown_exception).await.is_err());
-    assert_eq!(db.migrate().await.unwrap().len(), 1);
+    assert_eq!(db.migrate().await.unwrap().len(), from_cooldown);
     conn.execute_unprepared(cooldown_exception).await.unwrap();
 }
 
