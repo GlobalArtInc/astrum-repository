@@ -84,7 +84,7 @@ counted per client address.
 | `request_upload` | Gives a one-time `PUT` address for a file; the agent then sends the file with `curl` ([Upload a package](#upload-a-package)) | the right to add to some repository |
 | `upload_component` | Uploads a file of up to 64 KiB given inline as base64 | the right to add to some repository |
 | `list_users`, `list_roles`, `list_privileges` | Users with their roles; roles with their privileges and the roles they include; privileges, filtered by repository, format or name | `astrum:users:read`, `astrum:roles:read`, `astrum:privileges:read` |
-| `get_two_factor_status` | Takes `userId`. Whether the user has an authenticator app set up, how many recovery codes are left, the requirement that applies and whether sign-in is locked; see [two-factor authentication](../configure/two-factor.md) | `astrum:users:read` |
+| `get_two_factor_status` | Takes `userId`. Whether the user has a second factor set up (an authenticator app, passkeys or both) and whether an authenticator app is one of them, how many recovery codes are left, the requirement that applies and whether sign-in is locked; see [two-factor authentication](../configure/two-factor.md) | `astrum:users:read` |
 | `get_two_factor_policy` | No arguments. The methods that are on, who must have a second factor, the grace period and when the requirement was last widened | `astrum:*`; not offered to Read tokens |
 | `create_role`, `update_role` | Creates a role, or adds and takes away its privileges and included roles; built-in roles stay as they are | `astrum:roles:create`, `astrum:roles:update` |
 | `set_user_roles` | Gives roles to a user or takes them away, keeping the other details of the user | `astrum:users:update`, and the right to grant the roles |

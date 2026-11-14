@@ -27,7 +27,8 @@ curl -X PUT -H 'Content-Type: application/json' \
 
 ## Two-factor authentication
 
-A user with a [second factor](../configure/two-factor.md) is asked for a one-time password by `npm login`:
+A user with a [second factor](../configure/two-factor.md) that is an authenticator app or recovery codes is
+asked for a one-time password by `npm login`:
 
 1. `npm login` sends the user name and password. With the right password and no code, the server answers
    `401` with `WWW-Authenticate: OTP`, and npm asks for the one-time password.
@@ -46,6 +47,7 @@ These answers refuse the sign-in:
 | `401` with `the user name or password is wrong` | The password is wrong |
 | `429` with `Retry-After` | The authenticator app is locked after too many wrong codes |
 | `401` asking the user to set up a second factor in the web interface | The account must have a factor and has none yet |
+| `401` with `this account has passkeys only; sign in with an access token` | The account has passkeys and no authenticator app or recovery code. Passkeys are not accepted here; use an [access token](../configure/authentication.md#access-tokens) |
 
 Token issue is for local accounts only. A directory account, including one whose user name equals the name
 of a local user, gets `401` and the message that the account signs in through a directory, so it uses an
