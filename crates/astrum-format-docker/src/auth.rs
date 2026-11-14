@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 
+use astrum_api::auth::PasswordRefusal;
 use astrum_api::{AppState, Caller};
 use astrum_security::tokens::looks_like_token;
-use astrum_security::{AuthError, SecurityModel, Subject};
+use astrum_security::{SecurityModel, Subject};
 use axum::Form;
 use axum::extract::{Query, State};
 use axum::http::{HeaderMap, HeaderValue, StatusCode, Uri, header};
@@ -205,16 +206,17 @@ pub async fn oauth(
             Err(_) => oauth_error(StatusCode::UNAUTHORIZED, "invalid_grant"),
         };
     }
-    match security.authenticate(username, password).await {
+    match astrum_api::auth::check_password(&state, username, password, "Docker", false).await {
         Ok(subject) => match issue(&state, &subject).await {
             Ok(token) => token_body(&token, LIFETIME_SECONDS, scope),
             Err(error) => error.into_response(),
         },
-        Err(AuthError::BadCredentials) => {
+        Err(PasswordRefusal::Wrong) => {
             tracing::info!(user = %username, "a Docker token request failed");
             oauth_error(StatusCode::UNAUTHORIZED, "invalid_grant")
         }
-        Err(AuthError::Internal(error)) => {
+        Err(PasswordRefusal::Throttled(seconds)) => astrum_api::auth::registry_throttled(seconds),
+        Err(PasswordRefusal::Internal(error)) => {
             RegistryError::from(astrum_content::ContentError::internal(error)).into_response()
         }
     }

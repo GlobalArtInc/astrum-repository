@@ -36,6 +36,14 @@ pub struct Cli {
         help = "Directory of the built user interface [env: ASTRUM_WEB_DIR] [default: /usr/share/astrum/web]"
     )]
     pub web_dir: Option<PathBuf>,
+    #[arg(
+        long,
+        global = true,
+        value_name = "ADDRESSES",
+        value_delimiter = ',',
+        help = "Addresses or CIDR ranges of the reverse proxies whose X-Forwarded-For is believed, comma-separated [env: ASTRUM_TRUSTED_PROXIES] [default: none]"
+    )]
+    pub trusted_proxies: Vec<String>,
     #[command(subcommand)]
     pub command: Option<Command>,
 }
@@ -50,4 +58,20 @@ pub enum Command {
     Check,
     #[command(about = "Print the version")]
     Version,
+    #[command(
+        name = "ip-allow",
+        about = "Manage the IP allow lists from the command line"
+    )]
+    IpAllow {
+        #[command(subcommand)]
+        action: IpAllowCommand,
+    },
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Subcommand)]
+pub enum IpAllowCommand {
+    #[command(
+        about = "Clear the management, content and agents lists directly in the database, so every address is allowed again; works while the server is stopped"
+    )]
+    Reset,
 }

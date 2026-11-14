@@ -20,20 +20,6 @@ pub fn routes() -> Router<AppState> {
         .merge(ui_state::routes())
 }
 
-pub(crate) fn client_ip(headers: &HeaderMap) -> String {
-    headers
-        .get("x-forwarded-for")
-        .and_then(|value| value.to_str().ok())
-        .and_then(|value| value.split(',').next())
-        .or_else(|| {
-            headers
-                .get("x-real-ip")
-                .and_then(|value| value.to_str().ok())
-        })
-        .map(|value| value.trim().to_owned())
-        .unwrap_or_default()
-}
-
 pub(crate) fn is_https(headers: &HeaderMap) -> bool {
     let header = |name: &str| headers.get(name).and_then(|value| value.to_str().ok());
     header("x-forwarded-proto").is_some_and(|proto| proto.eq_ignore_ascii_case("https"))

@@ -8,7 +8,6 @@ use astrum_content::{ContentError, ContentRequest, Ctx};
 
 use crate::routes::components::{browsable, browse_address, interface_address};
 use crate::routes::html::{self, escape};
-use crate::routes::internal::client_ip;
 use crate::routes::repositories::base_url;
 use crate::{AppState, Caller};
 
@@ -97,7 +96,7 @@ pub async fn context(
         caller,
         name,
         base_url(headers, uri),
-        crate::auth::client_address().unwrap_or_else(|| client_ip(headers)),
+        crate::auth::client_address().unwrap_or_default(),
     )
     .await
 }

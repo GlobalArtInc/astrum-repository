@@ -249,13 +249,23 @@ async fn hosted_files_go_in_and_come_out() {
 }
 
 #[tokio::test]
-async fn uploads_record_the_peer_address_unless_a_proxy_names_the_client() {
+async fn uploads_record_the_peer_unless_a_trusted_proxy_names_the_client() {
     let fixture = ready().await;
+    fixture.trust(&["10.0.0.0/8"]);
     create(&fixture, "hosted", hosted("peers", "ALLOW")).await;
     let credentials = STANDARD.encode(format!("admin:{}", fixture.admin_password));
-    for (path, forwarded) in [
-        ("/repository/peers/direct.txt", None),
-        ("/repository/peers/forwarded.txt", Some("203.0.113.9")),
+    for (path, peer, forwarded) in [
+        ("/repository/peers/direct.txt", [192, 0, 2, 7], None),
+        (
+            "/repository/peers/forged.txt",
+            [192, 0, 2, 7],
+            Some("203.0.113.9"),
+        ),
+        (
+            "/repository/peers/proxied.txt",
+            [10, 0, 0, 5],
+            Some("203.0.113.9"),
+        ),
     ] {
         let mut request = Request::builder()
             .method(Method::PUT)
@@ -268,7 +278,7 @@ async fn uploads_record_the_peer_address_unless_a_proxy_names_the_client() {
         let mut request = request.body(Body::from("peer\n")).unwrap();
         request
             .extensions_mut()
-            .insert(ConnectInfo(SocketAddr::from(([192, 0, 2, 7], 40000))));
+            .insert(ConnectInfo(SocketAddr::from((peer, 40000))));
         let response = astrum_api::router(fixture.state.clone())
             .oneshot(request)
             .await
@@ -296,7 +306,8 @@ async fn uploads_record_the_peer_address_unless_a_proxy_names_the_client() {
         })
         .collect();
     assert_eq!(addresses["/direct.txt"], "192.0.2.7");
-    assert_eq!(addresses["/forwarded.txt"], "203.0.113.9");
+    assert_eq!(addresses["/forged.txt"], "192.0.2.7");
+    assert_eq!(addresses["/proxied.txt"], "203.0.113.9");
 }
 
 #[tokio::test]

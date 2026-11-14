@@ -169,6 +169,15 @@ export const CATALOG: CatalogTile[] = [
     'settings.tile.anonymousText',
   ),
   tile(
+    'ip-allow',
+    'security',
+    75,
+    '/admin/security/ip-allow',
+    Globe,
+    'security.ipAllow.tile',
+    'security.ipAllow.tileText',
+  ),
+  tile(
     'ssl-certificates',
     'security',
     80,

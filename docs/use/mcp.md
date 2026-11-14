@@ -86,6 +86,7 @@ counted per client address.
 | `list_users`, `list_roles`, `list_privileges` | Users with their roles; roles with their privileges and the roles they include; privileges, filtered by repository, format or name | `astrum:users:read`, `astrum:roles:read`, `astrum:privileges:read` |
 | `create_role`, `update_role` | Creates a role, or adds and takes away its privileges and included roles; built-in roles stay as they are | `astrum:roles:create`, `astrum:roles:update` |
 | `set_user_roles` | Gives roles to a user or takes them away, keeping the other details of the user | `astrum:users:update`, and the right to grant the roles |
+| `get_ip_allow_list` | The management, content and agents [allow lists](../configure/ip-allow-list.md), the address the server sees for you and the trusted proxies; read only, the lists are changed in the web interface | `astrum:*` (administrator) |
 
 The tools that change the server are only offered to Write tokens, and every tool is only listed when the
 user holds the rights it needs; the server checks those rights again on every call. The only tools that

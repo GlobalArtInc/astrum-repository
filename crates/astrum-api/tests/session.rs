@@ -293,9 +293,7 @@ async fn repeated_failures_pause_sign_in() {
     assert_eq!(blocked.status, StatusCode::TOO_MANY_REQUESTS);
 }
 
-#[tokio::test]
-async fn sign_ins_and_failures_are_audited_with_the_client_address() {
-    let fixture = Fixture::new().await;
+async fn audited_sign_in(fixture: &Fixture) -> (serde_json::Value, serde_json::Value) {
     let forwarded = [("x-forwarded-for", "203.0.113.9, 10.0.0.1")];
     let wrong = fixture
         .send(
@@ -330,14 +328,35 @@ async fn sign_ins_and_failures_are_audited_with_the_client_address() {
     let login = events
         .iter()
         .find(|event| event["type"] == "login")
-        .expect("a sign-in event");
-    assert_eq!(login["initiator"], "admin/203.0.113.9");
-    assert_eq!(login["attributes"]["principal"], "admin");
+        .expect("a sign-in event")
+        .clone();
     let failure = events
         .iter()
         .find(|event| event["domain"] == "security.user" && event["type"] == "authentication")
-        .expect("a failed sign-in event");
+        .expect("a failed sign-in event")
+        .clone();
+    assert_eq!(login["attributes"]["principal"], "admin");
     assert_eq!(failure["attributes"]["userId"], "admin");
-    assert_eq!(failure["attributes"]["remoteIp"], "203.0.113.9");
     assert_eq!(failure["attributes"]["wasSuccessful"], false);
+    (login, failure)
+}
+
+#[tokio::test]
+async fn sign_ins_and_failures_are_audited_with_the_address_a_trusted_proxy_reports() {
+    let mut fixture = Fixture::new().await;
+    fixture.trust(&["10.0.0.0/8"]);
+    fixture.peer = Some("10.0.0.2".parse().unwrap());
+    let (login, failure) = audited_sign_in(&fixture).await;
+    assert_eq!(login["initiator"], "admin/203.0.113.9");
+    assert_eq!(failure["attributes"]["remoteIp"], "203.0.113.9");
+}
+
+#[tokio::test]
+async fn sign_ins_and_failures_show_the_peer_when_the_header_comes_from_anyone_else() {
+    let mut fixture = Fixture::new().await;
+    fixture.trust(&["10.0.0.0/8"]);
+    fixture.peer = Some("192.0.2.7".parse().unwrap());
+    let (login, failure) = audited_sign_in(&fixture).await;
+    assert_eq!(login["initiator"], "admin/192.0.2.7");
+    assert_eq!(failure["attributes"]["remoteIp"], "192.0.2.7");
 }

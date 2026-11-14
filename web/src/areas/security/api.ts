@@ -12,6 +12,7 @@ export const ANONYMOUS = `${SECURITY}/anonymous`;
 export const REALMS_AVAILABLE = `${SECURITY}/realms/available`;
 export const REALMS_ACTIVE = `${SECURITY}/realms/active`;
 export const SSRF = `${SECURITY}/ssrf-protection`;
+export const IP_ALLOW = `${SECURITY}/ip-allow`;
 export const REPOSITORIES = `${V1}/repositories`;
 export const ROLE_SOURCES = `${INTERNAL}/ui/roles/sources`;
 export const SOURCE_ROLES = `${INTERNAL}/ui/roles`;
@@ -116,6 +117,19 @@ export interface SsrfProtection {
   enabled: boolean;
   allowedIPs: string[];
   allowedDomains: string[];
+}
+
+export interface IpAllowLists {
+  management: string[];
+  content: string[];
+  agents: string[];
+}
+
+export interface IpAllowView extends IpAllowLists {
+  yourAddress: string | null;
+  peer: string | null;
+  trustedProxies: string[];
+  forwardedIgnored: boolean;
 }
 
 export interface Repository {

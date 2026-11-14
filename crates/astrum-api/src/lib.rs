@@ -1,8 +1,10 @@
 pub mod auth;
 pub mod base_url;
+pub mod client;
 pub mod domains;
 pub mod error;
 pub mod github;
+pub mod ip_allow;
 pub mod json;
 pub mod limits;
 pub mod metrics;
@@ -56,10 +58,12 @@ struct Inner {
     node_id: uuid::Uuid,
     started_at: chrono::DateTime<chrono::FixedOffset>,
     application_port: OnceLock<u16>,
+    trusted_proxies: OnceLock<client::TrustedProxies>,
     repository_changes: tokio::sync::Notify,
     limits: limits::Limiter,
     metrics: metrics::Registry,
     stars: github::Stars,
+    ip_allow_denials: ip_allow::Denials,
 }
 
 impl AppState {
@@ -96,10 +100,12 @@ impl AppState {
                 node_id: uuid::Uuid::new_v4(),
                 started_at: chrono::Utc::now().fixed_offset(),
                 application_port: OnceLock::new(),
+                trusted_proxies: OnceLock::new(),
                 repository_changes: tokio::sync::Notify::new(),
                 limits: limits::Limiter::default(),
                 metrics: metrics::Registry::default(),
                 stars: github::Stars::default(),
+                ip_allow_denials: ip_allow::Denials::default(),
             }),
         }
     }
@@ -185,6 +191,20 @@ impl AppState {
         self.inner.application_port.get().copied()
     }
 
+    pub fn set_trusted_proxies(
+        &self,
+        trusted: client::TrustedProxies,
+    ) -> Result<(), client::TrustedProxies> {
+        self.inner.trusted_proxies.set(trusted)
+    }
+
+    pub fn trusted_proxies(&self) -> &client::TrustedProxies {
+        self.inner
+            .trusted_proxies
+            .get()
+            .unwrap_or(&client::NO_PROXIES)
+    }
+
     pub fn repository_changes(&self) -> &tokio::sync::Notify {
         &self.inner.repository_changes
     }
@@ -199,6 +219,10 @@ impl AppState {
 
     pub fn metrics(&self) -> &metrics::Registry {
         &self.inner.metrics
+    }
+
+    pub fn ip_allow_denials(&self) -> &ip_allow::Denials {
+        &self.inner.ip_allow_denials
     }
 
     pub async fn audit(&self, caller: &Caller, event: Event) {
@@ -238,7 +262,15 @@ pub fn on_domains(state: AppState, app: Router) -> Router {
             state.clone(),
             metrics::track,
         ))
-        .layer(middleware::from_fn_with_state(state, domains::route))
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            ip_allow::guard,
+        ))
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            domains::route,
+        ))
+        .layer(middleware::from_fn_with_state(state, client::scope))
 }
 
 pub fn routes_with(state: AppState, extra: Router<AppState>) -> Router {

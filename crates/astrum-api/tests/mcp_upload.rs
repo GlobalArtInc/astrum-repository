@@ -307,6 +307,45 @@ async fn a_raw_file_goes_in_through_a_ticket_and_the_audit_says_via_mcp() {
 }
 
 #[tokio::test]
+async fn a_ticket_upload_records_the_peer_unless_a_trusted_proxy_names_the_client() {
+    let mut fixture = ready_for_uploads().await;
+    fixture.trust(&["10.0.0.0/8"]);
+    raw_hosted(&fixture, "files").await;
+    let token = admin_token(&fixture).await;
+    let forged = [("x-forwarded-for", "203.0.113.9")];
+    for (peer, file, expected) in [
+        ("192.0.2.7", "forged.txt", "192.0.2.7"),
+        ("10.0.0.5", "proxied.txt", "203.0.113.9"),
+    ] {
+        let (path, _) = issue(
+            &fixture,
+            &token,
+            json!({"repository": "files", "fileName": file, "fields": {"directory": "/docs"}}),
+        )
+        .await;
+        fixture.peer = Some(peer.parse().unwrap());
+        let stored = put_file(&fixture, &path, Auth::None, "peer\n", &forged).await;
+        assert_eq!(stored.status, StatusCode::CREATED, "{}", stored.text());
+        let assets = fixture
+            .call(
+                Method::GET,
+                "/service/rest/v1/assets?repository=files",
+                Auth::Admin,
+                None,
+            )
+            .await
+            .json();
+        let asset = assets["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|asset| asset["path"] == format!("/docs/{file}"))
+            .expect("the uploaded asset");
+        assert_eq!(asset["uploaderIp"], expected, "{file}");
+    }
+}
+
+#[tokio::test]
 async fn npm_packages_plain_and_scoped_go_in_through_tickets() {
     let fixture = ready_for_uploads().await;
     create(
@@ -741,6 +780,28 @@ async fn open_tickets_and_attempts_are_limited() {
             .filter(|reply| reply.status != StatusCode::TOO_MANY_REQUESTS)
             .all(|reply| reply.status == StatusCode::NOT_FOUND)
     );
+}
+
+#[tokio::test]
+async fn upload_attempts_of_one_ipv6_network_share_a_limit() {
+    let mut fixture = ready_for_uploads().await;
+    fixture.peer = Some("2001:db8:1:2::1".parse().unwrap());
+    let mut tries = 0;
+    loop {
+        let reply = put_file(&fixture, "/mcp/upload/garbage", Auth::None, "x", &[]).await;
+        if reply.status == StatusCode::TOO_MANY_REQUESTS {
+            break;
+        }
+        assert_eq!(reply.status, StatusCode::NOT_FOUND);
+        tries += 1;
+        assert!(tries < 200, "the limiter never answered");
+    }
+    fixture.peer = Some("2001:db8:1:2:ffff:ffff:ffff:ffff".parse().unwrap());
+    let same_network = put_file(&fixture, "/mcp/upload/garbage", Auth::None, "x", &[]).await;
+    assert_eq!(same_network.status, StatusCode::TOO_MANY_REQUESTS);
+    fixture.peer = Some("2001:db8:1:3::1".parse().unwrap());
+    let other_network = put_file(&fixture, "/mcp/upload/garbage", Auth::None, "x", &[]).await;
+    assert_eq!(other_network.status, StatusCode::NOT_FOUND);
 }
 
 #[tokio::test]

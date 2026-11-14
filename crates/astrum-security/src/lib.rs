@@ -3,6 +3,7 @@ pub mod bootstrap;
 pub mod catalogue;
 pub mod credentials;
 pub mod format_tokens;
+pub mod ip_allow;
 pub mod ldap;
 pub mod model;
 pub mod oauth;
@@ -55,6 +56,10 @@ pub enum Error {
     Io(#[from] std::io::Error),
     #[error("a background job ended early: {0}")]
     Join(#[from] tokio::task::JoinError),
+    #[error(
+        "the stored IP allow list is invalid: {0}; stop the server and run `astrum ip-allow reset` to clear it"
+    )]
+    IpAllow(String),
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -86,6 +91,7 @@ pub struct Security {
     reloading: tokio::sync::Mutex<()>,
     verified: Mutex<HashMap<[u8; 32], Instant>>,
     failures: Mutex<HashMap<String, (u32, Instant)>>,
+    basic_failures: sessions::BasicFailures,
     secrets: Option<SecretBox>,
     ldap: ldap::Ldap,
     oidc: oidc::OidcProvider,
@@ -108,6 +114,7 @@ impl Security {
             reloading: tokio::sync::Mutex::new(()),
             verified: Mutex::new(HashMap::new()),
             failures: Mutex::new(HashMap::new()),
+            basic_failures: sessions::BasicFailures::default(),
             secrets: None,
             ldap: ldap::Ldap::new(),
             oidc: oidc::OidcProvider::default(),

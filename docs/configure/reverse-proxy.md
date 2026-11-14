@@ -7,7 +7,9 @@ Run the server on plain HTTP behind a reverse proxy that terminates TLS. The pro
 - accept request bodies of any size and stream them instead of buffering them: Docker layers, Maven
   bundles and Helm charts can be several gigabytes;
 - allow long requests: uploads and the first download of a large artifact through a proxy repository
-  can take minutes.
+  can take minutes;
+- send the address of the client in `X-Forwarded-For` and be listed in the server's
+  [trusted proxies](#trusted-proxies), or every client appears with the address of the proxy.
 
 If the proxy cannot forward the host and scheme, set the base URL explicitly; see
 [base URL](runtime.md#base-url).
@@ -33,8 +35,7 @@ server {
         proxy_pass http://127.0.0.1:8081;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-For $remote_addr;
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 }
@@ -45,6 +46,69 @@ server {
     return 301 https://$host$request_uri;
 }
 ```
+
+This proxy is the first one a client meets, so it replaces `X-Forwarded-For` with the address it sees
+instead of passing on what the client sent. If another proxy stands in front of nginx, use
+`$proxy_add_x_forwarded_for` here, which appends the address of the previous hop to the header it
+received, and list that proxy as trusted as well. With nginx on the same host as the server, the
+connection to the server comes from `127.0.0.1` (and `::1`); list them in `trusted_proxies`. Every local
+process that can reach the server then gets the same trust as nginx and so can choose the address that
+is recorded for its requests.
+
+## Trusted proxies
+
+The server records the address of a client in the audit log, in the uploader of a component and in the
+counters that [throttle failed password checks](authentication.md#failed-password-checks). A request
+carries it in the TCP connection and, when a proxy passes it on, in the `X-Forwarded-For` header, which
+anybody can write. So the header is believed only on a connection from a proxy you name in
+`trusted_proxies`, and nothing is trusted by default.
+
+Set the list of addresses or CIDR ranges of your proxies, as seen by the server:
+
+```toml
+trusted_proxies = ["10.0.10.0/24", "fd00:10::/64"]
+```
+
+or `ASTRUM_TRUSTED_PROXIES=10.0.10.0/24,fd00:10::/64`, or `--trusted-proxies 10.0.10.0/24,fd00:10::/64`
+(the option wins over the variable, the variable over the file). An entry that is not an address or a
+range stops the server at start with a message that names where it came from, and so does a range with
+prefix length 0 (`0.0.0.0/0`, `::/0`), which would trust every address; so does any range that covers a
+huge part of the address space by accident, an IPv4 prefix shorter than `/8` or an IPv6 prefix shorter
+than `/16`. An IPv4-mapped IPv6 range such as `::ffff:10.0.0.0/104` is read as the IPv4 range
+`10.0.0.0/8`. A blank value of the option or of the variable (also one that holds only commas) counts as not set
+and the next source is used (the option, then the variable, then the file), so to clear the list remove
+it from every source. The list is part of the
+deployment, not a setting in the web interface, and changing it needs a restart.
+
+How the client address is found:
+
+- If the address of the TCP connection is not in the list, it is the client address. `X-Forwarded-For`,
+  `X-Real-IP` and `Forwarded` are ignored, whatever they say.
+- If it is in the list, the server reads every `X-Forwarded-For` header from the right and skips the
+  addresses of trusted proxies. The first address that is not trusted is the client. A proxy that
+  appends to the header, as nginx does with `$proxy_add_x_forwarded_for` and Envoy-based gateways usually
+  do, therefore adds the one entry the server relies on, and anything a client wrote in front of it is
+  never read. If every entry is trusted, the leftmost one is used. An entry that is not an address stops
+  the reading at the last good one.
+- IPv4-mapped IPv6 addresses (`::ffff:192.0.2.1`) are the same address as their IPv4 form.
+
+List **every** proxy between the clients and the server whose address can appear on the connection or in
+`X-Forwarded-For`: the gateway, and any load balancer or second proxy behind which it stands. The address
+to list is the one the server sees, which is not always the address of the proxy host: a container or
+a port forwarding of the server's host (rootless Podman, for example) may show the connection as coming
+from its own gateway address, and a cluster gateway connects from the addresses of its pods or nodes. Look
+at the address recorded in the audit log for a request you made and list its range. List only proxies:
+if you list a range that clients also use, a client from that range can write any address in front of
+its own and be believed.
+
+When the list is wrong the failure is visible, not silent:
+
+- A proxy that is not listed shows as the client. Every user behind it shares one address, the audit
+  log shows the proxy's address, and the throttle for failed passwords counts all clients together.
+- A range that is listed but also holds clients lets those clients choose their address, as described
+  above.
+
+The system information and the support ZIP list the configured value as `trustedProxies`.
 
 ## Kubernetes Gateway API
 
@@ -107,6 +171,10 @@ spec:
 
 Check the gateway's own limits on request body size and idle timeouts as well; Envoy, for example,
 has a default stream idle timeout that a slow upload can hit.
+
+Envoy appends the address of its client to `X-Forwarded-For`, which is what the server expects, but it
+connects to the server from the addresses of its own pods or nodes: add that range to
+[`trusted_proxies`](#trusted-proxies).
 
 ## Docker repositories
 

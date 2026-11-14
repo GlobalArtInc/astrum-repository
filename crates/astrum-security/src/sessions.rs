@@ -1,3 +1,6 @@
+use std::collections::HashMap;
+use std::net::IpAddr;
+use std::sync::{Mutex, MutexGuard, PoisonError};
 use std::time::{Duration as StdDuration, Instant};
 
 use astrum_db::entity::user_session as session;
@@ -17,6 +20,178 @@ pub const TIMEOUT_KEY: &str = "security.sessionTimeoutMinutes";
 const TOUCH_EVERY: Duration = Duration::seconds(60);
 const FAILURES_ALLOWED: u32 = 10;
 const FAILURE_WINDOW: StdDuration = StdDuration::from_secs(300);
+const KEPT_ENTRIES: usize = 10_000;
+const HARD_CAP: usize = 50_000;
+const PRUNE_EVERY: StdDuration = StdDuration::from_secs(30);
+pub const KEY_USER_LENGTH: usize = 256;
+pub const KEY_ADDRESS_LENGTH: usize = 64;
+const UNKNOWN_ADDRESS: &str = "unknown";
+const V6_PREFIX_BITS: u32 = 64;
+
+pub fn throttle_address(address: Option<IpAddr>) -> String {
+    match address.map(|address| address.to_canonical()) {
+        None => UNKNOWN_ADDRESS.to_owned(),
+        Some(IpAddr::V4(address)) => address.to_string(),
+        Some(IpAddr::V6(address)) => {
+            let prefix = u128::from(address) & (u128::MAX << (128 - V6_PREFIX_BITS));
+            format!("{}/{V6_PREFIX_BITS}", std::net::Ipv6Addr::from(prefix))
+        }
+    }
+}
+
+struct Attempts {
+    count: u32,
+    since: Instant,
+    reported: bool,
+}
+
+struct BasicState {
+    entries: HashMap<(String, String), Attempts>,
+    last_prune: Instant,
+}
+
+pub(crate) struct BasicFailures {
+    state: Mutex<BasicState>,
+    window: StdDuration,
+    cap: usize,
+}
+
+impl Default for BasicFailures {
+    fn default() -> Self {
+        Self::with_limits(FAILURE_WINDOW, HARD_CAP)
+    }
+}
+
+impl BasicFailures {
+    fn with_limits(window: StdDuration, cap: usize) -> Self {
+        Self {
+            state: Mutex::new(BasicState {
+                entries: HashMap::new(),
+                last_prune: Instant::now(),
+            }),
+            window,
+            cap,
+        }
+    }
+
+    fn key(user_id: &str, address: &str) -> (String, String) {
+        (
+            user_id
+                .trim()
+                .to_lowercase()
+                .chars()
+                .take(KEY_USER_LENGTH)
+                .collect(),
+            address.trim().chars().take(KEY_ADDRESS_LENGTH).collect(),
+        )
+    }
+
+    fn state(&self) -> MutexGuard<'_, BasicState> {
+        self.state.lock().unwrap_or_else(PoisonError::into_inner)
+    }
+
+    pub(crate) fn attempt(&self, user_id: &str, address: &str) -> Result<(), StdDuration> {
+        let key = Self::key(user_id, address);
+        let mut state = self.state();
+        let window = self.window;
+        if state.entries.len() > KEPT_ENTRIES && state.last_prune.elapsed() >= PRUNE_EVERY {
+            state
+                .entries
+                .retain(|_, found| found.since.elapsed() < window);
+            state.last_prune = Instant::now();
+        }
+        if let Some(found) = state.entries.get_mut(&key) {
+            let elapsed = found.since.elapsed();
+            if elapsed >= window {
+                *found = Attempts {
+                    count: 1,
+                    since: Instant::now(),
+                    reported: false,
+                };
+                return Ok(());
+            }
+            if found.count >= FAILURES_ALLOWED {
+                return Err(window - elapsed);
+            }
+            found.count += 1;
+            return Ok(());
+        }
+        if state.entries.len() >= self.cap {
+            self.make_room(&mut state);
+        }
+        if state.entries.len() < self.cap {
+            state.entries.insert(
+                key,
+                Attempts {
+                    count: 1,
+                    since: Instant::now(),
+                    reported: false,
+                },
+            );
+        }
+        Ok(())
+    }
+
+    fn make_room(&self, state: &mut BasicState) {
+        let window = self.window;
+        state
+            .entries
+            .retain(|_, found| found.since.elapsed() < window);
+        state.last_prune = Instant::now();
+        if state.entries.len() < self.cap {
+            return;
+        }
+        let lowest = state
+            .entries
+            .values()
+            .filter(|found| found.count < FAILURES_ALLOWED)
+            .map(|found| found.count)
+            .min();
+        if let Some(lowest) = lowest {
+            state
+                .entries
+                .retain(|_, found| found.count >= FAILURES_ALLOWED || found.count > lowest);
+        }
+    }
+
+    pub(crate) fn blocked(&self, user_id: &str, address: &str) -> Option<StdDuration> {
+        let key = Self::key(user_id, address);
+        let state = self.state();
+        let found = state.entries.get(&key)?;
+        let elapsed = found.since.elapsed();
+        (found.count >= FAILURES_ALLOWED && elapsed < self.window).then(|| self.window - elapsed)
+    }
+
+    pub(crate) fn failed(&self, user_id: &str, address: &str) -> bool {
+        let key = Self::key(user_id, address);
+        let mut state = self.state();
+        let Some(found) = state.entries.get_mut(&key) else {
+            return false;
+        };
+        let blocked = found.count >= FAILURES_ALLOWED && found.since.elapsed() < self.window;
+        let first = blocked && !found.reported;
+        if first {
+            found.reported = true;
+        }
+        first
+    }
+
+    pub(crate) fn refund(&self, user_id: &str, address: &str) {
+        let key = Self::key(user_id, address);
+        let mut state = self.state();
+        if let Some(found) = state.entries.get_mut(&key) {
+            found.count = found.count.saturating_sub(1);
+            if found.count == 0 {
+                state.entries.remove(&key);
+            }
+        }
+    }
+
+    pub(crate) fn succeeded(&self, user_id: &str, address: &str) {
+        let key = Self::key(user_id, address);
+        self.state().entries.remove(&key);
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct NewSession {
@@ -236,11 +411,136 @@ impl Security {
             .expect("the sign-in failures lock is never poisoned")
             .remove(user_id);
     }
+
+    pub fn basic_attempt(&self, user_id: &str, address: Option<IpAddr>) -> Result<(), StdDuration> {
+        self.basic_failures
+            .attempt(user_id, &throttle_address(address))
+    }
+
+    pub fn basic_blocked(&self, user_id: &str, address: Option<IpAddr>) -> Option<StdDuration> {
+        self.basic_failures
+            .blocked(user_id, &throttle_address(address))
+    }
+
+    pub fn basic_failed(&self, user_id: &str, address: Option<IpAddr>) -> bool {
+        self.basic_failures
+            .failed(user_id, &throttle_address(address))
+    }
+
+    pub fn basic_refunded(&self, user_id: &str, address: Option<IpAddr>) {
+        self.basic_failures
+            .refund(user_id, &throttle_address(address));
+    }
+
+    pub fn basic_succeeded(&self, user_id: &str, address: Option<IpAddr>) {
+        self.basic_failures
+            .succeeded(user_id, &throttle_address(address));
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn basic_attempts_are_counted_per_user_and_address() {
+        let failures = BasicFailures::default();
+        for _ in 0..FAILURES_ALLOWED - 1 {
+            failures.attempt("Admin", "203.0.113.1").unwrap();
+        }
+        assert!(failures.blocked("admin", "203.0.113.1").is_none());
+        failures.attempt(" admin ", "203.0.113.1").unwrap();
+        let wait = failures.blocked("ADMIN", "203.0.113.1").unwrap();
+        assert!(wait > StdDuration::ZERO && wait <= FAILURE_WINDOW);
+        assert!(failures.attempt("admin", "203.0.113.1").unwrap_err() <= wait);
+        assert!(failures.attempt("admin", "203.0.113.2").is_ok());
+        assert!(failures.attempt("other", "203.0.113.1").is_ok());
+        failures.succeeded("admin", "203.0.113.1");
+        assert!(failures.attempt("admin", "203.0.113.1").is_ok());
+    }
+
+    #[test]
+    fn a_block_is_reported_once_and_a_refund_gives_the_attempt_back() {
+        let failures = BasicFailures::default();
+        for _ in 0..FAILURES_ALLOWED {
+            failures.attempt("ci", "a").unwrap();
+        }
+        assert!(failures.failed("ci", "a"));
+        assert!(!failures.failed("ci", "a"));
+        failures.refund("ci", "a");
+        assert!(failures.blocked("ci", "a").is_none());
+        assert!(!failures.failed("ci", "a"));
+        failures.attempt("ci", "a").unwrap();
+        assert!(failures.blocked("ci", "a").is_some());
+    }
+
+    #[test]
+    fn the_window_ends() {
+        let failures = BasicFailures::with_limits(StdDuration::from_millis(100), HARD_CAP);
+        for _ in 0..FAILURES_ALLOWED {
+            failures.attempt("ci", "a").unwrap();
+        }
+        assert!(failures.attempt("ci", "a").is_err());
+        std::thread::sleep(StdDuration::from_millis(150));
+        assert!(failures.blocked("ci", "a").is_none());
+        assert!(failures.attempt("ci", "a").is_ok());
+    }
+
+    #[test]
+    fn the_map_stays_within_its_cap_and_new_keys_fail_open() {
+        let failures = BasicFailures::with_limits(FAILURE_WINDOW, 3);
+        for user in ["a", "b", "c"] {
+            failures.attempt(user, "x").unwrap();
+        }
+        failures.attempt("d", "x").unwrap();
+        assert!(failures.state().entries.len() <= 3);
+        for user in ["a", "b", "c"] {
+            for _ in 0..FAILURES_ALLOWED {
+                let _ = failures.attempt(user, "x");
+            }
+        }
+        for user in ["a", "b", "c"] {
+            assert!(failures.blocked(user, "x").is_some(), "{user}");
+        }
+        for _ in 0..FAILURES_ALLOWED * 2 {
+            assert!(failures.attempt("new", "x").is_ok());
+        }
+        assert!(failures.blocked("new", "x").is_none());
+        assert_eq!(failures.state().entries.len(), 3);
+    }
+
+    #[test]
+    fn throttle_addresses_are_canonical_and_group_ipv6_by_its_first_64_bits() {
+        let key = |text: &str| throttle_address(Some(text.parse().unwrap()));
+        assert_eq!(key("203.0.113.9"), "203.0.113.9");
+        assert_eq!(key("::ffff:203.0.113.9"), "203.0.113.9");
+        assert_eq!(key("2001:db8:1:2:3:4:5:6"), "2001:db8:1:2::/64");
+        assert_eq!(
+            key("2001:db8:1:2:ffff:ffff:ffff:ffff"),
+            key("2001:0db8:1:2::1")
+        );
+        assert_ne!(key("2001:db8:1:3::1"), key("2001:db8:1:2::1"));
+        assert_eq!(throttle_address(None), "unknown");
+        let failures = BasicFailures::default();
+        for _ in 0..FAILURES_ALLOWED {
+            failures
+                .attempt("ci", &key("2001:db8:1:2:aaaa::1"))
+                .unwrap();
+        }
+        assert!(
+            failures
+                .attempt("ci", &key("2001:db8:1:2:bbbb::2"))
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn basic_keys_stay_short() {
+        let long = "u".repeat(10_000);
+        let (user, address) = BasicFailures::key(&long, &long);
+        assert_eq!(user.len(), KEY_USER_LENGTH);
+        assert_eq!(address.len(), KEY_ADDRESS_LENGTH);
+    }
 
     #[test]
     fn a_new_password_changes_the_stamp() {

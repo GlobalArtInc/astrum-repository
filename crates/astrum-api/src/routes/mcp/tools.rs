@@ -366,6 +366,15 @@ fn defs() -> Vec<Def> {
             idempotent: true,
         },
         Def {
+            name: "get_ip_allow_list",
+            title: "IP allow list",
+            description: "The allow lists of the management, content and agents surfaces, your address as the server sees it and the trusted proxies. An empty list allows every address. Read only: the lists are changed in the web interface, never by an agent.",
+            schema: || schema(json!({}), &[]),
+            need: Need::Permissions(&["astrum:*"]),
+            write: false,
+            idempotent: true,
+        },
+        Def {
             name: "create_role",
             title: "Create a role",
             description: "Create a role that holds privileges and other roles. Give it to users with set_user_roles.",
@@ -585,6 +594,7 @@ impl Handler for AstrumTools {
             "list_users" => list_users(api, &arguments).await,
             "list_roles" => list_roles(api, &arguments).await,
             "list_privileges" => list_privileges(api, &arguments).await,
+            "get_ip_allow_list" => get_ip_allow_list(api).await,
             "create_role" => create_role(api, &arguments).await,
             "update_role" => update_role(api, &arguments).await,
             "set_user_roles" => set_user_roles(api, &arguments).await,
@@ -1250,6 +1260,7 @@ async fn set_online(api: &Loopback, arguments: &Map<String, Value>) -> Result<Va
 const USERS: &str = "/service/rest/v1/security/users";
 const ROLES: &str = "/service/rest/v1/security/roles";
 const PRIVILEGES: &str = "/service/rest/v1/security/privileges";
+const IP_ALLOW: &str = "/service/rest/v1/security/ip-allow";
 
 fn list_argument(arguments: &Map<String, Value>, key: &str) -> Result<Vec<String>, ToolError> {
     match arguments.get(key) {
@@ -1418,6 +1429,17 @@ async fn list_privileges(
         })
         .collect();
     Ok(json!({ "privileges": privileges }))
+}
+
+async fn get_ip_allow_list(api: &Loopback) -> Result<Value, ToolError> {
+    let view = api.get(IP_ALLOW).await?;
+    Ok(json!({
+        "management": view["management"],
+        "content": view["content"],
+        "agents": view["agents"],
+        "yourAddress": view["yourAddress"],
+        "trustedProxies": view["trustedProxies"],
+    }))
 }
 
 async fn create_role(api: &Loopback, arguments: &Map<String, Value>) -> Result<Value, ToolError> {
