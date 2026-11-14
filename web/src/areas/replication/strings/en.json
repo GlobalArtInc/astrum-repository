@@ -204,7 +204,7 @@
     "other": "Discard {count} dead items?"
   },
   "replication.items.retryText": "The items go back to the queue with their attempts reset and are sent now.",
-  "replication.items.discardText": "Discarded items leave the queue. The component will not be sent until it changes again.",
+  "replication.items.discardText": "Discarded items leave the queue. The next reconcile queues a component again if it still differs on the remote.",
   "replication.items.retryConfirm": "Retry",
   "replication.items.discardConfirm": "Discard",
   "replication.items.retried": {

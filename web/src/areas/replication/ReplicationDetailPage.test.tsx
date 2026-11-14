@@ -192,7 +192,9 @@ describe('the replication detail page', () => {
     const dialog = await screen.findByRole('alertdialog');
     expect(within(dialog).getByText('Discard 3 dead items?')).toBeInTheDocument();
     expect(
-      within(dialog).getByText(/The component will not be sent until it changes again\./),
+      within(dialog).getByText(
+        /The next reconcile queues a component again if it still differs on the remote\./,
+      ),
     ).toBeInTheDocument();
     await userEvent.click(within(dialog).getByRole('button', { name: 'Discard' }));
     await waitFor(() => expect(fake.calls.some((call) => call.method === 'POST')).toBe(true));
