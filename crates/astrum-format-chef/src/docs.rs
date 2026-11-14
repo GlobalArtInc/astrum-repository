@@ -90,7 +90,7 @@ fn code_of(error: &ContentError) -> &'static str {
         ContentError::Unauthorized => "UNAUTHORIZED",
         ContentError::Forbidden => "FORBIDDEN",
         ContentError::MethodNotAllowed { .. } => "METHOD_NOT_ALLOWED",
-        ContentError::Conflict(_) => "CONFLICT",
+        ContentError::Conflict(_) | ContentError::Protected(_) => "CONFLICT",
         ContentError::BadGateway(_) | ContentError::Unavailable(_) => "REMOTE_FAILED",
         ContentError::Internal(_) => "SERVER_ERROR",
         _ => "INVALID_DATA",

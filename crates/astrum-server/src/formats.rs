@@ -66,6 +66,10 @@ pub fn register_tasks(tasks: &Tasks) {
     tasks.register(Arc::new(astrum_format_yum::task::RebuildMetadata::default()));
 }
 
+pub fn register_image_transfers(state: &AppState) {
+    state.set_image_transfers(Arc::new(astrum_format_docker::transfer::Images));
+}
+
 pub fn routes() -> Router<AppState> {
     Router::new()
         .merge(astrum_format_conan::routes())

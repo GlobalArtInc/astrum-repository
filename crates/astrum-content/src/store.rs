@@ -8,7 +8,7 @@ use std::task::{Context as TaskContext, Poll};
 use astrum_blob::{ContentStream, Written};
 use astrum_db::entity::{asset, component};
 use astrum_repo::RepositoryType;
-use astrum_repo::config::{Quota, WritePolicy};
+use astrum_repo::config::{Quota, Repository, WritePolicy};
 use bytes::Bytes;
 use chrono::{DateTime, FixedOffset, Utc};
 use futures_util::Stream;
@@ -561,6 +561,14 @@ async fn record_once(
     if previous.is_some() && put.write_policy == Some(WritePolicy::AllowOnce) {
         return Err(redeploy(repository, &put.path));
     }
+    if let Some(previous) = &previous
+        && !previous
+            .sha256
+            .eq_ignore_ascii_case(&written.digests.sha256)
+        && let Some(reason) = protection(txn, &ctx.content, repository, &[previous]).await?
+    {
+        return Err(ContentError::Protected(reason));
+    }
     if let Some(limit) = hard_limit(ctx) {
         require_growth_to_fit(
             repository,
@@ -814,6 +822,56 @@ async fn lock_usage(db: &impl ConnectionTrait, repository: &str) -> Result<Usage
     })
 }
 
+async fn protection(
+    db: &impl ConnectionTrait,
+    content: &Content,
+    repository: &str,
+    assets: &[&Asset],
+) -> Result<Option<String>, ContentError> {
+    let mut loaded: Option<Repository> = None;
+    for asset in assets.iter().copied() {
+        let Some(format) = content.format(&asset.format) else {
+            continue;
+        };
+        if !format.can_protect(asset) {
+            continue;
+        }
+        if loaded.is_none() {
+            loaded = Some(
+                astrum_repo::store::find(db, repository)
+                    .await
+                    .map_err(ContentError::internal)?
+                    .ok_or_else(|| missing_repository(repository))?,
+            );
+        }
+        if let Some(found) = &loaded
+            && let Some(reason) = format.protected(found, asset)
+        {
+            return Ok(Some(reason));
+        }
+    }
+    Ok(None)
+}
+
+async fn refuse_protected(
+    db: &impl ConnectionTrait,
+    content: &Content,
+    repository: &str,
+    decision: &Decision,
+    existing: &HashMap<String, Asset>,
+) -> Result<(), ContentError> {
+    let replaced: Vec<&Asset> = decision
+        .assets
+        .iter()
+        .filter(|outcome| outcome.status == AssetStatus::Replaced)
+        .filter_map(|outcome| existing.get(&outcome.path))
+        .collect();
+    match protection(db, content, repository, &replaced).await? {
+        Some(reason) => Err(ContentError::Protected(reason)),
+        None => Ok(()),
+    }
+}
+
 async fn drop_empty_component(
     db: &impl ConnectionTrait,
     component_id: i64,
@@ -907,9 +965,28 @@ enum Removal {
 }
 
 pub async fn delete_asset(content: &Content, found: Asset) -> Result<(), ContentError> {
+    delete_asset_checked(content, &found, false).await
+}
+
+pub async fn delete_asset_if(content: &Content, found: &Asset) -> Result<(), ContentError> {
+    delete_asset_checked(content, found, true).await
+}
+
+async fn delete_asset_checked(
+    content: &Content,
+    found: &Asset,
+    unchanged: bool,
+) -> Result<(), ContentError> {
     for _ in 0..ATTEMPTS {
         let txn = content.db().begin().await?;
-        match remove_asset(&txn, &found).await {
+        let attempt = async {
+            if unchanged {
+                confirm_asset(&txn, found).await?;
+            }
+            remove_asset(content, &txn, found).await
+        }
+        .await;
+        match attempt {
             Ok(Removal::Removed((store, id))) => {
                 txn.commit().await?;
                 discard(content.clone(), &store, id);
@@ -929,7 +1006,41 @@ pub async fn delete_asset(content: &Content, found: Asset) -> Result<(), Content
     Err(changed_meanwhile(&found.repository))
 }
 
-async fn remove_asset(txn: &DatabaseTransaction, found: &Asset) -> Result<Removal, ContentError> {
+async fn confirm_asset(txn: &DatabaseTransaction, found: &Asset) -> Result<(), ContentError> {
+    if !lock_repository(txn, &found.repository).await? {
+        return Ok(());
+    }
+    let Some(current) = by_id(txn, found.id).await? else {
+        return Err(asset_gone());
+    };
+    if let Some(component_id) = current.component_id
+        && !lock_components(txn, &[component_id])
+            .await?
+            .contains(&component_id)
+    {
+        return Err(asset_gone());
+    }
+    lock_usage(txn, &current.repository).await?;
+    let Some(locked) = by_id(txn, found.id).await? else {
+        return Err(asset_gone());
+    };
+    match locked.component_id == current.component_id
+        && locked.sha256.eq_ignore_ascii_case(&found.sha256)
+    {
+        true => Ok(()),
+        false => Err(changed_meanwhile(&found.repository)),
+    }
+}
+
+fn asset_gone() -> ContentError {
+    ContentError::not_found("the asset is already gone")
+}
+
+async fn remove_asset(
+    content: &Content,
+    txn: &DatabaseTransaction,
+    found: &Asset,
+) -> Result<Removal, ContentError> {
     if !lock_repository(txn, &found.repository).await? {
         return Ok(Removal::Gone);
     }
@@ -944,6 +1055,9 @@ async fn remove_asset(txn: &DatabaseTransaction, found: &Asset) -> Result<Remova
         return Ok(Removal::Again);
     }
     lock_usage(txn, &current.repository).await?;
+    if let Some(reason) = protection(txn, content, &current.repository, &[&current]).await? {
+        return Err(ContentError::Protected(reason));
+    }
     let Some(deleted) = txn
         .query_one(Statement::from_sql_and_values(
             DbBackend::Postgres,
@@ -965,8 +1079,31 @@ async fn remove_asset(txn: &DatabaseTransaction, found: &Asset) -> Result<Remova
 }
 
 pub async fn delete_component(content: &Content, component_id: i64) -> Result<bool, ContentError> {
+    delete_component_checked(content, component_id, None).await
+}
+
+pub async fn delete_component_matching(
+    content: &Content,
+    component_id: i64,
+    expected: &[(String, String)],
+) -> Result<bool, ContentError> {
+    delete_component_checked(content, component_id, Some(expected)).await
+}
+
+async fn delete_component_checked(
+    content: &Content,
+    component_id: i64,
+    expected: Option<&[(String, String)]>,
+) -> Result<bool, ContentError> {
     let txn = content.db().begin().await?;
-    match remove_component(&txn, component_id).await {
+    let attempt = async {
+        if let Some(expected) = expected {
+            confirm_component(&txn, component_id, expected).await?;
+        }
+        remove_component(content, &txn, component_id).await
+    }
+    .await;
+    match attempt {
         Ok(Some(blobs)) => {
             txn.commit().await?;
             delete_blobs(content, blobs).await;
@@ -983,7 +1120,42 @@ pub async fn delete_component(content: &Content, component_id: i64) -> Result<bo
     }
 }
 
+async fn confirm_component(
+    txn: &DatabaseTransaction,
+    component_id: i64,
+    expected: &[(String, String)],
+) -> Result<(), ContentError> {
+    let Some(found) = component_by_id(txn, component_id).await? else {
+        return Ok(());
+    };
+    if !lock_repository(txn, &found.repository).await? {
+        return Ok(());
+    }
+    if !lock_components(txn, &[component_id])
+        .await?
+        .contains(&component_id)
+    {
+        return Ok(());
+    }
+    let assets = assets_of(txn, component_id).await?;
+    let wanted: HashMap<&str, &str> = expected
+        .iter()
+        .map(|(path, sha256)| (path.as_str(), sha256.as_str()))
+        .collect();
+    let same = wanted.len() == assets.len()
+        && assets.iter().all(|asset| {
+            wanted
+                .get(asset.path.as_str())
+                .is_some_and(|sha256| sha256.eq_ignore_ascii_case(&asset.sha256))
+        });
+    match same {
+        true => Ok(()),
+        false => Err(changed_meanwhile(&found.repository)),
+    }
+}
+
 async fn remove_component(
+    content: &Content,
     txn: &DatabaseTransaction,
     component_id: i64,
 ) -> Result<Option<Vec<(String, Uuid)>>, ContentError> {
@@ -1001,6 +1173,16 @@ async fn remove_component(
     }
     let assets = assets_of(txn, component_id).await?;
     lock_usage(txn, &found.repository).await?;
+    if let Some(reason) = protection(
+        txn,
+        content,
+        &found.repository,
+        &assets.iter().collect::<Vec<&Asset>>(),
+    )
+    .await?
+    {
+        return Err(ContentError::Protected(reason));
+    }
     let deleted = component::Entity::delete_by_id(component_id)
         .exec(txn)
         .await?;
@@ -1299,6 +1481,7 @@ pub async fn preview_many_with(
         true,
         replaceable.map(|allowed| allowed as &dyn Fn(&str) -> bool),
     )?;
+    refuse_protected(ctx.db(), &ctx.content, repository, &decision, &existing).await?;
     let mut component_ids = Vec::new();
     for key in component_keys(planned.iter().map(|item| &item.put))? {
         if let Some(found) = find_component(ctx.db(), repository, &key).await? {
@@ -1526,6 +1709,7 @@ async fn write_many(
         false,
         replaceable.map(|allowed| allowed as &dyn Fn(&str) -> bool),
     )?;
+    refuse_protected(txn, &ctx.content, repository, &decision, &existing).await?;
     if !decision.writes {
         let ids: Vec<i64> = match keys.is_empty() {
             true => existing

@@ -136,9 +136,9 @@ impl From<ContentError> for RegistryError {
                 Self::unsupported(format!("{method} is not allowed here"))
                     .header(header::ALLOW, allow)
             }
-            ContentError::BadRequest(message) | ContentError::Conflict(message) => {
-                Self::refused(message)
-            }
+            ContentError::BadRequest(message)
+            | ContentError::Conflict(message)
+            | ContentError::Protected(message) => Self::refused(message),
             ContentError::QuotaExceeded { .. } => {
                 Self::new(StatusCode::PAYLOAD_TOO_LARGE, "DENIED", error.to_string())
             }

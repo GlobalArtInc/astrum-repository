@@ -9,7 +9,7 @@ use astrum_api::client::TrustedProxies;
 use astrum_api::{AppState, router};
 use astrum_content::store;
 use astrum_content::transfer::{Bundle, Conflict, LocalSource, Outcome, PROMOTED, Terms};
-use astrum_content::{Ctx, Format};
+use astrum_content::{ContentError, Ctx, Format};
 use astrum_security::catalogue::ADMIN_USER;
 use astrum_security::{SecretBox, SecurityModel};
 use astrum_testkit::TestDatabase;
@@ -251,6 +251,45 @@ impl Fixture {
     }
 }
 
+pub async fn hold_row(fixture: &Fixture, sql: &str) -> sea_orm::DatabaseTransaction {
+    use sea_orm::{ConnectionTrait, DbBackend, Statement, TransactionTrait};
+    let txn = fixture.state.db().conn().begin().await.unwrap();
+    let locked = txn
+        .query_one(Statement::from_string(DbBackend::Postgres, sql))
+        .await
+        .unwrap();
+    assert!(locked.is_some(), "{sql} locked no row");
+    txn
+}
+
+pub async fn wait_for_waiters(fixture: &Fixture, count: i64) {
+    use sea_orm::{ConnectionTrait, DbBackend, Statement};
+    let sql = "SELECT count(DISTINCT l.pid)::bigint AS n FROM pg_locks l \
+               JOIN pg_stat_activity a ON a.pid = l.pid \
+               WHERE NOT l.granted AND a.datname = current_database()";
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+    loop {
+        let waiting: i64 = fixture
+            .state
+            .db()
+            .conn()
+            .query_one(Statement::from_string(DbBackend::Postgres, sql))
+            .await
+            .unwrap()
+            .unwrap()
+            .try_get("", "n")
+            .unwrap();
+        if waiting >= count {
+            return;
+        }
+        assert!(
+            std::time::Instant::now() < deadline,
+            "only {waiting} of {count} backends ever waited for a lock"
+        );
+        tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+    }
+}
+
 pub async fn repository_ctx(fixture: &Fixture, name: &str) -> Ctx {
     let repository = fixture
         .state
@@ -281,13 +320,13 @@ pub async fn bundle_of(fixture: &Fixture, format: &dyn Format, source: &str, pat
     transfer.bundle(&from, &component).await.unwrap()
 }
 
-pub async fn receive(
+pub async fn try_receive(
     fixture: &Fixture,
     format: &dyn Format,
     source: &str,
     target: &str,
     bundle: &Bundle,
-) -> Outcome {
+) -> Result<Outcome, ContentError> {
     let from = repository_ctx(fixture, source).await;
     let to = repository_ctx(fixture, target).await;
     let transfer = format
@@ -300,6 +339,17 @@ pub async fn receive(
             &LocalSource::new(from),
             Terms::new(Conflict::Fail, PROMOTED),
         )
+        .await
+}
+
+pub async fn receive(
+    fixture: &Fixture,
+    format: &dyn Format,
+    source: &str,
+    target: &str,
+    bundle: &Bundle,
+) -> Outcome {
+    try_receive(fixture, format, source, target, bundle)
         .await
         .unwrap()
 }

@@ -16,6 +16,7 @@ pub const ALL_FORMATS: &str = "*";
 pub const MAX_DAYS: i64 = 36_500;
 pub const MAX_NAME_LENGTH: usize = 255;
 pub const MAX_NOTES_LENGTH: usize = 4_000;
+pub const MAX_RETAIN: i64 = 1_000;
 
 pub const LAST_BLOB_UPDATED: &str = "lastBlobUpdated";
 pub const LAST_DOWNLOADED: &str = "lastDownloaded";
@@ -49,6 +50,10 @@ pub struct Criteria {
     pub release_type: Option<ReleaseType>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub asset_regex: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub retain: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sort_by: Option<String>,
 }
 
 impl Criteria {
@@ -57,6 +62,7 @@ impl Criteria {
             && self.last_downloaded.is_none()
             && self.release_type.is_none()
             && self.asset_regex.is_none()
+            && self.retain.is_none()
     }
 }
 
@@ -89,8 +95,8 @@ impl Policy {
             "notes": self.notes,
             "criteriaLastBlobUpdated": self.criteria.last_blob_updated,
             "criteriaLastDownloaded": self.criteria.last_downloaded,
-            "retain": null,
-            "sortBy": null,
+            "retain": self.criteria.retain,
+            "sortBy": self.criteria.sort_by,
             "criteriaReleaseType": self.criteria.release_type.map(ReleaseType::as_str),
             "criteriaAssetRegex": self.criteria.asset_regex,
             "inUseCount": repositories.len(),
@@ -182,6 +188,52 @@ fn days(value: Option<&Value>, field: &str, problems: &mut Problems) -> Option<i
     }
 }
 
+fn blank(value: Option<&Value>) -> bool {
+    match value {
+        None | Some(Value::Null) => true,
+        Some(Value::String(text)) => text.trim().is_empty(),
+        Some(_) => false,
+    }
+}
+
+fn retain_count(value: Option<&Value>, problems: &mut Problems) -> Option<i64> {
+    if blank(value) {
+        return None;
+    }
+    let number = match value {
+        Some(Value::Number(number)) => number.as_i64(),
+        Some(Value::String(text)) => text.trim().parse().ok(),
+        _ => None,
+    };
+    match number {
+        Some(count) if (1..=MAX_RETAIN).contains(&count) => Some(count),
+        _ => {
+            problems.add(
+                "retain",
+                format!("give a number of components from 1 to {MAX_RETAIN}"),
+            );
+            None
+        }
+    }
+}
+
+fn sort_by(value: Option<&Value>, problems: &mut Problems) -> Option<String> {
+    match value {
+        None | Some(Value::Null) => None,
+        Some(Value::String(text)) if text.trim().is_empty() => None,
+        Some(Value::String(text)) if text.trim() == LAST_BLOB_UPDATED => {
+            Some(LAST_BLOB_UPDATED.to_owned())
+        }
+        Some(_) => {
+            problems.add(
+                "sortBy",
+                format!("the only supported value is {LAST_BLOB_UPDATED}"),
+            );
+            None
+        }
+    }
+}
+
 pub fn check_regex(pattern: &str) -> Result<(), String> {
     regex::RegexBuilder::new(pattern)
         .size_limit(1 << 20)
@@ -250,8 +302,13 @@ pub fn validate(
             "criteriaLastDownloaded",
             problems,
         ),
+        retain: retain_count(request.retain.as_ref(), problems),
+        sort_by: sort_by(request.sort_by.as_ref(), problems),
         ..Criteria::default()
     };
+    if criteria.sort_by.is_some() && blank(request.retain.as_ref()) {
+        problems.add("sortBy", "sortBy works only with retain");
+    }
     match request.criteria_release_type.as_ref() {
         None | Some(Value::Null) => {}
         Some(Value::String(text)) if text.trim().is_empty() => {}
@@ -274,19 +331,6 @@ pub fn validate(
             Ok(()) => criteria.asset_regex = Some(pattern.to_owned()),
             Err(message) => problems.add("criteriaAssetRegex", message),
         },
-    }
-    for (field, value) in [("retain", &request.retain), ("sortBy", &request.sort_by)] {
-        let given = match value {
-            None | Some(Value::Null) => false,
-            Some(Value::String(text)) => !text.trim().is_empty(),
-            Some(_) => true,
-        };
-        if given {
-            problems.add(
-                field,
-                "keeping the newest versions is not supported by this server's formats",
-            );
-        }
     }
     if !problems.is_empty() {
         return None;
@@ -474,6 +518,26 @@ mod tests {
         assert!(all.fits("npm") && all.fits("raw"));
         let empty = check(json!({"name": "nothing", "format": "raw"})).unwrap();
         assert!(empty.criteria.is_empty());
+        let keep = check(json!({"name": "keep", "format": "raw", "retain": 3})).unwrap();
+        assert_eq!(keep.criteria.retain, Some(3));
+        assert!(!keep.criteria.is_empty());
+        assert_eq!(keep.document(&[])["retain"], 3);
+        let sorted = check(
+            json!({"name": "keep", "format": "raw", "retain": 3, "sortBy": "lastBlobUpdated"}),
+        )
+        .unwrap();
+        assert_eq!(sorted.document(&[])["sortBy"], "lastBlobUpdated");
+        assert_eq!(
+            check(json!({"name": "x", "format": "raw", "retain": "3"}))
+                .unwrap()
+                .criteria
+                .retain,
+            Some(3)
+        );
+        for blank in [json!(null), json!("")] {
+            let none = check(json!({"name": "x", "format": "raw", "retain": blank})).unwrap();
+            assert_eq!(none.criteria.retain, None);
+        }
     }
 
     #[test]
@@ -513,7 +577,31 @@ mod tests {
                 json!({"name": "x", "format": "raw", "criteriaAssetRegex": "\\bword"}),
                 "criteriaAssetRegex",
             ),
-            (json!({"name": "x", "format": "raw", "retain": 3}), "retain"),
+            (json!({"name": "x", "format": "raw", "retain": 0}), "retain"),
+            (
+                json!({"name": "x", "format": "raw", "retain": "abc"}),
+                "retain",
+            ),
+            (
+                json!({"name": "x", "format": "raw", "retain": "abc", "sortBy": "lastBlobUpdated"}),
+                "retain",
+            ),
+            (
+                json!({"name": "x", "format": "raw", "retain": "", "sortBy": "lastBlobUpdated"}),
+                "sortBy",
+            ),
+            (
+                json!({"name": "x", "format": "raw", "retain": 1001}),
+                "retain",
+            ),
+            (
+                json!({"name": "x", "format": "raw", "retain": 2, "sortBy": "version"}),
+                "sortBy",
+            ),
+            (
+                json!({"name": "x", "format": "raw", "sortBy": "lastBlobUpdated"}),
+                "sortBy",
+            ),
         ] {
             assert_eq!(
                 check(request.clone()),

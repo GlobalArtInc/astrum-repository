@@ -116,6 +116,7 @@ async fn repository_with(
                     write_policy: Some(policy),
                     latest_policy: None,
                     quota,
+                    immutable_tags: None,
                 }),
                 ..Default::default()
             },
@@ -196,6 +197,7 @@ pub fn transfer_of(describe: DescribeFn) -> GenericTransfer {
         after: None,
         admit: None,
         replaceable: None,
+        check_content_type: true,
     }
 }
 

@@ -92,7 +92,7 @@ pub fn error(error: ContentError) -> Response {
             "You do not have permission to perform this action.",
         ),
         ContentError::MethodNotAllowed { .. } => ("method_not_allowed", "Method not allowed."),
-        ContentError::Conflict(_) => ("conflict", "Conflict."),
+        ContentError::Conflict(_) | ContentError::Protected(_) => ("conflict", "Conflict."),
         ContentError::BadGateway(_) | ContentError::Unavailable(_) => {
             ("remote_failed", "The remote failed.")
         }

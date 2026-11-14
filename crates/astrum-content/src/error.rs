@@ -26,6 +26,8 @@ pub enum ContentError {
         limit_bytes: i64,
         used_bytes: i64,
     },
+    #[error("{0}")]
+    Protected(String),
     #[error("the range is outside a blob of {0} bytes")]
     RangeNotSatisfiable(u64),
     #[error("a precondition of the request does not hold")]
@@ -54,7 +56,7 @@ impl ContentError {
             ContentError::Forbidden => StatusCode::FORBIDDEN,
             ContentError::MethodNotAllowed { .. } => StatusCode::METHOD_NOT_ALLOWED,
             ContentError::BadRequest(_) => StatusCode::BAD_REQUEST,
-            ContentError::Conflict(_) => StatusCode::CONFLICT,
+            ContentError::Conflict(_) | ContentError::Protected(_) => StatusCode::CONFLICT,
             ContentError::QuotaExceeded { .. } => StatusCode::PAYLOAD_TOO_LARGE,
             ContentError::RangeNotSatisfiable(_) => StatusCode::RANGE_NOT_SATISFIABLE,
             ContentError::PreconditionFailed => StatusCode::PRECONDITION_FAILED,

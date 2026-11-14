@@ -83,6 +83,7 @@ pub struct Terms {
     pub conflict: Conflict,
     pub action: &'static str,
     pub dry_run: bool,
+    pub dist_tags: bool,
 }
 
 impl Terms {
@@ -91,11 +92,17 @@ impl Terms {
             conflict,
             action,
             dry_run: false,
+            dist_tags: true,
         }
     }
 
     pub fn dry_run(mut self) -> Self {
         self.dry_run = true;
+        self
+    }
+
+    pub fn with_dist_tags(mut self, dist_tags: bool) -> Self {
+        self.dist_tags = dist_tags;
         self
     }
 }
@@ -200,10 +207,9 @@ impl BlobSource for LocalSource {
             .await?;
         let content = origin.read(row.blob_id.into()).await?.ok_or_else(|| {
             ContentError::not_found(format!(
-                "the blob of {}{} is missing from the blob store {}",
+                "the content of {}{} is missing from the storage of the source repository",
                 self.source.name(),
-                asset.path,
-                row.blob_store
+                asset.path
             ))
         })?;
         Ok(sink.store.put(content.stream).await?)
@@ -235,6 +241,7 @@ pub struct GenericTransfer {
     pub after: Option<AfterFn>,
     pub admit: Option<AdmitFn>,
     pub replaceable: Option<ReplaceFn>,
+    pub check_content_type: bool,
 }
 
 struct Staged<'a> {
@@ -545,14 +552,14 @@ impl GenericTransfer {
                     (fresh, bytes)
                 }
             };
-            let item = Self::finish(target, put, primary, &sample)?;
+            let item = Self::finish(target, put, primary, &sample, self.check_content_type)?;
             Self::count_component(&mut components, &item.0)?;
             origins.insert(item.0.path.clone(), *asset);
             items.push(item);
             for (put, bytes) in extra {
                 staged.check()?;
                 let fresh = Self::write_bytes(sink, staged, &bytes).await?;
-                let item = Self::finish(target, put, fresh, &bytes)?;
+                let item = Self::finish(target, put, fresh, &bytes, self.check_content_type)?;
                 Self::count_component(&mut components, &item.0)?;
                 origins.insert(item.0.path.clone(), *asset);
                 items.push(item);
@@ -596,10 +603,11 @@ impl GenericTransfer {
         mut put: PutAsset,
         written: Written,
         sample: &[u8],
+        check_content_type: bool,
     ) -> Result<(PutAsset, Written), ContentError> {
         let hosted = PutAsset::hosted(target, put.path.clone());
         put.write_policy = hosted.write_policy;
-        put.check_content_type = hosted.check_content_type;
+        put.check_content_type = check_content_type && hosted.check_content_type;
         if normalize(&put.path)? != put.path || put.path.ends_with('/') {
             return Err(ContentError::BadRequest(format!(
                 "the path {} is not a normalised file path",

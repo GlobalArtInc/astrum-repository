@@ -30,6 +30,7 @@ function policy(name: string, extra: Partial<Policy> = {}): Policy {
     criteriaLastDownloaded: 90,
     criteriaReleaseType: null,
     criteriaAssetRegex: null,
+    retain: null,
     inUseCount: 0,
     repositories: [],
     ...extra,
@@ -119,6 +120,7 @@ describe('a cleanup policy form', () => {
     expect(await screen.findByText('Turn on at least one criterion')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('checkbox', { name: 'Asset Name Pattern' }));
     await userEvent.type(screen.getByRole('textbox', { name: 'Asset Name Pattern' }), 'nightly/.*');
+    await userEvent.type(screen.getByRole('spinbutton', { name: 'Keep the newest' }), '5');
     await userEvent.click(screen.getByRole('button', { name: 'Create' }));
     await waitFor(() => expect(server.calls.some((call) => call.method === 'POST')).toBe(true));
     expect(server.calls.find((call) => call.method === 'POST')?.body).toEqual({
@@ -129,6 +131,7 @@ describe('a cleanup policy form', () => {
       criteriaLastDownloaded: null,
       criteriaReleaseType: null,
       criteriaAssetRegex: 'nightly/.*',
+      retain: 5,
     });
     expect(await screen.findByText('Cleanup policy "nightly" created successfully')).toBeInTheDocument();
   });

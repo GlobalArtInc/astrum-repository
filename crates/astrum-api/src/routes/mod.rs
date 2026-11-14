@@ -11,6 +11,7 @@ pub mod mcp;
 pub mod oauth;
 pub mod oidc;
 pub mod outbound;
+pub mod promotions;
 pub mod repositories;
 pub mod routing_rules;
 pub mod security;

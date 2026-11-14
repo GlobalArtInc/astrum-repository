@@ -107,7 +107,9 @@ impl From<ContentError> for Status {
                 "you do not have the permission this needs",
             ),
             ContentError::BadRequest(message) => Status::invalid(message),
-            ContentError::Conflict(message) => Status::exists(message),
+            ContentError::Conflict(message) | ContentError::Protected(message) => {
+                Status::exists(message)
+            }
             ContentError::MethodNotAllowed { method, .. } => {
                 Status::invalid(format!("{method} is not allowed here"))
             }

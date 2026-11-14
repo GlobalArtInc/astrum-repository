@@ -138,6 +138,7 @@ struct Deleted {
     deleted_assets: u64,
     deleted_components: u64,
     skipped_assets: u64,
+    protected_assets: u64,
 }
 
 pub(super) fn content_error(error: ContentError) -> ApiError {
@@ -146,6 +147,7 @@ pub(super) fn content_error(error: ContentError) -> ApiError {
         ContentError::BadRequest(message) => ApiError::BadRequest(message),
         ContentError::Unauthorized => ApiError::Unauthorized,
         ContentError::Forbidden => ApiError::forbidden(),
+        ContentError::Protected(message) => ApiError::Conflict(message),
         other => ApiError::internal(other),
     }
 }
@@ -556,6 +558,8 @@ async fn remove(
     let mut visible = 0u64;
     let mut deleted = 0u64;
     let mut skipped = 0u64;
+    let mut protected = 0u64;
+    let mut first_reason: Option<String> = None;
     let mut touched: Vec<(i64, String)> = Vec::new();
     loop {
         let batch = asset::Entity::find()
@@ -585,9 +589,15 @@ async fn remove(
                 ));
             }
             let path = found.path.clone();
-            store::delete_asset(state.content(), found)
-                .await
-                .map_err(content_error)?;
+            match store::delete_asset(state.content(), found).await {
+                Ok(()) => {}
+                Err(ContentError::Protected(reason)) => {
+                    protected += 1;
+                    first_reason.get_or_insert(reason);
+                    continue;
+                }
+                Err(error) => return Err(content_error(error)),
+            }
             deleted += 1;
             state
                 .audit(
@@ -605,6 +615,12 @@ async fn remove(
         return Err(folder_missing(&prefix, &repository.name));
     }
     if deleted == 0 {
+        if let Some(reason) = first_reason {
+            let noun = if protected == 1 { "asset" } else { "assets" };
+            return Err(ApiError::Conflict(format!(
+                "{protected} protected {noun} not deleted in {prefix}; first reason: {reason}"
+            )));
+        }
         return Err(ApiError::forbidden());
     }
     let left: BTreeSet<i64> = match touched.is_empty() {
@@ -637,12 +653,19 @@ async fn remove(
         deleted_assets: deleted,
         deleted_components: components,
         skipped_assets: skipped,
+        protected_assets: protected,
     }))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_protected_refusal_is_a_conflict_and_never_a_server_error() {
+        let error = content_error(ContentError::Protected("tag v1 is immutable".to_owned()));
+        assert!(matches!(error, ApiError::Conflict(message) if message == "tag v1 is immutable"));
+    }
 
     #[test]
     fn versions_put_words_before_numbers_and_compare_numbers_as_numbers() {

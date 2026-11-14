@@ -6,6 +6,7 @@ use axum::response::Response;
 use serde::Serialize;
 
 use astrum_repo::RepositoryType;
+use astrum_repo::config::Repository;
 
 use crate::proxy::{self, Freshness};
 use crate::store::{self, Asset, PutAsset};
@@ -161,6 +162,14 @@ pub trait Format: Send + Sync + 'static {
     }
 
     fn transfer(&self) -> Option<&dyn Transfer> {
+        None
+    }
+
+    fn can_protect(&self, _asset: &Asset) -> bool {
+        false
+    }
+
+    fn protected(&self, _repository: &Repository, _asset: &Asset) -> Option<String> {
         None
     }
 }

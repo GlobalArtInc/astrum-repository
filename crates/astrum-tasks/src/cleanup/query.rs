@@ -76,6 +76,19 @@ impl Matcher {
     fn statement(&self, order: Order, limit: i64) -> Statement {
         let mut values: Vec<Value> = vec![self.repository.clone().into()];
         let mut filters = Vec::new();
+        let mut ranking = String::new();
+        let mut ranked_join = String::new();
+        if let Some(retain) = self.criteria.retain {
+            ranking = "WITH groups AS (SELECT c.id, c.namespace, c.name, max(a.blob_updated_at) AS blob_updated \
+                 FROM component c JOIN asset a ON a.component_id = c.id WHERE c.repository = $1 \
+                 GROUP BY c.id, c.namespace, c.name), \
+                 ranked AS (SELECT id, row_number() OVER (PARTITION BY namespace, name \
+                 ORDER BY blob_updated DESC, id DESC) AS rn FROM groups) "
+                .to_owned();
+            ranked_join = " JOIN ranked r ON r.id = c.id".to_owned();
+            values.push(retain.into());
+            filters.push(format!("r.rn > ${}", values.len()));
+        }
         if let Some(release_type) = self.criteria.release_type {
             filters.push(match prerelease_rule(&self.format) {
                 Some(rule) => match release_type {
@@ -136,10 +149,10 @@ impl Matcher {
             }
         };
         let sql = format!(
-            "SELECT c.id, c.namespace, c.name, c.version, count(a.id) AS asset_count, \
+            "{ranking}SELECT c.id, c.namespace, c.name, c.version, count(a.id) AS asset_count, \
              coalesce(sum(a.size), 0)::bigint AS total_size, \
              max(a.blob_updated_at) AS last_updated, max(a.last_downloaded_at) AS last_downloaded \
-             FROM component c JOIN asset a ON a.component_id = c.id \
+             FROM component c JOIN asset a ON a.component_id = c.id{ranked_join} \
              WHERE c.repository = $1{filters} GROUP BY c.id{having}{tail}"
         );
         Statement::from_sql_and_values(DbBackend::Postgres, sql, values)
@@ -287,6 +300,7 @@ mod tests {
                 last_downloaded: Some(20),
                 release_type: Some(ReleaseType::Prereleases),
                 asset_regex: Some("(?i).*\\.jar".to_owned()),
+                ..Criteria::default()
             },
         );
         let statement = matcher.statement(Order::ByCoordinates { offset: 50 }, 25);
@@ -304,5 +318,26 @@ mod tests {
         let empty =
             Matcher::new("raw", "raw", Criteria::default()).statement(Order::ById { after: 0 }, 5);
         assert!(empty.sql.contains("HAVING false"));
+    }
+
+    #[test]
+    fn statements_bind_retain() {
+        let matcher = Matcher::new(
+            "docker-prod",
+            "docker",
+            Criteria {
+                retain: Some(15),
+                ..Criteria::default()
+            },
+        );
+        let statement = matcher.statement(Order::ById { after: 0 }, 5);
+        assert!(
+            statement
+                .sql
+                .contains("row_number() OVER (PARTITION BY namespace, name")
+        );
+        assert!(statement.sql.contains("r.rn > $2"));
+        assert!(!statement.sql.contains("HAVING false"));
+        assert_eq!(statement.values.unwrap().0[1], Value::from(15i64));
     }
 }

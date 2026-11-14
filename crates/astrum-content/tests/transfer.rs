@@ -297,3 +297,25 @@ async fn a_path_the_format_refuses_stops_the_transfer_before_any_copy() {
     assert!(matches!(error, ContentError::BadRequest(_)), "{error}");
     assert_eq!(blobs_in(&world, "default").await, blobs);
 }
+
+#[tokio::test]
+async fn a_blob_missing_from_another_store_is_reported_without_naming_the_store() {
+    let world = world().await;
+    let dev = repository(&world, "dev", "default", WritePolicy::Allow).await;
+    let target = repository(&world, "target", "other", WritePolicy::Allow).await;
+    seed(&dev, "/g/a.txt", b"alpha").await;
+    let bundle = bundle_of(&dev).await;
+    let stored = row(&dev, "/g/a.txt").await;
+    std::fs::remove_file(blob_file(&world, "default", stored.blob_id)).unwrap();
+
+    let error = run(&dev, &target, &bundle, Conflict::Fail, false)
+        .await
+        .unwrap_err();
+    let ContentError::NotFound(message) = error else {
+        panic!("{error}");
+    };
+    assert!(message.contains("/g/a.txt"), "{message}");
+    for leak in ["default", "blob store"] {
+        assert!(!message.contains(leak), "{leak}: {message}");
+    }
+}

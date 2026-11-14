@@ -29,6 +29,8 @@
   "cleanup.form.formatPlaceholder": "Choose a format...",
   "cleanup.form.notes": "Description",
   "cleanup.form.notesHint": "Why the policy exists (optional)",
+  "cleanup.form.keep": "Keep the newest",
+  "cleanup.form.keepHint": "Keeps this many newest components per name; the others are deleted when they match the other criteria.",
   "cleanup.form.usedBy": {
     "one": "{count} repository uses this policy.",
     "other": "{count} repositories use this policy."
@@ -55,6 +57,7 @@
   "cleanup.problems.age": "Component age is required",
   "cleanup.problems.usage": "Component usage is required",
   "cleanup.problems.days": "Must be a whole number between 1 and {max}",
+  "cleanup.problems.keep": "Must be a whole number between 1 and {max}",
   "cleanup.problems.regex": "Asset name pattern is required",
   "cleanup.problems.regexInvalid": "Invalid regular expression pattern. Use regex syntax (e.g., \".*\\.jar\" instead of \"*.jar\")",
   "cleanup.toasts.created": "Cleanup policy \"{name}\" created successfully",

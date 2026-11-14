@@ -64,6 +64,7 @@ static TRANSFER: GenericTransfer = GenericTransfer {
     after: None,
     admit: None,
     replaceable: None,
+    check_content_type: true,
 };
 
 fn describe_imported(file: &Imported) -> BoxFuture<'_, Result<Option<Described>, String>> {
