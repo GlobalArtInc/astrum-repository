@@ -535,6 +535,9 @@ impl Rubygems {
                 ))
                 .map_err(ContentError::internal);
         };
+        subject
+            .require_unnarrowed()
+            .map_err(|_| ContentError::Forbidden)?;
         let Some(user_id) = subject.local_user_id() else {
             return Ok(text(StatusCode::FORBIDDEN, EXTERNAL_CREDENTIALS));
         };

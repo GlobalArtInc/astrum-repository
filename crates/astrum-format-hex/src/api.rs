@@ -434,7 +434,7 @@ impl Hex {
                 Some(subject) if !subject.anonymous => Ok((
                     StatusCode::OK,
                     Some(json!({
-                        "username": subject.user_id,
+                        "username": subject.public_identity().id,
                         "url": format!("{}/users/me", api_url(ctx)),
                         "organizations": [],
                     })),

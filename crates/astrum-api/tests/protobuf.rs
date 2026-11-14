@@ -9,7 +9,7 @@ use astrum_format_protobuf::proto::{
     download_request, graph, label_ref, module_ref, owner_ref, resource_ref, scoped_label_ref,
     update_modules_request, upload_request,
 };
-use astrum_security::Scope;
+use astrum_security::{NewToken, Scope};
 use axum::body::Body;
 use axum::http::{Method, StatusCode};
 use base64::Engine;
@@ -72,7 +72,7 @@ async fn token(fixture: &Fixture, scope: Scope) -> String {
     fixture
         .state
         .security()
-        .create_token("admin", "protobuf", scope, None)
+        .create_token("admin", NewToken::personal("protobuf", scope, None))
         .await
         .unwrap()
         .1
@@ -1613,4 +1613,33 @@ async fn a_module_write_over_the_quota_is_a_failed_precondition() {
     assert_eq!(refusal.1, "failed_precondition");
     assert!(refusal.2.contains(REPOSITORY), "{}", refusal.2);
     assert!(refusal.2.contains("quota"), "{}", refusal.2);
+}
+
+#[tokio::test]
+async fn a_token_limited_to_repositories_is_known_by_its_customer() {
+    let fixture = ready().await;
+    fixture
+        .add_user("olivia", "correct horse battery", &["nx-admin"])
+        .await;
+    let (_, limited) = fixture
+        .customer_token_of("olivia", "acme", &[REPOSITORY])
+        .await;
+    let response: proto::GetCurrentUserResponse = rpc(
+        &fixture,
+        AUTHN,
+        "GetCurrentUser",
+        &limited,
+        &proto::GetCurrentUserRequest {},
+    )
+    .await;
+    assert_eq!(response.user.unwrap().username, "acme");
+    let subject: proto::GetCurrentUserSubjectResponse = rpc(
+        &fixture,
+        AUTHN,
+        "GetCurrentUserSubject",
+        &limited,
+        &proto::GetCurrentUserSubjectRequest {},
+    )
+    .await;
+    assert_eq!(subject.subject, "acme");
 }

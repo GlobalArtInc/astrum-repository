@@ -901,3 +901,53 @@ async fn a_directory_account_cannot_revoke_the_token_of_a_local_user_of_its_id()
         0
     );
 }
+
+#[tokio::test]
+async fn a_token_limited_to_repositories_gets_no_terraform_token_and_revokes_none() {
+    let fixture = ready().await;
+    create(&fixture, "hosted", hosted("tf", "allow")).await;
+    let reply = fixture
+        .call(
+            Method::PUT,
+            "/service/rest/v1/security/realms/active",
+            Auth::Admin,
+            Some(json!([
+                "AstrumAuthenticatingRealm",
+                "AccessTokenRealm",
+                "TerraformToken"
+            ])),
+        )
+        .await;
+    assert_eq!(reply.status, StatusCode::NO_CONTENT);
+    let owner = get(&fixture, "/repository/tf/token", Auth::Admin).await;
+    assert_eq!(owner.status, StatusCode::OK, "{}", owner.text());
+    let (_, token) = fixture.customer_token("acme", &["tf"]).await;
+    for method in [Method::GET, Method::DELETE] {
+        let refused = send(
+            &fixture,
+            method.clone(),
+            "/repository/tf/token",
+            Auth::Basic("acme", &token),
+            Body::empty(),
+            &[],
+        )
+        .await;
+        assert_eq!(
+            refused.status,
+            StatusCode::FORBIDDEN,
+            "{method}: {}",
+            refused.text()
+        );
+        assert!(!refused.text().contains("TerraformToken."));
+    }
+    let revoked = send(
+        &fixture,
+        Method::DELETE,
+        "/repository/tf/token",
+        Auth::Admin,
+        Body::empty(),
+        &[],
+    )
+    .await;
+    assert_eq!(revoked.status, StatusCode::NO_CONTENT);
+}

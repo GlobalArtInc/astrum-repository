@@ -14,6 +14,7 @@ use serde_json::json;
 use crate::auth::AgentClient;
 use crate::limits;
 use crate::{AppState, Caller};
+use astrum_security::Subject;
 
 pub const PATH: &str = "/mcp";
 pub const RESOURCE_METADATA: &str = "/.well-known/oauth-protected-resource/mcp";
@@ -76,6 +77,9 @@ async fn serve(
             StatusCode::FORBIDDEN,
             "requests from another origin are refused",
         );
+    }
+    if let Some(Err(error)) = caller.subject().map(Subject::require_unnarrowed) {
+        return refuse(StatusCode::FORBIDDEN, &error.to_string());
     }
     let Ok(subject) = caller.signed_in() else {
         return challenge(&headers, &uri, false);

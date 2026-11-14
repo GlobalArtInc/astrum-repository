@@ -10,6 +10,7 @@ use axum::http::{Method, Request, StatusCode, header};
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
 use http_body_util::BodyExt;
+use sea_orm::EntityTrait;
 use serde_json::{Value, json};
 use sha2::{Digest as _, Sha256, Sha512};
 use support::two_factor::number;
@@ -1464,4 +1465,182 @@ async fn a_directory_account_gets_no_docker_token() {
         number(&registry.fixture, "SELECT count(*) FROM format_token").await,
         0
     );
+}
+
+#[tokio::test]
+async fn a_customer_pulls_listed_images_after_docker_login_and_is_refused_the_rest() {
+    let registry = Registry::new().await;
+    astrum_db::setting::put(
+        registry.fixture.state.db().conn(),
+        astrum_security::model::REALMS_KEY,
+        &[
+            "AstrumAuthenticatingRealm",
+            "AccessTokenRealm",
+            "DockerToken",
+        ],
+    )
+    .await
+    .unwrap();
+    registry.fixture.state.security().changed().await.unwrap();
+    registry.hosted("onprem", "ALLOW").await;
+    registry.hosted("private", "ALLOW").await;
+    let (_, listed_manifest) = registry
+        .push_image("/v2/onprem/app", "1.0", b"listed")
+        .await;
+    registry
+        .push_image("/v2/private/app", "1.0", b"unlisted")
+        .await;
+    let (_, token) = registry.fixture.customer_token("acme", &["onprem"]).await;
+    let login = basic("acme", &token);
+
+    let exchanged = registry
+        .send(
+            Method::GET,
+            "/v2/token?scope=repository:onprem/app:pull",
+            Some(&login),
+            &[],
+            Vec::new(),
+        )
+        .await;
+    assert_eq!(exchanged.status, StatusCode::OK, "{}", exchanged.text());
+    assert_eq!(exchanged.json()["token"], token.as_str());
+    let bearer = format!("Bearer {token}");
+
+    let pulled = registry
+        .send(
+            Method::GET,
+            "/v2/onprem/app/manifests/1.0",
+            Some(&bearer),
+            &[("accept", OCI_MANIFEST)],
+            Vec::new(),
+        )
+        .await;
+    assert_eq!(pulled.status, StatusCode::OK, "{}", pulled.text());
+    assert_eq!(pulled.body, listed_manifest);
+    let pulled_by_basic = registry
+        .send(
+            Method::GET,
+            "/v2/onprem/app/manifests/1.0",
+            Some(&login),
+            &[("accept", OCI_MANIFEST)],
+            Vec::new(),
+        )
+        .await;
+    assert_eq!(pulled_by_basic.status, StatusCode::OK);
+
+    let refused = registry
+        .send(
+            Method::GET,
+            "/v2/private/app/manifests/1.0",
+            Some(&bearer),
+            &[("accept", OCI_MANIFEST)],
+            Vec::new(),
+        )
+        .await;
+    assert_eq!(refused.status, StatusCode::FORBIDDEN, "{}", refused.text());
+    let pushed = registry
+        .send(
+            Method::POST,
+            "/v2/onprem/app/blobs/uploads/?digest=sha256:00",
+            Some(&bearer),
+            &[],
+            Vec::new(),
+        )
+        .await;
+    assert_eq!(pushed.status, StatusCode::FORBIDDEN, "{}", pushed.text());
+
+    let catalog = registry
+        .send(Method::GET, "/v2/_catalog", Some(&bearer), &[], Vec::new())
+        .await;
+    assert_eq!(catalog.status, StatusCode::OK, "{}", catalog.text());
+    assert_eq!(catalog.json()["repositories"], json!(["onprem/app"]));
+
+    for scheme in ["", "Token "] {
+        let replayed = registry
+            .send(
+                Method::GET,
+                "/v2/token",
+                Some(&format!("{scheme}{token}")),
+                &[],
+                Vec::new(),
+            )
+            .await;
+        assert_eq!(
+            replayed.status,
+            StatusCode::FORBIDDEN,
+            "{scheme:?}: {}",
+            replayed.text()
+        );
+        assert!(!replayed.text().contains("DockerToken."));
+    }
+
+    let form = |user: &str| {
+        format!(
+            "grant_type=password&username={user}&password={token}&scope=repository:onprem/app:pull"
+        )
+        .into_bytes()
+    };
+    let urlencoded = [("content-type", "application/x-www-form-urlencoded")];
+    let oauth = registry
+        .send(Method::POST, "/v2/token", None, &urlencoded, form("acme"))
+        .await;
+    assert_eq!(oauth.status, StatusCode::OK, "{}", oauth.text());
+    let stranger = registry
+        .send(
+            Method::POST,
+            "/v2/token",
+            None,
+            &urlencoded,
+            form("stranger"),
+        )
+        .await;
+    assert_eq!(stranger.status, StatusCode::UNAUTHORIZED);
+}
+
+#[tokio::test]
+async fn a_blob_pulled_with_a_customer_token_counts_one_download_for_the_token() {
+    let registry = Registry::new().await;
+    astrum_db::setting::put(
+        registry.fixture.state.db().conn(),
+        astrum_security::model::REALMS_KEY,
+        &[
+            "AstrumAuthenticatingRealm",
+            "AccessTokenRealm",
+            "DockerToken",
+        ],
+    )
+    .await
+    .unwrap();
+    registry.fixture.state.security().changed().await.unwrap();
+    registry.hosted("onprem", "ALLOW").await;
+    registry
+        .push_image("/v2/onprem/app", "1.0", b"listed")
+        .await;
+    let (id, token) = registry.fixture.customer_token("acme", &["onprem"]).await;
+    let pulled = registry
+        .send(
+            Method::GET,
+            &format!("/v2/onprem/app/blobs/{}", sha256(b"listed")),
+            Some(&format!("Bearer {token}")),
+            &[],
+            Vec::new(),
+        )
+        .await;
+    assert_eq!(pulled.status, StatusCode::OK, "{}", pulled.text());
+    registry
+        .fixture
+        .state
+        .content()
+        .flush_downloads()
+        .await
+        .unwrap();
+    let rows = astrum_db::entity::token_download_day::Entity::find()
+        .all(registry.fixture.state.db().conn())
+        .await
+        .unwrap();
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0].token_id, id);
+    assert_eq!(rows[0].customer.as_deref(), Some("acme"));
+    assert_eq!(rows[0].repository, "onprem");
+    assert_eq!((rows[0].downloads, rows[0].bytes), (1, 6));
 }

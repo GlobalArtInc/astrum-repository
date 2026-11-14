@@ -6,8 +6,8 @@ use std::sync::{Arc, Mutex};
 
 use astrum_format_openvsx::names;
 use astrum_format_openvsx::testing::{Spec, vsix};
-use astrum_security::Scope;
 use astrum_security::ssrf::{SSRF_KEY, SsrfProtection};
+use astrum_security::{NewToken, Scope};
 use axum::Router;
 use axum::body::Body;
 use axum::extract::{Path, RawQuery, State};
@@ -904,7 +904,7 @@ async fn tokens_challenges_and_privileges_follow_the_ovsx_client() {
     let (_, token) = fixture
         .state
         .security()
-        .create_token("deployer", "ovsx", Scope::Write, None)
+        .create_token("deployer", NewToken::personal("ovsx", Scope::Write, None))
         .await
         .unwrap();
     let bearer = format!("Bearer {token}");
@@ -1012,7 +1012,7 @@ async fn tokens_challenges_and_privileges_follow_the_ovsx_client() {
     let (_, read_token) = fixture
         .state
         .security()
-        .create_token("reader", "ovsx", Scope::Write, None)
+        .create_token("reader", NewToken::personal("ovsx", Scope::Write, None))
         .await
         .unwrap();
     let unpublish_refused = call(

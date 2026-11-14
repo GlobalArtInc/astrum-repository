@@ -4,8 +4,8 @@ use std::io::Write;
 use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
 
-use astrum_security::Scope;
 use astrum_security::ssrf::{SSRF_KEY, SsrfProtection};
+use astrum_security::{NewToken, Scope};
 use axum::Router;
 use axum::body::Body;
 use axum::extract::{Path, State};
@@ -602,7 +602,7 @@ async fn vagrant_tokens_and_privileges_decide_who_reads_and_uploads() {
     let (_, token) = fixture
         .state
         .security()
-        .create_token("admin", "vagrant", Scope::Read, None)
+        .create_token("admin", NewToken::personal("vagrant", Scope::Read, None))
         .await
         .unwrap();
     let listed = bearer(
@@ -1236,4 +1236,25 @@ async fn cleanup_tells_pre_releases_from_releases() {
     };
     assert_eq!(preview("PRERELEASES").await, 2);
     assert_eq!(preview("RELEASES").await, 2);
+}
+
+#[tokio::test]
+async fn a_token_limited_to_repositories_is_known_by_its_customer() {
+    let fixture = ready().await;
+    create(&fixture, "hosted", hosted("private", "ALLOW")).await;
+    fixture
+        .add_user("olivia", "correct horse battery", &["nx-admin"])
+        .await;
+    let (_, token) = fixture
+        .customer_token_of("olivia", "acme", &["private"])
+        .await;
+    let who = bearer(
+        &fixture,
+        Method::GET,
+        "/repository/private/api/v2/authenticate",
+        &token,
+    )
+    .await;
+    assert_eq!(who.status, StatusCode::OK, "{}", who.text());
+    assert_eq!(who.json(), json!({"user": {"username": "acme"}}));
 }

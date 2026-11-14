@@ -501,6 +501,9 @@ impl Cargo {
         let Some(subject) = ctx.subject.as_ref().filter(|subject| !subject.anonymous) else {
             return Ok(unauthorized(ctx, "sign in to get a token for cargo login"));
         };
+        subject
+            .require_unnarrowed()
+            .map_err(|_| ContentError::Forbidden)?;
         let Some(user_id) = subject.local_user_id() else {
             return Ok(json_response(
                 StatusCode::FORBIDDEN,

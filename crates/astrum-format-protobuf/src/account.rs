@@ -4,9 +4,9 @@ use sha2::{Digest as _, Sha256};
 use crate::connect::{Code, Reply, Status};
 use crate::proto;
 
-fn signed_in(ctx: &Ctx) -> Reply<&str> {
+fn signed_in(ctx: &Ctx) -> Reply<String> {
     match ctx.subject.as_ref() {
-        Some(subject) if !subject.anonymous => Ok(subject.user_id.as_str()),
+        Some(subject) if !subject.anonymous => Ok(subject.public_identity().id),
         _ => Err(Status::new(
             Code::Unauthenticated,
             "authentication is required",
@@ -28,10 +28,10 @@ pub async fn current_user(
     let name = signed_in(ctx)?;
     Ok(proto::GetCurrentUserResponse {
         user: Some(proto::CurrentUser {
-            id: user_id(name),
+            id: user_id(&name),
             create_time: None,
             update_time: None,
-            username: name.to_owned(),
+            username: name,
             deactivated: false,
             user_type: proto::UserType::Personal as i32,
         }),
@@ -43,7 +43,7 @@ pub async fn current_subject(
     _request: proto::GetCurrentUserSubjectRequest,
 ) -> Reply<proto::GetCurrentUserSubjectResponse> {
     Ok(proto::GetCurrentUserSubjectResponse {
-        subject: signed_in(ctx)?.to_owned(),
+        subject: signed_in(ctx)?,
     })
 }
 

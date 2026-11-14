@@ -53,6 +53,8 @@
   "settings.tile.trustedKeysText": "Public keys that verify signed packages",
   "settings.tile.vulnerabilityData": "Vulnerability Data",
   "settings.tile.vulnerabilityDataText": "Imported advisory feeds and how old they are",
+  "settings.tile.customers": "Customers",
+  "settings.tile.customersText": "Customers and the read-only tokens that give them downloads",
   "settings.tile.systemInformation": "System Information",
   "settings.tile.systemInformationText": "Version, environment and diagnostics of this server",
   "settings.tile.licenses": "Licences",

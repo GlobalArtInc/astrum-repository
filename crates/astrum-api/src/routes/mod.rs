@@ -5,6 +5,7 @@ pub mod cleanup_policies;
 pub mod components;
 pub mod content;
 pub mod cooldown;
+pub mod customers;
 pub mod email;
 pub mod findings;
 pub(crate) mod html;

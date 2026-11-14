@@ -10,8 +10,8 @@ use astrum_format_hex::proto::{Dependency, RetirementReason};
 use astrum_format_hex::registry;
 use astrum_format_hex::testing::{self, Spec};
 use astrum_format_hex::{Hex, etf};
-use astrum_security::Scope;
 use astrum_security::ssrf::{SSRF_KEY, SsrfProtection};
+use astrum_security::{NewToken, Scope};
 use axum::Router;
 use axum::body::Body;
 use axum::extract::{Path, State};
@@ -91,7 +91,7 @@ async fn token(fixture: &Fixture) -> String {
     fixture
         .state
         .security()
-        .create_token("admin", "hex", Scope::Write, None)
+        .create_token("admin", NewToken::personal("hex", Scope::Write, None))
         .await
         .unwrap()
         .1
@@ -1308,4 +1308,27 @@ async fn proxies_pass_the_signed_registry_through_and_groups_sign_their_own() {
             .status,
         StatusCode::FORBIDDEN
     );
+}
+
+#[tokio::test]
+async fn a_token_limited_to_repositories_is_known_by_its_customer() {
+    let fixture = ready().await;
+    created(&fixture, "hosted", hosted("hex-local", "ALLOW")).await;
+    fixture
+        .add_user("olivia", "correct horse battery", &["nx-admin"])
+        .await;
+    let (_, token) = fixture
+        .customer_token_of("olivia", "acme", &["hex-local"])
+        .await;
+    let me = api(
+        &fixture,
+        Method::GET,
+        "/repository/hex-local/api/users/me",
+        Some(&token),
+        Vec::new(),
+        ERLANG,
+    )
+    .await;
+    assert_eq!(me.status, StatusCode::OK, "{}", me.text());
+    assert_eq!(term(&me)["username"], "acme");
 }

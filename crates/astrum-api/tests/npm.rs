@@ -594,6 +594,28 @@ async fn write_policies_permissions_and_repository_kinds_are_enforced() {
 }
 
 #[tokio::test]
+async fn a_token_limited_to_repositories_is_known_by_its_customer() {
+    let fixture = ready().await;
+    create(&fixture, "hosted", hosted("npm-hosted", "ALLOW")).await;
+    fixture
+        .add_user("olivia", "correct horse battery", &["nx-admin"])
+        .await;
+    let (_, token) = fixture
+        .customer_token_of("olivia", "acme", &["npm-hosted"])
+        .await;
+    let who = send(
+        &fixture,
+        Method::GET,
+        &format!("{HOSTED}/-/whoami"),
+        Who::Bearer(&token),
+        None,
+        &[],
+    )
+    .await;
+    assert_eq!(who.json(), json!({"username": "acme"}));
+}
+
+#[tokio::test]
 async fn tags_deprecations_and_unpublishing_follow_the_npm_client() {
     let fixture = ready().await;
     create(&fixture, "hosted", hosted("npm-hosted", "ALLOW")).await;

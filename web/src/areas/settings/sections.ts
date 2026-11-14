@@ -11,6 +11,7 @@ import {
   FileKey,
   Funnel,
   Globe,
+  Handshake,
   HardDrive,
   Hourglass,
   Info,
@@ -253,6 +254,15 @@ export const CATALOG: CatalogTile[] = [
     Scale,
     'settings.tile.licenses',
     'settings.tile.licensesText',
+  ),
+  tile(
+    'customers',
+    'security',
+    90,
+    '/admin/customers',
+    Handshake,
+    'settings.tile.customers',
+    'settings.tile.customersText',
   ),
   tile(
     'system-information',

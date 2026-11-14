@@ -2,9 +2,10 @@
 
 use std::sync::Arc;
 
-use astrum_db::entity::{security_user, security_user_role};
+use astrum_db::entity::{customer, repository, security_user, security_user_role};
+use astrum_security::catalogue::ADMIN_USER;
 use astrum_security::two_factor::store::{Confirmation, RecoveryCodes, Verification, VerifyReport};
-use astrum_security::{Gate, SecretBox, Security, bootstrap, password, totp};
+use astrum_security::{Gate, NewToken, Scope, SecretBox, Security, bootstrap, password, totp};
 use astrum_testkit::TestDatabase;
 use chrono::{DateTime, Duration, Utc};
 use sea_orm::{ActiveValue, ConnectionTrait, DbBackend, EntityTrait, Statement};
@@ -171,4 +172,57 @@ impl World {
     pub async fn verify(&self, user: &str, code: &str, now: DateTime<Utc>) -> Verification {
         self.report(user, code, now).await.result
     }
+}
+
+pub async fn customer_world() -> World {
+    let world = world().await;
+    let now = Utc::now().fixed_offset();
+    customer::Entity::insert(customer::ActiveModel {
+        id: ActiveValue::Set("acme".to_owned()),
+        name: ActiveValue::Set("Acme".to_owned()),
+        reference: ActiveValue::Set(String::new()),
+        note: ActiveValue::Set(String::new()),
+        disabled: ActiveValue::Set(false),
+        created_by: ActiveValue::Set("admin".to_owned()),
+        created_at: ActiveValue::Set(now),
+    })
+    .exec(world.db.conn())
+    .await
+    .unwrap();
+    for name in ["raw-a", "raw-b"] {
+        repository::Entity::insert(repository::ActiveModel {
+            name: ActiveValue::Set(name.to_owned()),
+            format: ActiveValue::Set("raw".to_owned()),
+            kind: ActiveValue::Set("hosted".to_owned()),
+            online: ActiveValue::Set(true),
+            blob_store: ActiveValue::Set(None),
+            attributes: ActiveValue::Set(serde_json::json!({})),
+            created_at: ActiveValue::Set(now),
+            updated_at: ActiveValue::Set(now),
+        })
+        .exec(world.db.conn())
+        .await
+        .unwrap();
+    }
+    world
+}
+
+pub fn customer_token(repositories: &[&str]) -> NewToken {
+    NewToken {
+        name: "release".to_owned(),
+        scope: Scope::Read,
+        days: Some(30),
+        repositories: Some(repositories.iter().map(|name| (*name).to_owned()).collect()),
+        customer: Some("acme".to_owned()),
+        created_by: Some("admin".to_owned()),
+    }
+}
+
+pub async fn issue(world: &World, repositories: &[&str]) -> String {
+    world
+        .security
+        .create_token(ADMIN_USER, customer_token(repositories))
+        .await
+        .unwrap()
+        .1
 }

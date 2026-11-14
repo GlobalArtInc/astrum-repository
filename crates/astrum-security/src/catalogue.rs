@@ -150,6 +150,36 @@ const APPLICATION: &[Application] = &[
         "Upload components",
     ),
     (
+        "as-customers-all",
+        "customers",
+        &[Action::All],
+        "Every action on customers",
+    ),
+    (
+        "as-customers-create",
+        "customers",
+        &[Action::Add, Action::Read],
+        "Create customers and issue their tokens",
+    ),
+    (
+        "as-customers-delete",
+        "customers",
+        &[Action::Delete, Action::Read],
+        "Delete customers and revoke their tokens",
+    ),
+    (
+        "as-customers-read",
+        "customers",
+        &[Action::Read],
+        "Read customers, their tokens and their usage",
+    ),
+    (
+        "as-customers-update",
+        "customers",
+        &[Action::Edit, Action::Read],
+        "Change customers",
+    ),
+    (
         "as-datastores-all",
         "datastores",
         &[Action::All],
@@ -652,8 +682,8 @@ mod tests {
 
     use super::*;
 
-    const ASTRUM_ONLY: [&str; 2] = ["as-policies-", "as-policyexceptions-"];
-    const ASTRUM_ONLY_COUNT: usize = 9;
+    const ASTRUM_ONLY: [&str; 3] = ["as-customers-", "as-policies-", "as-policyexceptions-"];
+    const ASTRUM_ONLY_COUNT: usize = 14;
 
     #[test]
     fn the_catalogue_has_the_names_existing_installations_use() {
@@ -667,6 +697,8 @@ mod tests {
         for id in [
             "as-all",
             "as-users-read",
+            "as-customers-read",
+            "as-customers-delete",
             "as-userschangepw",
             "as-tasks-run",
             "as-repository-view-*-*-read",

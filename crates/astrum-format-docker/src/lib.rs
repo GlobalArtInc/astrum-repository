@@ -555,6 +555,12 @@ impl Docker {
         }
         let stream = storage::stream_of(ctx, &asset).await?;
         ctx.content.note_download(asset.id);
+        ctx.content.note_token_download(
+            ctx.subject.as_ref(),
+            &asset.repository,
+            true,
+            asset.size.max(0) as u64,
+        );
         response
             .body(Body::from_stream(stream))
             .map_err(|error| ContentError::internal(error).into())

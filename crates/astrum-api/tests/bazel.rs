@@ -5,8 +5,8 @@ use std::io::Write;
 use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
 
-use astrum_security::Scope;
 use astrum_security::ssrf::{SSRF_KEY, SsrfProtection};
+use astrum_security::{NewToken, Scope};
 use axum::Router;
 use axum::body::Body;
 use axum::extract::{Path, State};
@@ -957,14 +957,17 @@ async fn access_follows_the_privileges_of_the_caller() {
     let reader = fixture
         .state
         .security()
-        .create_token("admin", "bazel-read", Scope::Read, None)
+        .create_token("admin", NewToken::personal("bazel-read", Scope::Read, None))
         .await
         .unwrap()
         .1;
     let writer = fixture
         .state
         .security()
-        .create_token("admin", "bazel-write", Scope::Write, None)
+        .create_token(
+            "admin",
+            NewToken::personal("bazel-write", Scope::Write, None),
+        )
         .await
         .unwrap()
         .1;

@@ -159,16 +159,20 @@ async fn ui_state(
 }
 
 fn user(security: &astrum_security::Security, subject: &Subject) -> UiUser {
-    let profile = security.profile(subject);
+    let identity = subject.public_identity();
+    let profile = match identity.hidden {
+        true => astrum_security::Profile::default(),
+        false => security.profile(subject),
+    };
     let name = format!("{} {}", profile.first_name.trim(), profile.last_name.trim())
         .trim()
         .to_owned();
     let name = match name.is_empty() {
-        true => subject.user_id.clone(),
+        true => identity.id.clone(),
         false => name,
     };
     UiUser {
-        user_id: subject.user_id.clone(),
+        user_id: identity.id,
         name,
         email: profile.email,
         source: match subject.source.is_empty() {
