@@ -32,6 +32,8 @@ pub enum Error {
     BlobsMissing(Vec<String>),
     #[error("{0}")]
     Refused(String),
+    #[error("the remote sent a reply that cannot be used: {0}")]
+    BadReply(String),
 }
 
 pub fn clean(text: &str) -> String {
@@ -92,7 +94,7 @@ impl Error {
     pub fn kind(&self) -> &'static str {
         match self {
             Error::Retryable { .. } => "retryable",
-            Error::Permanent { .. } | Error::BlobsMissing(_) => "permanent",
+            Error::Permanent { .. } | Error::BlobsMissing(_) | Error::BadReply(_) => "permanent",
             Error::Refused(_) => "refused",
         }
     }
@@ -122,6 +124,7 @@ impl Error {
                 message: hide(message),
             },
             Error::Refused(text) => Error::Refused(hide(text)),
+            Error::BadReply(text) => Error::BadReply(hide(text)),
             blobs @ Error::BlobsMissing(_) => blobs,
         }
     }

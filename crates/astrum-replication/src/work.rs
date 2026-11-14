@@ -86,7 +86,7 @@ impl Failure {
     pub(crate) fn permanent(&self) -> bool {
         matches!(
             self,
-            Failure::Remote(Error::Permanent { .. }) | Failure::Rejected(_)
+            Failure::Remote(Error::Permanent { .. } | Error::BadReply(_)) | Failure::Rejected(_)
         )
     }
 
@@ -499,6 +499,7 @@ mod tests {
     #[test]
     fn only_a_refusal_of_the_remote_or_a_local_rejection_is_final() {
         assert!(Failure::Remote(permanent(409)).permanent());
+        assert!(Failure::Remote(Error::BadReply("not json".to_owned())).permanent());
         assert!(Failure::Rejected("no".to_owned()).permanent());
         for temporary in [
             Failure::Remote(Error::BlobsMissing(vec!["a".repeat(64)])),

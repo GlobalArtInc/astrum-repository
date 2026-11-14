@@ -143,6 +143,14 @@ fn internal(what: &str) -> ApiError {
 }
 
 pub(super) async fn instance_id(state: &AppState) -> Result<Uuid, ApiError> {
+    state
+        .replication_instance()
+        .get_or_try_init(|| stored_instance_id(state))
+        .await
+        .copied()
+}
+
+async fn stored_instance_id(state: &AppState) -> Result<Uuid, ApiError> {
     let db = state.db().conn();
     db.execute(statement(
         RECORD_INSTANCE,

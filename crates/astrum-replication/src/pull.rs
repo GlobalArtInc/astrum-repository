@@ -5,7 +5,7 @@ use astrum_content::replicated::{
     self, Committed, Reason, Refusal as Refused, Removal, check_bundle_shape, instance,
 };
 use astrum_content::staging::{self, Counted, MAX_BLOB_BYTES, Staged};
-use astrum_content::store;
+use astrum_content::store::{self, transient_conflict};
 use astrum_content::transfer::{Bundle, REPLICATION_VIA, Status, fingerprint};
 use astrum_content::{ContentError, Ctx};
 use astrum_db::audit::{self, Event};
@@ -25,13 +25,24 @@ const FETCH: Phase = Phase::Negotiate;
 const DOWNLOAD: Phase = Phase::Upload;
 const AUDIT_DOMAIN: &str = "repository.content";
 const GONE: &str = "component_not_found";
+const BLOB_GONE: &str = "blob_not_found";
 const FROM_HERE: &str = "the component came from this server";
 const EMPTY: &str = "the component has no assets";
 const KEPT: &str = "deletes are not propagated by this replication";
 const NEVER_PULLED: &str = "the component was never pulled";
 const MISSING_TWICE: &str = "the staged blobs of the component went missing twice";
 
+fn blame(phase: Phase, error: Error) -> Failure {
+    match error {
+        Error::Permanent { status: 403, .. } => Failure::Down(error),
+        other => Failure::blame(phase, other),
+    }
+}
+
 fn content_failure(error: ContentError) -> Failure {
+    if transient_conflict(&error) {
+        return Failure::Local(error.to_string());
+    }
     match error {
         ContentError::Conflict(text)
         | ContentError::BadRequest(text)
@@ -102,7 +113,7 @@ impl Dispatcher {
             Err(Error::Permanent {
                 status: 404, code, ..
             }) if code == GONE => self.withdraw(target, replication, item, &ctx).await,
-            Err(error) => Err(Failure::blame(FETCH, error)),
+            Err(error) => Err(blame(FETCH, error)),
         }
     }
 
@@ -234,10 +245,17 @@ impl Dispatcher {
         staging::staged_room(&self.db(), ctx.name())
             .await
             .map_err(refusal_failure)?;
-        let download = client
-            .blob(&replication.remote_repository, sha256)
-            .await
-            .map_err(|error| Failure::blame(DOWNLOAD, error))?;
+        let download = match client.blob(&replication.remote_repository, sha256).await {
+            Ok(download) => download,
+            Err(Error::Permanent {
+                status: 404, code, ..
+            }) if code == BLOB_GONE => {
+                return Err(Failure::Local(format!(
+                    "the remote no longer holds the blob {sha256}; the component changed after its bundle was read"
+                )));
+            }
+            Err(error) => return Err(blame(DOWNLOAD, error)),
+        };
         if download.length.is_some_and(|length| length != size) {
             return Err(Failure::Rejected(format!(
                 "the remote announced another size for the blob {sha256} than the bundle names"
@@ -245,11 +263,23 @@ impl Dispatcher {
         }
         let (stream, failures) = download.into_parts();
         let (counted, exceeded) = Counted::new(stream, size);
-        let written = match store::write_blob(ctx, counted.boxed()).await {
-            Ok(written) => written,
-            Err(error) => {
+        let cap = self.settings().download_cap(size);
+        let written = match tokio::time::timeout(cap, store::write_blob(ctx, counted.boxed())).await
+        {
+            Ok(Ok(written)) => written,
+            Err(_) => {
+                return Err(Failure::Remote(Error::Retryable {
+                    reason: format!(
+                        "the download of the blob {sha256} took longer than {:.1} seconds",
+                        cap.as_secs_f64()
+                    ),
+                    retry_after: None,
+                    status: None,
+                }));
+            }
+            Ok(Err(error)) => {
                 if let Some(error) = failures.take() {
-                    return Err(Failure::blame(DOWNLOAD, error));
+                    return Err(blame(DOWNLOAD, error));
                 }
                 if exceeded.load(Ordering::Relaxed) {
                     return Err(Failure::Rejected(format!(

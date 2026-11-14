@@ -60,6 +60,7 @@ struct Inner {
     limits: limits::Limiter,
     metrics: metrics::Registry,
     stars: github::Stars,
+    replication_instance: tokio::sync::OnceCell<uuid::Uuid>,
 }
 
 impl AppState {
@@ -100,6 +101,7 @@ impl AppState {
                 limits: limits::Limiter::default(),
                 metrics: metrics::Registry::default(),
                 stars: github::Stars::default(),
+                replication_instance: tokio::sync::OnceCell::new(),
             }),
         }
     }
@@ -199,6 +201,10 @@ impl AppState {
 
     pub fn metrics(&self) -> &metrics::Registry {
         &self.inner.metrics
+    }
+
+    pub(crate) fn replication_instance(&self) -> &tokio::sync::OnceCell<uuid::Uuid> {
+        &self.inner.replication_instance
     }
 
     pub async fn audit(&self, caller: &Caller, event: Event) {

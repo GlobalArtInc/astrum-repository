@@ -10,7 +10,9 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::routing::get;
 use sea_orm::prelude::DateTimeWithTimeZone;
-use sea_orm::{DbBackend, DbErr, FromQueryResult, SqlErr, Statement, TransactionTrait, Value};
+use sea_orm::{
+    ConnectionTrait, DbBackend, DbErr, FromQueryResult, SqlErr, Statement, TransactionTrait, Value,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use uuid::Uuid;
@@ -628,32 +630,75 @@ fn direction_of(
     }
 }
 
-async fn stored_direction(state: &AppState, id: Uuid) -> Result<&'static str, ApiError> {
-    #[derive(FromQueryResult)]
-    struct Stored {
-        direction: String,
+const PINNED: &str =
+    "cannot be changed for a pull replication; delete the replication and create a new one";
+
+const STORED: &str = "SELECT direction, remote_id, remote_repository, propagate_deletes, \
+     name_filter, version_filter FROM replication WHERE id = $1";
+
+#[derive(FromQueryResult)]
+struct Stored {
+    direction: String,
+    remote_id: Uuid,
+    remote_repository: String,
+    propagate_deletes: bool,
+    name_filter: Option<String>,
+    version_filter: Option<String>,
+}
+
+impl Stored {
+    fn pulls(&self) -> bool {
+        self.direction == PULL_DIRECTION
     }
-    let stored = Stored::find_by_statement(statement(
-        "SELECT direction FROM replication WHERE id = $1",
-        vec![id.into()],
-    ))
-    .one(state.db().conn())
-    .await?
-    .ok_or_else(|| missing("replication", id))?;
-    match stored.direction.as_str() {
-        PULL_DIRECTION => Ok(PULL_DIRECTION),
-        _ => Ok(PUSH),
+
+    fn direction(&self) -> &'static str {
+        match self.pulls() {
+            true => PULL_DIRECTION,
+            false => PUSH,
+        }
     }
+
+    fn forgets_sends(&self, input: &ReplicationInput) -> bool {
+        self.pulls()
+            && ((self.propagate_deletes && !input.propagate_deletes)
+                || self.name_filter != input.name_filter
+                || self.version_filter != input.version_filter)
+    }
+
+    fn moves(&self, input: &ReplicationInput) -> bool {
+        self.pulls()
+            && (self.remote_id != input.remote_id
+                || self.remote_repository != input.remote_repository)
+    }
+}
+
+async fn stored_replication(
+    db: &impl ConnectionTrait,
+    id: Uuid,
+    lock: bool,
+) -> Result<Stored, ApiError> {
+    let sql = match lock {
+        true => format!("{STORED} FOR UPDATE"),
+        false => STORED.to_owned(),
+    };
+    Stored::find_by_statement(statement(&sql, vec![id.into()]))
+        .one(db)
+        .await?
+        .ok_or_else(|| missing("replication", id))
 }
 
 async fn replication_input(
     state: &AppState,
     subject: &Subject,
     body: ReplicationRequest,
-    stored: Option<&'static str>,
+    stored: Option<&Stored>,
 ) -> Result<ReplicationInput, ApiError> {
     let mut validation = Validation::new();
-    let direction = direction_of(&mut validation, body.direction.as_deref(), stored);
+    let direction = direction_of(
+        &mut validation,
+        body.direction.as_deref(),
+        stored.map(Stored::direction),
+    );
     let name = validate::name(body.name.as_deref())
         .map_err(|error| validation.add("name", error))
         .ok();
@@ -685,6 +730,17 @@ async fn replication_input(
     let remote_repository = validate::remote_repository(body.remote_repository.as_deref())
         .map_err(|error| validation.add("remoteRepository", error))
         .ok();
+    if let Some(stored) = stored.filter(|stored| stored.pulls()) {
+        if remote_id.is_some_and(|id| id != stored.remote_id) {
+            validation.add("remoteId", PINNED);
+        }
+        if remote_repository
+            .as_deref()
+            .is_some_and(|name| name != stored.remote_repository)
+        {
+            validation.add("remoteRepository", PINNED);
+        }
+    }
     let name_filter = optional_filter(&mut validation, "nameFilter", body.name_filter);
     let version_filter = optional_filter(&mut validation, "versionFilter", body.version_filter);
     let settle_seconds = ranged(
@@ -981,8 +1037,8 @@ async fn update_replication(
     let id = parse_id(&id, "replication")?;
     require_current_source(&state, subject, id).await?;
     let Json(body) = body?;
-    let stored = stored_direction(&state, id).await?;
-    let input = replication_input(&state, subject, body, Some(stored)).await?;
+    let stored = stored_replication(state.db().conn(), id, false).await?;
+    let input = replication_input(&state, subject, body, Some(&stored)).await?;
     let sql = format!(
         "UPDATE replication SET name = $2, source_repository = $3, remote_id = $4, \
          remote_repository = $5, enabled = $6, name_filter = $7, version_filter = $8, \
@@ -990,6 +1046,10 @@ async fn update_replication(
          alert_channels = $12, updated_at = now() WHERE id = $1 RETURNING {REPLICATION_COLUMNS}"
     );
     let txn = state.db().conn().begin().await?;
+    let held = stored_replication(&txn, id, true).await?;
+    if held.moves(&input) {
+        return Err(ApiError::invalid("remoteId", PINNED));
+    }
     let before = Snapshot::locked(&txn, id)
         .await?
         .ok_or_else(|| missing("replication", id))?;
@@ -1002,6 +1062,13 @@ async fn update_replication(
         Ok(None) => return Err(missing("replication", id)),
         Err(error) => return replication_conflict(&error),
     };
+    if held.forgets_sends(&input) {
+        txn.execute(statement(
+            "DELETE FROM replication_sent WHERE replication_id = $1",
+            vec![id.into()],
+        ))
+        .await?;
+    }
     lifecycle::updated(&txn, &before, &snapshot(&updated), &caller.initiator()).await?;
     txn.commit().await?;
     state.tasks().wake();

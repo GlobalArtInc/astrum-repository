@@ -49,6 +49,20 @@ const ENQUEUE: &str = "INSERT INTO replication_item (replication_id, namespace, 
          generation = replication_item.generation + 1 \
      WHERE replication_item.state = 'leased'";
 
+const ENQUEUE_PULL: &str = "INSERT INTO replication_item (replication_id, namespace, name, version, reason, not_before) \
+     SELECT r.id, k.namespace, k.name, k.version, 'reconcile', now() \
+     FROM replication r \
+     CROSS JOIN unnest($2::text[], $3::text[], $4::text[]) AS k(namespace, name, version) \
+     WHERE r.id = $1 AND r.enabled \
+     ON CONFLICT (replication_id, namespace, name, version) DO UPDATE SET \
+         generation = CASE WHEN replication_item.state = 'leased' \
+             THEN replication_item.generation + 1 ELSE replication_item.generation END, \
+         state = CASE WHEN replication_item.state = 'dead' THEN 'pending' ELSE replication_item.state END, \
+         attempts = CASE WHEN replication_item.state = 'dead' THEN 0 ELSE replication_item.attempts END, \
+         reason = CASE WHEN replication_item.state = 'dead' THEN 'reconcile' ELSE replication_item.reason END, \
+         not_before = CASE WHEN replication_item.state = 'dead' THEN now() ELSE replication_item.not_before END \
+     WHERE replication_item.state IN ('leased', 'dead')";
+
 const RECONCILED: &str = "UPDATE replication SET last_reconcile_at = now() WHERE id = $1";
 
 const RENEW: &str = "UPDATE replication_item \
@@ -242,6 +256,23 @@ pub async fn enqueue(
     replication: Uuid,
     keys: &[(String, String, String)],
 ) -> Result<u64, DbErr> {
+    enqueue_with(db, ENQUEUE, replication, keys).await
+}
+
+pub async fn enqueue_pull(
+    db: &impl ConnectionTrait,
+    replication: Uuid,
+    keys: &[(String, String, String)],
+) -> Result<u64, DbErr> {
+    enqueue_with(db, ENQUEUE_PULL, replication, keys).await
+}
+
+async fn enqueue_with(
+    db: &impl ConnectionTrait,
+    sql: &str,
+    replication: Uuid,
+    keys: &[(String, String, String)],
+) -> Result<u64, DbErr> {
     if keys.is_empty() {
         return Ok(0);
     }
@@ -250,7 +281,7 @@ pub async fn enqueue(
     };
     Ok(db
         .execute(statement(
-            ENQUEUE,
+            sql,
             vec![
                 replication.into(),
                 column(|key| &key.0).into(),

@@ -232,3 +232,40 @@ async fn the_inventory_routes_and_the_handshake_accept_either_privilege() {
         .await;
     assert_eq!(missing.status, StatusCode::FORBIDDEN);
 }
+
+#[tokio::test]
+async fn a_role_that_reads_through_a_content_selector_gets_no_bundle_and_no_blob() {
+    let fixture = ready().await;
+    upload(&fixture, "files", PATH, b"alpha").await;
+    let steps = [
+        (
+            "/service/rest/v1/security/content-selectors",
+            json!({"name": "docs-only", "description": "", "expression": "format == \"raw\" && path =^ \"/docs/\""}),
+        ),
+        (
+            "/service/rest/v1/security/privileges/repository-content-selector",
+            json!({"name": "docs-read", "description": "", "actions": ["READ", "BROWSE"], "format": "raw", "repository": "files", "contentSelector": "docs-only"}),
+        ),
+    ];
+    for (path, body) in steps {
+        let reply = fixture
+            .call(Method::POST, path, Auth::Admin, Some(body))
+            .await;
+        assert!(reply.status.is_success(), "{path}: {}", reply.text());
+    }
+    create_role(
+        &fixture,
+        "selected",
+        &["as-replication-pull", "docs-read"],
+        &[],
+    )
+    .await;
+    create_user(&fixture, "selected", PASSWORD, &["selected"]).await;
+    let direct = get(&fixture, user("selected"), "/repository/files/docs/a.txt").await;
+    assert_eq!(direct.status, StatusCode::OK, "{}", direct.text());
+    let blob = format!("{BASE}/files/blobs/{}", sha(b"alpha"));
+    for uri in [bundle_uri("files", "%2Fdocs%2Fa.txt"), blob] {
+        let refused = get(&fixture, user("selected"), &uri).await;
+        assert_eq!(refused.status, StatusCode::FORBIDDEN, "{uri}");
+    }
+}

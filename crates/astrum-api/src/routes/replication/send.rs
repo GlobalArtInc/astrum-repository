@@ -1,9 +1,8 @@
 use astrum_content::replicated;
 use astrum_content::transfer::origin_of;
-use astrum_content::{ContentError, Ctx, View};
+use astrum_content::{ContentError, View};
 use astrum_db::entity::component;
-use astrum_replication::protocol::{BLOB, BUNDLE, valid_sha256};
-use astrum_repo::RepositoryType;
+use astrum_replication::protocol::{BLOB, BUNDLE, component_key, valid_sha256};
 use axum::Router;
 use axum::body::Body;
 use axum::extract::rejection::QueryRejection;
@@ -18,7 +17,7 @@ use uuid::Uuid;
 use super::receive::{PULL, Refusal, instance_id, open_as, statement};
 use crate::{ApiError, AppState, Caller};
 
-const COMPONENT_BLOB: &str = "SELECT a.blob_store, a.blob_id FROM asset a \
+const COMPONENT_BLOB: &str = "SELECT a.blob_store, a.blob_id, c.namespace, c.name, c.version FROM asset a \
      JOIN component c ON c.id = a.component_id \
      WHERE a.repository = $1 AND c.repository = $1 AND a.sha256 = $2 \
      ORDER BY a.id LIMIT 1";
@@ -40,23 +39,9 @@ struct Coordinates {
 struct Located {
     blob_store: String,
     blob_id: Uuid,
-}
-
-fn refuse(code: &'static str, message: impl Into<String>) -> Refusal {
-    Refusal::Status(StatusCode::BAD_REQUEST, code, message.into())
-}
-
-fn hosted(ctx: &Ctx) -> Result<(), Refusal> {
-    match ctx.kind() {
-        RepositoryType::Hosted => Ok(()),
-        _ => Err(refuse(
-            "not_hosted",
-            format!(
-                "{} is not a hosted repository and serves no replicated components",
-                ctx.name()
-            ),
-        )),
-    }
+    namespace: String,
+    name: String,
+    version: String,
 }
 
 async fn bundle(
@@ -65,8 +50,9 @@ async fn bundle(
     Path(repository): Path<String>,
     query: Result<Query<Coordinates>, QueryRejection>,
 ) -> Result<Response, Refusal> {
+    let who = caller.initiator();
     let ctx = open_as(&state, caller, &repository, View::Read, &[PULL]).await?;
-    hosted(&ctx)?;
+    replicated::require_hosted(&ctx)?;
     let format = replicated::format_of(&ctx)?;
     let Query(wanted) = query.map_err(|rejection| ApiError::BadRequest(rejection.body_text()))?;
     let name = wanted
@@ -88,6 +74,15 @@ async fn bundle(
         None => instance_id(&state).await?.to_string(),
     };
     bundle.origin = Some(origin);
+    let bytes: u64 = bundle.assets.iter().map(|asset| asset.size).sum();
+    tracing::info!(
+        repository = ctx.name(),
+        component = %component_key(&bundle.namespace, &bundle.name, &bundle.version),
+        caller = %who,
+        assets = bundle.assets.len(),
+        bytes,
+        "a bundle was served to a replication pull"
+    );
     Ok(axum::Json(bundle).into_response())
 }
 
@@ -96,14 +91,16 @@ async fn blob(
     caller: Caller,
     Path((repository, sha256)): Path<(String, String)>,
 ) -> Result<Response, Refusal> {
+    let who = caller.initiator();
     let ctx = open_as(&state, caller, &repository, View::Read, &[PULL]).await?;
-    hosted(&ctx)?;
+    replicated::require_hosted(&ctx)?;
     replicated::format_of(&ctx)?;
     if !valid_sha256(&sha256) {
-        return Err(refuse(
+        return Err(replicated::refuse(
             "bad_digest",
             "the digest in the path is not 64 lowercase hexadecimal characters",
-        ));
+        )
+        .into());
     }
     let located = Located::find_by_statement(statement(
         COMPONENT_BLOB,
@@ -135,6 +132,14 @@ async fn blob(
                 "the blob of the asset is missing from its blob store".to_owned(),
             )
         })?;
+    tracing::info!(
+        repository = ctx.name(),
+        component = %component_key(&located.namespace, &located.name, &located.version),
+        caller = %who,
+        sha256,
+        bytes = content.length,
+        "a blob was served to a replication pull"
+    );
     Response::builder()
         .status(StatusCode::OK)
         .header(header::CONTENT_TYPE, "application/octet-stream")

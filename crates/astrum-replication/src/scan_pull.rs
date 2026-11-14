@@ -111,7 +111,11 @@ impl Scan<'_> {
         }
         self.unlisted(&mut local, &repository, None, &mut wanted)
             .await?;
-        self.flush(&mut wanted, true).await
+        self.flush(&mut wanted, true).await?;
+        if self.tally.deletes_capped {
+            self.tally.capped = true;
+        }
+        Ok(())
     }
 
     async fn flush(&mut self, wanted: &mut Vec<Key>, all: bool) -> Result<(), Ended> {
@@ -154,10 +158,20 @@ impl Scan<'_> {
         if !self.replication.propagate_deletes || !ours {
             return;
         }
-        match self.filters.passes(&key) {
-            true => wanted.push(key),
-            false => self.tally.filtered += 1,
+        if !self.filters.passes(&key) {
+            self.tally.filtered += 1;
+            return;
         }
+        if self.tally.remote_scanned == 0 {
+            self.tally.withheld += 1;
+            return;
+        }
+        if self.tally.deletions >= self.limits.deletions {
+            self.tally.deletes_capped = true;
+            return;
+        }
+        self.tally.deletions += 1;
+        wanted.push(key);
     }
 
     async fn listed(

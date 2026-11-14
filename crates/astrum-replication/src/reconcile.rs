@@ -76,11 +76,20 @@ impl Summary {
             Outcome::Skipped(reason) => format!("skipped: {reason}"),
             Outcome::Unreadable(text) => text.clone(),
             outcome => {
-                let tail = match outcome {
-                    Outcome::Capped => {
+                let tail = match (outcome, tally.deletes_capped) {
+                    (Outcome::Capped, true) => {
+                        "; the limit of deletions one run queues was reached, the next run continues"
+                    }
+                    (Outcome::Capped, false) => {
                         "; the limit of one run was reached, run the reconcile again"
                     }
                     _ => "",
+                };
+                let held = match tally.withheld {
+                    0 => String::new(),
+                    count => format!(
+                        "; the remote lists no components, so {count} local components from it were not queued for deletion"
+                    ),
                 };
                 let here = match tally.from_here {
                     0 => String::new(),
@@ -88,7 +97,7 @@ impl Summary {
                 };
                 format!(
                     "{} local components looked at ({} outside the filters, {} from the remote, \
-                     {} without assets{here}), {} remote entries looked at, {} queued{tail}",
+                     {} without assets{here}), {} remote entries looked at, {} queued{held}{tail}",
                     tally.scanned,
                     tally.filtered,
                     tally.from_remote,

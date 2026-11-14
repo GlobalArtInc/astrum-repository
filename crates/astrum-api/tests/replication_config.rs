@@ -861,3 +861,80 @@ async fn a_pull_needs_edit_access_to_the_local_repository_where_a_push_needs_rea
     .await;
     assert_eq!(pulled.status, StatusCode::CREATED, "{}", pulled.text());
 }
+
+async fn sent_rows(fixture: &Fixture) -> i64 {
+    let row = fixture
+        .state
+        .db()
+        .conn()
+        .query_one(Statement::from_string(
+            DbBackend::Postgres,
+            "SELECT count(*) AS n FROM replication_sent",
+        ))
+        .await
+        .unwrap()
+        .unwrap();
+    row.try_get("", "n").unwrap()
+}
+
+async fn remember_a_send(fixture: &Fixture, id: &str) {
+    execute(
+        fixture,
+        &format!(
+            "INSERT INTO replication_sent (replication_id, namespace, name, version, fingerprint, origin) \
+             VALUES ('{id}', '', 'app', '1', '{}', '{}') ON CONFLICT DO NOTHING",
+            "f".repeat(64),
+            "0b8e6f0a-0000-4000-8000-000000000001"
+        ),
+    )
+    .await;
+}
+
+#[tokio::test]
+async fn editing_a_pull_replication_keeps_its_remote_and_forgets_its_sends() {
+    let fixture = ready().await;
+    let remote_id = make_remote(&fixture, "Mirror").await;
+    let other_id = make_remote(&fixture, "Elsewhere").await;
+    let mut pull = replication("Pull", &remote_id);
+    pull["direction"] = json!("pull");
+    pull["propagateDeletes"] = json!(true);
+    pull["nameFilter"] = json!("app.*");
+    let created = admin(&fixture, Method::POST, REPLICATIONS, Some(pull.clone())).await;
+    assert_eq!(created.status, StatusCode::CREATED, "{}", created.text());
+    let id = created.json()["id"].as_str().unwrap().to_owned();
+    let path = format!("{REPLICATIONS}/{id}");
+    remember_a_send(&fixture, &id).await;
+
+    let same = admin(&fixture, Method::PUT, &path, Some(pull.clone())).await;
+    assert_eq!(same.status, StatusCode::OK, "{}", same.text());
+    assert_eq!(sent_rows(&fixture).await, 1);
+
+    let mut moved = pull.clone();
+    moved["remoteId"] = json!(other_id);
+    moved["remoteRepository"] = json!("elsewhere");
+    let refused = admin(&fixture, Method::PUT, &path, Some(moved)).await;
+    assert_eq!(
+        refused.status,
+        StatusCode::BAD_REQUEST,
+        "{}",
+        refused.text()
+    );
+    assert_eq!(fields(&refused), ["remoteId", "remoteRepository"]);
+    assert_eq!(sent_rows(&fixture).await, 1);
+
+    let mut off = pull.clone();
+    off["propagateDeletes"] = json!(false);
+    let switched = admin(&fixture, Method::PUT, &path, Some(off.clone())).await;
+    assert_eq!(switched.status, StatusCode::OK, "{}", switched.text());
+    assert_eq!(sent_rows(&fixture).await, 0);
+
+    remember_a_send(&fixture, &id).await;
+    let on = admin(&fixture, Method::PUT, &path, Some(pull.clone())).await;
+    assert_eq!(on.status, StatusCode::OK, "{}", on.text());
+    assert_eq!(sent_rows(&fixture).await, 1);
+    let mut narrowed = pull.clone();
+    narrowed["versionFilter"] = json!("1\\..*");
+    let filtered = admin(&fixture, Method::PUT, &path, Some(narrowed)).await;
+    assert_eq!(filtered.status, StatusCode::OK, "{}", filtered.text());
+    assert_eq!(sent_rows(&fixture).await, 0);
+}

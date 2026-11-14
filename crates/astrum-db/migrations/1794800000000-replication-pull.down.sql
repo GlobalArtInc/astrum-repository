@@ -1,3 +1,7 @@
+DELETE FROM task
+WHERE type = 'replication.reconcile'
+    AND properties ->> 'replicationId' IN (SELECT id::text FROM replication WHERE direction = 'pull');
+
 DELETE FROM replication WHERE direction = 'pull';
 
 CREATE OR REPLACE FUNCTION replication_capturing(p_repository text) RETURNS boolean LANGUAGE sql STABLE AS $$

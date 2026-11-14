@@ -5667,11 +5667,12 @@
             "type": "integer"
           },
           "remoteId": {
+            "description": "For a pull replication it cannot be changed after the replication is created.",
             "format": "uuid",
             "type": "string"
           },
           "remoteRepository": {
-            "description": "The repository of the remote: the target of a push replication, the source of a pull replication",
+            "description": "The repository of the remote: the target of a push replication, the source of a pull replication. For a pull replication it cannot be changed after the replication is created.",
             "maxLength": 200,
             "minLength": 1,
             "type": "string"
@@ -5877,11 +5878,12 @@
             "type": "integer"
           },
           "remoteId": {
+            "description": "For a pull replication it cannot be changed after the replication is created.",
             "format": "uuid",
             "type": "string"
           },
           "remoteRepository": {
-            "description": "The repository of the remote: the target of a push replication, the source of a pull replication",
+            "description": "The repository of the remote: the target of a push replication, the source of a pull replication. For a pull replication it cannot be changed after the replication is created.",
             "type": "string"
           },
           "settleSeconds": {

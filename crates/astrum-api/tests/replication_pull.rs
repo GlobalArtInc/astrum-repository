@@ -1,77 +1,16 @@
 mod accounts;
 mod cluster;
+mod pull;
 mod support;
 
 use astrum_blob::BlobId;
-use astrum_replication::dispatch::Dispatcher;
-use astrum_replication::reconcile::{self, Outcome, Summary};
+use astrum_replication::reconcile::Outcome;
 use axum::http::{Method, StatusCode};
 use cluster::{Fail, Node, REPLICATIONS, connect, connect_with, replicate};
-use sea_orm::{ConnectionTrait, DbBackend, Statement};
-use serde_json::{Value, json};
+use pull::{column, drain, pull_body, pulling, queued, reconcile, status, user_token};
+use serde_json::json;
 use support::Auth;
 use uuid::Uuid;
-
-struct Pulling {
-    remote: Node,
-    local: Node,
-    replication: String,
-}
-
-fn pull_body(extra: Value) -> Value {
-    let mut body = json!({"direction": "pull"});
-    for (key, value) in extra.as_object().unwrap() {
-        body[key] = value.clone();
-    }
-    body
-}
-
-async fn pulling(extra: Value) -> Pulling {
-    let remote = Node::start(&["source"]).await;
-    let local = Node::start(&["mirror"]).await;
-    let connected = connect(&local, &remote).await;
-    let replication = replicate(&local, &connected, "mirror", "source", pull_body(extra)).await;
-    Pulling {
-        remote,
-        local,
-        replication,
-    }
-}
-
-async fn reconcile(node: &Node, replication: &str) -> Summary {
-    let id = Uuid::parse_str(replication).unwrap();
-    reconcile::run(node.fixture.state.content(), id)
-        .await
-        .unwrap()
-}
-
-async fn drain(node: &Node) {
-    let dispatcher = Dispatcher::new(node.fixture.state.content().clone());
-    for _ in 0..50 {
-        if dispatcher.run_once().await.unwrap().leased == 0 {
-            return;
-        }
-    }
-    panic!("the queue did not drain");
-}
-
-async fn column(node: &Node, sql: &str) -> Vec<String> {
-    let rows = node
-        .fixture
-        .state
-        .db()
-        .conn()
-        .query_all(Statement::from_string(DbBackend::Postgres, sql))
-        .await
-        .unwrap();
-    rows.iter()
-        .map(|row| row.try_get("", "t").unwrap())
-        .collect()
-}
-
-async fn queued(node: &Node) -> Vec<String> {
-    column(node, "SELECT name AS t FROM replication_item ORDER BY name").await
-}
 
 async fn origin_of(node: &Node, repository: &str, name: &str) -> Option<String> {
     let sql = format!(
@@ -79,10 +18,6 @@ async fn origin_of(node: &Node, repository: &str, name: &str) -> Option<String> 
          WHERE repository = '{repository}' AND name = '{name}'"
     );
     node.text(&sql).await
-}
-
-async fn status(node: &Node, repository: &str, path: &str) -> StatusCode {
-    node.get(repository, path).await.status
 }
 
 fn pom(version: &str) -> String {
@@ -98,7 +33,8 @@ async fn a_pull_brings_whole_components_with_their_bytes_origin_and_fingerprint(
     let local = Node::start(&[]).await;
     remote.maven("libs").await;
     local.maven("libs-mirror").await;
-    let token = puller_token(&remote).await;
+    let privileges = ["as-replication-pull", "as-repository-view-*-*-read"];
+    let token = user_token(&remote, "puller", &privileges).await;
     let connected = connect_with(&local, &remote, json!({"token": token})).await;
     let body = pull_body(json!({}));
     let replication = replicate(&local, &connected, "libs-mirror", "libs", body).await;
@@ -150,24 +86,6 @@ async fn a_pull_brings_whole_components_with_their_bytes_origin_and_fingerprint(
     );
     let stamped = "SELECT count(*) AS n FROM replication WHERE last_success_at IS NOT NULL";
     assert_eq!(local.number(stamped).await, 1);
-}
-
-async fn puller_token(remote: &Node) -> String {
-    let fixture = &remote.fixture;
-    let privileges = ["as-replication-pull", "as-repository-view-*-*-read"];
-    accounts::create_role(fixture, "puller", &privileges, &[]).await;
-    accounts::create_user(fixture, "puller", "pw-pw-pw-1", &["puller"]).await;
-    let wanted = json!({"name": "pull", "scope": "WRITE", "expiresInDays": 1});
-    let made = fixture
-        .call(
-            Method::POST,
-            "/service/rest/internal/access-tokens",
-            Auth::Basic("puller", "pw-pw-pw-1"),
-            Some(wanted),
-        )
-        .await;
-    assert_eq!(made.status, StatusCode::CREATED, "{}", made.text());
-    made.json()["token"].as_str().unwrap().to_owned()
 }
 
 async fn raw_repository(node: &Node, name: &str, policy: &str) {

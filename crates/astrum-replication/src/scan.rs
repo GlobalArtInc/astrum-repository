@@ -19,6 +19,7 @@ pub struct Limits {
     pub page: u32,
     pub batch: usize,
     pub remote_pages: u32,
+    pub deletions: u64,
 }
 
 impl Default for Limits {
@@ -28,6 +29,7 @@ impl Default for Limits {
             page: 500,
             batch: 1000,
             remote_pages: 20_000,
+            deletions: 1_000,
         }
     }
 }
@@ -41,6 +43,9 @@ pub struct Tally {
     pub empty: u64,
     pub remote_scanned: u64,
     pub enqueued: u64,
+    pub deletions: u64,
+    pub withheld: u64,
+    pub deletes_capped: bool,
     pub unreadable: u64,
     pub first_unreadable: Option<String>,
     pub capped: bool,
@@ -204,7 +209,11 @@ impl Scan<'_> {
                 return Ok(());
             }
             let (now, later) = rest.split_at(room.min(rest.len()));
-            self.tally.enqueued += queue::enqueue(self.db, self.replication.id, now).await?;
+            let queued = match self.replication.pulls() {
+                true => queue::enqueue_pull(self.db, self.replication.id, now).await?,
+                false => queue::enqueue(self.db, self.replication.id, now).await?,
+            };
+            self.tally.enqueued += queued;
             rest = later;
         }
         Ok(())

@@ -41,6 +41,16 @@ pub struct Settings {
     pub rounds: usize,
     pub max_remotes: i64,
     pub workers: usize,
+    pub download_min: Duration,
+    pub download_max: Duration,
+    pub download_rate: u64,
+}
+
+impl Settings {
+    pub(crate) fn download_cap(&self, size: u64) -> Duration {
+        let at_rate = Duration::from_secs(size / self.download_rate.max(1));
+        at_rate.max(self.download_min).min(self.download_max)
+    }
 }
 
 impl Default for Settings {
@@ -60,6 +70,9 @@ impl Default for Settings {
             rounds: 10,
             max_remotes: 256,
             workers: MAX_WORKERS,
+            download_min: Duration::from_secs(10 * 60),
+            download_max: Duration::from_secs(6 * 3600),
+            download_rate: 256 * 1024,
         }
     }
 }
@@ -316,6 +329,18 @@ impl Dispatcher {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_download_may_take_the_longer_of_the_floor_and_the_size_at_the_rate_up_to_the_ceiling() {
+        let settings = Settings::default();
+        assert_eq!(settings.download_cap(0), Duration::from_secs(600));
+        assert_eq!(settings.download_cap(100 << 20), Duration::from_secs(600));
+        assert_eq!(settings.download_cap(1 << 30), Duration::from_secs(4096));
+        assert_eq!(
+            settings.download_cap(64 << 30),
+            Duration::from_secs(6 * 3600)
+        );
+    }
 
     #[test]
     fn the_workers_leave_connections_to_the_api() {

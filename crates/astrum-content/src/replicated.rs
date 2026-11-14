@@ -96,7 +96,7 @@ pub fn require_hosted(ctx: &Ctx) -> Result<(), Refusal> {
         _ => Err(refuse(
             "not_hosted",
             format!(
-                "{} is not a hosted repository and takes no replicated components",
+                "{} is not a hosted repository and takes no part in the replication of components",
                 ctx.name()
             ),
         )),
@@ -370,4 +370,29 @@ pub async fn delete(ctx: &Ctx, request: &Removal<'_>) -> Result<String, Refusal>
         store::discard(ctx.content.clone(), &blob.blob_store, blob.blob_id);
     }
     Ok(origin)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::store::{HOLD_LOST, transient_conflict};
+
+    #[test]
+    fn only_the_conflicts_of_a_racing_transfer_are_transient() {
+        let racing = [
+            ContentError::Conflict(HOLD_LOST.to_owned()),
+            ContentError::Conflict("files changed while the transfer ran; try again".to_owned()),
+        ];
+        for error in &racing {
+            assert!(transient_conflict(error), "{error}");
+        }
+        let final_ones = [
+            ContentError::Conflict("files: /a exist with different content".to_owned()),
+            ContentError::BadRequest(HOLD_LOST.to_owned()),
+            ContentError::NotFound("files changed while the transfer ran; try again".to_owned()),
+        ];
+        for error in &final_ones {
+            assert!(!transient_conflict(error), "{error}");
+        }
+    }
 }

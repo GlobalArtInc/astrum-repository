@@ -126,6 +126,10 @@ fn refused(text: &str) -> Error {
     Error::Refused(text.to_owned())
 }
 
+fn bad_reply(text: &str) -> Error {
+    Error::BadReply(text.to_owned())
+}
+
 fn short(text: &str, limit: usize) -> String {
     error::clean(text).chars().take(limit).collect()
 }
@@ -344,27 +348,31 @@ impl Client {
         Err(Error::from_status(status, retry_after, &body).redacted(self.secret()))
     }
 
-    async fn reply<T: DeserializeOwned>(&self, response: Response) -> Result<T, Error> {
+    async fn reply<T: DeserializeOwned>(
+        &self,
+        response: Response,
+        unusable: fn(&str) -> Error,
+    ) -> Result<T, Error> {
         if response
             .content_length()
             .is_some_and(|length| length > MAX_REPLY_BYTES as u64)
         {
-            return Err(refused("the reply of the remote is too large"));
+            return Err(unusable("the reply of the remote is too large"));
         }
         let (body, truncated) = read_limited(response, MAX_REPLY_BYTES)
             .await
             .map_err(|error| Error::transport(&error).redacted(self.secret()))?;
         if truncated {
-            return Err(refused("the reply of the remote is too large"));
+            return Err(unusable("the reply of the remote is too large"));
         }
         serde_json::from_slice(&body).map_err(|_| {
-            refused("the remote sent a reply that does not follow the replication protocol")
+            unusable("the remote sent a reply that does not follow the replication protocol")
         })
     }
 
     async fn control<T: DeserializeOwned>(&self, request: RequestBuilder) -> Result<T, Error> {
         let response = self.send(request.timeout(CONTROL_TIMEOUT)).await?;
-        self.reply(response).await
+        self.reply(response, refused).await
     }
 
     pub async fn capabilities(&self) -> Result<Capabilities, Error> {
@@ -484,7 +492,10 @@ impl Client {
             .append_pair("namespace", namespace)
             .append_pair("name", name)
             .append_pair("version", version);
-        self.control(self.http.get(url)).await
+        let response = self
+            .send(self.http.get(url).timeout(CONTROL_TIMEOUT))
+            .await?;
+        self.reply(response, bad_reply).await
     }
 
     pub async fn blob(&self, repository: &str, sha256: &str) -> Result<Download, Error> {
