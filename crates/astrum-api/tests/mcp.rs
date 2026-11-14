@@ -1,7 +1,9 @@
 mod support;
 mod ui_support;
 
+use astrum_db::entity::audit_event;
 use axum::http::{Method, StatusCode, header};
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use serde_json::{Value, json};
 use support::{Auth, Fixture, Reply};
 use ui_support::*;
@@ -9,6 +11,7 @@ use ui_support::*;
 const MCP: &str = "/mcp";
 const TOKENS: &str = "/service/rest/internal/access-tokens";
 const IP_ALLOW: &str = "/service/rest/v1/security/ip-allow";
+const PROMOTE: &str = "promote_components";
 
 async fn token(fixture: &Fixture, scope: &str) -> String {
     let reply = fixture
@@ -880,4 +883,149 @@ async fn second_factor_policy_is_refused_below_administrator() {
     )
     .await;
     assert_eq!(status["userId"], "reader");
+}
+
+async fn two_raw_repositories(fixture: &Fixture) {
+    raw_hosted(fixture, "source").await;
+    raw_hosted(fixture, "target").await;
+    put(fixture, "/repository/source/docs/a.txt", "alpha").await;
+}
+
+async fn source_item(fixture: &Fixture, token: &str) -> Value {
+    let found = ok(
+        fixture,
+        token,
+        "search_components",
+        json!({"repository": "source"}),
+    )
+    .await;
+    json!({"componentId": found["items"][0]["id"]})
+}
+
+fn promotion(item: Value) -> Value {
+    json!({"source": "source", "target": "target", "items": [item]})
+}
+
+#[tokio::test]
+async fn promote_components_is_offered_to_write_tokens_with_its_schema() {
+    let fixture = ready().await;
+    let token = token(&fixture, "WRITE").await;
+    let listed = rpc(&fixture, &token, "tools/list", json!({})).await;
+    let tool = listed["result"]["tools"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|tool| tool["name"] == PROMOTE)
+        .unwrap();
+    assert_eq!(tool["annotations"]["readOnlyHint"], false);
+    assert_eq!(
+        tool["inputSchema"]["required"],
+        json!(["source", "target", "items"])
+    );
+    assert_eq!(
+        tool["inputSchema"]["properties"]["conflict"]["enum"],
+        json!(["fail", "skip", "replace"])
+    );
+    assert!(tool["description"].as_str().unwrap().contains("WRITES"));
+}
+
+#[tokio::test]
+async fn a_dry_run_promotion_reports_the_copy_and_writes_nothing() {
+    let fixture = ready().await;
+    two_raw_repositories(&fixture).await;
+    let token = token(&fixture, "WRITE").await;
+    let item = source_item(&fixture, &token).await;
+    let mut arguments = promotion(item);
+    arguments["dryRun"] = json!(true);
+    let preview = ok(&fixture, &token, PROMOTE, arguments).await;
+    assert_eq!(preview["dryRun"], true);
+    assert_eq!(preview["results"][0]["status"], "copied");
+    let listed = ok(
+        &fixture,
+        &token,
+        "search_components",
+        json!({"repository": "target"}),
+    )
+    .await;
+    assert_eq!(listed["items"], json!([]));
+}
+
+#[tokio::test]
+async fn a_promotion_copies_a_raw_component_between_hosted_repositories() {
+    let fixture = ready().await;
+    two_raw_repositories(&fixture).await;
+    let token = token(&fixture, "WRITE").await;
+    let item = source_item(&fixture, &token).await;
+    let copied = ok(&fixture, &token, PROMOTE, promotion(item)).await;
+    assert_eq!(copied["dryRun"], false);
+    assert_eq!(copied["results"][0]["status"], "copied");
+    assert_eq!(copied["results"][0]["bytesCopied"], 5);
+    let served = get(&fixture, "/repository/target/docs/a.txt", Auth::Admin).await;
+    assert_eq!(served.text(), "alpha");
+}
+
+#[tokio::test]
+async fn a_promotion_through_mcp_is_audited_via_mcp_without_secrets() {
+    let fixture = ready().await;
+    two_raw_repositories(&fixture).await;
+    let token = token(&fixture, "WRITE").await;
+    let item = source_item(&fixture, &token).await;
+    ok(&fixture, &token, PROMOTE, promotion(item)).await;
+    let rows = audit_event::Entity::find()
+        .filter(audit_event::Column::Domain.eq("repository.content"))
+        .all(fixture.state.db().conn())
+        .await
+        .unwrap();
+    assert_eq!(rows.len(), 1);
+    let row = &rows[0];
+    assert_eq!(row.kind, "promoted");
+    assert_eq!(row.attributes["via"], "mcp");
+    assert_eq!(row.attributes["client"], "access token");
+    let recorded = row.attributes.to_string();
+    assert!(!recorded.contains(&token), "{recorded}");
+    assert!(!recorded.contains(&fixture.admin_password), "{recorded}");
+}
+
+#[tokio::test]
+async fn a_read_token_is_refused_promotion_as_the_rest_refuses_it() {
+    let fixture = ready().await;
+    two_raw_repositories(&fixture).await;
+    let read = token(&fixture, "READ").await;
+    let listed = names(&rpc(&fixture, &read, "tools/list", json!({})).await);
+    assert!(!listed.contains(&PROMOTE.to_owned()), "{listed:?}");
+    let refused = rpc(
+        &fixture,
+        &read,
+        "tools/call",
+        json!({"name": PROMOTE, "arguments": promotion(json!({"name": "/docs/a.txt", "version": ""}))}),
+    )
+    .await;
+    assert_eq!(refused["error"]["code"], -32602);
+    let rest = fixture
+        .call(
+            Method::POST,
+            "/service/rest/v1/promotions",
+            Auth::Basic("admin", &read),
+            Some(promotion(json!({"name": "/docs/a.txt", "version": ""}))),
+        )
+        .await;
+    assert_eq!(rest.status, StatusCode::FORBIDDEN, "{}", rest.text());
+    let missing = get(&fixture, "/repository/target/docs/a.txt", Auth::Admin).await;
+    assert_eq!(missing.status, StatusCode::NOT_FOUND);
+}
+
+#[tokio::test]
+async fn a_rest_validation_error_comes_back_as_the_tool_error() {
+    let fixture = ready().await;
+    two_raw_repositories(&fixture).await;
+    let token = token(&fixture, "WRITE").await;
+    let item = source_item(&fixture, &token).await;
+    let mut arguments = promotion(item);
+    arguments["target"] = json!("source");
+    let text = failed(&fixture, &token, PROMOTE, arguments).await;
+    assert!(
+        text.contains("400")
+            && text.contains("the source and the target must be different repositories"),
+        "{text}"
+    );
 }

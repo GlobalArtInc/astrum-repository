@@ -85,15 +85,17 @@ counted per client address.
 | `set_repository_quota` | Sets the quota (`limitBytes`, `warnPercent`, `enforce`), or removes it with `limitBytes` null; the same checks as the repository settings | edit rights on the repository, a token with write access |
 | `request_upload` | Gives a one-time `PUT` address for a file; the agent then sends the file with `curl` ([Upload a package](#upload-a-package)) | the right to add to some repository |
 | `upload_component` | Uploads a file of up to 64 KiB given inline as base64 | the right to add to some repository |
+| `promote_components` | Copies components between hosted repositories, or moves them with `move`; `dryRun` previews the result without writing | read on the source and add on the target; edit for `conflict: replace`, delete for `move` |
 | `list_users`, `list_roles`, `list_privileges` | Users with their roles; roles with their privileges and the roles they include; privileges, filtered by repository, format or name | `astrum:users:read`, `astrum:roles:read`, `astrum:privileges:read` |
 | `create_role`, `update_role` | Creates a role, or adds and takes away its privileges and included roles; built-in roles stay as they are | `astrum:roles:create`, `astrum:roles:update` |
 | `set_user_roles` | Gives roles to a user or takes them away, keeping the other details of the user | `astrum:users:update`, and the right to grant the roles |
 | `get_ip_allow_list` | The management, content and agents [allow lists](../configure/ip-allow-list.md), the address the server sees for you and the trusted proxies; read only, the lists are changed in the web interface | `astrum:*` (administrator) |
 
 The tools that change the server are only offered to Write tokens, and every tool is only listed when the
-user holds the rights it needs; the server checks those rights again on every call. The only tools that
-add components are the two upload tools; nothing deletes components, repositories, blob stores or users,
-and nothing touches security settings.
+user holds the rights it needs; the server checks those rights again on every call. The tools that add
+components are the two upload tools and `promote_components`, which also deletes the source component when
+it is called with `move`; no other tool deletes components, repositories, blob stores or users, and nothing
+touches security settings.
 
 The server also offers two prompts: `diagnose_space`, which walks the agent through finding where the
 space went, how soon each blob store fills and what to do about it, and `find_artifact`, which finds a package and how to use its latest
