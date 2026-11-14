@@ -6,8 +6,9 @@ use percent_encoding::{AsciiSet, NON_ALPHANUMERIC, utf8_percent_encode};
 use super::apk::ApkPackage;
 use super::distro::{self, Distro, Family, OsRelease};
 use super::dpkg::DpkgPackage;
-use super::facts::LayerFacts;
-use super::paths::{self, APK_DB, DPKG_STATUS};
+use super::facts::{LayerFacts, StatusFile};
+use super::limits::Limits;
+use super::paths::{self, APK_DB, DPKG_STATUS, STATUS_D_PREFIX};
 
 const MAX_REASONS: usize = 16;
 const COMPONENT: &AsciiSet = &NON_ALPHANUMERIC
@@ -22,67 +23,215 @@ pub struct Merged {
     pub reasons: Vec<String>,
 }
 
-#[derive(Default)]
-struct State<'a> {
-    os_release: Option<&'a OsRelease>,
-    apk: Option<&'a [ApkPackage]>,
-    dpkg: Option<&'a [DpkgPackage]>,
-    status_d: BTreeMap<&'a str, &'a [DpkgPackage]>,
+enum Db<T> {
+    Absent,
+    Present(Vec<T>),
+    Unreadable,
 }
 
-impl<'a> State<'a> {
+impl<T> Db<T> {
+    fn listed(&self) -> &[T] {
+        match self {
+            Db::Present(packages) => packages,
+            Db::Absent | Db::Unreadable => &[],
+        }
+    }
+}
+
+pub struct Merge {
+    limits: Limits,
+    os_release: Option<OsRelease>,
+    apk: Db<ApkPackage>,
+    dpkg: Db<DpkgPackage>,
+    status_d: BTreeMap<String, Vec<DpkgPackage>>,
+    status_bytes: usize,
+    complete: bool,
+    reasons: Vec<String>,
+}
+
+impl Merge {
+    pub fn new(limits: &Limits) -> Self {
+        Merge {
+            limits: *limits,
+            os_release: None,
+            apk: Db::Absent,
+            dpkg: Db::Absent,
+            status_d: BTreeMap::new(),
+            status_bytes: 0,
+            complete: true,
+            reasons: Vec::new(),
+        }
+    }
+
+    fn note(&mut self, reason: String) {
+        self.complete = false;
+        if self.reasons.len() < MAX_REASONS && !self.reasons.contains(&reason) {
+            self.reasons.push(reason);
+        }
+    }
+
+    fn drop_status(&mut self, hidden: impl Fn(&str) -> bool) {
+        let paths: Vec<String> = self
+            .status_d
+            .keys()
+            .filter(|path| hidden(path))
+            .cloned()
+            .collect();
+        for path in paths {
+            self.forget_status(&path);
+        }
+    }
+
+    fn forget_status(&mut self, path: &str) {
+        if let Some(packages) = self.status_d.remove(path) {
+            let cost = path.len() + packages.iter().map(DpkgPackage::cost).sum::<usize>();
+            self.status_bytes = self.status_bytes.saturating_sub(cost);
+        }
+    }
+
     fn remove(&mut self, removed: &str) {
         self.os_release
             .take_if(|os| paths::covers(removed, &os.path));
         if paths::covers(removed, APK_DB) {
-            self.apk = None;
+            self.apk = Db::Absent;
         }
         if paths::covers(removed, DPKG_STATUS) {
-            self.dpkg = None;
+            self.dpkg = Db::Absent;
         }
-        self.status_d
-            .retain(|path, _| !paths::covers(removed, path));
+        self.drop_status(|path| paths::covers(removed, path));
     }
 
     fn hide_below(&mut self, dir: &str) {
         self.os_release
             .take_if(|os| paths::hides_below(dir, &os.path));
         if paths::hides_below(dir, APK_DB) {
-            self.apk = None;
+            self.apk = Db::Absent;
         }
         if paths::hides_below(dir, DPKG_STATUS) {
-            self.dpkg = None;
+            self.dpkg = Db::Absent;
         }
-        self.status_d
-            .retain(|path, _| !paths::hides_below(dir, path));
+        self.drop_status(|path| paths::hides_below(dir, path));
     }
 
-    fn apply(&mut self, layer: &'a LayerFacts) {
+    fn unreadable(&mut self, path: &str) {
+        self.note(format!(
+            "{path} is present in a layer but could not be read"
+        ));
+        match path {
+            APK_DB => self.apk = Db::Unreadable,
+            DPKG_STATUS => self.dpkg = Db::Unreadable,
+            other if other.starts_with(STATUS_D_PREFIX) => self.forget_status(other),
+            _ => {}
+        }
+    }
+
+    fn put_status(&mut self, file: StatusFile) {
+        self.forget_status(&file.path);
+        let cost = file.cost();
+        if self.status_bytes + cost > self.limits.merged_budget {
+            self.note(format!(
+                "more than {} bytes of dpkg status files",
+                self.limits.merged_budget
+            ));
+            return;
+        }
+        self.status_bytes += cost;
+        self.status_d.insert(file.path, file.packages);
+    }
+
+    pub fn apply(&mut self, layer: LayerFacts) {
+        if layer.incomplete {
+            self.complete = false;
+            for reason in layer.reasons {
+                self.note(reason);
+            }
+        }
         for removed in &layer.removed {
             self.remove(removed);
         }
         for dir in &layer.opaque {
             self.hide_below(dir);
         }
-        if let Some(os) = &layer.os_release {
+        for path in &layer.unreadable {
+            self.unreadable(path);
+        }
+        if let Some(os) = layer.os_release {
             self.os_release = Some(os);
         }
-        if let Some(apk) = &layer.apk {
-            self.apk = Some(apk);
+        if let Some(apk) = layer.apk {
+            self.apk = Db::Present(apk);
         }
-        if let Some(dpkg) = &layer.dpkg {
-            self.dpkg = Some(dpkg);
+        if let Some(dpkg) = layer.dpkg {
+            self.dpkg = Db::Present(dpkg);
         }
-        for file in &layer.dpkg_status_d {
-            self.status_d.insert(&file.path, &file.packages);
+        for file in layer.dpkg_status_d {
+            self.put_status(file);
         }
     }
 
     fn has_packages(&self) -> bool {
-        self.apk.is_some_and(|packages| !packages.is_empty())
-            || self.dpkg.is_some_and(|packages| !packages.is_empty())
+        !self.apk.listed().is_empty()
+            || !self.dpkg.listed().is_empty()
             || self.status_d.values().any(|packages| !packages.is_empty())
     }
+
+    pub fn finish(mut self) -> Merged {
+        let Some(distro) = self.os_release.as_ref().and_then(distro::detect) else {
+            if self.has_packages() {
+                self.note(
+                    "the image has installed packages but its distribution is unknown or unsupported"
+                        .to_owned(),
+                );
+            }
+            return self.merged(Vec::new());
+        };
+        let (found, skipped) = refs(&self, &distro);
+        if skipped {
+            self.note("packages of another package manager were skipped".to_owned());
+        }
+        let mut seen = HashSet::new();
+        let mut packages = Vec::new();
+        let mut bytes = 0usize;
+        for package in found {
+            let identity = (package.name.clone(), package.version.clone());
+            if !seen.insert(identity) {
+                continue;
+            }
+            let cost = package.ecosystem.len()
+                + package.name.len()
+                + package.version.len()
+                + package.purl.len();
+            if packages.len() >= self.limits.max_packages
+                || bytes + cost > self.limits.merged_budget
+            {
+                self.note(format!(
+                    "the image lists more than {} distinct packages or {} bytes of them",
+                    self.limits.max_packages, self.limits.merged_budget
+                ));
+                break;
+            }
+            bytes += cost;
+            packages.push(package);
+        }
+        self.merged(packages)
+    }
+
+    fn merged(self, packages: Vec<PackageRef>) -> Merged {
+        Merged {
+            packages,
+            complete: self.complete,
+            reasons: self.reasons,
+        }
+    }
+}
+
+#[cfg(test)]
+pub fn merge(layers: impl IntoIterator<Item = LayerFacts>, limits: &Limits) -> Merged {
+    let mut merge = Merge::new(limits);
+    for layer in layers {
+        merge.apply(layer);
+    }
+    merge.finish()
 }
 
 fn encoded(text: &str) -> String {
@@ -147,17 +296,21 @@ fn apk_ref(distro: &Distro, package: &ApkPackage) -> PackageRef {
 }
 
 fn deb_ref(distro: &Distro, package: &DpkgPackage) -> PackageRef {
-    let source = package
-        .source
-        .as_deref()
-        .filter(|source| *source != package.name);
+    let upstream = match (&package.source, &package.source_version) {
+        (Some(source), Some(version)) => Some(format!("{source}@{version}")),
+        (Some(source), None) if *source != package.name => Some(source.clone()),
+        _ => None,
+    };
     PackageRef {
         ecosystem: distro.ecosystem.clone(),
         name: package
             .source
             .clone()
             .unwrap_or_else(|| package.name.clone()),
-        version: package.version.clone(),
+        version: package
+            .source_version
+            .clone()
+            .unwrap_or_else(|| package.version.clone()),
         purl: purl(
             "deb",
             &distro.id,
@@ -165,101 +318,35 @@ fn deb_ref(distro: &Distro, package: &DpkgPackage) -> PackageRef {
             &package.version,
             package.arch.as_deref(),
             distro,
-            source,
+            upstream.as_deref(),
         ),
     }
 }
 
-fn note(reasons: &mut Vec<String>, reason: String) {
-    if reasons.len() < MAX_REASONS && !reasons.contains(&reason) {
-        reasons.push(reason);
-    }
-}
-
-fn refs(state: &State<'_>, distro: &Distro) -> (Vec<PackageRef>, bool) {
+fn refs(merge: &Merge, distro: &Distro) -> (Vec<PackageRef>, bool) {
     match distro.family {
         Family::Apk => {
-            let skipped = state.dpkg.is_some_and(|packages| !packages.is_empty())
-                || state.status_d.values().any(|packages| !packages.is_empty());
-            let packages = state
+            let skipped = !merge.dpkg.listed().is_empty()
+                || merge.status_d.values().any(|packages| !packages.is_empty());
+            let packages = merge
                 .apk
-                .unwrap_or_default()
+                .listed()
                 .iter()
                 .map(|package| apk_ref(distro, package))
                 .collect();
             (packages, skipped)
         }
         Family::Dpkg => {
-            let skipped = state.apk.is_some_and(|packages| !packages.is_empty());
-            let packages = state
+            let skipped = !merge.apk.listed().is_empty();
+            let packages = merge
                 .dpkg
-                .unwrap_or_default()
+                .listed()
                 .iter()
-                .chain(state.status_d.values().flat_map(|packages| packages.iter()))
+                .chain(merge.status_d.values().flat_map(|packages| packages.iter()))
                 .map(|package| deb_ref(distro, package))
                 .collect();
             (packages, skipped)
         }
-    }
-}
-
-pub fn merge(layers: &[LayerFacts], max_packages: usize) -> Merged {
-    let mut state = State::default();
-    let mut reasons = Vec::new();
-    let mut complete = true;
-    for layer in layers {
-        state.apply(layer);
-        if layer.incomplete {
-            complete = false;
-            for reason in &layer.reasons {
-                note(&mut reasons, reason.clone());
-            }
-        }
-    }
-    let Some(distro) = state.os_release.and_then(distro::detect) else {
-        if state.has_packages() {
-            complete = false;
-            note(
-                &mut reasons,
-                "the image has installed packages but its distribution is unknown or unsupported"
-                    .to_owned(),
-            );
-        }
-        return Merged {
-            packages: Vec::new(),
-            complete,
-            reasons,
-        };
-    };
-    let (found, skipped) = refs(&state, &distro);
-    if skipped {
-        complete = false;
-        note(
-            &mut reasons,
-            "packages of another package manager were skipped".to_owned(),
-        );
-    }
-    let mut seen = HashSet::new();
-    let mut packages = Vec::new();
-    for package in found {
-        let identity = (package.name.clone(), package.version.clone());
-        if !seen.insert(identity) {
-            continue;
-        }
-        if packages.len() >= max_packages {
-            complete = false;
-            note(
-                &mut reasons,
-                format!("the image lists more than {max_packages} distinct packages"),
-            );
-            break;
-        }
-        packages.push(package);
-    }
-    Merged {
-        packages,
-        complete,
-        reasons,
     }
 }
 

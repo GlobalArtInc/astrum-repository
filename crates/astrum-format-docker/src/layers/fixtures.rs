@@ -1,4 +1,6 @@
-use std::io::Write;
+use std::cell::Cell;
+use std::io::{self, Read, Write};
+use std::rc::Rc;
 
 use flate2::Compression;
 use flate2::write::GzEncoder;
@@ -36,13 +38,70 @@ fn pad(out: &mut Vec<u8>, length: usize) {
     out.resize(out.len() + (512 - length % 512) % 512, 0);
 }
 
+pub fn block(name: &str, size: u64, kind: EntryType, link: Option<&str>) -> Vec<u8> {
+    header(name, size, kind, link).as_bytes().to_vec()
+}
+
+pub fn with_data(mut block: Vec<u8>, data: &[u8]) -> Vec<u8> {
+    block.extend_from_slice(data);
+    pad(&mut block, data.len());
+    block
+}
+
 pub fn claim(name: &str, claimed: u64, body: &[u8]) -> Vec<u8> {
-    let mut out = header(name, claimed, EntryType::Regular, None)
-        .as_bytes()
-        .to_vec();
-    out.extend_from_slice(body);
-    pad(&mut out, body.len());
-    out
+    with_data(block(name, claimed, EntryType::Regular, None), body)
+}
+
+pub const END: [u8; 1024] = [0; 1024];
+
+pub struct Repeat {
+    pattern: Vec<u8>,
+    at: usize,
+}
+
+impl Repeat {
+    pub fn new(pattern: &[u8]) -> Self {
+        Repeat {
+            pattern: pattern.to_vec(),
+            at: 0,
+        }
+    }
+}
+
+impl Read for Repeat {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        for byte in buf.iter_mut() {
+            *byte = self.pattern[self.at];
+            self.at = (self.at + 1) % self.pattern.len();
+        }
+        Ok(buf.len())
+    }
+}
+
+pub struct Counting<R> {
+    inner: R,
+    read: Rc<Cell<u64>>,
+}
+
+impl<R> Counting<R> {
+    pub fn new(inner: R) -> (Self, Rc<Cell<u64>>) {
+        let read = Rc::new(Cell::new(0));
+        (
+            Counting {
+                inner,
+                read: read.clone(),
+            },
+            read,
+        )
+    }
+}
+
+impl<R: Read> Read for Counting<R> {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        let read = self.inner.read(buf)?;
+        self.read.set(self.read.get() + read as u64);
+        Ok(read)
+    }
 }
 
 pub fn tar(entries: &[Entry<'_>]) -> Vec<u8> {

@@ -27,7 +27,7 @@ pub struct Distro {
     pub release: String,
 }
 
-fn unquote(value: &[u8]) -> String {
+fn unquote(value: &[u8]) -> Option<String> {
     let value = value.trim_ascii();
     let inner = match value {
         [first, inner @ .., last] if first == last && (*first == b'"' || *first == b'\'') => inner,
@@ -49,8 +49,8 @@ pub fn parse_os_release(path: &str, bytes: &[u8]) -> Option<OsRelease> {
         };
         let value = unquote(&line[equals + 1..]);
         match line[..equals].trim_ascii() {
-            b"ID" => id = Some(value),
-            b"VERSION_ID" => version_id = Some(value),
+            b"ID" => id = value,
+            b"VERSION_ID" => version_id = value,
             _ => {}
         }
     }
@@ -62,19 +62,9 @@ pub fn parse_os_release(path: &str, bytes: &[u8]) -> Option<OsRelease> {
     })
 }
 
-fn interim_ubuntu(id: &str, release: &str) -> Option<String> {
-    if id != "ubuntu" {
-        return None;
-    }
-    let mut parts = release.split('.');
-    let (year, month) = (parts.next()?, parts.next()?);
-    (purl::numeric(year) && purl::numeric(month)).then(|| format!("Ubuntu:{year}.{month}"))
-}
-
 pub fn detect(os: &OsRelease) -> Option<Distro> {
     let release = os.version_id.as_deref()?;
-    let ecosystem =
-        purl::os_ecosystem(&os.id, release).or_else(|| interim_ubuntu(&os.id, release))?;
+    let ecosystem = purl::os_ecosystem(&os.id, release)?;
     let family = match os.id.as_str() {
         "alpine" => Family::Apk,
         _ => Family::Dpkg,

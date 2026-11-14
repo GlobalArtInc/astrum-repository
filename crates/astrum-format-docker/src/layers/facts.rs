@@ -1,17 +1,15 @@
 use std::io::{self, Read};
-use std::sync::Arc;
-use std::sync::atomic::AtomicBool;
 
 use serde::{Deserialize, Serialize};
 
 use super::apk::{self, ApkPackage};
 use super::distro::{self, OsRelease};
-use super::dpkg::{self, DpkgPackage};
+use super::dpkg::{self, Database, DpkgPackage};
 use super::entries::{self, Item, Stop};
 use super::limits::Limits;
 use super::paths::{self, APK_DB, DPKG_STATUS, ETC_OS_RELEASE, STATUS_D_PREFIX, USR_OS_RELEASE};
-use super::records::Parsed;
-use super::stream::{self, Cut};
+use super::records::{Budget, Parsed, Truncation};
+use super::stream::{self, Cut, Guard, Watch};
 
 const MAX_REASONS: usize = 16;
 
@@ -19,6 +17,12 @@ const MAX_REASONS: usize = 16;
 pub struct StatusFile {
     pub path: String,
     pub packages: Vec<DpkgPackage>,
+}
+
+impl StatusFile {
+    pub fn cost(&self) -> usize {
+        self.path.len() + self.packages.iter().map(DpkgPackage::cost).sum::<usize>()
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -30,6 +34,7 @@ pub struct LayerFacts {
     pub dpkg_status_d: Vec<StatusFile>,
     pub removed: Vec<String>,
     pub opaque: Vec<String>,
+    pub unreadable: Vec<String>,
     pub incomplete: bool,
     pub reasons: Vec<String>,
 }
@@ -53,6 +58,7 @@ impl LayerFacts {
 pub enum Failure {
     Source(String),
     Cancelled,
+    Deadline,
 }
 
 impl std::fmt::Display for Failure {
@@ -62,15 +68,23 @@ impl std::fmt::Display for Failure {
                 write!(formatter, "the layer could not be read: {message}")
             }
             Failure::Cancelled => formatter.write_str("reading the layer was cancelled"),
+            Failure::Deadline => formatter.write_str("reading the layer passed its deadline"),
         }
     }
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
 enum Wanted {
     OsRelease,
     Apk,
     Dpkg,
     StatusD,
+}
+
+impl Wanted {
+    fn database(self) -> bool {
+        self != Wanted::OsRelease
+    }
 }
 
 fn wanted(path: &str) -> Option<Wanted> {
@@ -88,7 +102,7 @@ fn wanted(path: &str) -> Option<Wanted> {
 struct Gather<'a> {
     facts: LayerFacts,
     limits: &'a Limits,
-    packages: usize,
+    budget: Budget,
     etc: Option<OsRelease>,
     usr: Option<OsRelease>,
 }
@@ -98,9 +112,22 @@ impl<'a> Gather<'a> {
         Gather {
             facts: LayerFacts::default(),
             limits,
-            packages: 0,
+            budget: Budget::new(limits.facts_budget),
             etc: None,
             usr: None,
+        }
+    }
+
+    fn unreadable(&mut self, path: &str, kind: Wanted) {
+        if !kind.database() || self.facts.unreadable.iter().any(|known| known == path) {
+            return;
+        }
+        match self.budget.take(path.len()) {
+            true => self.facts.unreadable.push(path.to_owned()),
+            false => self.facts.note(format!(
+                "more than {} bytes of package data in one layer",
+                self.limits.facts_budget
+            )),
         }
     }
 
@@ -122,10 +149,6 @@ impl<'a> Gather<'a> {
         Ok(Some(bytes))
     }
 
-    fn room(&self) -> usize {
-        self.limits.max_packages.saturating_sub(self.packages)
-    }
-
     fn account<T>(&mut self, path: &str, parsed: Parsed<T>) -> Vec<T> {
         if parsed.malformed > 0 {
             self.facts.note(format!(
@@ -133,13 +156,17 @@ impl<'a> Gather<'a> {
                 parsed.malformed
             ));
         }
-        if parsed.truncated {
-            self.facts.note(format!(
+        match parsed.truncated {
+            Some(Truncation::Count) => self.facts.note(format!(
                 "{path} lists more than {} packages",
-                self.limits.max_packages
-            ));
+                self.limits.max_db_packages
+            )),
+            Some(Truncation::Budget) => self.facts.note(format!(
+                "{path} holds more than {} bytes of package data",
+                self.limits.facts_budget
+            )),
+            None => {}
         }
-        self.packages += parsed.packages.len();
         parsed.packages
     }
 
@@ -147,13 +174,14 @@ impl<'a> Gather<'a> {
         let Some(kind) = wanted(path) else {
             return Ok(());
         };
-        if matches!(kind, Wanted::StatusD)
+        let known = self
+            .facts
+            .dpkg_status_d
+            .iter()
+            .any(|file| file.path == path);
+        if kind == Wanted::StatusD
+            && !known
             && self.facts.dpkg_status_d.len() >= self.limits.max_status_files
-            && !self
-                .facts
-                .dpkg_status_d
-                .iter()
-                .any(|file| file.path == path)
         {
             self.facts.note(format!(
                 "more than {} files in {}",
@@ -163,6 +191,7 @@ impl<'a> Gather<'a> {
             return Ok(());
         }
         let Some(bytes) = self.read(path, size, body)? else {
+            self.unreadable(path, kind);
             return Ok(());
         };
         match kind {
@@ -174,32 +203,55 @@ impl<'a> Gather<'a> {
                 }
             }
             Wanted::Apk => {
-                let parsed = apk::parse(&bytes, self.room());
+                let parsed = apk::parse(&bytes, self.limits, &mut self.budget);
                 self.facts.apk = Some(self.account(path, parsed));
             }
             Wanted::Dpkg => {
-                let parsed = dpkg::parse(&bytes, self.room());
+                let parsed = dpkg::parse(&bytes, self.limits, &mut self.budget, Database::Status);
                 self.facts.dpkg = Some(self.account(path, parsed));
             }
             Wanted::StatusD => {
-                let parsed = dpkg::parse(&bytes, self.room());
+                let parsed = dpkg::parse(&bytes, self.limits, &mut self.budget, Database::Part);
                 let packages = self.account(path, parsed);
-                let file = StatusFile {
-                    path: path.to_owned(),
-                    packages,
-                };
-                match self
-                    .facts
-                    .dpkg_status_d
-                    .iter_mut()
-                    .find(|existing| existing.path == path)
-                {
-                    Some(existing) => *existing = file,
-                    None => self.facts.dpkg_status_d.push(file),
-                }
+                self.put_status(path, packages);
             }
         }
         Ok(())
+    }
+
+    fn put_status(&mut self, path: &str, packages: Vec<DpkgPackage>) {
+        let file = StatusFile {
+            path: path.to_owned(),
+            packages,
+        };
+        if !self.budget.take(path.len()) {
+            self.facts.note(format!(
+                "more than {} bytes of package data in one layer",
+                self.limits.facts_budget
+            ));
+            self.unreadable(path, Wanted::StatusD);
+            return;
+        }
+        match self
+            .facts
+            .dpkg_status_d
+            .iter_mut()
+            .find(|existing| existing.path == path)
+        {
+            Some(existing) => *existing = file,
+            None => self.facts.dpkg_status_d.push(file),
+        }
+    }
+
+    fn special(&mut self, path: &str, what: &str) {
+        let Some(kind) = wanted(path) else {
+            return;
+        };
+        if kind.database() || what == "sparse" {
+            self.facts
+                .note(format!("{path} is a {what} entry, not a regular file"));
+        }
+        self.unreadable(path, kind);
     }
 
     fn item(&mut self, item: Item<'_>) -> io::Result<()> {
@@ -215,7 +267,8 @@ impl<'a> Gather<'a> {
                     self.keep(dir, false);
                 }
             }
-            Item::Link => {}
+            Item::Link { path } => self.special(&path, "link"),
+            Item::Sparse { path } => self.special(&path, "sparse"),
         }
         Ok(())
     }
@@ -228,7 +281,7 @@ impl<'a> Gather<'a> {
         if list.contains(&path) {
             return;
         }
-        if list.len() >= self.limits.max_removed {
+        if list.len() >= self.limits.max_removed || !self.budget.take(path.len()) {
             self.facts.note(format!(
                 "more than {} whiteouts of package databases",
                 self.limits.max_removed
@@ -250,7 +303,6 @@ fn cut_reason(cut: Cut, limits: &Limits) -> String {
             "the layer is larger than {} bytes uncompressed",
             limits.max_output
         ),
-        Cut::Ratio => format!("the layer inflates more than {}:1", limits.max_ratio),
         Cut::Frames => format!(
             "the layer has more than {} compressed members",
             limits.max_frames
@@ -259,36 +311,51 @@ fn cut_reason(cut: Cut, limits: &Limits) -> String {
             "the layer asks for a decompression window above {} bytes",
             limits.max_window
         ),
-        Cut::Cancelled => "reading the layer was cancelled".to_owned(),
+        Cut::Stalled => format!(
+            "the layer needs more than {} bytes of input for less than {} bytes of output",
+            limits.stall_input, limits.stall_output
+        ),
+        Cut::Deadline | Cut::Cancelled => "reading the layer was cut short".to_owned(),
     }
 }
 
 fn stop_reason(stop: Stop, limits: &Limits) -> String {
     match stop {
         Stop::Entries => format!("the layer has more than {} entries", limits.max_entries),
-        Stop::PaxSize => "an entry size is overridden by a pax header".to_owned(),
+        Stop::Malformed => "the archive has a zero block followed by more data".to_owned(),
+        Stop::Metadata => format!(
+            "a long name or pax block is larger than {} bytes",
+            limits.max_meta
+        ),
     }
 }
 
-pub fn extract<R: Read>(
-    source: R,
-    limits: &Limits,
-    cancel: Arc<AtomicBool>,
-) -> Result<LayerFacts, Failure> {
-    let layer = stream::open(source, *limits, cancel)
-        .map_err(|error| Failure::Source(error.to_string()))?;
-    let stream::Layer { reader, watch } = layer;
+fn failure(watch: &Watch, message: String) -> Option<Failure> {
+    match watch.cut() {
+        Some(Cut::Cancelled) => return Some(Failure::Cancelled),
+        Some(Cut::Deadline) => return Some(Failure::Deadline),
+        _ => {}
+    }
+    watch.source_failed().then_some(Failure::Source(message))
+}
+
+pub fn extract<R: Read>(source: R, limits: &Limits, guard: Guard) -> Result<LayerFacts, Failure> {
+    let watch = stream::watch(guard, *limits);
+    let reader = match stream::open(source, *limits, watch.clone()) {
+        Ok(reader) => reader,
+        Err(error) => {
+            let message = error.to_string();
+            return Err(failure(&watch, message.clone()).unwrap_or(Failure::Source(message)));
+        }
+    };
     let mut gather = Gather::new(limits);
     let walked = entries::walk(reader, limits, |item| gather.item(item));
-    if watch.cut() == Some(Cut::Cancelled) {
-        return Err(Failure::Cancelled);
-    }
-    if watch.source_failed() {
-        let message = match walked {
-            Err(error) => error.to_string(),
-            Ok(_) => "the blob store stopped answering".to_owned(),
-        };
-        return Err(Failure::Source(message));
+    let message = match &walked {
+        Err(error) => error.to_string(),
+        Ok(_) => "the blob store stopped answering".to_owned(),
+    };
+    if let Some(failure) = failure(&watch, message) {
+        return Err(failure);
     }
     match (watch.cut(), walked) {
         (Some(cut), _) => gather.facts.note(cut_reason(cut, limits)),

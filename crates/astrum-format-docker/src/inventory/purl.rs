@@ -72,7 +72,7 @@ fn parse(text: &str) -> Option<Purl> {
     })
 }
 
-pub(crate) fn numeric(text: &str) -> bool {
+fn numeric(text: &str) -> bool {
     !text.is_empty() && text.bytes().all(|byte| byte.is_ascii_digit())
 }
 

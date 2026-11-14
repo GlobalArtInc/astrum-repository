@@ -264,7 +264,7 @@ async fn from_layers(
     }
     let bytes = storage::read_all(ctx, asset, MANIFEST_LIMIT).await?;
     let layers = manifest::layers(&bytes);
-    let read = layers::read(ctx, upstreams, &component.name, &layers).await?;
+    let read = layers::read(ctx, upstreams, &component.name, &layers, collector.deadline).await?;
     if !read.complete {
         layered.complete = false;
         collector.complete = false;

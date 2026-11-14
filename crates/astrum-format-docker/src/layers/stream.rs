@@ -3,6 +3,7 @@ use std::io::{self, BufRead, BufReader, Chain, Cursor, Read};
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::Instant;
 
 use flate2::bufread::DeflateDecoder;
 use ruzstd::decoding::errors::{FrameDecoderError, ReadFrameHeaderError};
@@ -18,20 +19,63 @@ const GZIP_FOOTER: usize = 8;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Cut {
     Output,
-    Ratio,
     Frames,
     Window,
+    Stalled,
+    Deadline,
     Cancelled,
 }
 
-#[derive(Default)]
+impl Cut {
+    fn text(self) -> &'static str {
+        match self {
+            Cut::Output => "the layer output reached its cap",
+            Cut::Frames => "the layer has too many compressed members",
+            Cut::Window => "the layer asks for too large a window",
+            Cut::Stalled => "the layer consumes input without producing output",
+            Cut::Deadline => "the layer read passed its deadline",
+            Cut::Cancelled => "the layer read was cancelled",
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct Guard {
+    cancel: Arc<AtomicBool>,
+    deadline: Instant,
+}
+
+impl Guard {
+    pub fn new(cancel: Arc<AtomicBool>, deadline: Instant) -> Self {
+        Guard { cancel, deadline }
+    }
+}
+
 pub struct Watch {
     cut: Cell<Option<Cut>>,
     input: Cell<u64>,
+    output: Cell<u64>,
+    mark_input: Cell<u64>,
+    mark_output: Cell<u64>,
     source_failed: Cell<bool>,
+    guard: Guard,
+    limits: Limits,
 }
 
 impl Watch {
+    fn new(guard: Guard, limits: Limits) -> Self {
+        Watch {
+            cut: Cell::new(None),
+            input: Cell::new(0),
+            output: Cell::new(0),
+            mark_input: Cell::new(0),
+            mark_output: Cell::new(0),
+            source_failed: Cell::new(false),
+            guard,
+            limits,
+        }
+    }
+
     pub fn cut(&self) -> Option<Cut> {
         self.cut.get()
     }
@@ -45,6 +89,31 @@ impl Watch {
             self.cut.set(Some(cut));
         }
     }
+
+    fn stop(&self, cut: Cut) -> io::Error {
+        self.set_cut(cut);
+        io::Error::other(cut.text())
+    }
+
+    fn poll(&self) -> io::Result<()> {
+        if let Some(cut) = self.cut.get() {
+            return Err(io::Error::other(cut.text()));
+        }
+        if self.guard.cancel.load(Ordering::Relaxed) {
+            return Err(self.stop(Cut::Cancelled));
+        }
+        if Instant::now() >= self.guard.deadline {
+            return Err(self.stop(Cut::Deadline));
+        }
+        let output = self.output.get();
+        if output - self.mark_output.get() >= self.limits.stall_output {
+            self.mark_output.set(output);
+            self.mark_input.set(self.input.get());
+        } else if self.input.get() - self.mark_input.get() > self.limits.stall_input {
+            return Err(self.stop(Cut::Stalled));
+        }
+        Ok(())
+    }
 }
 
 struct Counted<R> {
@@ -54,15 +123,18 @@ struct Counted<R> {
 
 impl<R: Read> Read for Counted<R> {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        self.watch.poll()?;
         match self.inner.read(buf) {
             Ok(read) => {
-                self.watch
-                    .input
-                    .set(self.watch.input.get().saturating_add(read as u64));
+                let input = self.watch.input.get().saturating_add(read as u64);
+                self.watch.input.set(input);
                 Ok(read)
             }
             Err(error) => {
-                self.watch.source_failed.set(true);
+                match error.kind() {
+                    io::ErrorKind::TimedOut => self.watch.set_cut(Cut::Deadline),
+                    _ => self.watch.source_failed.set(true),
+                }
                 Err(error)
             }
         }
@@ -175,6 +247,7 @@ impl<R: Read> Read for Gzip<R> {
             match std::mem::replace(&mut self.state, GzipState::Done) {
                 GzipState::Done => return Ok(0),
                 GzipState::Header(mut source) => {
+                    self.watch.poll()?;
                     if source.fill_buf()?.is_empty() {
                         return Ok(0);
                     }
@@ -227,6 +300,7 @@ impl<R: Read> Read for Zstd<R> {
             match self.state {
                 FrameState::Done => return Ok(0),
                 FrameState::Between => {
+                    self.watch.poll()?;
                     if self.source.fill_buf()?.is_empty() {
                         self.state = FrameState::Done;
                         return Ok(0);
@@ -255,6 +329,7 @@ impl<R: Read> Read for Zstd<R> {
                 }
                 FrameState::Inside => {
                     while self.decoder.can_collect() == 0 && !self.decoder.is_finished() {
+                        self.watch.poll()?;
                         self.decoder
                             .decode_blocks(&mut self.source, BlockDecodingStrategy::UptoBlocks(1))
                             .map_err(invalid)?;
@@ -291,43 +366,38 @@ pub struct Bounded<R> {
     watch: Rc<Watch>,
     limits: Limits,
     output: u64,
-    cancel: Arc<AtomicBool>,
 }
 
 impl<R: Read> Read for Bounded<R> {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        if buf.is_empty() || self.watch.cut().is_some() {
+        if buf.is_empty() {
             return Ok(0);
         }
-        if self.cancel.load(Ordering::Relaxed) {
-            self.watch.set_cut(Cut::Cancelled);
+        if self.watch.cut().is_some_and(|cut| cut == Cut::Output) {
             return Ok(0);
         }
+        self.watch.poll()?;
         let room = self.limits.max_output - self.output;
         let ask =
             usize::try_from(room.saturating_add(1)).map_or(buf.len(), |ask| ask.min(buf.len()));
         let read = self.inner.read(&mut buf[..ask])?;
         if read as u64 > room {
             self.output = self.limits.max_output;
+            self.watch.output.set(self.output);
             self.watch.set_cut(Cut::Output);
             return Ok(usize::try_from(room).unwrap_or(0));
         }
         self.output += read as u64;
-        let input = self.watch.input.get().max(1);
-        if self.output >= self.limits.ratio_floor && self.output / input > self.limits.max_ratio {
-            self.watch.set_cut(Cut::Ratio);
-        }
+        self.watch.output.set(self.output);
         Ok(read)
     }
 }
 
-pub struct Layer<R> {
-    pub reader: Bounded<R>,
-    pub watch: Rc<Watch>,
+pub fn watch(guard: Guard, limits: Limits) -> Rc<Watch> {
+    Rc::new(Watch::new(guard, limits))
 }
 
-pub fn open<R: Read>(source: R, limits: Limits, cancel: Arc<AtomicBool>) -> io::Result<Layer<R>> {
-    let watch = Rc::new(Watch::default());
+pub fn open<R: Read>(source: R, limits: Limits, watch: Rc<Watch>) -> io::Result<Bounded<R>> {
     let mut counted = Counted {
         inner: source,
         watch: watch.clone(),
@@ -359,14 +429,10 @@ pub fn open<R: Read>(source: R, limits: Limits, cancel: Arc<AtomicBool>) -> io::
             }))
         }
     };
-    Ok(Layer {
-        reader: Bounded {
-            inner,
-            watch: watch.clone(),
-            limits,
-            output: 0,
-            cancel,
-        },
+    Ok(Bounded {
+        inner,
         watch,
+        limits,
+        output: 0,
     })
 }

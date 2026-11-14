@@ -1,8 +1,15 @@
 use serde::{Deserialize, Serialize};
 
-use super::records::{self, Parsed};
+use super::limits::Limits;
+use super::records::{self, Budget, Parsed, Truncation};
 
-const INSTALLED: [&str; 3] = ["install", "ok", "installed"];
+const GONE: [&str; 2] = ["not-installed", "config-files"];
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Database {
+    Status,
+    Part,
+}
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DpkgPackage {
@@ -13,68 +20,128 @@ pub struct DpkgPackage {
     pub arch: Option<String>,
 }
 
+impl DpkgPackage {
+    pub fn cost(&self) -> usize {
+        self.name.len()
+            + self.version.len()
+            + self.source.as_ref().map_or(0, String::len)
+            + self.source_version.as_ref().map_or(0, String::len)
+            + self.arch.as_ref().map_or(0, String::len)
+    }
+}
+
 #[derive(Default)]
 struct Record {
     seen: bool,
+    too_long: bool,
+    status_too_long: bool,
     package: String,
     version: String,
     source: String,
     arch: String,
-    status: String,
+    status: Option<String>,
 }
 
-fn installed(status: &str) -> bool {
-    status.split_ascii_whitespace().eq(INSTALLED)
+enum Presence {
+    Installed,
+    Gone,
+    Unknown,
 }
 
-fn split_source(value: &str) -> (Option<String>, Option<String>) {
-    let (name, version) = match value.split_once('(') {
-        Some((name, rest)) => (
-            name.trim(),
-            rest.split_once(')')
-                .map(|(version, _)| version.trim())
-                .filter(|version| !version.is_empty()),
-        ),
-        None => (value.trim(), None),
+fn presence(record: &Record, database: Database) -> Presence {
+    if record.status_too_long {
+        return Presence::Unknown;
+    }
+    let Some(status) = &record.status else {
+        return match database {
+            Database::Status => Presence::Unknown,
+            Database::Part => Presence::Installed,
+        };
     };
-    (
-        records::optional(name.to_owned()),
-        version.map(str::to_owned).and_then(records::optional),
-    )
+    match status.split_ascii_whitespace().nth(2) {
+        None => Presence::Unknown,
+        Some(word) if GONE.contains(&word) => Presence::Gone,
+        Some(_) => Presence::Installed,
+    }
 }
 
-fn finish(record: &mut Record, parsed: &mut Parsed<DpkgPackage>, room: usize) {
-    let finished = std::mem::take(record);
-    if !finished.seen || !installed(&finished.status) {
-        return;
+fn split_source(value: &str) -> Option<(Option<String>, Option<String>)> {
+    if value.is_empty() {
+        return Some((None, None));
     }
-    if !records::token(&finished.package) || !records::token(&finished.version) {
-        parsed.malformed += 1;
-        return;
+    let (name, version) = match value.split_once('(') {
+        Some((name, rest)) => (name.trim(), rest.split_once(')')?.0.trim()),
+        None => (value.trim(), ""),
+    };
+    if !records::token(name) {
+        return None;
     }
-    if parsed.packages.len() >= room {
-        parsed.truncated = true;
-        return;
+    let version = records::optional(version.to_owned()).ok()?;
+    Some((Some(name.to_owned()), version))
+}
+
+fn build(record: Record) -> Option<DpkgPackage> {
+    if record.too_long || !records::token(&record.package) || !records::token(&record.version) {
+        return None;
     }
-    let (source, source_version) = split_source(&finished.source);
-    parsed.packages.push(DpkgPackage {
-        name: finished.package,
-        version: finished.version,
+    let (source, source_version) = split_source(&record.source)?;
+    Some(DpkgPackage {
+        name: record.package,
+        version: record.version,
         source,
         source_version,
-        arch: records::optional(finished.arch),
-    });
+        arch: records::optional(record.arch).ok()?,
+    })
 }
 
-pub fn parse(bytes: &[u8], room: usize) -> Parsed<DpkgPackage> {
+fn finish(
+    record: &mut Record,
+    parsed: &mut Parsed<DpkgPackage>,
+    limits: &Limits,
+    budget: &mut Budget,
+    database: Database,
+) {
+    let finished = std::mem::take(record);
+    if !finished.seen {
+        return;
+    }
+    match presence(&finished, database) {
+        Presence::Gone => return,
+        Presence::Unknown => {
+            parsed.malformed += 1;
+            return;
+        }
+        Presence::Installed => {}
+    }
+    let Some(package) = build(finished) else {
+        parsed.malformed += 1;
+        return;
+    };
+    if parsed.packages.len() >= limits.max_db_packages {
+        parsed.truncated = Some(Truncation::Count);
+        return;
+    }
+    if !budget.take(package.cost()) {
+        parsed.truncated = Some(Truncation::Budget);
+        return;
+    }
+    parsed.packages.push(package);
+}
+
+pub fn parse(
+    bytes: &[u8],
+    limits: &Limits,
+    budget: &mut Budget,
+    database: Database,
+) -> Parsed<DpkgPackage> {
     let mut parsed = Parsed::default();
     let mut record = Record::default();
     for line in records::lines(bytes) {
         if line.trim_ascii().is_empty() {
-            finish(&mut record, &mut parsed, room);
+            finish(&mut record, &mut parsed, limits, budget, database);
             continue;
         }
-        if parsed.truncated {
+        if parsed.truncated.is_some() {
             break;
         }
         if line[0] == b' ' || line[0] == b'\t' {
@@ -85,21 +152,23 @@ pub fn parse(bytes: &[u8], room: usize) -> Parsed<DpkgPackage> {
         };
         record.seen = true;
         let key = line[..colon].trim_ascii();
-        let value = records::field(&line[colon + 1..]);
+        let value = &line[colon + 1..];
         let is = |name: &str| key.eq_ignore_ascii_case(name.as_bytes());
         if is("Package") {
-            record.package = value;
+            records::assign(&mut record.package, &mut record.too_long, value);
         } else if is("Version") {
-            record.version = value;
+            records::assign(&mut record.version, &mut record.too_long, value);
         } else if is("Source") {
-            record.source = value;
+            records::assign(&mut record.source, &mut record.too_long, value);
         } else if is("Architecture") {
-            record.arch = value;
+            records::assign(&mut record.arch, &mut record.too_long, value);
         } else if is("Status") {
-            record.status = value;
+            let mut status = String::new();
+            records::assign(&mut status, &mut record.status_too_long, value);
+            record.status = Some(status);
         }
     }
-    finish(&mut record, &mut parsed, room);
+    finish(&mut record, &mut parsed, limits, budget, database);
     parsed
 }
 
