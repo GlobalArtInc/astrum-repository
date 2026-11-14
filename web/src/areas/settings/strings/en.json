@@ -66,5 +66,7 @@
   "settings.tile.notifications": "Notifications",
   "settings.tile.notificationsText": "Tell Telegram, Slack or webhooks when repositories change",
   "settings.tile.nodes": "Nodes",
-  "settings.tile.nodesText": "The nodes of this installation and their state"
+  "settings.tile.nodesText": "The nodes of this installation and their state",
+  "settings.tile.replication": "Replication",
+  "settings.tile.replicationText": "Send hosted components to other Astrum servers"
 }

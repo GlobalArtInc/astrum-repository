@@ -6,6 +6,7 @@ import { api, useApi, useInvalidateApi } from '../../../api';
 import { useSession } from '../../../auth/state';
 import { useT } from '../../../i18n';
 import { EmptyState, ErrorState, Page, useToast } from '../../../ui';
+import { ReplicatedBadge } from '../../replication/ReplicatedBadge';
 import {
   documentPath,
   LIST_ADDRESS,
@@ -147,7 +148,12 @@ export default function RepositoryPage() {
     <Page
       title={repository.name}
       breadcrumbs={crumbs}
-      description={<RepositoryBadges repository={repository} online={online} />}
+      description={
+        <>
+          <RepositoryBadges repository={repository} online={online} />
+          <ReplicatedBadge repository={repository.name} />
+        </>
+      }
       actions={
         <RepositoryButtons
           repository={repository}

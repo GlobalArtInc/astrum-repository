@@ -1,5 +1,6 @@
 import {
   Activity,
+  ArrowLeftRight,
   Bell,
   Boxes,
   CalendarClock,
@@ -113,6 +114,15 @@ export const CATALOG: CatalogTile[] = [
     Lock,
     'settings.tile.proprietary',
     'settings.tile.proprietaryText',
+  ),
+  tile(
+    'replication',
+    'repository',
+    70,
+    '/admin/replication',
+    ArrowLeftRight,
+    'settings.tile.replication',
+    'settings.tile.replicationText',
   ),
   tile(
     'users',
