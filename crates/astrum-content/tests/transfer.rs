@@ -542,19 +542,25 @@ async fn meta_that_is_too_large_too_deep_or_misshapen_is_refused_before_anything
         json!({"note": nested(8)}),
         json!({"note": [1]}),
         json!([1]),
+        json!({"note": {"k": "a\u{0}b"}}),
+        json!({"note": "bell\u{7}"}),
+        json!({"no\u{0}te": 1}),
+        json!({"other": {"\u{1}": 1}}),
     ];
     for meta in refused {
         let mut crafted = bundle.clone();
         crafted.meta = meta;
-        let error = receive_with(&receiver, &dev, &target, &crafted, Conflict::Fail)
-            .await
-            .unwrap_err();
-        assert!(matches!(error, ContentError::BadRequest(_)), "{error}");
+        for dry_run in [true, false] {
+            let error = run_with(&receiver, &dev, &target, &crafted, Conflict::Fail, dry_run)
+                .await
+                .unwrap_err();
+            assert!(matches!(error, ContentError::BadRequest(_)), "{error}");
+        }
     }
     assert_eq!(target_rows(&world, "target").await, (0, 0));
 
     let mut edge = bundle.clone();
-    edge.meta = json!({"note": nested(7)});
+    edge.meta = json!({"note": {"k": "tab\there\nnewline", "deep": nested(6)}});
     receive_with(&receiver, &dev, &target, &edge, Conflict::Fail)
         .await
         .unwrap();

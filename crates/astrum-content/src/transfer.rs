@@ -420,6 +420,24 @@ fn within_depth(value: &Value, level: usize) -> bool {
     }
 }
 
+fn plain(text: &str, keys: bool) -> bool {
+    text.chars().all(|found| {
+        let tolerated = !keys && matches!(found, '\t' | '\n');
+        !(found.is_control() && !tolerated)
+    })
+}
+
+fn clean(value: &Value) -> bool {
+    match value {
+        Value::String(found) => plain(found, false),
+        Value::Array(items) => items.iter().all(clean),
+        Value::Object(members) => members
+            .iter()
+            .all(|(key, inner)| plain(key, true) && clean(inner)),
+        _ => true,
+    }
+}
+
 fn text(field: &str, value: &str) -> Result<(), ContentError> {
     if value.len() > MAX_TEXT || value.chars().any(char::is_control) {
         return Err(ContentError::BadRequest(format!(
@@ -615,6 +633,11 @@ impl GenericTransfer {
             return Err(ContentError::BadRequest(format!(
                 "the bundle meta is nested deeper than {MAX_META_DEPTH} levels"
             )));
+        }
+        if !clean(&bundle.meta) {
+            return Err(ContentError::BadRequest(
+                "the bundle meta holds control characters".to_owned(),
+            ));
         }
         let mut carried = Map::new();
         for name in self.declared() {
