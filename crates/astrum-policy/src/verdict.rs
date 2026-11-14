@@ -738,6 +738,7 @@ mod tests {
             name: "app".to_owned(),
             version: "1.0".to_owned(),
             digest: Some("sha256:a".to_owned()),
+            peers: Vec::new(),
         };
         let covers =
             |held: Exception| signature_exception(&[held], "base", &image, Utc::now()).is_some();

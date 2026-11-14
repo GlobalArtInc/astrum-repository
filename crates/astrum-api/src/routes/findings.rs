@@ -253,6 +253,7 @@ impl Row {
             name: self.name.clone(),
             version: self.version.clone(),
             digest: None,
+            peers: Vec::new(),
         };
         let finding = Finding {
             advisory: self.advisory.clone(),
@@ -614,6 +615,7 @@ async fn component(
             name: found.name.clone(),
             version: found.version.clone(),
             digest: None,
+            peers: Vec::new(),
         };
         for row in rows.iter().take(COMPONENT_FINDINGS) {
             let advisory: String = row.try_get("", "id")?;

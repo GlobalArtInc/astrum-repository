@@ -129,6 +129,7 @@ fn target(image: &str, version: &str, digest: &Digest) -> Target {
         name: image.to_owned(),
         version: version.to_owned(),
         digest: Some(digest.to_string()),
+        peers: Vec::new(),
     }
 }
 

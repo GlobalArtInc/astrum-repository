@@ -648,15 +648,16 @@ impl PolicyGate {
     }
 
     fn notify(&self, ctx: &Ctx, asset: &Asset, component_id: i64, refusal: &Refusal) {
+        let subject = subject::component(component_id);
         if !self
             .noticed
-            .first(&asset.repository, component_id, Instant::now())
+            .first(&asset.repository, &subject, Instant::now())
         {
             return;
         }
         if self.notice_backlog.fetch_add(1, Ordering::Relaxed) >= NOTICE_BACKLOG {
             self.notice_backlog.fetch_sub(1, Ordering::Relaxed);
-            self.noticed.forget(&asset.repository, component_id);
+            self.noticed.forget(&asset.repository, &subject);
             self.metrics.count(Outcome::NoticeFailed);
             if let Some(suppressed) = self.notice_logs.pass(Instant::now()) {
                 tracing::warn!(repository = %asset.repository, component = component_id, backlog = NOTICE_BACKLOG, suppressed, "a refusal was not announced because too many announcements are waiting to be written");
@@ -687,7 +688,7 @@ impl PolicyGate {
                 Ok(Err(error)) => error,
                 Err(_) => format!("it was not written within {} s", NOTICE_BUDGET.as_secs()),
             };
-            noticed.forget(&repository, component_id);
+            noticed.forget(&repository, &subject);
             metrics.count(Outcome::NoticeFailed);
             if let Some(suppressed) = logs.pass(Instant::now()) {
                 tracing::error!(%repository, component = component_id, error = %failure, suppressed, "a refusal was not announced to the notification channels");

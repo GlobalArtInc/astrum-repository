@@ -143,6 +143,7 @@ pub async fn queue_within(
                 name: hit.name.clone(),
                 version: hit.version.clone(),
                 digest: hit.digest.clone(),
+                peers: Vec::new(),
             };
             if verdict::exception_for(exceptions, &policy.name, &target, &hit.finding, now)
                 .is_some()

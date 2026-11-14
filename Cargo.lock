@@ -1604,7 +1604,7 @@ dependencies = [
  "base64 0.22.1",
  "serde",
  "serde_json",
- "thiserror",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
