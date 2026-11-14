@@ -139,6 +139,7 @@ async fn content_policy(db: &DatabaseConnection, name: &str) {
         vulnerabilities: ActiveValue::Set(json!({"mode": "off"})),
         licenses: ActiveValue::Set(json!({"mode": "off"})),
         signatures: ActiveValue::Set(json!({"mode": "off"})),
+        cooldown: ActiveValue::Set(json!({"mode": "off"})),
         revision: ActiveValue::Set(1),
         created_at: ActiveValue::Set(now),
         updated_at: ActiveValue::Set(now),
