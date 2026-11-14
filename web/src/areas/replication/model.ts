@@ -49,9 +49,19 @@ export interface PreviewRow {
   sent: boolean;
 }
 
-export type Preview =
-  | { kind: 'rows'; rows: PreviewRow[] }
-  | { kind: 'invalid'; field: 'nameFilter' | 'versionFilter' };
+export interface PreviewRows {
+  kind: 'rows';
+  rows: PreviewRow[];
+}
+
+export type PreviewField = 'nameFilter' | 'versionFilter';
+
+export interface PreviewInvalid {
+  kind: 'invalid';
+  field: PreviewField;
+}
+
+export type Preview = PreviewRows | PreviewInvalid;
 
 export function bytesFromMiB(mib: number): number {
   return Math.round(mib * MIB);

@@ -23,7 +23,12 @@ function withFormFields(failure: ApiError): ApiError {
   return new ApiError(failure.status, failure.message, { fieldErrors });
 }
 
-function RemoteForm({ remote, onDone }: { remote: ReplicationRemote | null; onDone(): void }) {
+interface RemoteFormProps {
+  remote: ReplicationRemote | null;
+  onDone(): void;
+}
+
+function RemoteForm({ remote, onDone }: RemoteFormProps) {
   const t = useT();
   const toast = useToast();
   const invalidate = useInvalidateApi();

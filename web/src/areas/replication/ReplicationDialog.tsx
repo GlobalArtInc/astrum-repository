@@ -41,17 +41,14 @@ export interface ReplicationDialogProps {
   onOpenChange(open: boolean): void;
 }
 
-function FilterPreview({
-  repository,
-  loading,
-  error,
-  preview,
-}: {
+interface FilterPreviewProps {
   repository: string;
   loading: boolean;
   error: unknown;
   preview: Preview;
-}) {
+}
+
+function FilterPreview({ repository, loading, error, preview }: FilterPreviewProps) {
   const t = useT();
   if (repository === '') {
     return (
@@ -106,15 +103,13 @@ function FilterPreview({
   );
 }
 
-function ReplicationForm({
-  replication,
-  remotes,
-  onDone,
-}: {
+interface ReplicationFormProps {
   replication: Replication | null;
   remotes: ReplicationRemote[];
   onDone(): void;
-}) {
+}
+
+function ReplicationForm({ replication, remotes, onDone }: ReplicationFormProps) {
   const t = useT();
   const toast = useToast();
   const invalidate = useInvalidateApi();

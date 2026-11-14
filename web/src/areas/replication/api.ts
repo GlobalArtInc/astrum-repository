@@ -81,9 +81,14 @@ export interface RemoteCheckOk {
   formats: string[];
 }
 
+export interface RemoteCheckError {
+  kind: string;
+  message: string;
+}
+
 export interface RemoteCheckFailure {
   ok: false;
-  error: { kind: string; message: string };
+  error: RemoteCheckError;
 }
 
 export type RemoteCheck = RemoteCheckOk | RemoteCheckFailure;

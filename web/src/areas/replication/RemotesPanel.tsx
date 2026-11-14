@@ -197,7 +197,11 @@ export function RemotesPanel() {
   );
 }
 
-function CheckResult({ report }: { report: CheckReport }) {
+interface CheckResultProps {
+  report: CheckReport;
+}
+
+function CheckResult({ report }: CheckResultProps) {
   const t = useT();
   if (report.error !== undefined) {
     return (
