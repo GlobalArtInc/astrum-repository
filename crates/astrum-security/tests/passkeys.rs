@@ -116,6 +116,11 @@ fn a_foreign_origin_is_refused_at_registration_and_sign_in() {
             Err(PasskeyError::Refused(WebauthnError::InvalidRPOrigin))
         ));
     }
+    let mut evil = soft(7);
+    evil.origin = "https://evil.example.net".to_owned();
+    let refused = register(&rp, &evil, 0).unwrap_err();
+    assert_eq!(refused.kind(), "refused");
+    assert_eq!(refused.detail(), "InvalidRPOrigin");
     let passkey = register(&rp, &soft(7), 0).unwrap();
     let mut key = soft(7);
     key.origin = "https://evil.example.net".to_owned();

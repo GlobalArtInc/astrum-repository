@@ -15,6 +15,7 @@ pub const INTERNAL: &str = "/service/rest/internal";
 pub fn routes() -> Router<AppState> {
     Router::new()
         .merge(session::routes())
+        .merge(session_passkey::routes())
         .merge(access_tokens::routes())
         .merge(audit::routes())
         .merge(ui::routes())

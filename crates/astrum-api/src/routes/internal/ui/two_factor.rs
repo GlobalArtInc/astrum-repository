@@ -3,7 +3,6 @@ use astrum_security::catalogue::DEFAULT_SOURCE;
 use astrum_security::realm;
 use astrum_security::two_factor::FAILURE_WRONG_PASSWORD;
 use astrum_security::two_factor::passkey_store::MAX_PASSKEYS;
-use astrum_security::two_factor::passkeys::RelyingParty;
 use astrum_security::two_factor::store::{Confirmation, RemoveOutcome, StoreError};
 use astrum_security::{AuthError, Subject};
 use axum::Router;
@@ -15,7 +14,7 @@ use chrono::Utc;
 use serde::Deserialize;
 use serde_json::{Value, json};
 
-use super::two_factor_passkeys::passkey_json;
+use super::two_factor_passkeys::passkey_state;
 use super::{UI, time};
 use crate::auth::{RestrictedSession, SESSION_COOKIE, client_address, cookie};
 use crate::routes::internal::session;
@@ -200,28 +199,19 @@ async fn status(
         .iter()
         .filter(|token| token.expires_at.is_none_or(|expires| expires > now))
         .count();
-    let relying_party = model.relying_party().ok();
-    let passkeys_available = relying_party.is_some();
+    let held = passkey_state(&state, &subject.user_id).await?;
     let mut methods = Vec::new();
     if model.two_factor.totp {
         methods.push(TOTP);
     }
-    if model.two_factor.passkeys && passkeys_available {
+    if model.two_factor.passkeys && held.available {
         methods.push(PASSKEY);
     }
-    let held = security
-        .list_passkeys(&subject.user_id)
-        .await
-        .map_err(store_error)?;
-    let passkeys: Vec<Value> = held
-        .iter()
-        .map(|passkey| passkey_json(passkey, relying_party.as_ref().map(RelyingParty::id)))
-        .collect();
     Ok(axum::Json(json!({
         "enrolled": overview.enrolled(),
         "totp": overview.totp,
-        "passkeys": passkeys,
-        "passkeysAvailable": passkeys_available,
+        "passkeys": held.listed,
+        "passkeysAvailable": held.available,
         "required": standing.required,
         "requirementSource": overview.requirement.as_str(),
         "enrollBy": standing

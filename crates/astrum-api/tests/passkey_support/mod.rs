@@ -57,18 +57,38 @@ pub async fn begin(fixture: &Fixture, login: &Reply, secret: &str, name: &str) -
 }
 
 pub async fn register(fixture: &Fixture, login: &Reply, began: &Value, key: &SoftPasskey) -> Reply {
+    register_as(fixture, login, began, key, JANE).await
+}
+
+pub async fn register_as(
+    fixture: &Fixture,
+    login: &Reply,
+    began: &Value,
+    key: &SoftPasskey,
+    secret: &str,
+) -> Reply {
     let body = json!({
         "ceremony": began["ceremony"],
         "credential": key.register(&began["publicKey"], 0),
-        "currentPassword": JANE,
+        "currentPassword": secret,
     });
     act(fixture, Method::POST, PASSKEYS, login, body).await
 }
 
 pub async fn add(fixture: &Fixture, login: &Reply, key: &SoftPasskey, name: &str) -> Value {
-    let began = begin(fixture, login, JANE, name).await;
+    add_as(fixture, login, key, name, JANE).await
+}
+
+pub async fn add_as(
+    fixture: &Fixture,
+    login: &Reply,
+    key: &SoftPasskey,
+    name: &str,
+    secret: &str,
+) -> Value {
+    let began = begin(fixture, login, secret, name).await;
     assert_eq!(began.status, StatusCode::OK, "{}", began.text());
-    let done = register(fixture, login, &began.json(), key).await;
+    let done = register_as(fixture, login, &began.json(), key, secret).await;
     assert_eq!(done.status, StatusCode::OK, "{}", done.text());
     done.json()
 }

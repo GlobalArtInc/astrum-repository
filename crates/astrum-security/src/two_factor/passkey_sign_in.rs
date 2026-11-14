@@ -169,7 +169,7 @@ impl Security {
                 Ok(SignInOutcome::CounterRegression { passkey })
             }
             Err(error) => {
-                tracing::info!(user = %user_id, reason = error.kind(), "a passkey sign-in was refused");
+                tracing::warn!(user = %user_id, reason = error.kind(), detail = %error.detail(), "a passkey sign-in was refused");
                 Ok(SignInOutcome::Rejected)
             }
         }

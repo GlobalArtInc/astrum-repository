@@ -46,6 +46,12 @@ impl Row {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Stranded {
+    pub passkeys: i64,
+    pub users: i64,
+}
+
 pub struct BeginPasskey<'a> {
     pub user_id: &'a str,
     pub realm: &'a str,
@@ -247,25 +253,21 @@ impl Security {
         let passkey = match passkeys::finish_registration(rp, registration, credential) {
             Ok(passkey) => passkey,
             Err(error) => {
-                tracing::info!(user = %user_id, reason = error.kind(), "a passkey registration was refused");
+                tracing::warn!(user = %user_id, reason = error.kind(), detail = %error.detail(), "a passkey registration was refused");
                 return Ok(PasskeyEnrollment::Rejected);
             }
         };
         let facts = passkeys::facts(&passkey)?;
         let stored = serde_json::to_value(&passkey).map_err(PasskeyError::from)?;
         let context = ensure_factor_row(self.db(), user_id).await?;
-        let issued = if has_factor(self.db(), user_id).await? {
-            None
-        } else {
-            Some(issue_codes(context).await?)
-        };
         let txn = self.db().begin().await?;
-        let locked = lock_user_row(&txn, user_id, true)
+        lock_user_row(&txn, user_id, true)
             .await?
             .ok_or_else(|| DbErr::RecordNotFound("second factor row".to_owned()))?;
         if passkey_count(&txn, user_id).await? >= MAX_PASSKEYS {
             return Ok(PasskeyEnrollment::LimitReached);
         }
+        let first_factor = !has_factor(&txn, user_id).await?;
         let id = Uuid::new_v4();
         let inserted = txn
             .query_one(statement(
@@ -288,12 +290,12 @@ impl Security {
         let Some(inserted) = inserted else {
             return Ok(PasskeyEnrollment::Duplicate);
         };
-        let recovery_codes = match issued {
-            Some((codes, hashes)) if !locked.totp && !locked.passkeys => {
-                store_codes(&txn, user_id, &hashes).await?;
-                Some(codes)
-            }
-            _ => None,
+        let recovery_codes = if first_factor {
+            let (codes, hashes) = issue_codes(context).await?;
+            store_codes(&txn, user_id, &hashes).await?;
+            Some(codes)
+        } else {
+            None
         };
         let revision = revision::bump(&txn, revision::SECURITY).await?;
         txn.commit().await?;
@@ -309,6 +311,22 @@ impl Security {
                 last_used_at: None,
             },
             recovery_codes,
+        })
+    }
+
+    pub async fn stranded_passkeys(&self, rp_id: Option<&str>) -> Result<Stranded, StoreError> {
+        let row = self
+            .db()
+            .query_one(statement(
+                "SELECT count(*) AS passkeys, count(DISTINCT user_id) AS users FROM user_passkey \
+                 WHERE $1::text IS NULL OR rp_id <> $1::text",
+                [rp_id.map(str::to_owned).into()],
+            ))
+            .await?
+            .ok_or_else(|| DbErr::RecordNotFound("stranded passkeys".to_owned()))?;
+        Ok(Stranded {
+            passkeys: row.try_get("", "passkeys")?,
+            users: row.try_get("", "users")?,
         })
     }
 

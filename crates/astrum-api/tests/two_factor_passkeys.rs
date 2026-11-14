@@ -5,6 +5,7 @@ use axum::http::{Method, StatusCode, header};
 use passkey_support::*;
 use serde_json::{Value, json};
 use support::two_factor::*;
+use support::{Auth, Fixture};
 
 #[tokio::test]
 async fn a_passkey_signs_in_after_the_password() {
@@ -295,4 +296,114 @@ async fn a_counter_that_does_not_increase_is_refused_and_audited_but_zero_is_acc
     for _ in 0..2 {
         assert_eq!(sign_in(&fixture, &silent, 0).await.status, StatusCode::OK);
     }
+}
+
+#[tokio::test]
+async fn a_user_whose_passkeys_all_stopped_working_is_told_to_ask_an_administrator() {
+    let fixture = passkey_world().await;
+    let login = password(&fixture, "jane", JANE, &[]).await;
+    add(&fixture, &login, &key(1), "Laptop").await;
+    set_base(&fixture, "https://other.example.org").await;
+    execute(&fixture, "DELETE FROM user_recovery_code").await;
+
+    let reply = password(&fixture, "jane", JANE, &[]).await;
+    assert_eq!(reply.status, StatusCode::FORBIDDEN, "{}", reply.text());
+    assert_eq!(error_code(&reply), "passkeys-unusable");
+    assert!(
+        reply.json()["message"]
+            .as_str()
+            .unwrap()
+            .contains("administrator")
+    );
+    assert!(cookie_value(&reply, "astrum_signin").is_none());
+    assert!(cookie_value(&reply, "astrum_session").is_none());
+    assert_eq!(
+        number(&fixture, "SELECT count(*) FROM second_factor_ceremony").await,
+        0
+    );
+
+    fixture.state.security().reset("jane").await.unwrap();
+    let after = password(&fixture, "jane", JANE, &[]).await;
+    assert_eq!(after.status, StatusCode::OK, "{}", after.text());
+    assert_eq!(after.json()["authenticated"], true);
+}
+
+#[tokio::test]
+async fn the_options_calls_share_the_failure_budget_of_the_sign_in() {
+    let fixture = passkey_world().await;
+    let login = password(&fixture, "jane", JANE, &[]).await;
+    add(&fixture, &login, &key(1), "Laptop").await;
+    let handle = start(&fixture, "jane", JANE).await;
+    for _ in 0..10 {
+        let options = options_for(&fixture, &handle).await;
+        assert_eq!(options.status, StatusCode::OK, "{}", options.text());
+    }
+    let blocked = options_for(&fixture, &handle).await;
+    assert_eq!(blocked.status, StatusCode::TOO_MANY_REQUESTS);
+}
+
+async fn stranded(fixture: &Fixture) -> Vec<Value> {
+    events(fixture, "security.twofactor")
+        .await
+        .into_iter()
+        .filter(|event| event["type"] == "passkey.stranded")
+        .collect()
+}
+
+#[tokio::test]
+async fn changing_the_relying_party_audits_the_passkeys_it_strands_once() {
+    let fixture = passkey_world().await;
+    let jane = password(&fixture, "jane", JANE, &[]).await;
+    let pat = password(&fixture, "pat", PAT, &[]).await;
+    add(&fixture, &jane, &key(1), "Laptop").await;
+    add_as(&fixture, &pat, &key(2), "Phone", PAT).await;
+    let capability = "/service/rest/v1/capabilities/baseurl";
+    let save = |url: &'static str| {
+        let body = json!({"type": "baseurl", "enabled": true, "properties": {"url": url}});
+        fixture.call(Method::PUT, capability, Auth::Admin, Some(body))
+    };
+
+    assert_eq!(
+        save("https://other.example.org").await.status,
+        StatusCode::OK
+    );
+    let found = stranded(&fixture).await;
+    assert_eq!(found.len(), 1);
+    assert_eq!(found[0]["attributes"], json!({"passkeys": 2, "users": 2}));
+    assert!(!serde_json::to_string(&found).unwrap().contains("jane"));
+
+    assert_eq!(
+        save("https://other.example.org").await.status,
+        StatusCode::OK
+    );
+    assert_eq!(stranded(&fixture).await.len(), 1);
+    assert_eq!(save(BASE).await.status, StatusCode::OK);
+    assert_eq!(stranded(&fixture).await.len(), 1);
+
+    let policy = json!({
+        "totp": true,
+        "passkeys": true,
+        "required": {"everyone": false, "administrators": false, "roles": []},
+        "graceDays": 7,
+        "requiredSince": null,
+        "relyingParty": {"id": "example.org", "origins": []},
+    });
+    let put = fixture
+        .call(
+            Method::PUT,
+            "/service/rest/v1/security/two-factor",
+            Auth::Admin,
+            Some(policy),
+        )
+        .await;
+    assert_eq!(put.status, StatusCode::OK, "{}", put.text());
+    assert_eq!(stranded(&fixture).await.len(), 2);
+
+    let removed = fixture
+        .call(Method::DELETE, capability, Auth::Admin, None)
+        .await;
+    assert_eq!(removed.status, StatusCode::NO_CONTENT, "{}", removed.text());
+    let found = stranded(&fixture).await;
+    assert_eq!(found.len(), 3);
+    assert_eq!(found[2]["attributes"], json!({"passkeys": 2, "users": 2}));
 }

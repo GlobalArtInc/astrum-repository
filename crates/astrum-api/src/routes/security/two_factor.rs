@@ -22,7 +22,7 @@ use url::Url;
 
 use super::users::user_not_found;
 use super::{SECURITY, changed};
-use crate::{ApiError, AppState, Caller, Json, Validation};
+use crate::{ApiError, AppState, Caller, Json, Validation, relying_party};
 
 const USERS_READ: &str = "astrum:users:read";
 const USERS_UPDATE: &str = "astrum:users:update";
@@ -220,6 +220,7 @@ async fn set_policy(
     check_roles(&mut validation, &model, &policy.required.roles);
     check_relying_party(&mut validation, &mut policy.relying_party, base.as_deref());
 
+    let before = relying_party::current_id(&state);
     let txn = state.db().conn().begin().await?;
     lock_policy(&txn).await?;
     let stored = stored_policy(&txn).await?;
@@ -245,6 +246,7 @@ async fn set_policy(
             .with(json!({"before": stored, "after": policy})),
     )
     .await?;
+    relying_party::report_change(&state, &caller, before).await;
     Ok(axum::Json(policy))
 }
 

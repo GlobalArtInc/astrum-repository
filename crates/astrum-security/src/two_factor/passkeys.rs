@@ -226,6 +226,20 @@ pub enum PasskeyError {
 }
 
 impl PasskeyError {
+    pub fn detail(&self) -> String {
+        match self {
+            PasskeyError::Refused(error) => {
+                let shown = format!("{error:?}");
+                shown
+                    .split(|character: char| !character.is_ascii_alphanumeric())
+                    .next()
+                    .unwrap_or_default()
+                    .to_owned()
+            }
+            other => other.kind().to_owned(),
+        }
+    }
+
     pub fn kind(&self) -> &'static str {
         match self {
             PasskeyError::Configuration => "configuration",

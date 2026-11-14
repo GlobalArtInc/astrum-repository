@@ -60,7 +60,32 @@ struct RenameBody {
     name: Option<String>,
 }
 
-pub(super) fn passkey_json(passkey: &PasskeyRecord, current_rp_id: Option<&str>) -> Value {
+pub(super) struct PasskeyState {
+    pub(super) listed: Vec<Value>,
+    pub(super) available: bool,
+}
+
+pub(super) async fn passkey_state(
+    state: &AppState,
+    user_id: &str,
+) -> Result<PasskeyState, ApiError> {
+    let relying_party = state.security().model().relying_party().ok();
+    let current = relying_party.as_ref().map(RelyingParty::id);
+    let held = state
+        .security()
+        .list_passkeys(user_id)
+        .await
+        .map_err(store_error)?;
+    Ok(PasskeyState {
+        listed: held
+            .iter()
+            .map(|passkey| passkey_json(passkey, current))
+            .collect(),
+        available: relying_party.is_some(),
+    })
+}
+
+fn passkey_json(passkey: &PasskeyRecord, current_rp_id: Option<&str>) -> Value {
     json!({
         "id": passkey.id,
         "name": passkey.name,
