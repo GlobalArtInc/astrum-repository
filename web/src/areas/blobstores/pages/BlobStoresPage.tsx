@@ -9,7 +9,14 @@ import { type AdminColumn, AdminTable, compareText } from '../../repositories/co
 import type { Direction } from '../../repositories/components/admin/FilterPanel';
 import { HelpCard } from '../../repositories/components/admin/HelpCard';
 import { storeTypeName } from '../../repositories/components/EditTabs';
-import { CREATE_ADDRESS, storeAddress, storeType, type UiBlobStore, useUiBlobStores } from '../api';
+import {
+  CREATE_ADDRESS,
+  daysUntilFull,
+  storeAddress,
+  storeType,
+  type UiBlobStore,
+  useUiBlobStores,
+} from '../api';
 import styles from '../blobstores.module.css';
 
 type SortKey = 'name' | 'path' | 'type' | 'state' | 'blobs' | 'size' | 'available';
@@ -111,15 +118,25 @@ export default function BlobStoresPage() {
     {
       id: 'available',
       header: t('blobstores.list.available'),
-      cell: (row) => (
-        <div className={styles.right}>
-          {row.availableSpace === null ? (
-            t('blobstores.list.unlimited')
-          ) : (
-            <FileSize bytes={row.availableSpace} />
-          )}
-        </div>
-      ),
+      cell: (row) => {
+        const days = daysUntilFull(row);
+        return (
+          <div className={styles.right}>
+            {row.availableSpace === null ? (
+              t('blobstores.list.unlimited')
+            ) : (
+              <FileSize bytes={row.availableSpace} />
+            )}
+            {days !== null && (
+              <div>
+                <Text size="2" color="orange">
+                  {t('blobstores.forecast.days', { count: days })}
+                </Text>
+              </div>
+            )}
+          </div>
+        );
+      },
     },
     {
       id: 'open',

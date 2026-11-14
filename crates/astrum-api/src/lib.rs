@@ -3,6 +3,7 @@ pub mod base_url;
 pub mod client;
 pub mod domains;
 pub mod error;
+pub mod forecast;
 pub mod github;
 pub mod ip_allow;
 pub mod json;

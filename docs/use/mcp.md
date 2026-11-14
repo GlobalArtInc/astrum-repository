@@ -74,7 +74,7 @@ counted per client address.
 | `list_versions` | Every version of a component, newest first, and the latest release | a token |
 | `read_text_asset` | Reads a text file such as a `pom.xml` or `Chart.yaml`, up to 256 KiB; refuses binary files | a token |
 | `list_docker_tags` | Tags of an image, newest first, with the reference to pull | a token |
-| `list_blob_stores` | Blob stores with blobs, space used and free, quota state, repositories and groups | `astrum:blobstores:read` |
+| `list_blob_stores` | Blob stores with blobs, space used and free, quota state, fill forecast, repositories and groups | `astrum:blobstores:read` |
 | `list_tasks`, `get_task` | Tasks with state, last and next run | `astrum:tasks:read` |
 | `run_task`, `stop_task` | Starts or stops a task | `astrum:tasks:start`, `astrum:tasks:stop` |
 | `create_remote_blob_store` | Adds a [remote blob store](../configure/blob-stores.md#remote-blob-stores) | `astrum:blobstores:create` |
@@ -96,7 +96,7 @@ add components are the two upload tools; nothing deletes components, repositorie
 and nothing touches security settings.
 
 The server also offers two prompts: `diagnose_space`, which walks the agent through finding where the
-space went and what to do about it, and `find_artifact`, which finds a package and how to use its latest
+space went, how soon each blob store fills and what to do about it, and `find_artifact`, which finds a package and how to use its latest
 version.
 
 ## Upload a package

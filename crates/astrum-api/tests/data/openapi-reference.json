@@ -297,6 +297,34 @@
     ]
    }
   },
+  "/v1/blobstores/{name}/forecast": {
+   "get": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "name",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/BlobStoreForecastXO"
+        }
+       }
+      }
+     }
+    },
+    "tags": [
+     "Blob store"
+    ]
+   }
+  },
   "/v1/blobstores/{name}/quota-status": {
    "get": {
     "parameters": [
@@ -13450,6 +13478,34 @@
       "type": "boolean"
      }
     },
+    "type": "object"
+   },
+   "BlobStoreForecastXO": {
+    "properties": {
+     "daysUntilFull": {
+      "nullable": true,
+      "type": "number"
+     },
+     "bytesPerDay": {
+      "nullable": true,
+      "type": "number"
+     },
+     "basis": {
+      "enum": [
+       "capacity",
+       "softQuota"
+      ],
+      "nullable": true,
+      "type": "string"
+     },
+     "sampleDays": {
+      "format": "int32",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "sampleDays"
+    ],
     "type": "object"
    },
    "BlobStoreQuotaResultXO": {

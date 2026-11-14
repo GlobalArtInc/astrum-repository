@@ -452,6 +452,8 @@ async fn blob_stores_tasks_and_repositories_are_managed() {
     assert_eq!(default["type"], "File");
     assert_eq!(default["repositories"], json!(["files"]));
     assert!(default["usedBytes"].as_u64().unwrap() >= 1);
+    assert!(default["forecast"]["daysUntilFull"].is_null());
+    assert_eq!(default["forecast"]["sampleDays"], 0);
 
     let group = ok(
         &fixture,
@@ -685,6 +687,20 @@ async fn prompts_guide_the_usual_jobs() {
         .unwrap();
     assert!(
         text.contains("\"phoenix-ui\"") && text.contains("list_versions"),
+        "{text}"
+    );
+    let diagnosis = rpc(
+        &fixture,
+        &token,
+        "prompts/get",
+        json!({"name": "diagnose_space"}),
+    )
+    .await;
+    let text = diagnosis["result"]["messages"][0]["content"]["text"]
+        .as_str()
+        .unwrap();
+    assert!(
+        text.contains("daysUntilFull") && text.contains("reached their quota"),
         "{text}"
     );
     let missing = rpc(

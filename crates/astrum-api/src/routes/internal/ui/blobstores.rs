@@ -9,6 +9,7 @@ use serde::Serialize;
 
 use super::UI;
 use super::access::survey;
+use crate::forecast::{self, Forecast};
 use crate::routes::blobstores::measure_all;
 use crate::{ApiError, AppState, Caller};
 
@@ -49,6 +50,7 @@ struct StoreXo {
     available_space: Option<u64>,
     soft_quota: Option<SoftQuota>,
     quota_status: Option<QuotaState>,
+    forecast: Option<Forecast>,
     repositories: Vec<String>,
     repository_count: usize,
     groups: Vec<String>,
@@ -71,9 +73,16 @@ async fn list(
                 .map(|group| (config.name.clone(), group.members.clone()))
         })
         .collect();
-    let items = measured
-        .into_iter()
-        .map(|(config, measured)| {
+    let mut items = Vec::new();
+    for (config, measured) in measured {
+        let forecast = match forecast::of_store(state.db().conn(), &config, &measured).await {
+            Ok(found) => Some(found),
+            Err(error) => {
+                tracing::warn!(store = %config.name, %error, "the fill forecast of a blob store could not be computed");
+                None
+            }
+        };
+        items.push({
             let users: Vec<&str> = survey
                 .all
                 .iter()
@@ -112,6 +121,7 @@ async fn list(
                 available_space: measured.available,
                 soft_quota: config.soft_quota,
                 quota_status,
+                forecast,
                 repositories: users
                     .iter()
                     .filter(|name| visible.contains(*name))
@@ -136,7 +146,7 @@ async fn list(
                 }
             }
             item
-        })
-        .collect();
+        });
+    }
     Ok(axum::Json(items))
 }

@@ -10,9 +10,26 @@ pub const RECOVERED: &str = "blobstore.recovered";
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Problem {
-    LowSpace { available: String, minimum: String },
-    Quota { message: String },
+    LowSpace {
+        available: String,
+        minimum: String,
+    },
+    Quota {
+        message: String,
+    },
     Unavailable,
+    RepositoryWarn {
+        percent: u32,
+        used: String,
+        limit: String,
+    },
+    RepositoryLimit {
+        used: String,
+        limit: String,
+    },
+    Forecast {
+        days: u64,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -30,6 +47,11 @@ struct Texts {
     within_quota: &'static str,
     unavailable: &'static str,
     reachable: &'static str,
+    repository_warn: &'static str,
+    repository_limit: &'static str,
+    within_repository_quota: &'static str,
+    forecast: &'static str,
+    no_forecast: &'static str,
     open: &'static str,
 }
 
@@ -42,6 +64,11 @@ const EN: Texts = Texts {
     within_quota: "within its soft quota again",
     unavailable: "cannot be reached",
     reachable: "can be reached again",
+    repository_warn: "repository is at {percent}% of its {limit} quota ({used} used)",
+    repository_limit: "repository reached its {limit} quota ({used} used)",
+    within_repository_quota: "repository is below its quota warning again",
+    forecast: "will be full in {days} days at the current growth",
+    no_forecast: "is no longer forecast to fill up soon",
     open: "Open the blob stores",
 };
 
@@ -54,6 +81,11 @@ const RU: Texts = Texts {
     within_quota: "снова в пределах мягкой квоты",
     unavailable: "недоступен",
     reachable: "снова доступен",
+    repository_warn: "репозиторий заполнен на {percent}% квоты {limit} (занято {used})",
+    repository_limit: "репозиторий достиг квоты {limit} (занято {used})",
+    within_repository_quota: "репозиторий снова ниже порога предупреждения о квоте",
+    forecast: "заполнится через {days} дн. при нынешнем росте",
+    no_forecast: "больше не заполнится в ближайшее время",
     open: "Открыть blob store",
 };
 
@@ -86,6 +118,27 @@ fn describe(texts: &Texts, problem: &Problem, recovered: bool) -> String {
         (Problem::Quota { .. }, true) => texts.within_quota.to_owned(),
         (Problem::Unavailable, false) => texts.unavailable.to_owned(),
         (Problem::Unavailable, true) => texts.reachable.to_owned(),
+        (
+            Problem::RepositoryWarn {
+                percent,
+                used,
+                limit,
+            },
+            false,
+        ) => texts
+            .repository_warn
+            .replace("{percent}", &percent.to_string())
+            .replace("{used}", used)
+            .replace("{limit}", limit),
+        (Problem::RepositoryLimit { used, limit }, false) => texts
+            .repository_limit
+            .replace("{used}", used)
+            .replace("{limit}", limit),
+        (Problem::RepositoryWarn { .. } | Problem::RepositoryLimit { .. }, true) => {
+            texts.within_repository_quota.to_owned()
+        }
+        (Problem::Forecast { days }, false) => texts.forecast.replace("{days}", &days.to_string()),
+        (Problem::Forecast { .. }, true) => texts.no_forecast.to_owned(),
     }
 }
 
@@ -168,6 +221,30 @@ mod tests {
         ]
     }
 
+    fn repository_findings() -> Vec<Finding> {
+        vec![
+            Finding {
+                store: "docker-prod".into(),
+                problem: Problem::RepositoryWarn {
+                    percent: 92,
+                    used: "9.20 GB".into(),
+                    limit: "10.00 GB".into(),
+                },
+            },
+            Finding {
+                store: "raw".into(),
+                problem: Problem::RepositoryLimit {
+                    used: "5.00 GB".into(),
+                    limit: "5.00 GB".into(),
+                },
+            },
+            Finding {
+                store: "default".into(),
+                problem: Problem::Forecast { days: 9 },
+            },
+        ]
+    }
+
     #[test]
     fn alerts_follow_the_language_and_markup_of_the_channel() {
         let telegram = channel(ChannelType::Telegram, "en");
@@ -189,6 +266,26 @@ mod tests {
             "✅ *С blob store снова всё в порядке*\n\
              • `default`: снова свободно 8.21 GB\n\
              • `far&lt;away&gt;`: снова доступен"
+        );
+    }
+
+    #[test]
+    fn repository_and_forecast_problems_name_the_numbers() {
+        let telegram = channel(ChannelType::Telegram, "en");
+        assert_eq!(
+            render(&telegram, ALERT, &repository_findings(), None),
+            "⚠️ <b>Blob stores need attention</b>\n\
+             • <code>docker-prod</code>: repository is at 92% of its 10.00 GB quota (9.20 GB used)\n\
+             • <code>raw</code>: repository reached its 5.00 GB quota (5.00 GB used)\n\
+             • <code>default</code>: will be full in 9 days at the current growth"
+        );
+        let slack = channel(ChannelType::Slack, "en");
+        assert_eq!(
+            render(&slack, RECOVERED, &repository_findings(), None),
+            "✅ *Blob stores are fine again*\n\
+             • `docker-prod`: repository is below its quota warning again\n\
+             • `raw`: repository is below its quota warning again\n\
+             • `default`: is no longer forecast to fill up soon"
         );
     }
 

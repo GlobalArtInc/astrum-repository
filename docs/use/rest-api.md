@@ -324,6 +324,7 @@ Paths are relative to `/service/rest`.
 | `GET /v1/blobstores` | The blob stores with their type, blob count, size, free space and soft quota |
 | `DELETE /v1/blobstores/{name}` | Deletes a blob store |
 | `GET /v1/blobstores/{name}/quota-status` | Whether the store is over its soft quota |
+| `GET /v1/blobstores/{name}/forecast` | In how many days the store is full at its recent growth, see [fill forecast](../operate/monitoring.md#fill-forecast) |
 | `POST /v1/blobstores/file` | Creates a file blob store |
 | `GET`, `PUT /v1/blobstores/file/{name}` | Reads or changes a file blob store |
 | `POST /v1/blobstores/s3` | Creates an S3 blob store |

@@ -274,7 +274,16 @@ async fn channel(fixture: &Fixture, name: &str, url: &str, language: &str) {
 }
 
 async fn space_alert(fixture: &Fixture, method: Method, minimum: &str) -> support::Reply {
-    let body = json!({
+    space_alert_with(fixture, method, minimum, None).await
+}
+
+async fn space_alert_with(
+    fixture: &Fixture,
+    method: Method,
+    minimum: &str,
+    forecast_days: Option<&str>,
+) -> support::Reply {
+    let mut body = json!({
         "type": "blobstores.space",
         "enabled": true,
         "properties": {
@@ -287,6 +296,9 @@ async fn space_alert(fixture: &Fixture, method: Method, minimum: &str) -> suppor
             "recovery": "true",
         }
     });
+    if let Some(days) = forecast_days {
+        body["properties"]["forecastDays"] = json!(days);
+    }
     match method {
         Method::POST => capability(fixture, body).await,
         _ => {
@@ -427,6 +439,204 @@ async fn low_space_is_reported_once_and_again_when_it_is_over() {
             .is_none()
     );
 }
+
+async fn quota_repository(fixture: &Fixture, name: &str) {
+    let reply = fixture
+        .call(
+            Method::POST,
+            "/service/rest/v1/repositories/raw/hosted",
+            Auth::Admin,
+            Some(json!({
+                "name": name,
+                "online": true,
+                "storage": {
+                    "blobStoreName": "default",
+                    "strictContentTypeValidation": false,
+                    "writePolicy": "ALLOW",
+                    "quota": {"limitBytes": 1000, "warnPercent": 50, "enforce": false}
+                },
+                "raw": {"contentDisposition": "ATTACHMENT"}
+            })),
+        )
+        .await;
+    assert_eq!(reply.status, StatusCode::CREATED, "{}", reply.text());
+}
+
+async fn execute(fixture: &Fixture, sql: &str, values: Vec<sea_orm::Value>) {
+    use sea_orm::{ConnectionTrait, DbBackend, Statement};
+    fixture
+        .state
+        .db()
+        .conn()
+        .execute(Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            sql,
+            values,
+        ))
+        .await
+        .unwrap();
+}
+
+async fn checked(
+    fixture: &Fixture,
+    receiver: &Receiver,
+) -> (astrum_api::space::Outcome, Vec<Value>) {
+    let outcome = astrum_api::space::check(&fixture.state)
+        .await
+        .unwrap()
+        .unwrap();
+    fixture.state.notifier().flush_now().await.unwrap();
+    let bodies = receiver.taken().into_iter().map(|(_, body)| body).collect();
+    (outcome, bodies)
+}
+
+#[tokio::test]
+async fn a_repository_crossing_warn_then_its_limit_then_recovering_sends_three_messages() {
+    let fixture = ready().await;
+    allow_loopback(&fixture).await;
+    let (url, receiver) = start_receiver().await;
+    channel(&fixture, "Ops", &format!("{url}/ops"), "en").await;
+    let created = space_alert(&fixture, Method::POST, "1").await;
+    assert_eq!(created.status, StatusCode::CREATED, "{}", created.text());
+    quota_repository(&fixture, "capped").await;
+    hosted(&fixture, "free").await;
+    let set_used = |bytes: i64| {
+        execute(
+            &fixture,
+            "UPDATE repository_usage SET bytes = $2 WHERE repository = $1",
+            vec!["capped".into(), bytes.into()],
+        )
+    };
+
+    set_used(400).await;
+    let (outcome, sent) = checked(&fixture, &receiver).await;
+    assert!(outcome.alerted.is_empty() && outcome.recovered.is_empty());
+    assert!(sent.is_empty());
+
+    set_used(600).await;
+    let (outcome, sent) = checked(&fixture, &receiver).await;
+    assert_eq!(outcome.alerted.len(), 1);
+    assert!(outcome.recovered.is_empty());
+    assert_eq!(sent.len(), 1);
+    assert_eq!(sent[0]["event"], "blobstore.alert");
+    let text = sent[0]["text"].as_str().unwrap();
+    assert!(
+        text.contains("• `capped`: repository is at 60% of its 1.00 KB quota (600 B used)"),
+        "{text}"
+    );
+    let (_, sent) = checked(&fixture, &receiver).await;
+    assert!(sent.is_empty());
+
+    set_used(1000).await;
+    let (outcome, sent) = checked(&fixture, &receiver).await;
+    assert_eq!(outcome.alerted.len(), 1);
+    assert!(outcome.recovered.is_empty());
+    assert_eq!(sent.len(), 1);
+    let text = sent[0]["text"].as_str().unwrap();
+    assert!(
+        text.contains("• `capped`: repository reached its 1.00 KB quota (1.00 KB used)"),
+        "{text}"
+    );
+    let (_, sent) = checked(&fixture, &receiver).await;
+    assert!(sent.is_empty());
+
+    set_used(100).await;
+    let (outcome, sent) = checked(&fixture, &receiver).await;
+    assert!(outcome.alerted.is_empty());
+    assert_eq!(outcome.recovered.len(), 1);
+    assert_eq!(sent.len(), 1);
+    assert_eq!(sent[0]["event"], "blobstore.recovered");
+    let text = sent[0]["text"].as_str().unwrap();
+    assert!(
+        text.contains("• `capped`: repository is below its quota warning again"),
+        "{text}"
+    );
+    let (_, sent) = checked(&fixture, &receiver).await;
+    assert!(sent.is_empty());
+}
+
+#[tokio::test]
+async fn the_forecast_alert_follows_forecast_days_and_recovers_when_growth_stops() {
+    let fixture = ready().await;
+    allow_loopback(&fixture).await;
+    let (url, receiver) = start_receiver().await;
+    channel(&fixture, "Ops", &format!("{url}/ops"), "en").await;
+    let quota = fixture
+        .call(
+            Method::PUT,
+            "/service/rest/v1/blobstores/file/default",
+            Auth::Admin,
+            Some(
+                json!({"path": "default", "softQuota": {"type": "spaceUsedQuota", "limit": 10000}}),
+            ),
+        )
+        .await;
+    assert_eq!(quota.status, StatusCode::NO_CONTENT, "{}", quota.text());
+    for offset in 1..=8_i64 {
+        execute(
+            &fixture,
+            "INSERT INTO blob_store_usage_day (store, day, blob_count, total_bytes) \
+             VALUES ('default', current_date - $1::int, 0, $2)",
+            vec![(9 - offset as i32).into(), ((offset - 1) * 1000).into()],
+        )
+        .await;
+    }
+
+    let off = space_alert_with(&fixture, Method::POST, "1", Some("0")).await;
+    assert_eq!(off.status, StatusCode::CREATED, "{}", off.text());
+    let (outcome, sent) = checked(&fixture, &receiver).await;
+    assert!(outcome.alerted.is_empty() && sent.is_empty());
+
+    let on = space_alert_with(&fixture, Method::PUT, "1", Some("14")).await;
+    assert_eq!(on.status, StatusCode::OK, "{}", on.text());
+    let (outcome, sent) = checked(&fixture, &receiver).await;
+    assert_eq!(outcome.alerted.len(), 1);
+    assert_eq!(outcome.alerted[0].store, "default");
+    assert!(matches!(
+        outcome.alerted[0].problem,
+        Problem::Forecast { days: 10 }
+    ));
+    assert_eq!(sent.len(), 1);
+    let text = sent[0]["text"].as_str().unwrap();
+    assert!(
+        text.contains("• `default`: will be full in 10 days at the current growth"),
+        "{text}"
+    );
+    let (_, sent) = checked(&fixture, &receiver).await;
+    assert!(sent.is_empty());
+
+    execute(
+        &fixture,
+        "UPDATE blob_store_usage_day SET total_bytes = 1000",
+        vec![],
+    )
+    .await;
+    let (outcome, sent) = checked(&fixture, &receiver).await;
+    assert!(outcome.alerted.is_empty());
+    assert_eq!(outcome.recovered.len(), 1);
+    assert_eq!(sent.len(), 1);
+    assert_eq!(sent[0]["event"], "blobstore.recovered");
+    assert!(
+        sent[0]["text"]
+            .as_str()
+            .unwrap()
+            .ends_with("is no longer forecast to fill up soon")
+    );
+
+    let too_far = space_alert_with(&fixture, Method::PUT, "1", Some("366")).await;
+    assert_eq!(
+        too_far.status,
+        StatusCode::BAD_REQUEST,
+        "{}",
+        too_far.text()
+    );
+    assert!(
+        too_far
+            .text()
+            .contains("Forecast alert must be at most 365")
+    );
+}
+
 
 #[tokio::test]
 async fn repository_bytes_and_quota_come_from_the_usage_counter() {

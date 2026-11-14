@@ -12,6 +12,15 @@ export interface SoftQuota {
   limit: number;
 }
 
+export type ForecastBasis = 'capacity' | 'softQuota';
+
+export interface StoreForecast {
+  daysUntilFull: number | null;
+  bytesPerDay: number | null;
+  basis: ForecastBasis | null;
+  sampleDays: number;
+}
+
 export interface UiBlobStore {
   name: string;
   type: string;
@@ -28,10 +37,16 @@ export interface UiBlobStore {
   availableSpace: number | null;
   softQuota: SoftQuota | null;
   quotaStatus: { violation: boolean; message: string } | null;
+  forecast: StoreForecast | null;
   repositories: string[];
   repositoryCount: number;
   groups: string[];
   deletable: boolean;
+}
+
+export function daysUntilFull(store: UiBlobStore): number | null {
+  const days = store.forecast?.daysUntilFull;
+  return days === null || days === undefined ? null : Math.max(1, Math.ceil(days));
 }
 
 export function storeType(value: string): StoreType | null {

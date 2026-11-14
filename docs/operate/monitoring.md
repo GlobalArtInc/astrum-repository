@@ -91,7 +91,15 @@ store
   and group stores (a group counts the free space of all its members);
 - passed its [soft quota](../configure/blob-stores.md#soft-quotas), unless that is turned off;
 - cannot be opened or reached, such as a remote store whose agent does not answer, unless that is
-  turned off.
+  turned off;
+- will be full soon: its growth over the last 30 days fills it in fewer days than **Forecast alert
+  (days)**, see [the forecast](#fill-forecast).
+
+The same checks watch the repositories that have a quota (`storage.quota` in the repository settings).
+A repository is reported when it uses at least its warning percentage of the limit and when it reaches
+the limit. Both are one problem that changes kind: a repository that crosses the warning gets one
+message, the same repository reaching the limit gets one more, and one message tells when it is back
+below the warning. Repositories without a quota are not checked, and neither is a group repository.
 
 A problem is reported once when it starts, again after **Repeat after (hours)** while it lasts (0 never
 repeats it), and, with **Send a message when a problem is over**, once more when it ends. The checks run
@@ -100,6 +108,34 @@ last check and the problems that last; the metric `astrum_blobstore_space_alert`
 
 Messages follow the language of the channel. A webhook receives the events `blobstore.alert` and
 `blobstore.recovered` with the message in `text`; `repository` and `component` are `null`.
+
+### Fill forecast
+
+The task that records the daily usage (see [tasks](tasks.md)) keeps one row per blob store and day. The
+forecast fits a straight line through the last 30 of those days and needs at least 7. When the line
+rises, the days left are the room left divided by the bytes it grows per day. The room is:
+
+- the free space the store reports, for file and remote stores;
+- the limit of a soft quota of the type space used, minus what the store uses; a store that has both
+  counts the smaller of the two;
+- nothing for an S3 store without a soft quota, which has no forecast.
+
+A group store has no forecast of its own; each of its members is forecast on its own. The setting
+**Forecast alert (days)** (`forecastDays`, from 0 to 365, 14 by default) is the number of days below
+which the space alert sends the message "will be full in N days"; 0 turns this alert off. The days
+change with every check, so the message is sent once when the problem starts, like the others.
+
+`GET /service/rest/v1/blobstores/{name}/forecast` answers the same numbers for one store, to callers who
+may read the blob stores:
+
+```json
+{"daysUntilFull": 11.2, "bytesPerDay": 1000.0, "basis": "capacity", "sampleDays": 9}
+```
+
+`daysUntilFull` is `null` when the store does not grow, when there is no room to measure against or when
+fewer than 7 days were recorded; `bytesPerDay` is `null` below 7 days; `basis` is `capacity` (free
+space), `softQuota` or `null`; `sampleDays` is the number of days used. The blob store list and the page
+of a store show "Full in N days" when there is a value.
 
 ## Usage history
 
