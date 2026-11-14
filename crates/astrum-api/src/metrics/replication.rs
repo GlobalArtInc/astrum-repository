@@ -135,7 +135,7 @@ pub(super) fn render(out: &mut Exposition, state: &AppState, measured: &Measured
     out.family(
         "astrum_replication_bytes_total",
         "counter",
-        "Blob bytes the replication dispatcher of this node uploaded to remotes.",
+        "Blob bytes this node transferred for a replication: uploaded to the remote for push, downloaded from it for pull.",
     );
     for row in &measured.backlog {
         out.sample(

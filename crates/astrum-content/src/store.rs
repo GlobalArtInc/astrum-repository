@@ -806,7 +806,7 @@ fn missing_repository(repository: &str) -> ContentError {
     ContentError::not_found(format!("the repository {repository} does not exist"))
 }
 
-async fn lock_repository(
+pub(crate) async fn lock_repository(
     db: &impl ConnectionTrait,
     repository: &str,
 ) -> Result<bool, ContentError> {
@@ -820,7 +820,10 @@ async fn lock_repository(
         .is_some())
 }
 
-async fn lock_usage(db: &impl ConnectionTrait, repository: &str) -> Result<Usage, ContentError> {
+pub(crate) async fn lock_usage(
+    db: &impl ConnectionTrait,
+    repository: &str,
+) -> Result<Usage, ContentError> {
     let row = db
         .query_one(Statement::from_sql_and_values(
             DbBackend::Postgres,

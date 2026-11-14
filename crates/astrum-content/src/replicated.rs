@@ -336,6 +336,9 @@ pub async fn delete(ctx: &Ctx, request: &Removal<'_>) -> Result<String, Refusal>
         vec![REPLICATED.into(), ctx.uploader().into()],
     ))
     .await?;
+    if !store::lock_repository(&txn, ctx.name()).await? {
+        return Err(component_gone());
+    }
     let locked = Locked::find_by_statement(statement(
         LOCK_COMPONENT,
         vec![
@@ -351,6 +354,7 @@ pub async fn delete(ctx: &Ctx, request: &Removal<'_>) -> Result<String, Refusal>
     if locked.id != found.id || origin_of(&locked.attributes) != Some(origin.as_str()) {
         return Err(not_replicated());
     }
+    store::lock_usage(&txn, ctx.name()).await?;
     let held = Signed::find_by_statement(statement(ASSET_ROWS, vec![locked.id.into()]))
         .all(&txn)
         .await?

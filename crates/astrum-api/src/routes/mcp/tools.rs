@@ -1952,6 +1952,8 @@ mod tests {
                 "create_role",
                 "update_role",
                 "set_user_roles",
+                "retry_replication_items",
+                "run_replication_reconcile",
                 "request_upload",
                 "upload_component",
                 "promote_components"
