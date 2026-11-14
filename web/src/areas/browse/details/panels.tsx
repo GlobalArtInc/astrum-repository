@@ -6,6 +6,7 @@ import { api, apiKey, path, useApi, useInvalidateApi, withQuery } from '../../..
 import { useSession } from '../../../auth/state';
 import { formatNumber, type Translate, useI18n, useT } from '../../../i18n';
 import { CopyButton, DateTime, ErrorState, FileSize, formatName, useToast } from '../../../ui';
+import { SigningChip } from '../docker/SupplyChain';
 import { componentTitle, fromProxy, guideComponentName } from '../links';
 import { parentOf } from '../tree/model';
 import {
@@ -331,6 +332,13 @@ export function ComponentPanel({ repository, node, onNavigate }: PanelProps & { 
           }
           actions={
             <>
+              {repository.format === 'docker' && component.version !== '' && (
+                <SigningChip
+                  repository={node.repository ?? repository.name}
+                  image={component.name}
+                  reference={component.version}
+                />
+              )}
               <GuideButton
                 href={proxied ? guideUrl(repository.format, component, 'browse-tree-component') : null}
               />
