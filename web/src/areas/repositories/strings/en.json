@@ -440,7 +440,6 @@
   "repositories.edit.tabs.summary": "Summary",
   "repositories.edit.tabs.tasks": "Tasks & Capabilities",
   "repositories.edit.tabs.access": "Access & Security",
-  "repositories.usage.title": "Usage",
   "repositories.usage.stored": "Stored",
   "repositories.usage.assets": "Assets",
   "repositories.usage.limit": "Limit",
