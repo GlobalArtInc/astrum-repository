@@ -637,7 +637,6 @@ async fn the_forecast_alert_follows_forecast_days_and_recovers_when_growth_stops
     );
 }
 
-
 #[tokio::test]
 async fn repository_bytes_and_quota_come_from_the_usage_counter() {
     let fixture = ready().await;
