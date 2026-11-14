@@ -10,7 +10,7 @@ use astrum_replication::{Client, Error, Remote};
 use astrum_security::SecretBox;
 use astrum_security::ssrf::{Guard, GuardedResolver, Unverified};
 use bytes::Bytes;
-use futures_util::stream;
+use futures_util::{StreamExt, stream};
 use serde_json::json;
 use support::{Forced, INSTANCE, TOKEN, build, connected, guard_off, outcome, remote, start};
 
@@ -374,6 +374,88 @@ async fn an_upload_takes_as_long_as_the_rate_allows() {
         .unwrap();
     let taken = started.elapsed().as_secs_f64();
     assert!((0.9..=1.5).contains(&taken), "{taken}");
+}
+
+#[tokio::test]
+async fn a_bundle_is_asked_for_by_its_key_and_a_blob_comes_down_at_the_rate_allowed() {
+    let (address, receiver) = start().await;
+    let mut limited: Remote = remote(&format!("http://{address}"));
+    limited.max_bytes_per_second = Some(100_000);
+    let client = build(&limited, &guard_off()).unwrap();
+    let fetched = client.bundle("a b/c", "ns", "app", "1").await.unwrap();
+    assert_eq!(
+        (fetched.name.as_str(), fetched.origin.as_deref()),
+        ("app", Some("origin-1"))
+    );
+    let started = Instant::now();
+    let download = client.blob("a b/c", &digest("a")).await.unwrap();
+    assert_eq!(download.length, Some(100_000));
+    let (body, failures) = download.into_parts();
+    let chunks: Vec<std::io::Result<Bytes>> = body.collect().await;
+    let total: usize = chunks
+        .iter()
+        .map(|chunk| chunk.as_ref().unwrap().len())
+        .sum();
+    assert_eq!(total, 100_000);
+    assert!(failures.take().is_none());
+    let taken = started.elapsed().as_secs_f64();
+    assert!((0.9..=1.5).contains(&taken), "{taken}");
+    let log = receiver.log();
+    let repository = "/service/rest/v1/replication/a%20b%2Fc";
+    assert_eq!(log[0].path, format!("{repository}/bundle"));
+    assert_eq!(
+        log[0].query.as_deref(),
+        Some("namespace=ns&name=app&version=1")
+    );
+    assert_eq!(log[1].path, format!("{repository}/blobs/{}", digest("a")));
+    for entry in &log {
+        assert_eq!(
+            entry.authorization.as_deref(),
+            Some(format!("Bearer {TOKEN}").as_str())
+        );
+    }
+}
+
+#[tokio::test]
+async fn a_pull_is_classified_like_a_push_and_a_blob_answer_must_be_a_plain_200() {
+    let (client, receiver, _) = connected().await;
+    receiver.force(503, "busy");
+    assert!(
+        client
+            .bundle("dst", "", "app", "1")
+            .await
+            .unwrap_err()
+            .is_retryable()
+    );
+    assert!(
+        client
+            .blob("dst", &digest("a"))
+            .await
+            .err()
+            .unwrap()
+            .is_retryable()
+    );
+    receiver.force(
+        404,
+        json!({"code": "component_not_found", "message": "gone"}).to_string(),
+    );
+    assert!(matches!(
+        client.bundle("dst", "", "app", "1").await.unwrap_err(),
+        Error::Permanent { status: 404, code, .. } if code == "component_not_found"
+    ));
+    assert!(matches!(
+        client.blob("dst", &digest("a")).await.err().unwrap(),
+        Error::Permanent { status: 404, .. }
+    ));
+    receiver.force(206, "partial");
+    assert!(matches!(
+        client.blob("dst", &digest("a")).await.err().unwrap(),
+        Error::Refused(_)
+    ));
+    assert!(matches!(
+        client.blob("dst", "not-a-digest").await.err().unwrap(),
+        Error::Refused(_)
+    ));
 }
 
 #[tokio::test]

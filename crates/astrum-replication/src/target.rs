@@ -201,6 +201,7 @@ mod tests {
     fn replication(name: Option<&str>, version: Option<&str>) -> ReplicationRow {
         ReplicationRow {
             id: Uuid::nil(),
+            direction: "push".to_owned(),
             source_repository: "source".to_owned(),
             remote_id: Uuid::nil(),
             remote_repository: "mirror".to_owned(),

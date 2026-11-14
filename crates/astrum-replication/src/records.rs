@@ -20,8 +20,8 @@ const REMOTES_DUE: &str = "FROM replication_remote m \
 
 const REMOTE: &str = "FROM replication_remote m WHERE m.id = $1";
 
-const REPLICATION: &str = "SELECT id, source_repository, remote_id, remote_repository, enabled, \
-     name_filter, version_filter, propagate_deletes FROM replication WHERE id = $1";
+const REPLICATION: &str = "SELECT id, direction, source_repository, remote_id, remote_repository, \
+     enabled, name_filter, version_filter, propagate_deletes FROM replication WHERE id = $1";
 
 const SUCCEEDED: &str =
     "UPDATE replication SET last_success_at = now(), last_error = NULL WHERE id = $1";
@@ -60,6 +60,8 @@ const RECORD_INSTANCE: &str = "INSERT INTO setting (key, value, updated_at) \
 
 const INSTANCE_KEY: &str = "replication.instanceId";
 
+pub const PULL: &str = "pull";
+
 #[derive(Clone, FromQueryResult)]
 pub struct RemoteRow {
     pub id: Uuid,
@@ -84,6 +86,7 @@ impl RemoteRow {
 #[derive(Clone, Debug, FromQueryResult)]
 pub struct ReplicationRow {
     pub id: Uuid,
+    pub direction: String,
     pub source_repository: String,
     pub remote_id: Uuid,
     pub remote_repository: String,
@@ -91,6 +94,12 @@ pub struct ReplicationRow {
     pub name_filter: Option<String>,
     pub version_filter: Option<String>,
     pub propagate_deletes: bool,
+}
+
+impl ReplicationRow {
+    pub fn pulls(&self) -> bool {
+        self.direction == PULL
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, FromQueryResult)]

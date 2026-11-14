@@ -21,12 +21,13 @@ use tokio::time::Instant;
 use url::Url;
 use uuid::Uuid;
 
+use crate::download::{Download, Failures, body_of};
 use crate::error::{self, ERROR_BODY_LIMIT, Error, parse_retry_after};
 use crate::limit::Limiter;
 use crate::protocol::{
-    BLOB, CAPABILITIES, COMPONENTS, Capabilities, INSTANCE_HEADER, INVENTORY, INVENTORY_COMPARE,
-    InventoryCompare, InventoryCompareReply, InventoryKey, InventoryPage, MAX_MISSING, MISSING,
-    MissingReply, MissingRequest, PROTOCOL, Tombstone, valid_sha256,
+    BLOB, BUNDLE, CAPABILITIES, COMPONENTS, Capabilities, INSTANCE_HEADER, INVENTORY,
+    INVENTORY_COMPARE, InventoryCompare, InventoryCompareReply, InventoryKey, InventoryPage,
+    MAX_MISSING, MISSING, MissingReply, MissingRequest, PROTOCOL, Tombstone, valid_sha256,
 };
 use astrum_content::transfer::{Bundle, Outcome};
 
@@ -469,6 +470,57 @@ impl Client {
                 other.as_u16()
             ))),
         }
+    }
+
+    pub async fn bundle(
+        &self,
+        repository: &str,
+        namespace: &str,
+        name: &str,
+        version: &str,
+    ) -> Result<Bundle, Error> {
+        let mut url = self.url(&repository_path(BUNDLE, repository)?);
+        url.query_pairs_mut()
+            .append_pair("namespace", namespace)
+            .append_pair("name", name)
+            .append_pair("version", version);
+        self.control(self.http.get(url)).await
+    }
+
+    pub async fn blob(&self, repository: &str, sha256: &str) -> Result<Download, Error> {
+        if !valid_sha256(sha256) {
+            return Err(refused("the digest is not a lowercase SHA-256 in hex"));
+        }
+        let path = repository_path(BLOB, repository)?.replace("{sha256}", sha256);
+        let request = self.http.get(self.url(&path));
+        let response = match tokio::time::timeout(CONTROL_TIMEOUT, self.send(request)).await {
+            Ok(sent) => sent?,
+            Err(_) => {
+                return Err(Error::Retryable {
+                    reason: format!(
+                        "the remote did not start the download within {} seconds",
+                        CONTROL_TIMEOUT.as_secs()
+                    ),
+                    retry_after: None,
+                    status: None,
+                });
+            }
+        };
+        if response.status() != StatusCode::OK {
+            return Err(Error::Refused(format!(
+                "the remote answered {} where 200 was expected",
+                response.status().as_u16()
+            )));
+        }
+        let failures = Failures::default();
+        let length = response.content_length();
+        let stream = body_of(
+            response.bytes_stream(),
+            self.limiter.clone(),
+            failures.clone(),
+            self.secret().to_owned(),
+        );
+        Ok(Download::new(length, stream, failures))
     }
 
     pub async fn commit(&self, repository: &str, bundle: &Bundle) -> Result<Outcome, Error> {

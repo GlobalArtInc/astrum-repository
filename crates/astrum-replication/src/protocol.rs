@@ -12,6 +12,7 @@ pub const INSTANCE_HEADER: &str = "x-astrum-instance";
 pub const CAPABILITIES: &str = "/service/rest/v1/replication/capabilities";
 pub const MISSING: &str = "/service/rest/v1/replication/{repo}/blobs/missing";
 pub const BLOB: &str = "/service/rest/v1/replication/{repo}/blobs/{sha256}";
+pub const BUNDLE: &str = "/service/rest/v1/replication/{repo}/bundle";
 pub const COMPONENTS: &str = "/service/rest/v1/replication/{repo}/components";
 pub const INVENTORY_COMPARE: &str = "/service/rest/v1/replication/{repo}/inventory/compare";
 pub const INVENTORY: &str = "/service/rest/v1/replication/{repo}/inventory";
@@ -147,10 +148,7 @@ fn unescape_part(part: &str) -> Option<String> {
 }
 
 pub fn valid_sha256(value: &str) -> bool {
-    value.len() == 64
-        && value
-            .bytes()
-            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    astrum_content::replicated::valid_sha256(value)
 }
 
 #[cfg(test)]

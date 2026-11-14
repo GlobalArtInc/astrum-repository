@@ -701,3 +701,163 @@ async fn changing_or_removing_a_replication_needs_access_to_its_current_source()
     .await;
     assert_eq!(unknown.status, StatusCode::NOT_FOUND);
 }
+
+async fn execute(fixture: &Fixture, sql: &str) {
+    fixture
+        .state
+        .db()
+        .conn()
+        .execute(Statement::from_string(DbBackend::Postgres, sql))
+        .await
+        .unwrap();
+}
+
+#[tokio::test]
+async fn a_pull_replication_is_validated_and_its_direction_is_fixed() {
+    let fixture = ready().await;
+    for name in ["locked", "grouped", "other"] {
+        create_repository(&fixture, name, "raw").await;
+    }
+    execute(
+        &fixture,
+        "UPDATE repository SET attributes = '{\"storage\": {\"writePolicy\": \"DENY\"}}' WHERE name = 'locked'",
+    )
+    .await;
+    execute(
+        &fixture,
+        "UPDATE repository SET type = 'group' WHERE name = 'grouped'",
+    )
+    .await;
+    let remote_id = make_remote(&fixture, "Mirror").await;
+    let mut pull = replication("Pull", &remote_id);
+    pull["direction"] = json!("pull");
+    let created = admin(&fixture, Method::POST, REPLICATIONS, Some(pull.clone())).await;
+    assert_eq!(created.status, StatusCode::CREATED, "{}", created.text());
+    assert_eq!(created.json()["direction"], "pull");
+    let id = created.json()["id"].as_str().unwrap().to_owned();
+    let mut push = replication("Push", &remote_id);
+    push["sourceRepository"] = json!("other");
+    let pushed = admin(&fixture, Method::POST, REPLICATIONS, Some(push)).await;
+    assert_eq!(pushed.json()["direction"], "push");
+    let listed = admin(&fixture, Method::GET, REPLICATIONS, None)
+        .await
+        .json();
+    let mut directions: Vec<&str> = listed
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|found| found["direction"].as_str().unwrap())
+        .collect();
+    directions.sort();
+    assert_eq!(directions, ["pull", "push"]);
+
+    let path = format!("{REPLICATIONS}/{id}");
+    let kept = admin(
+        &fixture,
+        Method::PUT,
+        &path,
+        Some(replication("Pull", &remote_id)),
+    )
+    .await;
+    assert_eq!(kept.status, StatusCode::OK, "{}", kept.text());
+    assert_eq!(kept.json()["direction"], "pull");
+    for wrong in ["push", "sideways"] {
+        let mut changed = pull.clone();
+        changed["direction"] = json!(wrong);
+        let refused = admin(&fixture, Method::PUT, &path, Some(changed)).await;
+        assert_eq!(refused.status, StatusCode::BAD_REQUEST, "{wrong}");
+        assert_eq!(fields(&refused), ["direction"]);
+    }
+    let same_key = replication("Again", &remote_id);
+    let clash = admin(&fixture, Method::POST, REPLICATIONS, Some(same_key)).await;
+    assert_eq!(clash.status, StatusCode::CONFLICT);
+    assert!(
+        clash.text().contains("both push to and pull from"),
+        "{}",
+        clash.text()
+    );
+
+    for source in ["locked", "grouped"] {
+        let mut refused = pull.clone();
+        refused["name"] = json!(source);
+        refused["sourceRepository"] = json!(source);
+        let reply = admin(&fixture, Method::POST, REPLICATIONS, Some(refused)).await;
+        assert_eq!(
+            reply.status,
+            StatusCode::BAD_REQUEST,
+            "{source}: {}",
+            reply.text()
+        );
+        assert_eq!(fields(&reply), ["sourceRepository"], "{source}");
+    }
+    let mut elsewhere = replication("Locked push", &remote_id);
+    elsewhere["sourceRepository"] = json!("locked");
+    let allowed = admin(&fixture, Method::POST, REPLICATIONS, Some(elsewhere)).await;
+    assert_eq!(allowed.status, StatusCode::CREATED, "{}", allowed.text());
+}
+
+#[tokio::test]
+async fn a_pull_needs_edit_access_to_the_local_repository_where_a_push_needs_read() {
+    let fixture = ready().await;
+    create_repository(&fixture, "other", "raw").await;
+    let remote_id = make_remote(&fixture, "Mirror").await;
+    create_role(
+        &fixture,
+        "reader-admin",
+        &[
+            "as-replication-create",
+            "as-repository-admin-raw-other-read",
+        ],
+        &[],
+    )
+    .await;
+    create_role(
+        &fixture,
+        "editor-admin",
+        &[
+            "as-replication-create",
+            "as-repository-admin-raw-other-read",
+            "as-repository-admin-raw-other-edit",
+        ],
+        &[],
+    )
+    .await;
+    for name in ["reader-admin", "editor-admin"] {
+        create_user(&fixture, name, "pw-pw-pw-1", &[name]).await;
+    }
+    let mut body = replication("Pull", &remote_id);
+    body["sourceRepository"] = json!("other");
+    body["direction"] = json!("pull");
+    let auth = |name| Auth::Basic(name, "pw-pw-pw-1");
+    let denied = api(
+        &fixture,
+        Method::POST,
+        REPLICATIONS,
+        auth("reader-admin"),
+        Some(body.clone()),
+    )
+    .await;
+    assert_eq!(denied.status, StatusCode::FORBIDDEN, "{}", denied.text());
+    body["direction"] = json!("push");
+    let pushed = api(
+        &fixture,
+        Method::POST,
+        REPLICATIONS,
+        auth("reader-admin"),
+        Some(body.clone()),
+    )
+    .await;
+    assert_eq!(pushed.status, StatusCode::CREATED, "{}", pushed.text());
+    body["direction"] = json!("pull");
+    body["name"] = json!("Pull 2");
+    body["remoteRepository"] = json!("dst2");
+    let pulled = api(
+        &fixture,
+        Method::POST,
+        REPLICATIONS,
+        auth("editor-admin"),
+        Some(body),
+    )
+    .await;
+    assert_eq!(pulled.status, StatusCode::CREATED, "{}", pulled.text());
+}

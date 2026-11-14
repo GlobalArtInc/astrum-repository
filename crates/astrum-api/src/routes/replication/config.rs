@@ -1,3 +1,4 @@
+use astrum_content::replicated;
 use astrum_db::audit::Event;
 use astrum_db::setting;
 use astrum_replication::lifecycle::{self, Snapshot};
@@ -25,6 +26,8 @@ pub(super) const UPDATE: &str = "astrum:replication:update";
 const DELETE: &str = "astrum:replication:delete";
 pub(super) const DOMAIN: &str = "replication";
 
+const PUSH: &str = "push";
+const PULL_DIRECTION: &str = "pull";
 const DEFAULT_CONCURRENCY: i64 = 2;
 const DEFAULT_SETTLE_SECONDS: i64 = 30;
 const MAX_CONCURRENCY: i64 = 16;
@@ -34,8 +37,8 @@ const REMOTE_COLUMNS: &str = "id, name, url, true AS has_token, use_trust_store,
      allow_private_network, max_concurrency, max_bytes_per_second, remote_instance_id, \
      remote_version, checked_at, failures, suspended_until, last_error, created_at, updated_at";
 
-const REPLICATION_COLUMNS: &str = "id, name, source_repository, remote_id, remote_repository, \
-     enabled, name_filter, version_filter, propagate_deletes, settle_seconds, \
+const REPLICATION_COLUMNS: &str = "id, name, direction, source_repository, remote_id, \
+     remote_repository, enabled, name_filter, version_filter, propagate_deletes, settle_seconds, \
      reconcile_minutes, alert_channels, alert_state, last_success_at, last_failure_at, \
      last_error, last_reconcile_at, created_at, updated_at";
 
@@ -106,6 +109,7 @@ struct RemoteInput {
 #[serde(rename_all = "camelCase")]
 struct ReplicationRequest {
     name: Option<String>,
+    direction: Option<String>,
     source_repository: Option<String>,
     remote_id: Option<String>,
     remote_repository: Option<String>,
@@ -123,6 +127,7 @@ struct ReplicationRequest {
 struct ReplicationModel {
     id: Uuid,
     name: String,
+    direction: String,
     source_repository: String,
     remote_id: Uuid,
     remote_repository: String,
@@ -144,6 +149,7 @@ struct ReplicationModel {
 
 struct ReplicationInput {
     name: String,
+    direction: &'static str,
     source_repository: String,
     remote_id: Uuid,
     remote_repository: String,
@@ -594,12 +600,60 @@ fn ranged(
     value as i32
 }
 
+fn direction_of(
+    validation: &mut Validation,
+    requested: Option<&str>,
+    stored: Option<&'static str>,
+) -> &'static str {
+    let named = match requested.map(str::trim) {
+        None => None,
+        Some(PUSH) => Some(PUSH),
+        Some(PULL_DIRECTION) => Some(PULL_DIRECTION),
+        Some(_) => {
+            validation.add("direction", "must be push or pull");
+            return stored.unwrap_or(PUSH);
+        }
+    };
+    match (named, stored) {
+        (Some(named), Some(stored)) if named != stored => {
+            validation.add(
+                "direction",
+                "cannot be changed; delete the replication and create it again with the other direction",
+            );
+            stored
+        }
+        (Some(named), _) => named,
+        (None, Some(stored)) => stored,
+        (None, None) => PUSH,
+    }
+}
+
+async fn stored_direction(state: &AppState, id: Uuid) -> Result<&'static str, ApiError> {
+    #[derive(FromQueryResult)]
+    struct Stored {
+        direction: String,
+    }
+    let stored = Stored::find_by_statement(statement(
+        "SELECT direction FROM replication WHERE id = $1",
+        vec![id.into()],
+    ))
+    .one(state.db().conn())
+    .await?
+    .ok_or_else(|| missing("replication", id))?;
+    match stored.direction.as_str() {
+        PULL_DIRECTION => Ok(PULL_DIRECTION),
+        _ => Ok(PUSH),
+    }
+}
+
 async fn replication_input(
     state: &AppState,
     subject: &Subject,
     body: ReplicationRequest,
+    stored: Option<&'static str>,
 ) -> Result<ReplicationInput, ApiError> {
     let mut validation = Validation::new();
+    let direction = direction_of(&mut validation, body.direction.as_deref(), stored);
     let name = validate::name(body.name.as_deref())
         .map_err(|error| validation.add("name", error))
         .ok();
@@ -693,10 +747,16 @@ async fn replication_input(
         return Err(ApiError::forbidden());
     }
     if repository.kind != "hosted" {
-        return Err(ApiError::invalid(
-            "sourceRepository",
-            "must be a hosted repository; proxy and group repositories cannot be replicated",
-        ));
+        let message = match direction {
+            PULL_DIRECTION => {
+                "must be a hosted repository; proxy and group repositories cannot take pulled components"
+            }
+            _ => "must be a hosted repository; proxy and group repositories cannot be replicated",
+        };
+        return Err(ApiError::invalid("sourceRepository", message));
+    }
+    if direction == PULL_DIRECTION {
+        require_writable(state, subject, &repository.format, &source).await?;
     }
     if !channels.is_empty() {
         let known = Found::find_by_statement(statement(
@@ -719,6 +779,7 @@ async fn replication_input(
     }
     Ok(ReplicationInput {
         name,
+        direction,
         source_repository: source,
         remote_id,
         remote_repository,
@@ -732,6 +793,36 @@ async fn replication_input(
     })
 }
 
+async fn require_writable(
+    state: &AppState,
+    subject: &Subject,
+    format: &str,
+    source: &str,
+) -> Result<(), ApiError> {
+    let changed = format!("astrum:repository-admin:{format}:{source}:edit");
+    if !subject.is_permitted(&changed) {
+        return Err(ApiError::forbidden());
+    }
+    let repository = state
+        .content()
+        .repository(source)
+        .await
+        .map_err(ApiError::internal)?
+        .ok_or_else(|| {
+            ApiError::invalid("sourceRepository", "there is no repository with this name")
+        })?;
+    let ctx = state
+        .content()
+        .context(repository, state.security().model(), None, "", "");
+    match replicated::read_only(&ctx) {
+        true => Err(ApiError::invalid(
+            "sourceRepository",
+            "must be writable; a pull replication cannot fill a repository whose write policy denies writes",
+        )),
+        false => Ok(()),
+    }
+}
+
 fn replication_conflict(error: &DbErr) -> Result<Response, ApiError> {
     if constraint_violated(error, "replication_name_lower") {
         return Ok(message(
@@ -742,7 +833,7 @@ fn replication_conflict(error: &DbErr) -> Result<Response, ApiError> {
     if is_unique(error) {
         return Ok(message(
             StatusCode::CONFLICT,
-            "A replication from this repository to this repository of this remote exists already",
+            "A replication between this repository and this repository of this remote exists already; a repository cannot both push to and pull from the same remote repository",
         ));
     }
     if constraint_violated(error, "source_repository") {
@@ -790,6 +881,7 @@ fn replication_audit(model: &ReplicationModel) -> serde_json::Value {
     json!({
         "id": model.id,
         "name": model.name,
+        "direction": model.direction,
         "sourceRepository": model.source_repository,
         "remoteId": model.remote_id,
         "remoteRepository": model.remote_repository,
@@ -810,19 +902,20 @@ async fn create_replication(
 ) -> Result<Response, ApiError> {
     let subject = caller.require(CREATE)?;
     let Json(body) = body?;
-    let input = replication_input(&state, subject, body).await?;
+    let input = replication_input(&state, subject, body, None).await?;
     let id = Uuid::new_v4();
     let sql = format!(
         "INSERT INTO replication (id, name, source_repository, remote_id, remote_repository, \
          enabled, name_filter, version_filter, propagate_deletes, settle_seconds, \
-         reconcile_minutes, alert_channels) \
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING {REPLICATION_COLUMNS}"
+         reconcile_minutes, alert_channels, direction) \
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING {REPLICATION_COLUMNS}"
     );
+    let mut values = replication_values(id, &input);
+    values.push(input.direction.into());
     let txn = state.db().conn().begin().await?;
-    let inserted =
-        ReplicationModel::find_by_statement(statement(&sql, replication_values(id, &input)))
-            .one(&txn)
-            .await;
+    let inserted = ReplicationModel::find_by_statement(statement(&sql, values))
+        .one(&txn)
+        .await;
     let created = match inserted {
         Ok(Some(created)) => created,
         Ok(None) => {
@@ -888,7 +981,8 @@ async fn update_replication(
     let id = parse_id(&id, "replication")?;
     require_current_source(&state, subject, id).await?;
     let Json(body) = body?;
-    let input = replication_input(&state, subject, body).await?;
+    let stored = stored_direction(&state, id).await?;
+    let input = replication_input(&state, subject, body, Some(stored)).await?;
     let sql = format!(
         "UPDATE replication SET name = $2, source_repository = $3, remote_id = $4, \
          remote_repository = $5, enabled = $6, name_filter = $7, version_filter = $8, \

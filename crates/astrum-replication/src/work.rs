@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -6,7 +6,7 @@ use astrum_content::store::{self, Asset};
 use astrum_content::transfer::{Bundle, Outcome, Status, fingerprint, origin_of};
 use astrum_content::{Component, ContentError, Ctx};
 use astrum_db::entity::component;
-use astrum_security::SecurityModel;
+use astrum_security::{SecurityModel, Subject};
 use sea_orm::{ColumnTrait, DbErr, EntityTrait, QueryFilter};
 use uuid::Uuid;
 
@@ -24,6 +24,8 @@ const EMPTY: &str = "the component has no assets";
 const KEPT: &str = "deletes are not propagated by this replication";
 const NEVER_SENT: &str = "the component was never sent";
 const ALREADY_GONE: &str = "component_not_found";
+pub(crate) const SYSTEM: &str = "*SYSTEM";
+const SYSTEM_SOURCE: &str = "replication";
 
 #[derive(Debug)]
 pub(crate) enum Done {
@@ -125,7 +127,7 @@ impl From<astrum_blob::Error> for Failure {
     }
 }
 
-enum Pause {
+pub(crate) enum Pause {
     Lost,
     Stale,
 }
@@ -135,7 +137,7 @@ enum Round {
     Paused(Pause),
 }
 
-fn digests_of(bundle: &Bundle) -> Vec<String> {
+pub(crate) fn digests_of(bundle: &Bundle) -> Vec<String> {
     let mut digests: Vec<String> = bundle
         .assets
         .iter()
@@ -160,6 +162,9 @@ impl Dispatcher {
         }
         if !target.passes(&replication, item)? {
             return Ok(Done::Dropped(FILTERED));
+        }
+        if replication.pulls() {
+            return self.pull(target, &replication, item).await;
         }
         let client = target.client()?;
         let remote = self.remote_instance(target, client).await?;
@@ -213,10 +218,18 @@ impl Dispatcher {
             .ok_or_else(|| {
                 Failure::Rejected(format!("the source repository {repository} is gone"))
             })?;
+        let subject = Subject::new(
+            SYSTEM,
+            SYSTEM_SOURCE,
+            SYSTEM_SOURCE,
+            BTreeSet::new(),
+            Vec::new(),
+            Vec::new(),
+        );
         Ok(self.content().context(
             found,
             Arc::new(SecurityModel::default()),
-            None,
+            Some(subject),
             String::new(),
             String::new(),
         ))

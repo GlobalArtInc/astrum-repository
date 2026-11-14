@@ -82,9 +82,13 @@ impl Summary {
                     }
                     _ => "",
                 };
+                let here = match tally.from_here {
+                    0 => String::new(),
+                    count => format!(", {count} from this server"),
+                };
                 format!(
                     "{} local components looked at ({} outside the filters, {} from the remote, \
-                     {} without assets), {} remote entries looked at, {} queued{tail}",
+                     {} without assets{here}), {} remote entries looked at, {} queued{tail}",
                     tally.scanned,
                     tally.filtered,
                     tally.from_remote,
@@ -171,9 +175,14 @@ pub async fn run_with(
         tally: Tally::default(),
     };
     let scanned = async {
-        scan.local().await?;
-        if replication.propagate_deletes && !scan.tally.capped {
-            scan.remote().await?;
+        match replication.pulls() {
+            true => scan.pull().await?,
+            false => {
+                scan.local().await?;
+                if replication.propagate_deletes && !scan.tally.capped {
+                    scan.remote().await?;
+                }
+            }
         }
         Ok::<(), Ended>(())
     }

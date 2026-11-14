@@ -266,7 +266,7 @@ fn pause_for(target: &Target, error: &Error) -> (Duration, String) {
         return (
             TOKEN_PAUSE,
             format!(
-                "the remote refused the token (status {status}); enter a valid token that may receive replication"
+                "the remote refused the token (status {status}); enter a valid token that may receive or pull replication"
             ),
         );
     }

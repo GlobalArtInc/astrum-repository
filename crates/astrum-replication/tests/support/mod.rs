@@ -127,6 +127,16 @@ async fn serve(State(receiver): State<Receiver>, request: Request<Body>) -> Resp
             StatusCode::OK,
             json!({"differing": request["items"].as_array().map(|items| items.iter().map(|item| item["key"].clone()).collect::<Vec<_>>())}),
         ),
+        "GET" if path.ends_with("/bundle") => json_reply(
+            StatusCode::OK,
+            json!({"format": "raw", "namespace": "ns", "name": "app", "version": "1",
+                "assets": [], "meta": {}, "origin": "origin-1"}),
+        ),
+        "GET" if path.contains("/blobs/") => (
+            [(header::CONTENT_TYPE, "application/octet-stream")],
+            vec![1u8; 100_000],
+        )
+            .into_response(),
         "GET" if path.ends_with("/inventory") => json_reply(
             StatusCode::OK,
             json!({"items": [{"key": "app/1", "fingerprint": "f", "origin": null}], "next": "app/1"}),

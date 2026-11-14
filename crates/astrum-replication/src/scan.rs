@@ -37,6 +37,7 @@ pub struct Tally {
     pub scanned: u64,
     pub filtered: u64,
     pub from_remote: u64,
+    pub from_here: u64,
     pub empty: u64,
     pub remote_scanned: u64,
     pub enqueued: u64,
@@ -91,7 +92,7 @@ pub(crate) struct Scan<'a> {
 }
 
 impl Scan<'_> {
-    fn check(&self) -> Result<(), Ended> {
+    pub(crate) fn check(&self) -> Result<(), Ended> {
         match (self.stop)() {
             true => Err(Ended::Stopped),
             false => Ok(()),
@@ -146,15 +147,17 @@ impl Scan<'_> {
         match self.transfer.bundle(self.ctx, found).await {
             Ok(bundle) if bundle.assets.is_empty() => self.tally.empty += 1,
             Ok(bundle) => pending.push((key, fingerprint(&bundle))),
-            Err(error) => {
-                self.tally.unreadable += 1;
-                if self.tally.first_unreadable.is_none() {
-                    self.tally.first_unreadable = Some(format!(
-                        "{}: {error}",
-                        component_key(&key.0, &key.1, &key.2)
-                    ));
-                }
-            }
+            Err(error) => self.unreadable(&key, &error.to_string()),
+        }
+    }
+
+    pub(crate) fn unreadable(&mut self, key: &Key, error: &str) {
+        self.tally.unreadable += 1;
+        if self.tally.first_unreadable.is_none() {
+            self.tally.first_unreadable = Some(format!(
+                "{}: {error}",
+                component_key(&key.0, &key.1, &key.2)
+            ));
         }
     }
 
@@ -191,7 +194,7 @@ impl Scan<'_> {
         self.enqueue(wanted).await
     }
 
-    async fn enqueue(&mut self, keys: Vec<Key>) -> Result<(), Ended> {
+    pub(crate) async fn enqueue(&mut self, keys: Vec<Key>) -> Result<(), Ended> {
         let mut rest = keys.as_slice();
         while !rest.is_empty() {
             let room = self.limits.enqueue.saturating_sub(self.tally.enqueued);

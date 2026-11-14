@@ -5618,6 +5618,15 @@
             },
             "type": "array"
           },
+          "direction": {
+            "default": "push",
+            "description": "push sends the components of the local repository to the remote; pull fetches the components of the remote repository into the local one. The direction cannot be changed after the replication is created.",
+            "enum": [
+              "push",
+              "pull"
+            ],
+            "type": "string"
+          },
           "enabled": {
             "default": true,
             "type": "boolean"
@@ -5662,6 +5671,7 @@
             "type": "string"
           },
           "remoteRepository": {
+            "description": "The repository of the remote: the target of a push replication, the source of a pull replication",
             "maxLength": 200,
             "minLength": 1,
             "type": "string"
@@ -5674,6 +5684,7 @@
             "type": "integer"
           },
           "sourceRepository": {
+            "description": "The local repository: the source of a push replication, the target of a pull replication. For a pull it must be hosted and writable.",
             "type": "string"
           },
           "versionFilter": {
@@ -5818,6 +5829,13 @@
             "format": "date-time",
             "type": "string"
           },
+          "direction": {
+            "enum": [
+              "push",
+              "pull"
+            ],
+            "type": "string"
+          },
           "enabled": {
             "type": "boolean"
           },
@@ -5863,6 +5881,7 @@
             "type": "string"
           },
           "remoteRepository": {
+            "description": "The repository of the remote: the target of a push replication, the source of a pull replication",
             "type": "string"
           },
           "settleSeconds": {
@@ -5870,6 +5889,7 @@
             "type": "integer"
           },
           "sourceRepository": {
+            "description": "The local repository: the source of a push replication, the target of a pull replication",
             "type": "string"
           },
           "updatedAt": {
@@ -7862,6 +7882,7 @@
     },
     "/v1/replication/capabilities": {
       "get": {
+        "description": "Tells the protocol version, the instance id and the formats this server takes part in replication with. Needs the privilege astrum:replication:receive or astrum:replication:pull.",
         "operationId": "getV1ReplicationCapabilities",
         "responses": {
           "200": {
@@ -8116,6 +8137,48 @@
       }
     },
     "/v1/replication/{repo}/blobs/{sha256}": {
+      "get": {
+        "description": "Streams the blob of an asset that belongs to a component of the hosted repository, for a server that pulls. Needs the privilege astrum:replication:pull (astrum:replication:receive alone is not enough) and Read on the whole repository. The blob is found by its digest among the assets of components of this repository only.",
+        "operationId": "getV1ReplicationRepoBlobsSha256",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "sha256",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {},
+          "401": {},
+          "403": {},
+          "404": {}
+        },
+        "summary": "Get replication blobs",
+        "tags": [
+          "Replication"
+        ]
+      },
       "put": {
         "operationId": "updateV1ReplicationRepoBlobsSha256",
         "parameters": [
@@ -8159,6 +8222,67 @@
           "429": {}
         },
         "summary": "Update replication blobs",
+        "tags": [
+          "Replication"
+        ]
+      }
+    },
+    "/v1/replication/{repo}/bundle": {
+      "get": {
+        "description": "Returns the bundle of one component of the hosted repository, for a server that pulls: its coordinates, the descriptors of its assets and the origin mark of the component (or the instance id of this server when the component was published here). Needs the privilege astrum:replication:pull (astrum:replication:receive alone is not enough) and Read on the whole repository. Answers 404 with the code component_not_found when the repository has no such component.",
+        "operationId": "getV1ReplicationRepoBundle",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "namespace",
+            "required": false,
+            "schema": {
+              "default": "",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "version",
+            "required": false,
+            "schema": {
+              "default": "",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReplicationBundle"
+                }
+              }
+            }
+          },
+          "400": {},
+          "401": {},
+          "403": {},
+          "404": {}
+        },
+        "summary": "List replication bundle",
         "tags": [
           "Replication"
         ]
@@ -8247,6 +8371,7 @@
     },
     "/v1/replication/{repo}/inventory": {
       "get": {
+        "description": "Lists the components of the hosted repository in key order, with their fingerprints and origin marks. Needs the privilege astrum:replication:receive (to push) or astrum:replication:pull (to pull), and Read on the whole repository.",
         "operationId": "getV1ReplicationRepoInventory",
         "parameters": [
           {
@@ -8301,6 +8426,7 @@
     },
     "/v1/replication/{repo}/inventory/compare": {
       "post": {
+        "description": "Names the keys whose fingerprint differs from the repository or that it lacks. Needs the privilege astrum:replication:receive (to push) or astrum:replication:pull (to pull), and Read on the whole repository.",
         "operationId": "postV1ReplicationRepoInventoryCompare",
         "parameters": [
           {

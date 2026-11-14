@@ -8,6 +8,7 @@ pub const ADMIN_USER: &str = "admin";
 pub const ANONYMOUS_USER: &str = "anonymous";
 pub const DEFAULT_SOURCE: &str = "default";
 pub const REPLICATION_RECEIVE: &str = "as-replication-receive";
+pub const REPLICATION_PULL: &str = "as-replication-pull";
 
 type Application = (&'static str, &'static str, &'static [Action], &'static str);
 
@@ -527,6 +528,14 @@ pub fn builtin_privileges<'a>(formats: impl IntoIterator<Item = &'a str>) -> Vec
             pattern: "astrum:replication:receive".to_owned(),
         },
     });
+    privileges.push(Privilege {
+        id: REPLICATION_PULL.to_owned(),
+        description: "Let another server pull components from this one".to_owned(),
+        read_only: true,
+        kind: PrivilegeKind::Wildcard {
+            pattern: "astrum:replication:pull".to_owned(),
+        },
+    });
     privileges.extend(
         APPLICATION
             .iter()
@@ -658,7 +667,7 @@ mod tests {
             !ids.contains("as-healthcheck-read"),
             "the old server names it in the anonymous role but does not list it"
         );
-        assert_eq!(privileges.len(), 1 + 1 + 80 + 12 + 12);
+        assert_eq!(privileges.len(), 1 + 2 + 80 + 12 + 12);
         assert!(
             privileges
                 .iter()
@@ -759,36 +768,39 @@ mod tests {
     #[test]
     fn replication_privileges_grant_their_own_permissions() {
         let privileges = builtin_privileges(["maven2"]);
-        let permission = |id: &str| {
+        let granted = |id: &str| {
             privileges
                 .iter()
                 .find(|privilege| privilege.id == id)
                 .and_then(|privilege| privilege.permission())
                 .unwrap()
-                .to_string()
         };
         assert_eq!(
-            permission("as-replication-update"),
+            granted("as-replication-update").to_string(),
             "astrum:replication:read,update"
         );
         assert_eq!(
-            permission(REPLICATION_RECEIVE),
+            granted(REPLICATION_RECEIVE).to_string(),
             "astrum:replication:receive"
         );
+        assert_eq!(
+            granted(REPLICATION_PULL).to_string(),
+            "astrum:replication:pull"
+        );
         let receive = Permission::parse("astrum:replication:receive").unwrap();
+        let pull = Permission::parse("astrum:replication:pull").unwrap();
         for id in [
             "as-replication-read",
             "as-replication-create",
             "as-replication-update",
             "as-replication-delete",
         ] {
-            let granted = privileges
-                .iter()
-                .find(|privilege| privilege.id == id)
-                .and_then(|privilege| privilege.permission())
-                .unwrap();
-            assert!(!granted.implies(&receive), "{id}");
+            assert!(!granted(id).implies(&receive), "{id}");
+            assert!(!granted(id).implies(&pull), "{id}");
         }
+        assert!(!granted(REPLICATION_RECEIVE).implies(&pull));
+        assert!(!granted(REPLICATION_PULL).implies(&receive));
+        assert!(granted(ALL).implies(&pull));
     }
 
     #[test]
