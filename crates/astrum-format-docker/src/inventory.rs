@@ -1,4 +1,4 @@
-mod purl;
+pub(crate) mod purl;
 pub(crate) mod requeue;
 
 use std::collections::{HashMap, HashSet};
@@ -13,11 +13,13 @@ use serde_json::Value;
 
 use crate::MANIFEST_LIMIT;
 use crate::children;
+use crate::layers;
 use crate::manifest;
 use crate::reference::Digest;
 use crate::sbom::{self, Access};
 use crate::storage;
 use crate::supply::Artifact;
+use crate::upstream::Upstreams;
 
 pub const MAX_PACKAGES: usize = astrum_sbom::MAX_PACKAGES;
 pub const MAX_CHILDREN: usize = 50;
@@ -241,21 +243,67 @@ async fn gather(
     Ok(known)
 }
 
-async fn single(
+struct Layered {
+    contributed: bool,
+    complete: bool,
+}
+
+async fn from_layers(
+    upstreams: &Upstreams,
     ctx: &Ctx,
-    image: &str,
+    component: &Component,
+    asset: &Asset,
+    collector: &mut Collector,
+) -> Result<Layered, ContentError> {
+    let mut layered = Layered {
+        contributed: false,
+        complete: true,
+    };
+    if component.kind != manifest::Kind::Image.as_str() {
+        return Ok(layered);
+    }
+    let bytes = storage::read_all(ctx, asset, MANIFEST_LIMIT).await?;
+    let layers = manifest::layers(&bytes);
+    let read = layers::read(ctx, upstreams, &component.name, &layers).await?;
+    if !read.complete {
+        layered.complete = false;
+        collector.complete = false;
+        tracing::warn!(
+            image = %component.name,
+            reasons = ?read.reasons,
+            "the layers of an image were not read in full"
+        );
+    }
+    layered.contributed = !read.packages.is_empty();
+    for package in read.packages {
+        collector.add(package);
+    }
+    Ok(layered)
+}
+
+async fn single(
+    upstreams: &Upstreams,
+    ctx: &Ctx,
+    component: &Component,
+    asset: &Asset,
     digest: &Digest,
 ) -> Result<Option<Inventory>, ContentError> {
     let mut collector = Collector::new();
-    if !gather(ctx, image, digest, &mut collector).await? {
-        return Ok(None);
-    }
+    let known = gather(ctx, &component.name, digest, &mut collector).await?;
+    let layered = from_layers(upstreams, ctx, component, asset, &mut collector).await?;
+    let source = match (known, layered.contributed) {
+        (true, true) => Source::SbomAndLayers,
+        (false, true) => Source::Layers,
+        (true, false) => Source::Sbom,
+        (false, false) if !layered.complete => Source::Layers,
+        (false, false) => return Ok(None),
+    };
     Ok(Some(Inventory {
         key: key(ctx.name(), digest),
         packages: collector.packages,
         license: None,
         complete: collector.complete,
-        source: Source::Sbom,
+        source,
         digest: Some(digest.to_string()),
     }))
 }
@@ -303,6 +351,7 @@ async fn index(ctx: &Ctx, image: &str, digest: &Digest) -> Result<Option<Invento
 }
 
 pub(crate) async fn of(
+    upstreams: &Upstreams,
     ctx: &Ctx,
     component: &Component,
 ) -> Result<Option<Inventory>, ContentError> {
@@ -318,7 +367,7 @@ pub(crate) async fn of(
     };
     match manifest::is_index(&storage::media_type_of(&asset)) {
         true => index(ctx, &component.name, &digest).await,
-        false => single(ctx, &component.name, &digest).await,
+        false => single(upstreams, ctx, component, &asset, &digest).await,
     }
 }
 

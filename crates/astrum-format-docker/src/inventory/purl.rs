@@ -72,7 +72,7 @@ fn parse(text: &str) -> Option<Purl> {
     })
 }
 
-fn numeric(text: &str) -> bool {
+pub(crate) fn numeric(text: &str) -> bool {
     !text.is_empty() && text.bytes().all(|byte| byte.is_ascii_digit())
 }
 
@@ -89,11 +89,10 @@ fn distro(purl: &Purl) -> Option<(String, String)> {
     }
 }
 
-fn debian_family(purl: &Purl) -> Option<String> {
-    let (id, release) = distro(purl)?;
+fn debian_family(id: &str, release: &str) -> Option<String> {
     let mut parts = release.split('.');
     let first = parts.next()?;
-    match id.as_str() {
+    match id {
         "debian" if numeric(first) => Some(format!("Debian:{first}")),
         "ubuntu" => {
             let month = parts.next()?;
@@ -104,11 +103,14 @@ fn debian_family(purl: &Purl) -> Option<String> {
     }
 }
 
-fn alpine(purl: &Purl) -> Option<String> {
-    let (id, release) = distro(purl)?;
+fn alpine(id: &str, release: &str) -> Option<String> {
     let mut parts = release.split('.');
     let (major, minor) = (parts.next()?, parts.next()?);
     (id == "alpine" && numeric(major) && numeric(minor)).then(|| format!("Alpine:v{major}.{minor}"))
+}
+
+pub(crate) fn os_ecosystem(id: &str, release: &str) -> Option<String> {
+    debian_family(id, release).or_else(|| alpine(id, release))
 }
 
 fn joined(purl: &Purl) -> String {
@@ -177,14 +179,17 @@ pub fn map(purl: Option<&str>, fallback_version: &str) -> Mapped {
         "pub" => ("Pub".to_owned(), parsed.name.clone(), version),
         "hex" => ("Hex".to_owned(), joined(&parsed), version),
         "deb" => {
-            let Some(ecosystem) = debian_family(&parsed) else {
+            let Some(ecosystem) =
+                distro(&parsed).and_then(|(id, release)| debian_family(&id, &release))
+            else {
                 return Mapped::Skipped;
             };
             let (name, version) = source_of(&parsed, with_epoch(&parsed, version));
             (ecosystem, name, version)
         }
         "apk" => {
-            let Some(ecosystem) = alpine(&parsed) else {
+            let Some(ecosystem) = distro(&parsed).and_then(|(id, release)| alpine(&id, &release))
+            else {
                 return Mapped::Skipped;
             };
             let (name, version) = source_of(&parsed, version);

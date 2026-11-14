@@ -205,7 +205,7 @@ async fn an_empty_sbom_is_a_complete_empty_inventory_and_one_with_nothing_mappab
     let empty = registry.image(Some("empty"), b"one").await;
     registry.document(&empty, None, SPDX, &spdx(&[])).await;
     let config = registry.push_blob(b"{\"os\":\"linux\"}").await;
-    let layer = registry.push_blob(b"two").await;
+    let layer = registry.push_blob(&marker_layer(b"two")).await;
     let other = registry
         .push_manifest(
             "unmappable",
@@ -229,7 +229,7 @@ async fn an_sbom_pushed_after_the_image_queues_every_tag_of_it_and_the_next_scan
     let registry = Registry::new().await;
     let digest = registry.image(Some("1.0"), b"layer").await;
     let config = registry.push_blob(b"{\"os\":\"linux\"}").await;
-    let layer = registry.push_blob(b"layer").await;
+    let layer = registry.push_blob(&marker_layer(b"layer")).await;
     registry
         .push_manifest("stable", &manifest(&config, (&layer, LAYER), None, None))
         .await;

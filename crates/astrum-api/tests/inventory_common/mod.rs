@@ -50,6 +50,18 @@ pub fn sha256(bytes: &[u8]) -> String {
     format!("sha256:{}", hex::encode(Sha256::digest(bytes)))
 }
 
+pub fn marker_layer(marker: &[u8]) -> Vec<u8> {
+    use std::io::Write;
+    let mut builder = tar::Builder::new(Vec::new());
+    let mut header = tar::Header::new_gnu();
+    header.set_size(marker.len() as u64);
+    header.set_mode(0o644);
+    builder.append_data(&mut header, "marker", marker).unwrap();
+    let mut encoder = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::fast());
+    encoder.write_all(&builder.into_inner().unwrap()).unwrap();
+    encoder.finish().unwrap()
+}
+
 pub fn spdx(purls: &[&str]) -> String {
     let packages: Vec<Value> = purls
         .iter()
@@ -228,7 +240,7 @@ impl Registry {
 
     pub async fn image(&self, tag: Option<&str>, layer: &[u8]) -> String {
         let config = self.push_blob(b"{\"os\":\"linux\"}").await;
-        let layer = self.push_blob(layer).await;
+        let layer = self.push_blob(&marker_layer(layer)).await;
         let body = manifest(&config, (&layer, LAYER), None, None);
         let reference = tag.map_or_else(
             || sha256(&serde_json::to_vec(&body).unwrap()),

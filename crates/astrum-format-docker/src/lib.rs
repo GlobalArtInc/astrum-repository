@@ -4,6 +4,7 @@ mod error;
 pub mod gc;
 pub mod import;
 mod inventory;
+mod layers;
 mod manifest;
 mod reference;
 mod routes;
@@ -1419,7 +1420,7 @@ impl Format for Docker {
         ctx: &Ctx,
         component: &Component,
     ) -> Result<Option<Inventory>, ContentError> {
-        inventory::of(ctx, component).await
+        inventory::of(&self.upstreams, ctx, component).await
     }
 }
 

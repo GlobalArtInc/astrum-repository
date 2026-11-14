@@ -18,6 +18,8 @@ pub enum Source {
     Metadata,
     Sbom,
     Index,
+    Layers,
+    SbomAndLayers,
 }
 
 impl Source {
@@ -26,6 +28,8 @@ impl Source {
             Source::Metadata => "metadata",
             Source::Sbom => "sbom",
             Source::Index => "index",
+            Source::Layers => "layers",
+            Source::SbomAndLayers => "sbom+layers",
         }
     }
 }

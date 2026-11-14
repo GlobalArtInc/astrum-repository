@@ -20,13 +20,16 @@ axum.workspace = true
 base64.workspace = true
 bytes.workspace = true
 chrono.workspace = true
+flate2.workspace = true
 futures-util.workspace = true
 hex.workspace = true
 percent-encoding.workspace = true
+ruzstd.workspace = true
 sea-orm.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 sha2.workspace = true
+tar.workspace = true
 tokio = { workspace = true, features = ["sync"] }
 tracing.workspace = true
 url.workspace = true
