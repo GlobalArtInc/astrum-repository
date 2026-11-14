@@ -217,6 +217,8 @@ async fn a_read_token_sees_only_the_reading_tools() {
         "list_users",
         "list_roles",
         "list_privileges",
+        "list_replications",
+        "get_replication_status",
     ] {
         assert!(reading.contains(&name.to_owned()), "{name}: {reading:?}");
     }
@@ -227,6 +229,8 @@ async fn a_read_token_sees_only_the_reading_tools() {
         "create_role",
         "update_role",
         "set_user_roles",
+        "retry_replication_items",
+        "run_replication_reconcile",
     ] {
         assert!(!reading.contains(&name.to_owned()), "{name}: {reading:?}");
     }
