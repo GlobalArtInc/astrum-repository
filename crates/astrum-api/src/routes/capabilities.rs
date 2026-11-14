@@ -1,19 +1,21 @@
 use astrum_db::audit::Event;
-use astrum_db::setting;
 use astrum_db::system::{
     BASE_URL_KEY, BRANDING_KEY, BaseUrl, Branding, DEFAULT_TITLE, PROMETHEUS_KEY, Prometheus,
     SPACE_ALERT_KEY, SpaceAlert, UI_SETTINGS_KEY, UiSettings,
 };
+use astrum_db::{revision, setting};
 use astrum_security::sessions::TIMEOUT_KEY;
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::routing::get;
 use axum::{Json, Router};
+use sea_orm::TransactionTrait;
 use serde::Deserialize;
 use serde_json::{Map, Value, json};
 
 use crate::error::ApiError;
+use crate::relying_party;
 use crate::{AppState, Caller, REST};
 
 const READ: &str = "astrum:capabilities:read";
@@ -525,6 +527,20 @@ fn valid_base_url(value: &str) -> bool {
     })
 }
 
+async fn saved(
+    state: &AppState,
+    caller: &Caller,
+    kind: &str,
+    xo: &CapabilityXo,
+) -> Result<(), ApiError> {
+    let before = relying_party::current_id(state);
+    save(state, kind, xo).await?;
+    if kind == BASE_URL {
+        relying_party::report_change(state, caller, before).await;
+    }
+    Ok(())
+}
+
 async fn save(state: &AppState, kind: &str, xo: &CapabilityXo) -> Result<(), ApiError> {
     let db = state.db().conn();
     let enabled = xo.enabled.unwrap_or(true);
@@ -545,8 +561,9 @@ async fn save(state: &AppState, kind: &str, xo: &CapabilityXo) -> Result<(), Api
                     "URL must be an http or https URL without credentials, query or fragment",
                 ));
             }
+            let txn = db.begin().await?;
             setting::put(
-                db,
+                &txn,
                 BASE_URL_KEY,
                 &BaseUrl {
                     url: url.trim_end_matches('/').to_owned(),
@@ -555,7 +572,10 @@ async fn save(state: &AppState, kind: &str, xo: &CapabilityXo) -> Result<(), Api
                 },
             )
             .await?;
+            let revision = revision::bump(&txn, revision::SECURITY).await?;
+            txn.commit().await?;
             state.forget_base_url();
+            relying_party::follow(state, revision).await;
         }
         UI_SETTINGS => {
             let defaults = UiSettings::default();
@@ -764,7 +784,7 @@ async fn create(
             ),
         ));
     }
-    save(&state, kind, &xo).await?;
+    saved(&state, &caller, kind, &xo).await?;
     let stored = load(&state, kind).await?.expect("just saved");
     state
         .audit(&caller, audit("created", kind, Some(&stored)))
@@ -783,7 +803,7 @@ async fn update(
     if load(&state, kind).await?.is_none() {
         return Err(ApiError::not_found("Capability not found"));
     }
-    save(&state, kind, &xo).await?;
+    saved(&state, &caller, kind, &xo).await?;
     let stored = load(&state, kind).await?.expect("just saved");
     state
         .audit(&caller, audit("updated", kind, Some(&stored)))
@@ -805,11 +825,20 @@ async fn remove(
         SPACE_ALERT => SPACE_ALERT_KEY,
         _ => BRANDING_KEY,
     };
-    if !setting::delete(state.db().conn(), key).await? {
+    let before = relying_party::current_id(&state);
+    let txn = state.db().conn().begin().await?;
+    if !setting::delete(&txn, key).await? {
         return Err(ApiError::not_found("Capability not found"));
     }
-    if kind == BASE_URL {
+    let revision = match kind {
+        BASE_URL => Some(revision::bump(&txn, revision::SECURITY).await?),
+        _ => None,
+    };
+    txn.commit().await?;
+    if let Some(revision) = revision {
         state.forget_base_url();
+        relying_party::follow(&state, revision).await;
+        relying_party::report_change(&state, &caller, before).await;
     }
     if kind == SPACE_ALERT {
         crate::space::forget(&state).await?;

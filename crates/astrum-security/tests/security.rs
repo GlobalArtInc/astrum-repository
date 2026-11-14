@@ -230,7 +230,7 @@ async fn a_server_that_missed_a_change_checks_before_it_refuses() {
     here.changed().await.unwrap();
     let subject = here.authenticate("dave", "second-secret").await.unwrap();
     let session = here
-        .open_session(&subject, "127.0.0.1", "test")
+        .open_session(&subject, "127.0.0.1", "test", false)
         .await
         .unwrap();
     let kept = there

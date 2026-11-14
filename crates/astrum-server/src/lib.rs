@@ -7,7 +7,7 @@ mod server;
 pub mod telemetry;
 pub mod web;
 
-pub use server::{Server, migrate, reset_ip_allow, shutdown_signal};
+pub use server::{Server, migrate, reset_ip_allow, reset_two_factor, shutdown_signal};
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const REVISION: Option<&str> = option_env!("ASTRUM_GIT_REVISION");

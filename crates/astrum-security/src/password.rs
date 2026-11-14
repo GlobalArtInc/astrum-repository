@@ -25,7 +25,7 @@ impl Verified {
 const SHIRO_PREFIX: &str = "$shiro1$";
 const MAX_ITERATIONS: u32 = 10_000_000;
 
-fn argon2() -> Argon2<'static> {
+pub(crate) fn argon2() -> Argon2<'static> {
     Argon2::new(Algorithm::Argon2id, Version::V0x13, Params::default())
 }
 

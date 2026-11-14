@@ -10,7 +10,7 @@ use astrum_security::api_keys;
 use astrum_security::format_tokens::looks_like_format_token;
 use astrum_security::oauth::looks_like_access_token;
 use astrum_security::tokens::looks_like_token;
-use astrum_security::{AuthError, Subject};
+use astrum_security::{AuthError, Gate, Subject};
 use axum::http::Method;
 use subtle::ConstantTimeEq;
 
@@ -28,6 +28,14 @@ pub struct Caller(pub Option<Subject>);
 
 #[derive(Clone, Debug)]
 pub struct AgentClient(pub String);
+
+#[derive(Clone, Copy, Debug)]
+pub struct RestrictedSession;
+
+const RESTRICTED_SESSION_PATH: &str = "/service/rest/internal/session";
+const RESTRICTED_ACCOUNT_PATH: &str = "/service/rest/internal/ui/user";
+const RESTRICTED_STATE_PATH: &str = "/service/rest/internal/ui/state";
+const RESTRICTED_FACTORS_PATH: &str = "/service/rest/internal/ui/user/two-factor";
 
 impl Caller {
     pub fn subject(&self) -> Option<&Subject> {
@@ -84,7 +92,7 @@ pub async fn authenticate(
         return next.run(request).await;
     }
     let for_agents = request.uri().path() == crate::routes::mcp::PATH;
-    let (caller, client) = match resolve(
+    let (caller, client, restricted) = match resolve(
         &state,
         request.method(),
         request.uri().path(),
@@ -94,7 +102,7 @@ pub async fn authenticate(
     {
         Ok(caller) => caller,
         Err(ApiError::Unauthorized) if is_sign_in(request.uri().path()) => {
-            (Caller(state.security().anonymous()), None)
+            (Caller(state.security().anonymous()), None, false)
         }
         Err(ApiError::Unauthorized) if for_agents => {
             return crate::routes::mcp::challenge(request.headers(), request.uri(), true);
@@ -106,6 +114,9 @@ pub async fn authenticate(
     };
     if let Some(client) = client {
         request.extensions_mut().insert(AgentClient(client));
+    }
+    if restricted {
+        request.extensions_mut().insert(RestrictedSession);
     }
     request.extensions_mut().insert(caller);
     without_challenge(next.run(request).await, from_ui)
@@ -123,20 +134,21 @@ async fn resolve(
     method: &Method,
     path: &str,
     headers: &HeaderMap,
-) -> Result<(Caller, Option<String>), ApiError> {
+) -> Result<(Caller, Option<String>, bool), ApiError> {
     if let Some(credentials) = credentials(headers)? {
         if let Credentials::OAuth(token) = &credentials {
             if path != crate::routes::mcp::PATH {
                 return Err(ApiError::Unauthorized);
             }
             return match state.security().authenticate_oauth(token).await? {
-                Some(found) => Ok((Caller(Some(found.subject)), Some(found.client_name))),
+                Some(found) => Ok((Caller(Some(found.subject)), Some(found.client_name), false)),
                 None => Err(ApiError::Unauthorized),
             };
         }
         let security = state.security();
         let password_given =
             matches!(&credentials, Credentials::Basic(_, password) if !looks_like_token(password));
+        let mut refused_gate = None;
         let (user, result) = match credentials {
             Credentials::Basic(user, password) if looks_like_token(&password) => {
                 let result = security.authenticate_token(Some(&user), &password).await;
@@ -145,7 +157,10 @@ async fn resolve(
             Credentials::Basic(user, password) => {
                 let result = match check_password(state, &user, &password, "Basic", true).await {
                     Ok(subject) => Ok(subject),
-                    Err(PasswordRefusal::Wrong) => Err(AuthError::BadCredentials),
+                    Err(PasswordRefusal::Wrong(gate)) => {
+                        refused_gate = gate;
+                        Err(AuthError::BadCredentials)
+                    }
                     Err(PasswordRefusal::Throttled(seconds)) => {
                         return Err(ApiError::TooManyAttempts(seconds));
                     }
@@ -176,12 +191,21 @@ async fn resolve(
             Credentials::OAuth(_) => (String::new(), Err(AuthError::BadCredentials)),
         };
         return match result {
-            Ok(subject) => Ok((Caller(Some(subject)), None)),
+            Ok(subject) => Ok((Caller(Some(subject)), None, false)),
             Err(AuthError::BadCredentials) => {
                 tracing::info!(user, "a sign-in failed");
                 if password_given {
-                    session::audit_failed_sign_in(state, &user, &audit_path(path), headers).await;
+                    let reason = refused_gate.unwrap_or(Gate::Open).failure_reason();
+                    session::audit_failed_sign_in(state, &user, &audit_path(path), headers, reason)
+                        .await;
                 }
+                Err(ApiError::Unauthorized)
+            }
+            Err(AuthError::SecondFactor(pending)) => {
+                tracing::error!(
+                    user = pending.user_id,
+                    "a credential other than a password raised a second factor demand; refused"
+                );
                 Err(ApiError::Unauthorized)
             }
             Err(AuthError::Internal(error)) => Err(error.into()),
@@ -196,9 +220,15 @@ async fn resolve(
             .authenticate_api_key(api_keys::NUGET, key)
             .await
         {
-            Ok(subject) => return Ok((Caller(Some(subject)), None)),
+            Ok(subject) => return Ok((Caller(Some(subject)), None, false)),
             Err(AuthError::BadCredentials) => {
                 tracing::debug!("a NuGet API key was not accepted");
+            }
+            Err(AuthError::SecondFactor(pending)) => {
+                tracing::error!(
+                    user = pending.user_id,
+                    "a NuGet API key raised a second factor demand; refused"
+                );
             }
             Err(AuthError::Internal(error)) => return Err(error.into()),
         }
@@ -209,14 +239,33 @@ async fn resolve(
         if !is_safe(method) {
             check_csrf(headers, &session.csrf)?;
         }
-        return Ok((Caller(Some(session.subject)), None));
+        if session.restricted && !restricted_allows(method, path) {
+            return Err(ApiError::EnrollmentRequired);
+        }
+        return Ok((Caller(Some(session.subject)), None, session.restricted));
     }
-    Ok((Caller(state.security().anonymous()), None))
+    Ok((Caller(state.security().anonymous()), None, false))
+}
+
+fn restricted_allows(method: &Method, path: &str) -> bool {
+    match path {
+        RESTRICTED_SESSION_PATH => matches!(*method, Method::GET | Method::DELETE),
+        RESTRICTED_ACCOUNT_PATH | RESTRICTED_STATE_PATH | crate::routes::status::STATUS => {
+            *method == Method::GET
+        }
+        _ => path
+            .strip_prefix(RESTRICTED_FACTORS_PATH)
+            .is_some_and(|rest| {
+                (rest.is_empty() || rest.starts_with('/'))
+                    && !rest.contains('%')
+                    && !rest.split('/').any(|part| part == "." || part == "..")
+            }),
+    }
 }
 
 #[derive(Debug)]
 pub enum PasswordRefusal {
-    Wrong,
+    Wrong(Option<Gate>),
     Throttled(u64),
     Internal(astrum_security::Error),
 }
@@ -239,13 +288,14 @@ pub async fn check_password(
             {
                 Ok(subject) => return Ok(subject),
                 Err(AuthError::Internal(error)) => return Err(PasswordRefusal::Internal(error)),
-                Err(AuthError::BadCredentials) => {}
+                Err(AuthError::SecondFactor(_)) | Err(AuthError::BadCredentials) => {}
             }
         }
         return Err(PasswordRefusal::Throttled(
             wait.as_secs_f64().ceil().max(1.0) as u64,
         ));
     }
+    let mut refused_gate = None;
     match security.authenticate(user, password).await {
         Ok(subject) => {
             security.basic_succeeded(user, address);
@@ -255,6 +305,7 @@ pub async fn check_password(
             security.basic_refunded(user, address);
             return Err(PasswordRefusal::Internal(error));
         }
+        Err(AuthError::SecondFactor(pending)) => refused_gate = Some(pending.gate),
         Err(AuthError::BadCredentials) => {}
     }
     if by_key {
@@ -270,13 +321,24 @@ pub async fn check_password(
                 security.basic_refunded(user, address);
                 return Err(PasswordRefusal::Internal(error));
             }
-            Err(AuthError::BadCredentials) => {}
+            Err(AuthError::SecondFactor(_)) | Err(AuthError::BadCredentials) => {}
         }
     }
     if security.basic_failed(user, address) && security.model().users.contains_key(user) {
         session::audit_rate_limited(state, user, address, method).await;
     }
-    Err(PasswordRefusal::Wrong)
+    Err(PasswordRefusal::Wrong(refused_gate))
+}
+
+pub async fn audit_refused_password(
+    state: &AppState,
+    user: &str,
+    path: &str,
+    headers: &HeaderMap,
+    gate: Option<Gate>,
+) {
+    let reason = gate.unwrap_or(Gate::Open).failure_reason();
+    session::audit_failed_sign_in(state, user, path, headers, reason).await;
 }
 
 fn is_registry(path: &str) -> bool {

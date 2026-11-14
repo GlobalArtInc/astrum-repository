@@ -455,3 +455,68 @@ async fn docker_connectors_follow_the_repository_configuration() {
     stop.send(()).unwrap();
     running.await.unwrap().unwrap();
 }
+
+fn reset_command(test: &TestDatabase, data: &std::path::Path, user: &str) -> std::process::Output {
+    std::process::Command::new(env!("CARGO_BIN_EXE_astrum"))
+        .env("ASTRUM_DATA_DIR", data)
+        .env("ASTRUM_DATABASE_URL", test.url().expose())
+        .env_remove("ASTRUM_CONFIG")
+        .args(["two-factor", "reset", user])
+        .output()
+        .unwrap()
+}
+
+#[tokio::test]
+async fn the_command_line_resets_the_second_factor_of_a_user() {
+    use astrum_security::totp::{self, TotpSecret};
+    use astrum_security::two_factor::store::Confirmation;
+
+    let test = TestDatabase::create().await;
+    let data = tempfile::tempdir().unwrap();
+    let db = test.migrated().await;
+    astrum_security::bootstrap(db.conn(), data.path())
+        .await
+        .unwrap();
+    let security = astrum_security::Security::load(db.conn().clone())
+        .await
+        .unwrap()
+        .with_secrets(astrum_security::SecretBox::from_key([7; 32]));
+    let pending = security
+        .begin_totp(
+            "admin",
+            "AstrumAuthenticatingRealm",
+            "Astrum",
+            "admin",
+            "127.0.0.1",
+        )
+        .await
+        .unwrap();
+    let secret = TotpSecret::from_base32(&pending.secret).unwrap();
+    let now = std::time::SystemTime::now();
+    let seconds = now.duration_since(std::time::UNIX_EPOCH).unwrap().as_secs();
+    let code = totp::code_at(&secret, totp::step_at(seconds));
+    let outcome = security
+        .confirm_totp("admin", &pending.ceremony, &code, now.into())
+        .await
+        .unwrap();
+    assert!(matches!(outcome, Confirmation::Enrolled { .. }));
+    assert!(security.summary("admin").await.unwrap().enrolled());
+
+    let unknown = reset_command(&test, data.path(), "nobody");
+    assert_eq!(unknown.status.code(), Some(1));
+    assert!(String::from_utf8_lossy(&unknown.stderr).contains("nobody"));
+    assert!(security.summary("admin").await.unwrap().enrolled());
+
+    let output = reset_command(&test, data.path(), "admin");
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout).trim(),
+        "second factor of admin was reset"
+    );
+    assert!(!security.summary("admin").await.unwrap().enrolled());
+}

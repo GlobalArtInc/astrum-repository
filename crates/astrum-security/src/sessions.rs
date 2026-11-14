@@ -7,7 +7,7 @@ use astrum_db::entity::user_session as session;
 use chrono::{DateTime, Duration, FixedOffset, Utc};
 use rand::RngCore;
 use sea_orm::sea_query::Expr;
-use sea_orm::{ActiveValue, ColumnTrait, EntityTrait, QueryFilter};
+use sea_orm::{ActiveValue, ColumnTrait, EntityTrait, QueryFilter, TransactionTrait};
 use sha2::{Digest, Sha256};
 
 use crate::catalogue::DEFAULT_SOURCE;
@@ -203,6 +203,7 @@ pub struct NewSession {
 pub struct ActiveSession {
     pub subject: Subject,
     pub csrf: String,
+    pub restricted: bool,
 }
 
 enum Verdict {
@@ -234,15 +235,9 @@ impl Security {
         subject: &Subject,
         client_ip: &str,
         user_agent: &str,
+        restricted: bool,
     ) -> Result<NewSession, Error> {
-        let model = self.model();
-        let stamp = credential_stamp(
-            model
-                .users
-                .get(&subject.user_id)
-                .filter(|_| subject.source == DEFAULT_SOURCE || subject.source.is_empty())
-                .and_then(|user| user.password_hash.as_deref()),
-        );
+        let stamp = self.sign_in_stamp(subject);
         let token = random_token();
         let csrf = random_token();
         let now = Utc::now().fixed_offset();
@@ -256,10 +251,22 @@ impl Security {
             last_seen_at: ActiveValue::Set(now),
             client_ip: ActiveValue::Set(client_ip.chars().take(100).collect()),
             user_agent: ActiveValue::Set(user_agent.chars().take(300).collect()),
+            restricted: ActiveValue::Set(restricted),
         })
         .exec(&self.db)
         .await?;
         Ok(NewSession { token, csrf })
+    }
+
+    pub fn sign_in_stamp(&self, subject: &Subject) -> String {
+        let model = self.model();
+        credential_stamp(
+            model
+                .users
+                .get(&subject.user_id)
+                .filter(|_| subject.source == DEFAULT_SOURCE || subject.source.is_empty())
+                .and_then(|user| user.password_hash.as_deref()),
+        )
     }
 
     pub async fn session(&self, token: &str) -> Result<Option<ActiveSession>, Error> {
@@ -298,6 +305,7 @@ impl Security {
         Ok(Some(ActiveSession {
             subject,
             csrf: row.csrf_token,
+            restricted: row.restricted,
         }))
     }
 
@@ -376,6 +384,28 @@ impl Security {
                 .await?;
         }
         Ok(others.exec(&self.db).await?.rows_affected)
+    }
+
+    pub async fn settle_after_enrollment(
+        &self,
+        user_id: &str,
+        keep: Option<&str>,
+    ) -> Result<u64, Error> {
+        let txn = self.db.begin().await?;
+        let mut others = session::Entity::delete_many().filter(session::Column::UserId.eq(user_id));
+        if let Some(token) = keep {
+            let hash = token_hash(token);
+            session::Entity::update_many()
+                .col_expr(session::Column::Restricted, Expr::value(false))
+                .filter(session::Column::TokenHash.eq(hash.clone()))
+                .filter(session::Column::UserId.eq(user_id))
+                .exec(&txn)
+                .await?;
+            others = others.filter(session::Column::TokenHash.ne(hash));
+        }
+        let closed = others.exec(&txn).await?.rows_affected;
+        txn.commit().await?;
+        Ok(closed)
     }
 
     pub fn sign_in_blocked(&self, user_id: &str) -> bool {

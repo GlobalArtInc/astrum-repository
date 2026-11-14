@@ -95,9 +95,11 @@ md-5 = "0.10"
 migrator = { package = "sqlmig", version = "0.2.1" }
 mime_guess = "2"
 multer = "3"
+p256 = "0.13"
 percent-encoding = "2"
 pgp = { version = "0.21", default-features = false }
 prost = "0.14"
+qrcode = { version = "0.14", default-features = false, features = ["svg"] }
 quick-xml = "0.42"
 rand = "0.9"
 rand_core06 = { package = "rand_core", version = "0.6", features = ["getrandom"] }
@@ -136,7 +138,9 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 url = "2"
 uuid = { version = "1", features = ["v4", "serde"] }
+webauthn-rs = { version = "=0.6.2", features = ["danger-allow-state-serialisation"] }
 x509-parser = "0.18"
+zeroize = "1"
 
 [profile.dev]
 debug = "line-tables-only"

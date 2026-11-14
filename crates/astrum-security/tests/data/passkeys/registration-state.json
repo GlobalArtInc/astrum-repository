@@ -1,0 +1,21 @@
+{
+  "rs": {
+    "allow_synchronised_authenticators": true,
+    "authenticator_attachment": null,
+    "challenge": "WrCbEH9B6fP_hp8npqHb-SJpyNONlYM4tHGIp0aySHU",
+    "credential_algorithms": [
+      "ES256",
+      "ES384",
+      "RS256"
+    ],
+    "exclude_credentials": [],
+    "extensions": {
+      "credProps": true,
+      "credentialProtectionPolicy": "userVerificationRequired",
+      "enforceCredentialProtectionPolicy": false,
+      "uvm": true
+    },
+    "policy": "required",
+    "require_resident_key": false
+  }
+}

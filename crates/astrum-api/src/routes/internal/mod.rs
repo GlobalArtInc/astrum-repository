@@ -1,6 +1,7 @@
 mod access_tokens;
 mod audit;
 pub(crate) mod session;
+mod session_passkey;
 pub mod ui;
 mod ui_state;
 
@@ -14,6 +15,7 @@ pub const INTERNAL: &str = "/service/rest/internal";
 pub fn routes() -> Router<AppState> {
     Router::new()
         .merge(session::routes())
+        .merge(session_passkey::routes())
         .merge(access_tokens::routes())
         .merge(audit::routes())
         .merge(ui::routes())

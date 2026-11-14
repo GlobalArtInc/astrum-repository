@@ -3,6 +3,7 @@ mod privileges;
 pub(crate) mod roles;
 mod selectors;
 mod settings;
+mod two_factor;
 pub(crate) mod users;
 pub(crate) mod validate;
 
@@ -26,6 +27,7 @@ pub fn routes() -> Router<AppState> {
         .merge(privileges::routes())
         .merge(selectors::routes())
         .merge(settings::routes())
+        .merge(two_factor::routes())
         .merge(ldap::routes())
 }
 

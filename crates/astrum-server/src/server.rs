@@ -155,6 +155,44 @@ pub async fn reset_ip_allow(config: &Config) -> anyhow::Result<()> {
     reset.context("the IP allow lists could not be cleared")
 }
 
+pub async fn reset_two_factor(config: &Config, user_id: &str) -> anyhow::Result<()> {
+    let db = connect(config).await?;
+    let security = astrum_security::Security::load(db.conn().clone()).await?;
+    if !security.model().users.contains_key(user_id) {
+        close_with_warning(db, "").await;
+        anyhow::bail!("the user {user_id} does not exist");
+    }
+    if let Err(error) = security.reset(user_id).await {
+        close_with_warning(db, "").await;
+        return Err(anyhow::Error::new(error)
+            .context(format!("the second factor of {user_id} could not be reset")));
+    }
+    if let Err(error) = astrum_db::audit::record(
+        db.conn(),
+        astrum_security::two_factor::reset_event(user_id).by("*CLI"),
+    )
+    .await
+    {
+        eprintln!(
+            "astrum two-factor reset: warning: the second factor of {user_id} was reset, but the audit event was not recorded: {error}"
+        );
+    }
+    close_with_warning(
+        db,
+        &format!("the second factor of {user_id} was reset, but "),
+    )
+    .await;
+    Ok(())
+}
+
+async fn close_with_warning(db: Database, context: &str) {
+    if let Err(error) = db.close().await {
+        eprintln!(
+            "astrum two-factor reset: warning: {context}the database connection did not close cleanly: {error}"
+        );
+    }
+}
+
 pub async fn shutdown_signal() {
     let interrupt = async {
         let _ = tokio::signal::ctrl_c().await;

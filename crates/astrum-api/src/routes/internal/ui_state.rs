@@ -9,6 +9,7 @@ use axum::routing::get;
 use serde::Serialize;
 
 use super::INTERNAL;
+use crate::auth::RestrictedSession;
 use crate::routes::repositories::BaseUrl;
 use crate::{AppState, Caller};
 
@@ -28,6 +29,7 @@ struct UiState {
     user: Option<UiUser>,
     anonymous_access: bool,
     permissions: Vec<String>,
+    restricted: bool,
     formats: Vec<UiFormat>,
     base_url: String,
     session_timeout_minutes: u32,
@@ -114,6 +116,7 @@ struct UiFormat {
 async fn ui_state(
     State(state): State<AppState>,
     caller: Caller,
+    restricted: Option<axum::Extension<RestrictedSession>>,
     BaseUrl(base_url): BaseUrl,
 ) -> axum::Json<UiState> {
     let security = state.security();
@@ -121,7 +124,8 @@ async fn ui_state(
     let subject = caller.subject();
     let signed_in = subject.filter(|subject| !subject.anonymous);
     let password_file = state.data_dir().join(ADMIN_PASSWORD_FILE);
-    let may_see_password_file = signed_in.is_none_or(|subject| subject.is_permitted(EVERYTHING));
+    let may_see_password_file =
+        restricted.is_none() && signed_in.is_none_or(|subject| subject.is_permitted(EVERYTHING));
     let admin_password_file = (may_see_password_file
         && tokio::fs::try_exists(&password_file).await.unwrap_or(false))
     .then(|| password_file.display().to_string());
@@ -131,7 +135,11 @@ async fn ui_state(
         revision: REVISION.filter(|revision| !revision.is_empty()),
         user: signed_in.map(|subject| user(security, subject)),
         anonymous_access: security.anonymous().is_some(),
-        permissions: subject.map(permissions).unwrap_or_default(),
+        permissions: subject
+            .filter(|_| restricted.is_none())
+            .map(permissions)
+            .unwrap_or_default(),
+        restricted: restricted.is_some(),
         formats: formats(&state),
         base_url,
         session_timeout_minutes: model.session_timeout_minutes,

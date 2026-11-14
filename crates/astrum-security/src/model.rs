@@ -1,10 +1,11 @@
-use std::collections::{BTreeMap, BTreeSet, VecDeque};
+use std::collections::{BTreeMap, BTreeSet, HashMap, VecDeque};
 
 use astrum_db::entity::{
     content_selector, repository, security_oidc_user, security_privilege, security_role,
     security_user, security_user_role,
 };
 use astrum_db::setting;
+use chrono::{DateTime, FixedOffset};
 use sea_orm::{ConnectionTrait, EntityTrait, QuerySelect};
 use serde::{Deserialize, Serialize};
 
@@ -18,6 +19,7 @@ use crate::privilege::{Privilege, PrivilegeKind, SelectorGrant};
 use crate::realm;
 use crate::selector::Selector;
 use crate::subject::Subject;
+use crate::two_factor::{self, FactorSummary, TwoFactorPolicy};
 
 pub const REALMS_KEY: &str = "security.realms";
 pub const ANONYMOUS_KEY: &str = "security.anonymous";
@@ -72,6 +74,7 @@ pub struct User {
     pub email: String,
     pub password_hash: Option<String>,
     pub status: UserStatus,
+    pub created_at: DateTime<FixedOffset>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -126,6 +129,9 @@ pub struct SecurityModel {
     pub default_role: Option<String>,
     local_ids: BTreeSet<String>,
     pub ip_allow: IpAllow,
+    pub two_factor: TwoFactorPolicy,
+    pub base_url: Option<String>,
+    pub second_factor: HashMap<String, FactorSummary>,
 }
 
 fn stored_list_problems(problems: Vec<Problem>) -> Error {
@@ -138,7 +144,7 @@ fn stored_list_problems(problems: Vec<Problem>) -> Error {
     )
 }
 
-async fn tolerant<T: serde::de::DeserializeOwned>(
+pub(crate) async fn tolerant<T: serde::de::DeserializeOwned>(
     db: &impl ConnectionTrait,
     key: &str,
 ) -> Result<Option<T>, Error> {
@@ -167,6 +173,7 @@ impl SecurityModel {
                     email: row.email,
                     password_hash: row.password_hash,
                     status,
+                    created_at: row.created_at,
                 },
             );
         }
@@ -275,6 +282,11 @@ impl SecurityModel {
             );
         }
         model.index_local_ids();
+        let two_factor = two_factor::load(db).await?;
+        model.two_factor = two_factor.policy;
+        model.base_url = two_factor.base_url;
+        model.second_factor = two_factor.factors;
+        model.report_unenrollable_requirement();
         Ok(model)
     }
 
@@ -523,6 +535,7 @@ mod tests {
                 email: "jane@example.org".to_owned(),
                 password_hash: None,
                 status: UserStatus::Active,
+                created_at: chrono::Utc::now().fixed_offset(),
             },
         );
         model

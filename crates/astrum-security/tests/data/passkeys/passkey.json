@@ -1,0 +1,32 @@
+{
+  "cred": {
+    "attestation": {
+      "data": "None",
+      "metadata": "None"
+    },
+    "attestation_format": "none",
+    "backup_eligible": false,
+    "backup_state": false,
+    "counter": 5,
+    "cred": {
+      "key": {
+        "EC_EC2": {
+          "curve": "SECP256R1",
+          "x": "HhhTL9R1TALzBB2cdc6zO4P_2BrHzk_ogsyxyYvFiW4",
+          "y": "pGwxHE4v9A3ZajZT5uRURdMt_khuztdcepDGoYiBwKM"
+        }
+      },
+      "type_": "ES256"
+    },
+    "cred_id": "BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc",
+    "extensions": {
+      "appid": "NotRequested",
+      "cred_props": "Ignored",
+      "cred_protect": "Ignored",
+      "hmac_create_secret": "NotRequested"
+    },
+    "registration_policy": "required",
+    "transports": null,
+    "user_verified": true
+  }
+}
