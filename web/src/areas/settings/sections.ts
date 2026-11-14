@@ -23,6 +23,7 @@ import {
   ScrollText,
   ShieldCheck,
   SlidersHorizontal,
+  Smartphone,
   UserCog,
   Users,
   VenetianMask,
@@ -185,6 +186,15 @@ export const CATALOG: CatalogTile[] = [
     FileKey,
     'settings.tile.sslCertificates',
     'settings.tile.sslCertificatesText',
+  ),
+  tile(
+    'two-factor',
+    'security',
+    90,
+    '/admin/security/two-factor',
+    Smartphone,
+    'settings.tile.twoFactor',
+    'settings.tile.twoFactorText',
   ),
   tile(
     'system-information',

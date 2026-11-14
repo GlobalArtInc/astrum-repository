@@ -70,6 +70,11 @@ export const securityArea: Area = {
       load: () => import('./ip-allow/IpAllowPage'),
       need: ADMINISTRATOR,
     },
+    {
+      path: 'admin/security/two-factor',
+      load: () => import('./two-factor/TwoFactorPolicyPage'),
+      need: ADMINISTRATOR,
+    },
   ],
   settings: [
     {
@@ -100,6 +105,11 @@ export const securityArea: Area = {
     {
       id: 'ip-allow',
       to: '/admin/security/ip-allow',
+      need: ADMINISTRATOR,
+    },
+    {
+      id: 'two-factor',
+      to: '/admin/security/two-factor',
       need: ADMINISTRATOR,
     },
   ],
