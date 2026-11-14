@@ -101,7 +101,7 @@ describe('the two-factor policy page', () => {
     serve();
     renderWithApp(<TwoFactorPolicyPage />, { state: ADMIN_STATE });
     expect(await screen.findByRole('switch', { name: /Passkeys/ })).toBeDisabled();
-    expect(screen.getByText('Not available in this version yet')).toBeInTheDocument();
+    expect(screen.getByText(/People can use a passkey on their device/)).toBeInTheDocument();
   });
 
   it('warns when both methods are off and someone is required', async () => {

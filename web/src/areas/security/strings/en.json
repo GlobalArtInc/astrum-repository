@@ -336,7 +336,7 @@
   "security.twoFactor.originsHint": "Web origins that may use passkeys, such as https://sso.example.org",
   "security.twoFactor.panel": "Second factor",
   "security.twoFactor.passkeys": "Passkeys",
-  "security.twoFactor.passkeysText": "Not available in this version yet",
+  "security.twoFactor.passkeysText": "People can use a passkey on their device or a security key as a second factor. Needs a usable relying party ID.",
   "security.twoFactor.recoveryCodes": "Recovery codes",
   "security.twoFactor.relyingPartyId": "Relying party ID",
   "security.twoFactor.relyingPartyIdHint": "The domain passkeys belong to, such as example.org. Empty means the host of the base URL.",
