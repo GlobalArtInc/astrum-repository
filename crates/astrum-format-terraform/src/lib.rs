@@ -15,7 +15,9 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use astrum_content::format::SearchTarget;
+use astrum_content::import::{Described, Imported};
 use astrum_content::store;
+use astrum_content::transfer::{Bundle, GenericTransfer, Transfer};
 use astrum_content::{
     Asset, ContentError, ContentRequest, Ctx, Format, SearchKey, Serve, UploadField, UploadForm,
     UploadSpec, View, serve,
@@ -24,6 +26,7 @@ use astrum_repo::RepositoryType;
 use async_trait::async_trait;
 use axum::http::{Method, StatusCode};
 use axum::response::{IntoResponse, Response};
+use futures_util::future::BoxFuture;
 use serde_json::{Value, json};
 
 use paths::{Endpoint, FileKind, Module, Provider};
@@ -378,6 +381,57 @@ impl Terraform {
     }
 }
 
+static TRANSFER: GenericTransfer = GenericTransfer {
+    plan: import::plan,
+    describe: describe_imported,
+    after: None,
+    admit: Some(admit_bundle),
+    replaceable: None,
+};
+
+fn describe_imported(file: &Imported) -> BoxFuture<'_, Result<Option<Described>, String>> {
+    Box::pin(import::describe(file))
+}
+
+fn admit_bundle<'a>(ctx: &'a Ctx, bundle: &'a Bundle) -> BoxFuture<'a, Result<(), ContentError>> {
+    Box::pin(admit(ctx, bundle))
+}
+
+fn module_archive(path: &str) -> Option<(Module, &'static str)> {
+    match Endpoint::parse(path) {
+        Endpoint::ModuleArchive(module, file) => {
+            paths::archive_extension(&file).map(|extension| (module, extension))
+        }
+        _ => None,
+    }
+}
+
+async fn admit(ctx: &Ctx, bundle: &Bundle) -> Result<(), ContentError> {
+    for asset in &bundle.assets {
+        let (module, extension) = module_archive(&asset.path).ok_or_else(|| {
+            ContentError::BadRequest(format!("{} is not a module archive", asset.path))
+        })?;
+        let expected = module.archive_path(extension);
+        if expected != asset.path {
+            return Err(ContentError::BadRequest(format!(
+                "{} is not the path of its module archive, which is {expected}",
+                asset.path
+            )));
+        }
+        for other in hosted::in_directory(ctx, &module.directory(), &[MODULE_ARCHIVE]).await? {
+            if other.path != expected {
+                return Err(ContentError::BadRequest(format!(
+                    "Module {} version {} already exists as {}",
+                    module.address(),
+                    module.version,
+                    other.path
+                )));
+            }
+        }
+    }
+    Ok(())
+}
+
 #[async_trait]
 impl Format for Terraform {
     fn id(&self) -> &'static str {
@@ -478,5 +532,9 @@ impl Format for Terraform {
 
     fn search_keys(&self) -> &'static [SearchKey] {
         SEARCH_KEYS
+    }
+
+    fn transfer(&self) -> Option<&dyn Transfer> {
+        Some(&TRANSFER)
     }
 }

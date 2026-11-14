@@ -4,6 +4,8 @@ use std::io::Write;
 use std::sync::Arc;
 
 use astrum_api::router_with;
+use astrum_content::transfer::{Bundle, Conflict, LocalSource, Outcome, PROMOTED, Status, Terms};
+use astrum_content::{ContentError, Format};
 use astrum_security::ssrf::{SSRF_KEY, SsrfProtection};
 use axum::body::Body;
 use axum::http::{Method, Request, StatusCode, header};
@@ -788,4 +790,177 @@ async fn proxies_cache_modules_and_provider_files_of_their_remote() {
     )
     .await;
     assert_eq!(other.status, StatusCode::NOT_FOUND);
+}
+
+const STORED: &str = "/v1/modules/acme/vpc/aws/1.2.0/vpc-aws-1.2.0.tar.gz";
+
+async fn repositories() -> Fixture {
+    let fixture = ready().await;
+    create(&fixture, "hosted", hosted("tf-source", "allow_once")).await;
+    create(&fixture, "hosted", hosted("tf-target", "allow_once")).await;
+    fixture
+}
+
+async fn promote(
+    fixture: &Fixture,
+    bundle: &Bundle,
+    dry_run: bool,
+) -> Result<Outcome, ContentError> {
+    let from = support::repository_ctx(fixture, "tf-source").await;
+    let to = support::repository_ctx(fixture, "tf-target").await;
+    let mut terms = Terms::new(Conflict::Fail, PROMOTED);
+    if dry_run {
+        terms = terms.dry_run();
+    }
+    let format = astrum_format_terraform::Terraform::default();
+    format
+        .transfer()
+        .expect("terraform takes part in promotion")
+        .receive(&to, bundle, &LocalSource::new(from), terms)
+        .await
+}
+
+async fn assert_refused(fixture: &Fixture, bundle: &Bundle, message: &str) {
+    for dry_run in [true, false] {
+        match promote(fixture, bundle, dry_run).await {
+            Err(ContentError::BadRequest(found)) => assert_eq!(found, message),
+            other => panic!("expected a refusal, got {other:?}"),
+        }
+    }
+    for asset in &bundle.assets {
+        assert!(
+            astrum_content::store::find(fixture.state.db().conn(), "tf-target", &asset.path)
+                .await
+                .unwrap()
+                .is_none()
+        );
+    }
+}
+
+#[tokio::test]
+async fn modules_are_promoted_and_the_target_serves_them() {
+    let fixture = repositories().await;
+    let stored = put(
+        &fixture,
+        "/repository/tf-source/v1/modules/acme/vpc/aws/1.2.0/package.tar.gz",
+        module_package("vpc"),
+    )
+    .await;
+    assert_eq!(stored.status, StatusCode::CREATED, "{}", stored.text());
+    let format = astrum_format_terraform::Terraform::default();
+    let bundle = support::bundle_of(&fixture, &format, "tf-source", STORED).await;
+    let outcome = support::receive(&fixture, &format, "tf-source", "tf-target", &bundle).await;
+    assert_eq!(outcome.status, Status::Copied);
+
+    let download = get(
+        &fixture,
+        "/repository/tf-target/v1/modules/acme/vpc/aws/1.2.0/download",
+        Auth::Admin,
+    )
+    .await;
+    assert_eq!(download.status, StatusCode::NO_CONTENT);
+    let location = download.headers["x-terraform-get"]
+        .to_str()
+        .unwrap()
+        .to_owned();
+    let archive = format!("/repository/tf-target{STORED}?{}", query(&location));
+    let fetched = get(&fixture, &archive, Auth::None).await;
+    assert_eq!(fetched.status, StatusCode::OK);
+    assert_eq!(fetched.body, module_package("vpc"));
+    let versions = get(
+        &fixture,
+        "/repository/tf-target/v1/modules/acme/vpc/aws/versions",
+        Auth::Admin,
+    )
+    .await;
+    assert_eq!(
+        versions.json(),
+        json!({"modules": [{"versions": [{"version": "1.2.0"}]}]})
+    );
+}
+
+#[tokio::test]
+async fn module_promotion_refuses_a_path_the_upload_would_not_store() {
+    let fixture = repositories().await;
+    put(
+        &fixture,
+        "/repository/tf-source/v1/modules/acme/vpc/aws/1.2.0/package.tar.gz",
+        module_package("vpc"),
+    )
+    .await;
+    let format = astrum_format_terraform::Terraform::default();
+    let mut bundle = support::bundle_of(&fixture, &format, "tf-source", STORED).await;
+    bundle.assets[0].path = "/v1/modules/acme/vpc/aws/1.2.0/vpc-aws-1.2.0.tgz".to_owned();
+    assert_refused(
+        &fixture,
+        &bundle,
+        "/v1/modules/acme/vpc/aws/1.2.0/vpc-aws-1.2.0.tgz is not the path of its module archive, which is /v1/modules/acme/vpc/aws/1.2.0/vpc-aws-1.2.0.tar.gz",
+    )
+    .await;
+}
+
+#[tokio::test]
+async fn module_promotion_refuses_a_second_archive_of_a_version() {
+    let fixture = repositories().await;
+    let zip = "/v1/modules/acme/vpc/aws/1.2.0/vpc-aws-1.2.0.zip";
+    put(
+        &fixture,
+        "/repository/tf-source/v1/modules/acme/vpc/aws/1.2.0/vpc.zip",
+        provider_zip("vpc"),
+    )
+    .await;
+    put(
+        &fixture,
+        "/repository/tf-target/v1/modules/acme/vpc/aws/1.2.0/package.tar.gz",
+        module_package("vpc"),
+    )
+    .await;
+    let format = astrum_format_terraform::Terraform::default();
+    let bundle = support::bundle_of(&fixture, &format, "tf-source", zip).await;
+    assert_refused(
+        &fixture,
+        &bundle,
+        "Module acme/vpc/aws version 1.2.0 already exists as /v1/modules/acme/vpc/aws/1.2.0/vpc-aws-1.2.0.tar.gz",
+    )
+    .await;
+}
+
+#[tokio::test]
+async fn provider_promotion_is_refused_with_its_reason() {
+    let fixture = repositories().await;
+    let archive = "terraform-provider-demo_2.0.0_linux_amd64.zip";
+    let uploaded = upload(
+        &fixture,
+        "tf-source",
+        &[
+            ("terraform.namespace", "acme"),
+            ("terraform.type", "demo"),
+            ("terraform.version", "2.0.0"),
+        ],
+        &[(
+            "terraform.asset1",
+            archive,
+            &provider_zip("terraform-provider-demo_v2.0.0"),
+        )],
+    )
+    .await;
+    assert_eq!(
+        uploaded.status,
+        StatusCode::NO_CONTENT,
+        "{}",
+        uploaded.text()
+    );
+    let format = astrum_format_terraform::Terraform::default();
+    let bundle = support::bundle_of(
+        &fixture,
+        &format,
+        "tf-source",
+        "/v1/providers/acme/demo/2.0.0/terraform-provider-demo_2.0.0_linux_amd64.zip",
+    )
+    .await;
+    let message = format!(
+        "{} cannot be transferred: Terraform providers cannot be transferred yet",
+        bundle.assets[0].path
+    );
+    assert_refused(&fixture, &bundle, &message).await;
 }

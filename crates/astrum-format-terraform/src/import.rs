@@ -8,20 +8,13 @@ use crate::{METADATA, MODULE_ARCHIVE};
 
 const BASE_KEYS: &[&str] = &["kind", "namespace", "name", "provider", "version"];
 
-pub fn plan(repository: RepositoryType, path: &str, _kind: &str) -> Plan {
-    match (repository, Endpoint::parse(path)) {
-        (_, Endpoint::ModuleArchive(..) | Endpoint::ProviderFile(..)) => Plan::Import,
-        (
-            RepositoryType::Proxy,
-            Endpoint::Discovery
-            | Endpoint::ModuleVersions(_)
-            | Endpoint::ProviderVersions(_)
-            | Endpoint::ProviderDownload(..),
-        ) => Plan::Import,
-        (_, Endpoint::Other) => Plan::Skip(
-            "the path is not a module, a provider file or a registry document".to_owned(),
-        ),
-        _ => Plan::Derived,
+pub fn plan(_repository: RepositoryType, path: &str, _kind: &str) -> Plan {
+    match Endpoint::parse(path) {
+        Endpoint::ModuleArchive(..) => Plan::Import,
+        Endpoint::ProviderFile(..) => {
+            Plan::Skip("Terraform providers cannot be transferred yet".to_owned())
+        }
+        _ => Plan::Skip("the path is not a module archive".to_owned()),
     }
 }
 
@@ -41,11 +34,15 @@ pub async fn describe(file: &Imported) -> Result<Option<Described>, String> {
     match Endpoint::parse(&file.path) {
         Endpoint::ModuleArchive(module, name) => {
             let head = file.head(8).await.map_err(|error| error.to_string())?;
-            let extension = paths::archive_extension(&name)
-                .or_else(|| paths::sniff(&head))
-                .ok_or_else(|| {
-                    "the module package is neither a .zip nor a .tar.gz archive".to_owned()
-                })?;
+            let extension = match (paths::archive_extension(&name), paths::sniff(&head)) {
+                (Some(extension), Some(sniffed)) if extension == sniffed => extension,
+                _ => {
+                    return Err(
+                        "A module package must be a .zip or .tar.gz archive of the module directory"
+                            .to_owned(),
+                    );
+                }
+            };
             let subdir = file
                 .attributes
                 .pointer("/terraform/subdir")
