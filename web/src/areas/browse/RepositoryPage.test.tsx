@@ -175,6 +175,23 @@ describe('the repository page', { timeout: 20_000 }, () => {
     await waitFor(() => expect(router.state.location.pathname).toBe('/browse/files'));
   });
 
+  it('reports the files a folder delete kept because of immutable tag rules', async () => {
+    const fake = server({
+      [`DELETE ${TREE}?path=%2Fa%2F`]: () =>
+        jsonResponse({ deletedAssets: 3, deletedComponents: 3, skippedAssets: 0, protectedAssets: 2 }),
+    });
+    page('/browse/files/a/');
+    await userEvent.click(await screen.findByRole('button', { name: 'Delete Folder' }));
+    const dialog = await screen.findByRole('alertdialog', { name: 'Delete Folder' });
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
+    await waitFor(() => expect(fake.calls.some((call) => call.method === 'DELETE')).toBe(true));
+    expect(
+      await screen.findByText(
+        '3 files deleted · 3 components deleted · 2 files kept because they are protected by immutable tag rules',
+      ),
+    ).toBeInTheDocument();
+  });
+
   it('says when the selection is not in the repository', async () => {
     server();
     page('/browse/files/a/missing.txt');

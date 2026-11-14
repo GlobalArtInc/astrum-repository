@@ -173,6 +173,7 @@ export interface FolderDeleted {
   deletedAssets: number;
   deletedComponents: number;
   skippedAssets: number;
+  protectedAssets: number;
 }
 
 export function formatAttributes(format: string, value: Record<string, unknown>): Record<string, unknown> {

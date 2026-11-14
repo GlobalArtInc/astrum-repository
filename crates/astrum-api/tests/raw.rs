@@ -5,6 +5,7 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+use astrum_content::ContentError;
 use astrum_content::transfer::Status;
 use astrum_security::ssrf::{SSRF_KEY, SsrfProtection};
 use axum::Router;
@@ -1293,4 +1294,41 @@ async fn components_are_promoted_between_hosted_repositories() {
         .await;
     assert_eq!(served.status, StatusCode::OK);
     assert_eq!(served.body, b"promoted".to_vec());
+}
+
+#[tokio::test]
+async fn a_promoted_file_must_match_its_extension_as_an_upload_does() {
+    let fixture = ready().await;
+    let mut loose = hosted("loose", "ALLOW");
+    loose["storage"]["strictContentTypeValidation"] = json!(false);
+    create(&fixture, "hosted", loose).await;
+    create(&fixture, "hosted", hosted("strict", "ALLOW")).await;
+    assert_eq!(
+        put(
+            &fixture,
+            "/repository/loose/lib.jar",
+            b"plain text",
+            Auth::Admin
+        )
+        .await,
+        StatusCode::CREATED
+    );
+    let format = astrum_format_raw::Raw;
+    let bundle = support::bundle_of(&fixture, &format, "loose", "/lib.jar").await;
+    match support::try_receive(&fixture, &format, "loose", "strict", &bundle).await {
+        Err(ContentError::BadRequest(message)) => {
+            assert!(
+                message.contains("expected [application/java-archive]"),
+                "{message}"
+            );
+        }
+        other => panic!("expected a refusal, got {other:?}"),
+    }
+    assert_eq!(
+        fixture
+            .call(Method::GET, "/repository/strict/lib.jar", Auth::Admin, None)
+            .await
+            .status,
+        StatusCode::NOT_FOUND
+    );
 }

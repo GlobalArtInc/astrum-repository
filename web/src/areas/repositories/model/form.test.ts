@@ -146,6 +146,33 @@ describe('editing a document', () => {
     expect(differences(dockerHosted, saved)).toEqual(['storage.latestPolicy']);
   });
 
+  it('round-trips the immutable tag rules and changes only the edited pattern list', () => {
+    const document = clone(dockerHosted);
+    (document.storage as Record<string, unknown>).immutableTags = {
+      patterns: ['v*'],
+      exceptions: ['latest'],
+    };
+    expect(canonical(toDocument(fromDocument(document), document))).toEqual(canonical(document));
+    const saved = edit(document, { immutableTagPatterns: 'v*\nrelease-*' });
+    expect(getPath(saved, ['storage', 'immutableTags', 'patterns'])).toEqual(['v*', 'release-*']);
+    expect(differences(document, saved)).toEqual(['storage.immutableTags.patterns']);
+  });
+
+  it('leaves out the immutable tag rules of a document that has none', () => {
+    const saved = edit(dockerHosted, { latestPolicy: false });
+    expect(saved.storage).not.toHaveProperty('immutableTags');
+  });
+
+  it('offers the immutable tag rules to docker hosted repositories only', () => {
+    expect(sections.immutableTags({ format: 'docker', type: 'hosted' })).toBe(true);
+    expect(sections.immutableTags({ format: 'docker', type: 'proxy' })).toBe(false);
+    expect(sections.immutableTags({ format: 'raw', type: 'hosted' })).toBe(false);
+    const rawHosted = (reference as unknown as Record<string, RepositoryDocument>)[
+      'raw/hosted/max'
+    ] as RepositoryDocument;
+    expect(edit(rawHosted, {}).storage).not.toHaveProperty('immutableTags');
+  });
+
   it('sends a new secret only when one is typed', () => {
     expect(getPath(edit(mavenProxy, {}), ['httpClient', 'authentication', 'password'])).toBeUndefined();
     const saved = edit(mavenProxy, { password: 'n3w s3cret' });
@@ -319,6 +346,16 @@ describe('form checks', () => {
 });
 
 describe('server problems', () => {
+  it('land on the immutable tag lists they name, indexes included', () => {
+    const dockerHostedSpec: Spec = { format: 'docker', type: 'hosted' };
+    expect(formField('PARAMETER storage.immutableTags.patterns[0]', dockerHostedSpec)).toBe(
+      'immutableTagPatterns',
+    );
+    expect(formField('PARAMETER storage.immutableTags.exceptions[1]', dockerHostedSpec)).toBe(
+      'immutableTagExceptions',
+    );
+  });
+
   it('land on the fields they name', () => {
     const raw: Spec = { format: 'raw', type: 'proxy' };
     expect(formField('PARAMETER remoteUrl', raw)).toBe('remoteUrl');

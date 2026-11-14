@@ -174,6 +174,10 @@
     "one": "{count} file kept because you may not delete it",
     "other": "{count} files kept because you may not delete them"
   },
+  "browse.details.protectedAssets": {
+    "one": "{count} file kept because it is protected by immutable tag rules",
+    "other": "{count} files kept because they are protected by immutable tag rules"
+  },
   "browse.details.deleteComponent": "Delete Component",
   "browse.details.deleteComponentTitle": "Delete Component",
   "browse.details.deleteComponentText": "Delete the component “{name}”? This cannot be undone.",

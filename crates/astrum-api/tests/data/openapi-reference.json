@@ -907,6 +907,38 @@
     ]
    }
   },
+  "/v1/promotions": {
+   "post": {
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/PromotionRequestXO"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PromotionResponseXO"
+        }
+       }
+      }
+     },
+     "400": {},
+     "401": {},
+     "403": {},
+     "404": {}
+    },
+    "tags": [
+     "Promotions"
+    ]
+   }
+  },
   "/v1/repositories": {
    "get": {
     "responses": {
@@ -18081,6 +18113,192 @@
       "type": "string"
      }
     }
+   },
+   "PromotionAssetXO": {
+    "properties": {
+     "path": {
+      "type": "string"
+     },
+     "size": {
+      "format": "int64",
+      "type": "integer"
+     },
+     "status": {
+      "enum": [
+       "new",
+       "replaced",
+       "unchanged",
+       "conflict"
+      ],
+      "type": "string"
+     }
+    },
+    "type": "object"
+   },
+   "PromotionItemXO": {
+    "properties": {
+     "componentId": {
+      "description": "The id of a component in the source repository",
+      "type": "string"
+     },
+     "digest": {
+      "description": "Docker: the digest of the image",
+      "type": "string"
+     },
+     "image": {
+      "description": "Docker: the image name",
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     },
+     "namespace": {
+      "description": "The group or namespace of the component; empty when the format has none",
+      "type": "string"
+     },
+     "tag": {
+      "description": "Docker: the tag of the image",
+      "type": "string"
+     },
+     "targetTags": {
+      "description": "Docker: tags the image gets in the target",
+      "items": {
+       "type": "string"
+      },
+      "type": "array"
+     },
+     "version": {
+      "type": "string"
+     }
+    },
+    "type": "object"
+   },
+   "PromotionRequestXO": {
+    "properties": {
+     "conflict": {
+      "description": "What to do when the target holds the same path with other content",
+      "enum": [
+       "fail",
+       "skip",
+       "replace"
+      ],
+      "type": "string"
+     },
+     "dryRun": {
+      "description": "Report the plan and write nothing",
+      "type": "boolean"
+     },
+     "items": {
+      "description": "At most 100 items",
+      "items": {
+       "$ref": "#/components/schemas/PromotionItemXO"
+      },
+      "type": "array"
+     },
+     "move": {
+      "description": "Delete the source component after a copy, or when the target already holds identical content. Docker deletes the source tag only and takes tag items only",
+      "type": "boolean"
+     },
+     "referrers": {
+      "description": "Docker: take the referrers of the image along",
+      "type": "boolean"
+     },
+     "source": {
+      "type": "string"
+     },
+     "target": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "items",
+     "source",
+     "target"
+    ],
+    "type": "object"
+   },
+   "PromotionResponseXO": {
+    "properties": {
+     "dryRun": {
+      "type": "boolean"
+     },
+     "results": {
+      "items": {
+       "$ref": "#/components/schemas/PromotionResultXO"
+      },
+      "type": "array"
+     }
+    },
+    "type": "object"
+   },
+   "PromotionResultXO": {
+    "properties": {
+     "assetCount": {
+      "format": "int32",
+      "type": "integer"
+     },
+     "assets": {
+      "description": "The first 500 assets of the plan or the copy",
+      "items": {
+       "$ref": "#/components/schemas/PromotionAssetXO"
+      },
+      "type": "array"
+     },
+     "bytesCopied": {
+      "format": "int64",
+      "type": "integer"
+     },
+     "bytesReused": {
+      "format": "int64",
+      "type": "integer"
+     },
+     "componentId": {
+      "type": "string"
+     },
+     "componentIds": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array"
+     },
+     "error": {
+      "type": "string"
+     },
+     "item": {
+      "$ref": "#/components/schemas/PromotionItemXO"
+     },
+     "retryable": {
+      "description": "Set on a conflict and on a failure that a repeat may fix. True: the target changed while the transfer ran, or the request time budget ran out before this item started, so a repeat may succeed. False: the target holds different content, which a repeat does not change",
+      "type": "boolean"
+     },
+     "sourceKept": {
+      "description": "Set when a move was asked for: true when the source component was not deleted",
+      "type": "boolean"
+     },
+     "status": {
+      "enum": [
+       "copied",
+       "unchanged",
+       "skipped",
+       "conflict",
+       "forbidden",
+       "notFound",
+       "unsupported",
+       "failed"
+      ],
+      "type": "string"
+     },
+     "skippedChildren": {
+      "description": "Docker: the number of child manifests that a tag-based index named and the source lacked, which were left out",
+      "format": "int32",
+      "type": "integer"
+     },
+     "warning": {
+      "description": "Docker: set for a digest-only image copied without any tag; an untagged image is removed by the next garbage collection",
+      "type": "string"
+     }
+    },
+    "type": "object"
    },
    "ProtobufHostedRepositoryApiRequest": {
     "properties": {

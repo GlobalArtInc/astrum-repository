@@ -920,9 +920,28 @@ enum Removal {
 }
 
 pub async fn delete_asset(content: &Content, found: Asset) -> Result<(), ContentError> {
+    delete_asset_checked(content, &found, false).await
+}
+
+pub async fn delete_asset_if(content: &Content, found: &Asset) -> Result<(), ContentError> {
+    delete_asset_checked(content, found, true).await
+}
+
+async fn delete_asset_checked(
+    content: &Content,
+    found: &Asset,
+    unchanged: bool,
+) -> Result<(), ContentError> {
     for _ in 0..ATTEMPTS {
         let txn = content.db().begin().await?;
-        match remove_asset(&txn, &found).await {
+        let attempt = async {
+            if unchanged {
+                confirm_asset(&txn, found).await?;
+            }
+            remove_asset(&txn, found).await
+        }
+        .await;
+        match attempt {
             Ok(Removal::Removed((store, id))) => {
                 txn.commit().await?;
                 discard(content.clone(), &store, id);
@@ -940,6 +959,36 @@ pub async fn delete_asset(content: &Content, found: Asset) -> Result<(), Content
         }
     }
     Err(changed_meanwhile(&found.repository))
+}
+
+async fn confirm_asset(txn: &DatabaseTransaction, found: &Asset) -> Result<(), ContentError> {
+    if !lock_repository(txn, &found.repository).await? {
+        return Ok(());
+    }
+    let Some(current) = by_id(txn, found.id).await? else {
+        return Err(asset_gone());
+    };
+    if let Some(component_id) = current.component_id
+        && !lock_components(txn, &[component_id])
+            .await?
+            .contains(&component_id)
+    {
+        return Err(asset_gone());
+    }
+    lock_usage(txn, &current.repository).await?;
+    let Some(locked) = by_id(txn, found.id).await? else {
+        return Err(asset_gone());
+    };
+    match locked.component_id == current.component_id
+        && locked.sha256.eq_ignore_ascii_case(&found.sha256)
+    {
+        true => Ok(()),
+        false => Err(changed_meanwhile(&found.repository)),
+    }
+}
+
+fn asset_gone() -> ContentError {
+    ContentError::not_found("the asset is already gone")
 }
 
 async fn remove_asset(txn: &DatabaseTransaction, found: &Asset) -> Result<Removal, ContentError> {
@@ -978,8 +1027,31 @@ async fn remove_asset(txn: &DatabaseTransaction, found: &Asset) -> Result<Remova
 }
 
 pub async fn delete_component(content: &Content, component_id: i64) -> Result<bool, ContentError> {
+    delete_component_checked(content, component_id, None).await
+}
+
+pub async fn delete_component_matching(
+    content: &Content,
+    component_id: i64,
+    expected: &[(String, String)],
+) -> Result<bool, ContentError> {
+    delete_component_checked(content, component_id, Some(expected)).await
+}
+
+async fn delete_component_checked(
+    content: &Content,
+    component_id: i64,
+    expected: Option<&[(String, String)]>,
+) -> Result<bool, ContentError> {
     let txn = content.db().begin().await?;
-    match remove_component(&txn, component_id).await {
+    let attempt = async {
+        if let Some(expected) = expected {
+            confirm_component(&txn, component_id, expected).await?;
+        }
+        remove_component(&txn, component_id).await
+    }
+    .await;
+    match attempt {
         Ok(Some(blobs)) => {
             txn.commit().await?;
             delete_blobs(content, blobs).await;
@@ -993,6 +1065,40 @@ pub async fn delete_component(content: &Content, component_id: i64) -> Result<bo
             rolled_back(txn).await;
             Err(error)
         }
+    }
+}
+
+async fn confirm_component(
+    txn: &DatabaseTransaction,
+    component_id: i64,
+    expected: &[(String, String)],
+) -> Result<(), ContentError> {
+    let Some(found) = component_by_id(txn, component_id).await? else {
+        return Ok(());
+    };
+    if !lock_repository(txn, &found.repository).await? {
+        return Ok(());
+    }
+    if !lock_components(txn, &[component_id])
+        .await?
+        .contains(&component_id)
+    {
+        return Ok(());
+    }
+    let assets = assets_of(txn, component_id).await?;
+    let wanted: HashMap<&str, &str> = expected
+        .iter()
+        .map(|(path, sha256)| (path.as_str(), sha256.as_str()))
+        .collect();
+    let same = wanted.len() == assets.len()
+        && assets.iter().all(|asset| {
+            wanted
+                .get(asset.path.as_str())
+                .is_some_and(|sha256| sha256.eq_ignore_ascii_case(&asset.sha256))
+        });
+    match same {
+        true => Ok(()),
+        false => Err(changed_meanwhile(&found.repository)),
     }
 }
 

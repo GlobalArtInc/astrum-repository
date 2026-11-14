@@ -872,6 +872,21 @@ export function RepositoryForm(props: RepositoryFormProps) {
           </Section>
         )}
 
+        {sections.immutableTags(spec) && (
+          <Section title={t('repositories.form.sections.immutableTags')}>
+            <TextAreaInput
+              {...field('immutableTagPatterns')}
+              label={t('repositories.form.immutableTagPatterns')}
+              hint={t('repositories.form.immutableTagPatternsHint')}
+            />
+            <TextAreaInput
+              {...field('immutableTagExceptions')}
+              label={t('repositories.form.immutableTagExceptions')}
+              hint={t('repositories.form.immutableTagExceptionsHint')}
+            />
+          </Section>
+        )}
+
         {sections.proxy(spec) && (
           <Section title={t('repositories.form.sections.proxy')}>
             <TextInput

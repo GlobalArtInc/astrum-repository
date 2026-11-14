@@ -235,6 +235,7 @@ export function FolderPanel({ repository, node, onNavigate }: PanelProps & { nod
   const count = (value: number) => (listing.data ? formatNumber(language, value) : '—');
   const remove = async () => {
     const result = await api.delete<FolderDeleted>(treePath(repository.name, node.path));
+    const protectedAssets = result.protectedAssets ?? 0;
     onNavigate(parentOf(node.path));
     await changed();
     toast.success(
@@ -243,6 +244,7 @@ export function FolderPanel({ repository, node, onNavigate }: PanelProps & { nod
         t('browse.details.deletedAssets', { count: result.deletedAssets }),
         t('browse.details.deletedComponents', { count: result.deletedComponents }),
         result.skippedAssets > 0 ? t('browse.details.skippedAssets', { count: result.skippedAssets }) : '',
+        protectedAssets > 0 ? t('browse.details.protectedAssets', { count: protectedAssets }) : '',
       ]
         .filter(Boolean)
         .join(' · '),

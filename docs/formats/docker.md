@@ -64,3 +64,57 @@ tags of the tag schema derived from its digest (`sha256-<hex>`, `.sig`, `.att`, 
 deletes only the tag. Layers are not removed with the manifests; the task **Docker - Delete unused
 manifests and images** deletes the layers that no manifest refers to, and untagged manifests, once they
 are older than its deploy offset (24 hours by default).
+
+## Immutable tags
+
+A release tag such as `v1.2.0` should keep pointing at the image it was released with. A hosted Docker
+repository lists the tags that may never change in **Immutable tags**. A tag that matches is created once;
+pushing it again with the same digest succeeds (a rerun of a pipeline), but it can never be moved to
+another image and never be deleted.
+
+| Setting | Meaning |
+| --- | --- |
+| Immutable tags | Tag patterns, one per line. Empty means the feature is off. |
+| Mutable exceptions | Tags that match a pattern above and one of these stay free to change, for example `latest`. |
+
+A pattern is matched against the whole tag: `*` stands for any characters, `?` for one character and
+`[a-z]` for a class, so `v*` protects `v1.2.0` and `[0-9]*` protects `1.0`. A list takes at most 32
+patterns of at most 128 characters, made of the characters tags are made of and `*?[]`. Through the REST
+API the lists are `storage.immutableTags.patterns` and `storage.immutableTags.exceptions` of the
+repository:
+
+```json
+{ "storage": { "immutableTags": { "patterns": ["v*", "[0-9]*"], "exceptions": ["latest"] } } }
+```
+
+The rule applies at once, also to tags that exist already, and it is enforced where content changes, not
+only by the registry API:
+
+- A push that would move a protected tag to another digest is refused with `400 DENIED` and a text like
+  `tag v1.2.0 of team/app is immutable in repository docker-hosted (rule v*)`. Pushing the same digest
+  again is accepted.
+- Deleting a protected tag, or deleting by digest a manifest that a protected tag points at, is refused
+  with the same text, and nothing is deleted: not the manifest, not its other tags, not the signatures
+  attached to it. Deleting the other tags of an image, or an image without protected tags, works as before.
+- The REST API answers `409` to the delete of a component or an asset that holds a protected tag. The
+  browser skips the protected files when a folder is deleted and says how many it kept; it answers `409`
+  when nothing but protected files were left.
+- Cleanup policies keep a component that holds a protected tag and the task summary says how many were
+  kept. The garbage collection of unused manifests never removes a manifest that a tag reaches.
+- The tags of the referrers tag schema (`sha256-<hex>` with `.sig`, `.att` or `.sbom`) are always free, so
+  `cosign sign` can sign an image again.
+- Deleting the whole repository still works.
+
+Administrators have no bypass. To change or remove a protected tag, edit the rule (the change is audited
+as an update of the repository), change the tag, and add the rule back.
+
+Limits to know about:
+
+- The rule protects tags, not what they reach. A user with the right to delete can still delete a layer or
+  the child manifest of an index through the registry API, which makes the protected image impossible to
+  pull. Grant the delete right on a repository with immutable tags only to those who need it, for example
+  with a [content selector](../configure/authentication.md).
+- If the stored rule cannot be read, for instance after a bad edit of the repository document, every
+  existing tag of the repository counts as protected until the rule is fixed, and the error names the
+  broken field. New tags can still be created, and the repository and the rule can still be changed or
+  deleted.

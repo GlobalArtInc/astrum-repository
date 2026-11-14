@@ -50,6 +50,7 @@ impl Server {
         state.tasks().register(std::sync::Arc::new(
             astrum_api::customer_expiry::CustomerTokenExpiry::new(state.notifier().clone()),
         ));
+        crate::formats::register_image_transfers(&state);
         let listener = TcpListener::bind(config.listen)
             .await
             .with_context(|| format!("cannot listen on {}", config.listen))?;

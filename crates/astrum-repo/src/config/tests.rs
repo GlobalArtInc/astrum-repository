@@ -515,3 +515,21 @@ fn only_docker_repositories_force_basic_auth() {
             .forces_basic_auth()
     );
 }
+
+#[test]
+fn docker_hosted_keeps_immutable_tags_through_the_document() {
+    let docker = spec("docker", "hosted");
+    let mut body = minimal(docker, "tags");
+    body["storage"]["immutableTags"] = json!({"patterns": ["v*"], "exceptions": ["v*-rc*"]});
+    let first = prepare(docker, body, None).unwrap();
+    let document = first.document("http://localhost:8081");
+    let rules = json!({"patterns": ["v*"], "exceptions": ["v*-rc*"]});
+    assert_eq!(document["storage"]["immutableTags"], rules);
+    let mut again = document.clone();
+    again["name"] = json!("second");
+    let second = prepare(docker, again, None).unwrap();
+    assert_eq!(
+        second.document("http://localhost:8081")["storage"]["immutableTags"],
+        rules
+    );
+}
