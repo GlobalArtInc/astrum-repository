@@ -10,6 +10,7 @@ import {
   type Errors,
   FormError,
   MultiSelectField,
+  NumberField,
   Page,
   SelectField,
   TextAreaField,
@@ -22,9 +23,14 @@ import {
 import { POLICIES, TRUSTED_KEYS } from '../api';
 import styles from '../shared/Form.module.css';
 import { explainRefusal } from '../shared/messages';
+import { ListEditor } from '../ssrf/ListEditor';
 import {
   blocksEntered,
   type Choice,
+  COOLDOWN_MAX_DAYS,
+  COOLDOWN_MIN_DAYS,
+  cooldownPatternProblem,
+  cooldownProblems,
   EMPTY_FORM,
   formOf,
   LICENSE_LIST_OPTIONS,
@@ -81,7 +87,18 @@ function unnoned(value: string): string {
 }
 
 function problemsOf(t: Translate, values: PolicyForm, creating: boolean): Errors<PolicyForm> {
-  return creating && values.name.trim() === '' ? { name: t('security.form.required') } : {};
+  const problems: Errors<PolicyForm> = {};
+  if (creating && values.name.trim() === '') {
+    problems.name = t('security.form.required');
+  }
+  const cooldown = cooldownProblems(values);
+  if (cooldown.minAgeDays) {
+    problems.minAgeDays = t(cooldown.minAgeDays, { min: COOLDOWN_MIN_DAYS, max: COOLDOWN_MAX_DAYS });
+  }
+  if (cooldown.exclude) {
+    problems.exclude = t(cooldown.exclude);
+  }
+  return problems;
 }
 
 function PolicyEditor({ saved }: { saved: Policy | null }) {
@@ -248,6 +265,40 @@ function PolicyEditor({ saved }: { saved: Policy | null }) {
           options={keyOptions}
           hint={t('security.policy.signatureKeysHint')}
           disabled={disabled}
+        />
+      </RuleBlock>
+      <RuleBlock title={t('security.policy.cooldown')} text={t('security.policy.cooldownText')}>
+        <SelectField
+          label={t('security.policy.mode')}
+          {...form.field('cooldownMode')}
+          options={choices(t, MODE_OPTIONS)}
+          disabled={disabled}
+        />
+        {values.cooldownMode !== 'off' && (
+          <NumberField
+            label={t('security.policy.cooldownMinAge')}
+            {...form.field('minAgeDays')}
+            min={COOLDOWN_MIN_DAYS}
+            max={COOLDOWN_MAX_DAYS}
+            step={1}
+            required
+            hint={t('security.policy.cooldownMinAgeHint', { min: COOLDOWN_MIN_DAYS, max: COOLDOWN_MAX_DAYS })}
+            disabled={disabled}
+          />
+        )}
+        <ListEditor
+          label={t('security.policy.cooldownExclude')}
+          hint={t('security.policy.cooldownExcludeHint')}
+          placeholder="@globalart/*"
+          values={values.exclude}
+          onChange={(exclude) => form.set('exclude', exclude)}
+          check={(value) => {
+            const problem = cooldownPatternProblem(value, values.exclude);
+            return problem === null ? undefined : t(problem);
+          }}
+          error={form.errors.exclude}
+          disabled={disabled}
+          emptyText={t('security.policy.cooldownExcludeEmpty')}
         />
       </RuleBlock>
       <FormError message={form.formError} />

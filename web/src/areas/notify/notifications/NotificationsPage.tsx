@@ -33,6 +33,7 @@ const EVENT_COLORS = {
   deleted: 'red',
   'vulnerability.found': 'orange',
   'policy.blocked': 'red',
+  'cooldown.released': 'amber',
 } as const;
 
 function ChannelRow({

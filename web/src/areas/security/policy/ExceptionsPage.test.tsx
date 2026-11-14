@@ -113,6 +113,30 @@ describe('the policy exceptions page', () => {
     expect(body.advisory).toBe('GHSA-aaaa-bbbb-cccc');
   });
 
+  it('offers the cooldown rule for a package and sends it as a component exception', async () => {
+    const server = fakeServer({
+      'GET /service/rest/v1/security/exceptions': () => jsonResponse([]),
+      'GET /service/rest/v1/security/policies': () => jsonResponse([]),
+      'POST /service/rest/v1/security/exceptions': () => jsonResponse(LIVE, 201),
+    });
+    vi.stubGlobal('fetch', server.fetch);
+    renderWithApp(<ExceptionsPage />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Add Exception' }));
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.click(within(dialog).getByRole('combobox', { name: 'Rule' }));
+    await userEvent.click(screen.getByRole('option', { name: 'Cooldown' }));
+    expect(within(dialog).queryByRole('textbox', { name: 'Advisory' })).not.toBeInTheDocument();
+    await userEvent.type(within(dialog).getByRole('textbox', { name: 'Name' }), 'widgets');
+    await userEvent.type(within(dialog).getByRole('textbox', { name: 'Reason' }), 'audited build');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Add Exception' }));
+    await waitFor(() => expect(server.calls.some((call) => call.method === 'POST')).toBe(true));
+    expect(server.calls.find((call) => call.method === 'POST')?.body).toMatchObject({
+      rule: 'cooldown',
+      name: 'widgets',
+      reason: 'audited build',
+    });
+  });
+
   it('revokes an exception after the admin confirms it', async () => {
     const server = fakeServer({
       'GET /service/rest/v1/security/exceptions': () => jsonResponse([LIVE]),

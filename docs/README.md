@@ -37,6 +37,7 @@ The same pages are published as a site at https://astrum.globalart.dev.
 - [Cleanup policies](repositories/cleanup-policies.md)
 - [Quotas](repositories/quotas.md)
 - [Routing rules](repositories/routing-rules.md)
+- [Release cooldown](repositories/cooldown.md)
 - [Formats](formats/README.md): one page per format with the settings of its clients
 
 ## Use

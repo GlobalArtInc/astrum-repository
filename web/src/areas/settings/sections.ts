@@ -12,6 +12,7 @@ import {
   Funnel,
   Globe,
   HardDrive,
+  Hourglass,
   Info,
   KeyRound,
   Lock,
@@ -216,6 +217,15 @@ export const CATALOG: CatalogTile[] = [
     ShieldAlert,
     'settings.tile.policyExceptions',
     'settings.tile.policyExceptionsText',
+  ),
+  tile(
+    'cooldown',
+    'security',
+    105,
+    '/admin/security/cooldown',
+    Hourglass,
+    'settings.tile.cooldown',
+    'settings.tile.cooldownText',
   ),
   tile(
     'trusted-keys',

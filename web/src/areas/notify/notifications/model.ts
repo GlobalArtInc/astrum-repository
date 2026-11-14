@@ -7,12 +7,25 @@ export const UPDATE = 'astrum:settings:update';
 export type ChannelType = 'telegram' | 'slack' | 'webhook' | 'email';
 export type ProxyMode = 'global' | 'none' | 'custom';
 export type ProxyType = 'http' | 'socks5';
-export type EventId = 'published' | 'updated' | 'deleted' | 'vulnerability.found' | 'policy.blocked';
+export type EventId =
+  | 'published'
+  | 'updated'
+  | 'deleted'
+  | 'vulnerability.found'
+  | 'policy.blocked'
+  | 'cooldown.released';
 export type Language = 'ru' | 'en';
 
 export const DEFAULT_EVENTS: EventId[] = ['published', 'updated', 'deleted'];
 export const TYPES: ChannelType[] = ['telegram', 'slack', 'webhook', 'email'];
-export const EVENTS: EventId[] = ['published', 'updated', 'deleted', 'vulnerability.found', 'policy.blocked'];
+export const EVENTS: EventId[] = [
+  'published',
+  'updated',
+  'deleted',
+  'vulnerability.found',
+  'policy.blocked',
+  'cooldown.released',
+];
 
 export const TYPE_LABELS: Record<ChannelType, string> = {
   telegram: 'notify.notifications.types.telegram',
@@ -27,6 +40,7 @@ export const EVENT_LABELS: Record<EventId, string> = {
   deleted: 'notify.notifications.eventNames.deleted',
   'vulnerability.found': 'notify.notifications.eventNames.vulnerabilityFound',
   'policy.blocked': 'notify.notifications.eventNames.policyBlocked',
+  'cooldown.released': 'notify.notifications.eventNames.cooldownReleased',
 };
 
 export const EVENT_HELP: Record<EventId, string> = {
@@ -35,6 +49,7 @@ export const EVENT_HELP: Record<EventId, string> = {
   deleted: 'notify.notifications.eventHelp.deleted',
   'vulnerability.found': 'notify.notifications.eventHelp.vulnerabilityFound',
   'policy.blocked': 'notify.notifications.eventHelp.policyBlocked',
+  'cooldown.released': 'notify.notifications.eventHelp.cooldownReleased',
 };
 
 export const CONNECTION_HELP: Record<ProxyMode, string> = {

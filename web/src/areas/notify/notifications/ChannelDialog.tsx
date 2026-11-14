@@ -144,6 +144,7 @@ function Help({ type }: { type: ChannelType }) {
                 deleted: <code key="deleted">component.deleted</code>,
                 vulnerability: <code key="vulnerability">vulnerability.found</code>,
                 blocked: <code key="blocked">policy.blocked</code>,
+                released: <code key="released">cooldown.released</code>,
                 test: <code key="test">test</code>,
                 delivery: <code key="delivery">X-Astrum-Delivery</code>,
               }),

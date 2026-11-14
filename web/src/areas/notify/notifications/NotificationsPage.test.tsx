@@ -85,4 +85,17 @@ describe('the notifications page', () => {
       screen.getByText('All hosted repositories, and every kind for security events'),
     ).toBeInTheDocument();
   });
+
+  it('offers the cooldown release event in the channel form, unchecked by default', async () => {
+    const fake = fakeServer({
+      [`GET ${CHANNELS}`]: () => jsonResponse([]),
+      'GET /service/rest/v1/repositories': () => jsonResponse([]),
+    });
+    vi.stubGlobal('fetch', fake.fetch);
+    renderWithApp(<NotificationsPage />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Add Channel' }));
+    await screen.findByRole('dialog', { name: 'New Notification Channel' });
+    expect(screen.getByRole('checkbox', { name: /^Version released after cooldown/ })).not.toBeChecked();
+    expect(screen.getByRole('checkbox', { name: /^Published/ })).toBeChecked();
+  });
 });

@@ -51,6 +51,7 @@ describe('the policy page', () => {
       vulnerabilities: { mode: 'off', severity: null, malicious: 'block', unscanned: 'allow', notify: null },
       licenses: { mode: 'off', list: null, ids: [], unknown: 'report' },
       signatures: { mode: 'off', keys: [] },
+      cooldown: { mode: 'off', minAgeDays: 7, exclude: [] },
     });
   });
 
@@ -131,6 +132,60 @@ describe('the policy page', () => {
     expect(
       await screen.findByText('must hold at least one id when the mode is block and the list is allow'),
     ).toBeInTheDocument();
+  });
+
+  it('sends the cooldown block with its minimum age and excluded packages', async () => {
+    const server = editing({
+      'PUT /service/rest/v1/security/policies/strict': () => jsonResponse(STRICT),
+    });
+    vi.stubGlobal('fetch', server.fetch);
+    renderWithApp(<PolicyPage />, { path: EDIT_PATH, routes: EDIT_ROUTES });
+    const modes = await screen.findAllByRole('combobox', { name: 'Mode' });
+    await userEvent.click(modes[3] as HTMLElement);
+    await userEvent.click(screen.getByRole('option', { name: 'Report' }));
+    const days = screen.getByRole('spinbutton', { name: 'Minimum age in days' });
+    await userEvent.clear(days);
+    await userEvent.type(days, '14');
+    await userEvent.type(screen.getByRole('textbox', { name: 'Excluded packages' }), '@globalart/*{Enter}');
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(server.calls.some((call) => call.method === 'PUT')).toBe(true));
+    expect(server.calls.find((call) => call.method === 'PUT')?.body).toMatchObject({
+      cooldown: { mode: 'report', minAgeDays: 14, exclude: ['@globalart/*'] },
+    });
+  });
+
+  it('refuses a minimum age outside 1 to 90 days before it sends anything', async () => {
+    const server = editing({
+      'GET /service/rest/v1/security/policies/strict': () =>
+        jsonResponse({ ...STRICT, cooldown: { mode: 'report', minAgeDays: 7, exclude: [] } }),
+      'PUT /service/rest/v1/security/policies/strict': () => jsonResponse(STRICT),
+    });
+    vi.stubGlobal('fetch', server.fetch);
+    renderWithApp(<PolicyPage />, { path: EDIT_PATH, routes: EDIT_ROUTES });
+    const days = await screen.findByRole('spinbutton', { name: 'Minimum age in days' });
+    await userEvent.clear(days);
+    await userEvent.type(days, '91');
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    expect(await screen.findByText('Enter a whole number of days from 1 to 90')).toBeInTheDocument();
+    expect(server.calls.some((call) => call.method === 'PUT')).toBe(false);
+  });
+
+  it('shows the server error of the cooldown minimum age under its field', async () => {
+    const server = editing({
+      'GET /service/rest/v1/security/policies/strict': () =>
+        jsonResponse({ ...STRICT, cooldown: { mode: 'report', minAgeDays: 7, exclude: [] } }),
+      'PUT /service/rest/v1/security/policies/strict': () =>
+        jsonResponse([{ id: 'cooldown.minAgeDays', message: 'must be at most 90 days' }], 400),
+    });
+    vi.stubGlobal('fetch', server.fetch);
+    renderWithApp(<PolicyPage />, { path: EDIT_PATH, routes: EDIT_ROUTES });
+    await userEvent.type(await screen.findByRole('textbox', { name: 'Notes' }), 'weekly review');
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+    expect(await screen.findByText('must be at most 90 days')).toBeInTheDocument();
+    expect(screen.getByRole('spinbutton', { name: 'Minimum age in days' })).toHaveAttribute(
+      'aria-invalid',
+      'true',
+    );
   });
 
   it('disables the fields and the save for a reader', async () => {

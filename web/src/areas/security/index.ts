@@ -97,6 +97,11 @@ export const securityArea: Area = {
       need: EXCEPTION_READ,
     },
     {
+      path: 'admin/security/cooldown',
+      load: () => import('./CooldownPage'),
+      need: POLICY_READ,
+    },
+    {
       path: 'admin/security/trusted-keys',
       load: () => import('./policy/TrustedKeysPage'),
       need: POLICY_READ,
@@ -157,6 +162,11 @@ export const securityArea: Area = {
       id: 'policy-exceptions',
       to: '/admin/security/policy-exceptions',
       need: EXCEPTION_READ,
+    },
+    {
+      id: 'cooldown',
+      to: '/admin/security/cooldown',
+      need: POLICY_READ,
     },
     {
       id: 'trusted-keys',
