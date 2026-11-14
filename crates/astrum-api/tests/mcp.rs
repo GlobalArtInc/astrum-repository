@@ -23,6 +23,19 @@ async fn token(fixture: &Fixture, scope: &str) -> String {
     reply.json()["token"].as_str().unwrap().to_owned()
 }
 
+async fn token_as(fixture: &Fixture, user: &str, scope: &str) -> String {
+    let reply = fixture
+        .call(
+            Method::POST,
+            TOKENS,
+            Auth::Basic(user, "password-1"),
+            Some(json!({"name": format!("mcp-{user}"), "scope": scope, "expiresInDays": 30})),
+        )
+        .await;
+    assert_eq!(reply.status, StatusCode::CREATED, "{}", reply.text());
+    reply.json()["token"].as_str().unwrap().to_owned()
+}
+
 async fn rpc(fixture: &Fixture, token: &str, method: &str, params: Value) -> Value {
     let reply = post(
         fixture,
@@ -218,6 +231,7 @@ async fn a_read_token_sees_only_the_reading_tools() {
         "list_users",
         "list_roles",
         "list_privileges",
+        "get_two_factor_status",
     ] {
         assert!(reading.contains(&name.to_owned()), "{name}: {reading:?}");
     }
@@ -729,4 +743,125 @@ async fn the_ip_allow_list_is_read_by_administrators_and_changed_by_no_tool() {
         !narrow_tools.contains(&"get_ip_allow_list".to_owned()),
         "{narrow_tools:?}"
     );
+}
+
+#[tokio::test]
+async fn second_factor_tools_are_offered_by_right() {
+    let fixture = ready().await;
+    user_with(&fixture, "reader", &["as-users-read"]).await;
+    fixture.add_user("plain", "password-1", &[]).await;
+    let admin = token(&fixture, "WRITE").await;
+    let admin_read = token(&fixture, "READ").await;
+    let reader = token_as(&fixture, "reader", "WRITE").await;
+    let plain = token_as(&fixture, "plain", "WRITE").await;
+
+    let all = names(&rpc(&fixture, &admin, "tools/list", json!({})).await);
+    for name in ["get_two_factor_status", "get_two_factor_policy"] {
+        assert!(all.contains(&name.to_owned()), "{name}: {all:?}");
+    }
+    assert!(
+        !all.iter()
+            .any(|name| name.starts_with("reset_") || name.starts_with("set_two_factor")),
+        "{all:?}"
+    );
+
+    let read = names(&rpc(&fixture, &admin_read, "tools/list", json!({})).await);
+    assert!(
+        read.contains(&"get_two_factor_status".to_owned()),
+        "{read:?}"
+    );
+    assert!(
+        !read.contains(&"get_two_factor_policy".to_owned()),
+        "{read:?}"
+    );
+
+    let reader_tools = names(&rpc(&fixture, &reader, "tools/list", json!({})).await);
+    assert!(reader_tools.contains(&"get_two_factor_status".to_owned()));
+    assert!(!reader_tools.contains(&"get_two_factor_policy".to_owned()));
+
+    let plain_tools = names(&rpc(&fixture, &plain, "tools/list", json!({})).await);
+    assert!(!plain_tools.contains(&"get_two_factor_status".to_owned()));
+    assert!(!plain_tools.contains(&"get_two_factor_policy".to_owned()));
+}
+
+#[tokio::test]
+async fn second_factor_status_and_policy_answer_the_administrator() {
+    let fixture = ready().await;
+    fixture.add_user("jane", "password-1", &[]).await;
+    let token = token(&fixture, "WRITE").await;
+
+    let status = ok(
+        &fixture,
+        &token,
+        "get_two_factor_status",
+        json!({"userId": "jane"}),
+    )
+    .await;
+    assert_eq!(status["userId"], "jane");
+    assert_eq!(status["enrolled"], false);
+    assert_eq!(status["requirement"], "policy");
+    assert!(status.get("recoveryCodesLeft").is_some(), "{status}");
+
+    let saved = fixture
+        .call(
+            Method::PUT,
+            "/service/rest/v1/security/two-factor",
+            Auth::Admin,
+            Some(json!({"graceDays": 7})),
+        )
+        .await;
+    assert!(saved.status.is_success(), "{}", saved.text());
+    let policy = ok(&fixture, &token, "get_two_factor_policy", json!({})).await;
+    assert_eq!(policy["graceDays"], 7);
+    assert_eq!(policy["totp"], true);
+    assert!(policy.get("relyingParty").is_some(), "{policy}");
+
+    let missing = failed(
+        &fixture,
+        &token,
+        "get_two_factor_status",
+        json!({"userId": "nobody"}),
+    )
+    .await;
+    assert!(missing.contains("not found"), "{missing}");
+}
+
+#[tokio::test]
+async fn second_factor_policy_is_refused_below_administrator() {
+    let fixture = ready().await;
+    user_with(&fixture, "reader", &["as-users-read"]).await;
+    fixture.add_user("plain", "password-1", &[]).await;
+    let admin_read = token(&fixture, "READ").await;
+    let reader = token_as(&fixture, "reader", "WRITE").await;
+    let plain = token_as(&fixture, "plain", "WRITE").await;
+
+    for token in [&admin_read, &reader] {
+        let refused = rpc(
+            &fixture,
+            token,
+            "tools/call",
+            json!({"name": "get_two_factor_policy", "arguments": {}}),
+        )
+        .await;
+        assert_eq!(refused["error"]["code"], -32602, "{refused}");
+    }
+    for name in ["get_two_factor_status", "get_two_factor_policy"] {
+        let refused = rpc(
+            &fixture,
+            &plain,
+            "tools/call",
+            json!({"name": name, "arguments": {"userId": "reader"}}),
+        )
+        .await;
+        assert_eq!(refused["error"]["code"], -32602, "{name}: {refused}");
+    }
+
+    let status = ok(
+        &fixture,
+        &admin_read,
+        "get_two_factor_status",
+        json!({"userId": "reader"}),
+    )
+    .await;
+    assert_eq!(status["userId"], "reader");
 }
