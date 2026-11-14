@@ -86,12 +86,13 @@ pub async fn describe(file: &Imported) -> Result<Option<Described>, String> {
             if let Some(alternates) = known.get("alternates") {
                 swift.insert("alternates".to_owned(), alternates.clone());
             }
-            let put = file
+            let mut put = file
                 .put(package.manifest_path(&name))
                 .component(component(file, &package))
                 .kind(MANIFEST_KIND)
                 .content_type("text/x-swift")
                 .attributes(json!({ ID: swift }));
+            put.check_content_type = false;
             Ok(Some(Described::source(put).keeping_component()))
         }
         _ => Err("the path is neither a source archive nor a manifest".to_owned()),

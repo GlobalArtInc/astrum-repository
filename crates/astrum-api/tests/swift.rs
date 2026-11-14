@@ -2,6 +2,9 @@ mod support;
 
 use std::sync::Arc;
 
+use astrum_content::store;
+use astrum_content::transfer::{Bundle, Conflict, LocalSource, Outcome, PROMOTED, Status, Terms};
+use astrum_content::{ContentError, Format};
 use axum::body::Body;
 use axum::http::{Method, StatusCode};
 use serde_json::{Value, json};
@@ -306,4 +309,231 @@ async fn releases_are_published_listed_and_fetched_through_a_group() {
         .await
         .json();
     assert_eq!(search["items"].as_array().unwrap().len(), 2, "{search}");
+}
+
+async fn repository(fixture: &Fixture, name: &str, policy: &str) {
+    let created = fixture
+        .call(
+            Method::POST,
+            "/service/rest/v1/repositories/swift/hosted",
+            Auth::Admin,
+            Some(json!({"name": name, "online": true,
+                "storage": {"blobStoreName": "default", "strictContentTypeValidation": true, "writePolicy": policy}})),
+        )
+        .await;
+    assert_eq!(created.status, StatusCode::CREATED, "{}", created.text());
+}
+
+async fn publish_signed(fixture: &Fixture, repository: &str, version: &str, archive: &[u8]) {
+    let mut body = form(
+        archive,
+        &json!({"description": "One linked list",
+        "repositoryURLs": ["https://github.com/mona/LinkedList.git"], "author": {"name": "Mona"}}),
+    );
+    let closing = format!("--{BOUNDARY}--\r\n");
+    body.truncate(body.len() - closing.len());
+    for (name, signature) in [
+        ("source-archive-signature", "archive-signature"),
+        ("metadata-signature", "metadata-signature"),
+    ] {
+        body.extend_from_slice(format!("--{BOUNDARY}\r\nContent-Disposition: form-data; name=\"{name}\"\r\nContent-Type: application/octet-stream\r\n\r\n{signature}\r\n").as_bytes());
+    }
+    body.extend_from_slice(closing.as_bytes());
+    let content_type = format!("multipart/form-data;boundary=\"{BOUNDARY}\"");
+    let published = fixture
+        .send_body(
+            Method::PUT,
+            &format!("/repository/{repository}/mona/LinkedList/{version}"),
+            Auth::Admin,
+            Body::from(body),
+            &[
+                ("accept", JSON),
+                ("content-type", content_type.as_str()),
+                ("x-swift-package-signature-format", "cms-1.0.0"),
+            ],
+        )
+        .await;
+    assert_eq!(
+        published.status,
+        StatusCode::CREATED,
+        "{}",
+        published.text()
+    );
+}
+
+async fn bundle(fixture: &Fixture, source: &str, version: &str) -> Bundle {
+    support::bundle_of(
+        fixture,
+        &astrum_format_swift::Swift,
+        source,
+        &format!("/mona/LinkedList/{version}.zip"),
+    )
+    .await
+}
+
+async fn promote(
+    fixture: &Fixture,
+    source: &str,
+    target: &str,
+    bundle: &Bundle,
+) -> Result<Outcome, ContentError> {
+    let from = support::repository_ctx(fixture, source).await;
+    let to = support::repository_ctx(fixture, target).await;
+    astrum_format_swift::Swift
+        .transfer()
+        .expect("swift takes part in promotion")
+        .receive(
+            &to,
+            bundle,
+            &LocalSource::new(from),
+            Terms::new(Conflict::Fail, PROMOTED),
+        )
+        .await
+}
+
+async fn release_of(fixture: &Fixture, repository: &str) -> Value {
+    get(
+        fixture,
+        &format!("/repository/{repository}/mona/LinkedList/1.0.0"),
+        JSON,
+    )
+    .await
+    .json()
+}
+
+async fn swift_attributes(fixture: &Fixture, repository: &str, version: &str) -> Value {
+    let found = store::find(
+        fixture.state.db().conn(),
+        repository,
+        &format!("/mona/LinkedList/{version}.zip"),
+    )
+    .await
+    .unwrap()
+    .unwrap();
+    store::component_by_id(fixture.state.db().conn(), found.component_id.unwrap())
+        .await
+        .unwrap()
+        .unwrap()
+        .attributes["swift"]
+        .clone()
+}
+
+#[tokio::test]
+async fn a_signed_release_is_promoted_with_its_metadata_and_signatures() {
+    let fixture = ready().await;
+    repository(&fixture, "source", "allow").await;
+    repository(&fixture, "target", "allow_once").await;
+    let archive = source("1.0.0");
+    publish_signed(&fixture, "source", "1.0.0", &archive).await;
+    let outcome = promote(
+        &fixture,
+        "source",
+        "target",
+        &bundle(&fixture, "source", "1.0.0").await,
+    )
+    .await
+    .unwrap();
+    assert_eq!(outcome.status, Status::Copied);
+
+    let (from, to) = (
+        swift_attributes(&fixture, "source", "1.0.0").await,
+        swift_attributes(&fixture, "target", "1.0.0").await,
+    );
+    assert_eq!(from, to);
+    for field in [
+        "metadata",
+        "publishedAt",
+        "description",
+        "repositoryURLs",
+        "signing",
+        "metadataSigning",
+    ] {
+        assert!(!to[field].is_null(), "{field} is missing: {to}");
+    }
+    let mut expected = release_of(&fixture, "source").await;
+    expected["id"] = json!("mona.LinkedList");
+    assert_eq!(release_of(&fixture, "target").await, expected);
+    for (path, accept) in [
+        ("1.0.0.zip", "application/vnd.swift.registry.v1+zip"),
+        (
+            "1.0.0/Package.swift",
+            "application/vnd.swift.registry.v1+swift",
+        ),
+        (
+            "1.0.0/Package@swift-5.9.swift",
+            "application/vnd.swift.registry.v1+swift",
+        ),
+    ] {
+        let found = |repository: &str| format!("/repository/{repository}/mona/LinkedList/{path}");
+        let (a, b) = (
+            get(&fixture, &found("source"), accept).await,
+            get(&fixture, &found("target"), accept).await,
+        );
+        assert_eq!(b.status, StatusCode::OK, "{path}");
+        assert_eq!(a.body, b.body, "{path}");
+    }
+    let listing = get(&fixture, "/repository/target/mona/LinkedList", JSON).await;
+    assert!(listing.json()["releases"]["1.0.0"].is_object());
+}
+
+#[tokio::test]
+async fn a_crafted_path_a_duplicate_version_and_a_read_only_target_are_refused() {
+    let fixture = ready().await;
+    repository(&fixture, "source", "allow").await;
+    repository(&fixture, "target", "allow_once").await;
+    repository(&fixture, "locked", "deny").await;
+    publish_signed(&fixture, "source", "1.0.0", &source("1.0.0")).await;
+    let genuine = bundle(&fixture, "source", "1.0.0").await;
+    let blobs = || async {
+        fixture
+            .state
+            .content()
+            .blob_stores()
+            .get("default")
+            .await
+            .unwrap()
+            .list(None, 1000)
+            .await
+            .unwrap()
+            .len()
+    };
+    let before = blobs().await;
+
+    let mut crafted = genuine.clone();
+    crafted
+        .assets
+        .iter_mut()
+        .find(|asset| asset.path.ends_with(".zip"))
+        .unwrap()
+        .path = "/mona/LinkedList/9.9.9.zip".to_owned();
+    let error = promote(&fixture, "source", "target", &crafted)
+        .await
+        .unwrap_err();
+    assert!(matches!(error, ContentError::BadRequest(_)), "{error}");
+
+    let error = promote(&fixture, "source", "locked", &genuine)
+        .await
+        .unwrap_err();
+    assert!(matches!(error, ContentError::BadRequest(_)), "{error}");
+    for target in ["target", "locked"] {
+        assert!(
+            store::find(
+                fixture.state.db().conn(),
+                target,
+                "/mona/LinkedList/1.0.0.zip"
+            )
+            .await
+            .unwrap()
+            .is_none()
+        );
+    }
+    assert_eq!(blobs().await, before);
+
+    promote(&fixture, "source", "target", &genuine)
+        .await
+        .unwrap();
+    let error = promote(&fixture, "source", "target", &genuine)
+        .await
+        .unwrap_err();
+    assert!(matches!(error, ContentError::Conflict(_)), "{error}");
 }
