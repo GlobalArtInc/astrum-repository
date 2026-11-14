@@ -523,6 +523,7 @@ async fn built_in_tasks_are_created_once_and_stay_editable() {
             "Compact blob stores",
             "Delete expired sessions and uploads",
             "Delete unused Docker manifests and layers",
+            "Notify about expiring customer tokens",
             "Record repository usage"
         ]
     );

@@ -9,6 +9,8 @@ use crate::store::{self, NewTask, StoreError};
 pub const PROVISIONED: &str = "tasks.provisioned";
 pub const USAGE_SNAPSHOT_PROVISIONED: &str = "tasks.provisioned.usageSnapshot";
 pub const DOCKER_GC: &str = "repository.docker.gc";
+pub const CUSTOMER_TOKEN_EXPIRY: &str = "customers.tokens.expiry";
+const CUSTOMER_TOKEN_EXPIRY_PROVISIONED: &str = "tasks.provisioned.customerTokenExpiry";
 
 fn properties(pairs: &[(&str, &str)]) -> Properties {
     pairs
@@ -69,6 +71,18 @@ fn usage_snapshot() -> NewTask {
     }
 }
 
+fn customer_token_expiry() -> NewTask {
+    NewTask {
+        kind: CUSTOMER_TOKEN_EXPIRY.to_owned(),
+        name: "Notify about expiring customer tokens".to_owned(),
+        enabled: true,
+        schedule: Schedule::cron("0 0 8 * * ?").expect("built-in schedules are valid"),
+        alert_email: None,
+        notification_condition: crate::notification::FAILURE.to_owned(),
+        properties: properties(&[]),
+    }
+}
+
 async fn create(db: &DatabaseConnection, tasks: Vec<NewTask>) -> Result<usize, astrum_db::Error> {
     let mut created = 0;
     for task in tasks {
@@ -95,6 +109,13 @@ pub async fn bootstrap(db: &DatabaseConnection) -> Result<usize, astrum_db::Erro
     {
         created += create(db, vec![usage_snapshot()]).await?;
         setting::put(db, USAGE_SNAPSHOT_PROVISIONED, &true).await?;
+    }
+    if setting::get::<bool>(db, CUSTOMER_TOKEN_EXPIRY_PROVISIONED)
+        .await?
+        .is_none()
+    {
+        created += create(db, vec![customer_token_expiry()]).await?;
+        setting::put(db, CUSTOMER_TOKEN_EXPIRY_PROVISIONED, &true).await?;
     }
     Ok(created)
 }

@@ -47,6 +47,9 @@ impl Server {
         state.tasks().register(std::sync::Arc::new(
             astrum_tasks::kinds::scan::ScanRepository,
         ));
+        state.tasks().register(std::sync::Arc::new(
+            astrum_api::customer_expiry::CustomerTokenExpiry::new(state.notifier().clone()),
+        ));
         let listener = TcpListener::bind(config.listen)
             .await
             .with_context(|| format!("cannot listen on {}", config.listen))?;
