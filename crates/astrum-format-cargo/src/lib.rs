@@ -2,7 +2,7 @@ mod hosted;
 pub mod index;
 mod remote;
 
-use astrum_content::inventory::{Inventory, LicenseFact, PackageRef};
+use astrum_content::inventory::{Inventory, LicenseFact, PackageRef, cap_license};
 use astrum_content::store::{self, Component};
 use astrum_content::{
     Asset, BrowseLayout, CHALLENGE, ContentError, ContentRequest, Ctx, Format, Serve, View, group,
@@ -24,7 +24,6 @@ pub const INDEX_TYPE: &str = "text/plain";
 pub const REALM: &str = api_keys::CARGO;
 const MAX_PUBLISH: usize = 256 * 1024 * 1024;
 const MAX_SEARCH: u64 = 100;
-const MAX_LICENSE: usize = 1024;
 
 pub fn crate_path(name: &str, version: &str) -> String {
     format!("/crates/{name}/{version}/{name}-{version}.crate")
@@ -71,11 +70,7 @@ fn package_inventory(name: &str, version: &str) -> Option<Inventory> {
 }
 
 fn declared_license(text: &str) -> Option<String> {
-    let mut end = text.len().min(MAX_LICENSE);
-    while !text.is_char_boundary(end) {
-        end -= 1;
-    }
-    let declared = text[..end].trim();
+    let declared = cap_license(text).trim();
     (!declared.is_empty()).then(|| declared.to_owned())
 }
 

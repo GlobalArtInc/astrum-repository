@@ -10,7 +10,7 @@ use std::collections::HashMap;
 
 use astrum_blob::{BlobId, Digests, Written};
 use astrum_content::format::SearchTarget;
-use astrum_content::inventory::{Inventory, LicenseFact, PackageRef};
+use astrum_content::inventory::{Inventory, LicenseFact, PackageRef, cap_license};
 use astrum_content::proxy;
 use astrum_content::store::{self, Component, ComponentKey, PutAsset};
 use astrum_content::{
@@ -32,7 +32,6 @@ use crate::index::{InfoEntry, Specs};
 pub const ID: &str = "rubygems";
 pub const GEM: &str = "GEM";
 pub const GEMSPEC: &str = "GEMSPEC";
-const MAX_LICENSE: usize = 1024;
 pub const INDEX: &str = "INDEX";
 pub const REALM: &str = api_keys::RUBYGEMS;
 const TEXT: &str = "text/plain; charset=utf-8";
@@ -268,15 +267,12 @@ fn package_inventory(name: &str, version: &str) -> Option<Inventory> {
         }],
         license: None,
         complete: true,
+        ..Inventory::default()
     })
 }
 
 fn declared_license(text: &str) -> Option<String> {
-    let mut end = text.len().min(MAX_LICENSE);
-    while !text.is_char_boundary(end) {
-        end -= 1;
-    }
-    let declared = text[..end].trim();
+    let declared = cap_license(text).trim();
     (!declared.is_empty()).then(|| declared.to_owned())
 }
 

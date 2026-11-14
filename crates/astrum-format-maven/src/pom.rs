@@ -1,6 +1,6 @@
-use crate::xml::{self, Element, XmlError, line};
+use astrum_content::inventory::cap_license;
 
-const LICENSE_TEXT_LIMIT: usize = 1024;
+use crate::xml::{self, Element, XmlError, line};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Pom {
@@ -33,19 +33,8 @@ impl Pom {
             .iter()
             .filter_map(|license| license.name.clone().or_else(|| license.url.clone()))
             .collect();
-        (!texts.is_empty()).then(|| cap(texts.join(" OR ")))
+        (!texts.is_empty()).then(|| cap_license(&texts.join(" OR ")).to_owned())
     }
-}
-
-fn cap(mut text: String) -> String {
-    if text.len() > LICENSE_TEXT_LIMIT {
-        let mut end = LICENSE_TEXT_LIMIT;
-        while !text.is_char_boundary(end) {
-            end -= 1;
-        }
-        text.truncate(end);
-    }
-    text
 }
 
 fn licenses(root: &Element) -> Vec<License> {

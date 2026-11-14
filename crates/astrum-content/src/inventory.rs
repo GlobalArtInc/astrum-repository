@@ -6,6 +6,16 @@ pub struct PackageRef {
     pub purl: String,
 }
 
+pub const LICENSE_TEXT_LIMIT: usize = 1024;
+
+pub fn cap_license(text: &str) -> &str {
+    let mut end = text.len().min(LICENSE_TEXT_LIMIT);
+    while !text.is_char_boundary(end) {
+        end -= 1;
+    }
+    &text[..end]
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LicenseFact {
     pub declared: String,

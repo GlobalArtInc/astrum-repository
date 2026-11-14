@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use std::time::Duration;
 
 use astrum_content::Component;
-use astrum_content::inventory::{Inventory, LicenseFact, PackageRef};
+use astrum_content::inventory::{Inventory, LicenseFact, PackageRef, cap_license};
 use astrum_policy::license;
 use chrono::{DateTime, Utc};
 use sea_orm::{
@@ -20,7 +20,6 @@ pub use clean::sanitise;
 use oci::{mark_subjects, previous_digest};
 
 const MAX_ERROR_CHARS: usize = 1000;
-const MAX_LICENSE_BYTES: usize = 1024;
 
 pub async fn claim(
     db: &DatabaseConnection,
@@ -455,7 +454,7 @@ async fn replace_license(
         .await?;
         return Ok(());
     };
-    let declared = capped(&fact.declared);
+    let declared = cap_license(&fact.declared);
     let normalised = license::normalise(declared);
     let expression = match normalised.state {
         license::State::Spdx | license::State::Mapped => Some(normalised.text),
@@ -479,14 +478,6 @@ async fn replace_license(
     ))
     .await?;
     Ok(())
-}
-
-fn capped(text: &str) -> &str {
-    let mut end = text.len().min(MAX_LICENSE_BYTES);
-    while !text.is_char_boundary(end) {
-        end -= 1;
-    }
-    &text[..end]
 }
 
 async fn upsert_scan(

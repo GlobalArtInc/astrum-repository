@@ -16,7 +16,7 @@ pub mod version;
 mod xml;
 
 use astrum_content::format::{SearchKey, SearchTarget};
-use astrum_content::inventory::{Inventory, LicenseFact, PackageRef};
+use astrum_content::inventory::{Inventory, LicenseFact, PackageRef, cap_license};
 use astrum_content::store::{self};
 use astrum_content::{
     Asset, BrowseLayout, Component, ContentError, ContentRequest, Ctx, Format, Serve, UploadField,
@@ -39,7 +39,6 @@ use crate::urls::Urls;
 use crate::version::Version;
 
 pub const ID: &str = "nuget";
-const LICENSE_TEXT_LIMIT: usize = 1024;
 const LICENSES_URL: &str = "https://licenses.nuget.org/";
 const DEPRECATE_LICENSE_URL: &str = "https://aka.ms/deprecateLicenseUrl";
 pub const PACKAGE_KIND: &str = "package";
@@ -419,7 +418,7 @@ fn license_fact(attributes: &Value) -> Option<LicenseFact> {
                 .map(|_| "license file".to_owned())
         })?;
     Some(LicenseFact {
-        declared: cap(&declared),
+        declared: cap_license(&declared).to_owned(),
         source: "nuget.nuspec".to_owned(),
     })
 }
@@ -434,14 +433,6 @@ fn declared_of_url(url: &str) -> Option<String> {
     let decoded = percent_decode_str(expression).decode_utf8_lossy();
     let decoded = decoded.trim();
     (!decoded.is_empty()).then(|| decoded.to_owned())
-}
-
-fn cap(text: &str) -> String {
-    let mut end = text.len().min(LICENSE_TEXT_LIMIT);
-    while !text.is_char_boundary(end) {
-        end -= 1;
-    }
-    text[..end].to_owned()
 }
 
 #[async_trait]
