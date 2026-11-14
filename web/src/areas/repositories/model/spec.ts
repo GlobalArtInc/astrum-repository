@@ -5,7 +5,7 @@ export interface Spec {
   type: RepositoryType;
 }
 
-const WRITABLE_MEMBER = new Set(['cargo', 'docker', 'swift']);
+const WRITABLE_MEMBER = new Set(['cargo', 'docker', 'jsr', 'swift']);
 const API_NAMES: Record<string, string> = { maven2: 'maven' };
 export const TYPES: readonly RepositoryType[] = ['hosted', 'proxy', 'group'];
 

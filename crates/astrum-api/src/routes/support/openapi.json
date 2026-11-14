@@ -1194,6 +1194,38 @@
         },
         "type": "object"
       },
+      "BazelCacheHostedRepositoryApiRequest": {
+        "properties": {
+          "cleanup": {
+            "$ref": "#/components/schemas/CleanupPolicyAttributes"
+          },
+          "component": {
+            "$ref": "#/components/schemas/ComponentAttributes"
+          },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
+          "name": {
+            "example": "internal",
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9\\-]{1}[a-zA-Z0-9_\\-\\.]*$",
+            "type": "string"
+          },
+          "online": {
+            "example": true,
+            "type": "boolean"
+          },
+          "storage": {
+            "$ref": "#/components/schemas/HostedStorageAttributes"
+          }
+        },
+        "required": [
+          "name",
+          "online",
+          "storage"
+        ],
+        "type": "object"
+      },
       "BazelGroupRepositoryApiRequest": {
         "properties": {
           "domain": {
@@ -2860,6 +2892,38 @@
         ],
         "type": "object"
       },
+      "GradleCacheHostedRepositoryApiRequest": {
+        "properties": {
+          "cleanup": {
+            "$ref": "#/components/schemas/CleanupPolicyAttributes"
+          },
+          "component": {
+            "$ref": "#/components/schemas/ComponentAttributes"
+          },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
+          "name": {
+            "example": "internal",
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9\\-]{1}[a-zA-Z0-9_\\-\\.]*$",
+            "type": "string"
+          },
+          "online": {
+            "example": true,
+            "type": "boolean"
+          },
+          "storage": {
+            "$ref": "#/components/schemas/HostedStorageAttributes"
+          }
+        },
+        "required": [
+          "name",
+          "online",
+          "storage"
+        ],
+        "type": "object"
+      },
       "GroupAttributes": {
         "properties": {
           "memberNames": {
@@ -3099,6 +3163,56 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "HomebrewProxyRepositoryApiRequest": {
+        "properties": {
+          "cleanup": {
+            "$ref": "#/components/schemas/CleanupPolicyAttributes"
+          },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
+          "firewall": {
+            "$ref": "#/components/schemas/FirewallAttributes"
+          },
+          "httpClient": {
+            "$ref": "#/components/schemas/HttpClientAttributes"
+          },
+          "name": {
+            "example": "internal",
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9\\-]{1}[a-zA-Z0-9_\\-\\.]*$",
+            "type": "string"
+          },
+          "negativeCache": {
+            "$ref": "#/components/schemas/NegativeCacheAttributes"
+          },
+          "online": {
+            "example": true,
+            "type": "boolean"
+          },
+          "proxy": {
+            "$ref": "#/components/schemas/ProxyAttributes"
+          },
+          "replication": {
+            "$ref": "#/components/schemas/ReplicationAttributes"
+          },
+          "routingRuleName": {
+            "type": "string"
+          },
+          "storage": {
+            "$ref": "#/components/schemas/StorageAttributes"
+          }
+        },
+        "required": [
+          "httpClient",
+          "name",
+          "negativeCache",
+          "online",
+          "proxy",
+          "storage"
+        ],
         "type": "object"
       },
       "HostedStorageAttributes": {
@@ -3446,6 +3560,118 @@
         "type": "object"
       },
       "JetbrainsProxyRepositoryApiRequest": {
+        "properties": {
+          "cleanup": {
+            "$ref": "#/components/schemas/CleanupPolicyAttributes"
+          },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
+          "firewall": {
+            "$ref": "#/components/schemas/FirewallAttributes"
+          },
+          "httpClient": {
+            "$ref": "#/components/schemas/HttpClientAttributes"
+          },
+          "name": {
+            "example": "internal",
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9\\-]{1}[a-zA-Z0-9_\\-\\.]*$",
+            "type": "string"
+          },
+          "negativeCache": {
+            "$ref": "#/components/schemas/NegativeCacheAttributes"
+          },
+          "online": {
+            "example": true,
+            "type": "boolean"
+          },
+          "proxy": {
+            "$ref": "#/components/schemas/ProxyAttributes"
+          },
+          "replication": {
+            "$ref": "#/components/schemas/ReplicationAttributes"
+          },
+          "routingRuleName": {
+            "type": "string"
+          },
+          "storage": {
+            "$ref": "#/components/schemas/StorageAttributes"
+          }
+        },
+        "required": [
+          "httpClient",
+          "name",
+          "negativeCache",
+          "online",
+          "proxy",
+          "storage"
+        ],
+        "type": "object"
+      },
+      "JsrGroupRepositoryApiRequest": {
+        "properties": {
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
+          "group": {
+            "$ref": "#/components/schemas/GroupAttributes"
+          },
+          "name": {
+            "example": "internal",
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9\\-]{1}[a-zA-Z0-9_\\-\\.]*$",
+            "type": "string"
+          },
+          "online": {
+            "example": true,
+            "type": "boolean"
+          },
+          "storage": {
+            "$ref": "#/components/schemas/StorageAttributes"
+          }
+        },
+        "required": [
+          "group",
+          "name",
+          "online",
+          "storage"
+        ],
+        "type": "object"
+      },
+      "JsrHostedRepositoryApiRequest": {
+        "properties": {
+          "cleanup": {
+            "$ref": "#/components/schemas/CleanupPolicyAttributes"
+          },
+          "component": {
+            "$ref": "#/components/schemas/ComponentAttributes"
+          },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
+          "name": {
+            "example": "internal",
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9\\-]{1}[a-zA-Z0-9_\\-\\.]*$",
+            "type": "string"
+          },
+          "online": {
+            "example": true,
+            "type": "boolean"
+          },
+          "storage": {
+            "$ref": "#/components/schemas/HostedStorageAttributes"
+          }
+        },
+        "required": [
+          "name",
+          "online",
+          "storage"
+        ],
+        "type": "object"
+      },
+      "JsrProxyRepositoryApiRequest": {
         "properties": {
           "cleanup": {
             "$ref": "#/components/schemas/CleanupPolicyAttributes"
@@ -4087,6 +4313,88 @@
         "required": [
           "name",
           "online",
+          "storage"
+        ],
+        "type": "object"
+      },
+      "OpamHostedRepositoryApiRequest": {
+        "properties": {
+          "cleanup": {
+            "$ref": "#/components/schemas/CleanupPolicyAttributes"
+          },
+          "component": {
+            "$ref": "#/components/schemas/ComponentAttributes"
+          },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
+          "name": {
+            "example": "internal",
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9\\-]{1}[a-zA-Z0-9_\\-\\.]*$",
+            "type": "string"
+          },
+          "online": {
+            "example": true,
+            "type": "boolean"
+          },
+          "storage": {
+            "$ref": "#/components/schemas/HostedStorageAttributes"
+          }
+        },
+        "required": [
+          "name",
+          "online",
+          "storage"
+        ],
+        "type": "object"
+      },
+      "OpamProxyRepositoryApiRequest": {
+        "properties": {
+          "cleanup": {
+            "$ref": "#/components/schemas/CleanupPolicyAttributes"
+          },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
+          "firewall": {
+            "$ref": "#/components/schemas/FirewallAttributes"
+          },
+          "httpClient": {
+            "$ref": "#/components/schemas/HttpClientAttributes"
+          },
+          "name": {
+            "example": "internal",
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9\\-]{1}[a-zA-Z0-9_\\-\\.]*$",
+            "type": "string"
+          },
+          "negativeCache": {
+            "$ref": "#/components/schemas/NegativeCacheAttributes"
+          },
+          "online": {
+            "example": true,
+            "type": "boolean"
+          },
+          "proxy": {
+            "$ref": "#/components/schemas/ProxyAttributes"
+          },
+          "replication": {
+            "$ref": "#/components/schemas/ReplicationAttributes"
+          },
+          "routingRuleName": {
+            "type": "string"
+          },
+          "storage": {
+            "$ref": "#/components/schemas/StorageAttributes"
+          }
+        },
+        "required": [
+          "httpClient",
+          "name",
+          "negativeCache",
+          "online",
+          "proxy",
           "storage"
         ],
         "type": "object"
@@ -6498,6 +6806,38 @@
         "required": [
           "bucketConfiguration",
           "name"
+        ],
+        "type": "object"
+      },
+      "SccacheHostedRepositoryApiRequest": {
+        "properties": {
+          "cleanup": {
+            "$ref": "#/components/schemas/CleanupPolicyAttributes"
+          },
+          "component": {
+            "$ref": "#/components/schemas/ComponentAttributes"
+          },
+          "domain": {
+            "$ref": "#/components/schemas/DomainAttributes"
+          },
+          "name": {
+            "example": "internal",
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9\\-]{1}[a-zA-Z0-9_\\-\\.]*$",
+            "type": "string"
+          },
+          "online": {
+            "example": true,
+            "type": "boolean"
+          },
+          "storage": {
+            "$ref": "#/components/schemas/HostedStorageAttributes"
+          }
+        },
+        "required": [
+          "name",
+          "online",
+          "storage"
         ],
         "type": "object"
       },
@@ -10109,6 +10449,93 @@
         ]
       }
     },
+    "/v1/repositories/bazelcache/hosted": {
+      "post": {
+        "operationId": "postV1RepositoriesBazelcacheHosted",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BazelCacheHostedRepositoryApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "Create repositories bazelcache hosted",
+        "tags": [
+          "Repository Management"
+        ]
+      }
+    },
+    "/v1/repositories/bazelcache/hosted/{repositoryName}": {
+      "get": {
+        "operationId": "getV1RepositoriesBazelcacheHostedRepositoryName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repositoryName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AbstractApiRepository"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Get repositories bazelcache hosted",
+        "tags": [
+          "Repository Management"
+        ]
+      },
+      "put": {
+        "operationId": "updateV1RepositoriesBazelcacheHostedRepositoryName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repositoryName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BazelCacheHostedRepositoryApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "400": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "Update repositories bazelcache hosted",
+        "tags": [
+          "Repository Management"
+        ]
+      }
+    },
     "/v1/repositories/cargo/group": {
       "post": {
         "operationId": "postV1RepositoriesCargoGroup",
@@ -12587,6 +13014,93 @@
         ]
       }
     },
+    "/v1/repositories/gradlecache/hosted": {
+      "post": {
+        "operationId": "postV1RepositoriesGradlecacheHosted",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GradleCacheHostedRepositoryApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "Create repositories gradlecache hosted",
+        "tags": [
+          "Repository Management"
+        ]
+      }
+    },
+    "/v1/repositories/gradlecache/hosted/{repositoryName}": {
+      "get": {
+        "operationId": "getV1RepositoriesGradlecacheHostedRepositoryName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repositoryName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AbstractApiRepository"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Get repositories gradlecache hosted",
+        "tags": [
+          "Repository Management"
+        ]
+      },
+      "put": {
+        "operationId": "updateV1RepositoriesGradlecacheHostedRepositoryName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repositoryName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GradleCacheHostedRepositoryApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "400": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "Update repositories gradlecache hosted",
+        "tags": [
+          "Repository Management"
+        ]
+      }
+    },
     "/v1/repositories/helm/hosted": {
       "post": {
         "operationId": "postV1RepositoriesHelmHosted",
@@ -13017,6 +13531,93 @@
         ]
       }
     },
+    "/v1/repositories/homebrew/proxy": {
+      "post": {
+        "operationId": "postV1RepositoriesHomebrewProxy",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HomebrewProxyRepositoryApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "Create repositories homebrew proxy",
+        "tags": [
+          "Repository Management"
+        ]
+      }
+    },
+    "/v1/repositories/homebrew/proxy/{repositoryName}": {
+      "get": {
+        "operationId": "getV1RepositoriesHomebrewProxyRepositoryName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repositoryName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AbstractApiRepository"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Get repositories homebrew proxy",
+        "tags": [
+          "Repository Management"
+        ]
+      },
+      "put": {
+        "operationId": "updateV1RepositoriesHomebrewProxyRepositoryName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repositoryName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HomebrewProxyRepositoryApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "400": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "Update repositories homebrew proxy",
+        "tags": [
+          "Repository Management"
+        ]
+      }
+    },
     "/v1/repositories/huggingface/proxy": {
       "post": {
         "operationId": "postV1RepositoriesHuggingfaceProxy",
@@ -13355,6 +13956,262 @@
           "403": {}
         },
         "summary": "Update repositories jetbrains proxy",
+        "tags": [
+          "Repository Management"
+        ]
+      }
+    },
+    "/v1/repositories/jsr/group": {
+      "post": {
+        "operationId": "postV1RepositoriesJsrGroup",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JsrGroupRepositoryApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "Create repositories jsr group",
+        "tags": [
+          "Repository Management"
+        ]
+      }
+    },
+    "/v1/repositories/jsr/group/{repositoryName}": {
+      "get": {
+        "operationId": "getV1RepositoriesJsrGroupRepositoryName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repositoryName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {},
+          "401": {},
+          "403": {},
+          "404": {}
+        },
+        "summary": "Get repositories jsr group",
+        "tags": [
+          "Repository Management"
+        ]
+      },
+      "put": {
+        "operationId": "updateV1RepositoriesJsrGroupRepositoryName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repositoryName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JsrGroupRepositoryApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "400": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "Update repositories jsr group",
+        "tags": [
+          "Repository Management"
+        ]
+      }
+    },
+    "/v1/repositories/jsr/hosted": {
+      "post": {
+        "operationId": "postV1RepositoriesJsrHosted",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JsrHostedRepositoryApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "Create repositories jsr hosted",
+        "tags": [
+          "Repository Management"
+        ]
+      }
+    },
+    "/v1/repositories/jsr/hosted/{repositoryName}": {
+      "get": {
+        "operationId": "getV1RepositoriesJsrHostedRepositoryName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repositoryName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AbstractApiRepository"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Get repositories jsr hosted",
+        "tags": [
+          "Repository Management"
+        ]
+      },
+      "put": {
+        "operationId": "updateV1RepositoriesJsrHostedRepositoryName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repositoryName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JsrHostedRepositoryApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "400": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "Update repositories jsr hosted",
+        "tags": [
+          "Repository Management"
+        ]
+      }
+    },
+    "/v1/repositories/jsr/proxy": {
+      "post": {
+        "operationId": "postV1RepositoriesJsrProxy",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JsrProxyRepositoryApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "Create repositories jsr proxy",
+        "tags": [
+          "Repository Management"
+        ]
+      }
+    },
+    "/v1/repositories/jsr/proxy/{repositoryName}": {
+      "get": {
+        "operationId": "getV1RepositoriesJsrProxyRepositoryName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repositoryName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AbstractApiRepository"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Get repositories jsr proxy",
+        "tags": [
+          "Repository Management"
+        ]
+      },
+      "put": {
+        "operationId": "updateV1RepositoriesJsrProxyRepositoryName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repositoryName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JsrProxyRepositoryApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "400": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "Update repositories jsr proxy",
         "tags": [
           "Repository Management"
         ]
@@ -14471,6 +15328,180 @@
           "403": {}
         },
         "summary": "Update repositories nx hosted",
+        "tags": [
+          "Repository Management"
+        ]
+      }
+    },
+    "/v1/repositories/opam/hosted": {
+      "post": {
+        "operationId": "postV1RepositoriesOpamHosted",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpamHostedRepositoryApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "Create repositories opam hosted",
+        "tags": [
+          "Repository Management"
+        ]
+      }
+    },
+    "/v1/repositories/opam/hosted/{repositoryName}": {
+      "get": {
+        "operationId": "getV1RepositoriesOpamHostedRepositoryName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repositoryName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AbstractApiRepository"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Get repositories opam hosted",
+        "tags": [
+          "Repository Management"
+        ]
+      },
+      "put": {
+        "operationId": "updateV1RepositoriesOpamHostedRepositoryName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repositoryName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpamHostedRepositoryApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "400": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "Update repositories opam hosted",
+        "tags": [
+          "Repository Management"
+        ]
+      }
+    },
+    "/v1/repositories/opam/proxy": {
+      "post": {
+        "operationId": "postV1RepositoriesOpamProxy",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpamProxyRepositoryApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "Create repositories opam proxy",
+        "tags": [
+          "Repository Management"
+        ]
+      }
+    },
+    "/v1/repositories/opam/proxy/{repositoryName}": {
+      "get": {
+        "operationId": "getV1RepositoriesOpamProxyRepositoryName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repositoryName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AbstractApiRepository"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Get repositories opam proxy",
+        "tags": [
+          "Repository Management"
+        ]
+      },
+      "put": {
+        "operationId": "updateV1RepositoriesOpamProxyRepositoryName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repositoryName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpamProxyRepositoryApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "400": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "Update repositories opam proxy",
         "tags": [
           "Repository Management"
         ]
@@ -16683,6 +17714,93 @@
           "403": {}
         },
         "summary": "Update repositories rubygems proxy",
+        "tags": [
+          "Repository Management"
+        ]
+      }
+    },
+    "/v1/repositories/sccache/hosted": {
+      "post": {
+        "operationId": "postV1RepositoriesSccacheHosted",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SccacheHostedRepositoryApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "Create repositories sccache hosted",
+        "tags": [
+          "Repository Management"
+        ]
+      }
+    },
+    "/v1/repositories/sccache/hosted/{repositoryName}": {
+      "get": {
+        "operationId": "getV1RepositoriesSccacheHostedRepositoryName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repositoryName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AbstractApiRepository"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Get repositories sccache hosted",
+        "tags": [
+          "Repository Management"
+        ]
+      },
+      "put": {
+        "operationId": "updateV1RepositoriesSccacheHostedRepositoryName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repositoryName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SccacheHostedRepositoryApiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "400": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "Update repositories sccache hosted",
         "tags": [
           "Repository Management"
         ]

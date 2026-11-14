@@ -1,20 +1,26 @@
 import type { RepositoryDomain, RepositoryType } from '../../../api';
 import { ansible } from './ansible';
 import { bazel } from './bazel';
+import { bazelcache } from './bazelcache';
 import { chef } from './chef';
 import { chrome } from './chrome';
 import { firefox } from './firefox';
+import { gradlecache } from './gradlecache';
 import { hex } from './hex';
+import { homebrew } from './homebrew';
 import { huggingface } from './huggingface';
 import { jetbrains } from './jetbrains';
+import { jsr } from './jsr';
 import { nix } from './nix';
 import { nx } from './nx';
+import { opam } from './opam';
 import { openvsx } from './openvsx';
 import { p2 } from './p2';
 import { pacman } from './pacman';
 import { protobuf } from './protobuf';
 import { pub } from './pub';
 import { puppet } from './puppet';
+import { sccache } from './sccache';
 import { swift } from './swift';
 import { terraform } from './terraform';
 import { turbo } from './turbo';
@@ -92,7 +98,13 @@ export const USAGE_FORMATS = [
   'pacman',
   'turbo',
   'nx',
+  'gradlecache',
+  'bazelcache',
+  'sccache',
   'bazel',
+  'jsr',
+  'homebrew',
+  'opam',
   'jetbrains',
   'protobuf',
   'chrome',
@@ -1111,8 +1123,14 @@ const GENERATORS: Record<string, (context: UsageContext) => Snippet[]> = {
   nix: (context) => nix(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   turbo: (context) => turbo(repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   nx: (context) => nx(repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
+  gradlecache: (context) =>
+    gradlecache(repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
+  sccache: (context) => sccache(repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
+  bazelcache: (context) =>
+    bazelcache(repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   bazel: (context) =>
     bazel(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
+  jsr: (context) => jsr(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   jetbrains: (context) =>
     jetbrains(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   protobuf: (context) => protobuf(context),
@@ -1121,6 +1139,10 @@ const GENERATORS: Record<string, (context: UsageContext) => Snippet[]> = {
   firefox: (context) =>
     firefox(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   hex: (context) => hex(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
+  homebrew: (context) =>
+    homebrew(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
+  opam: (context) =>
+    opam(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   openvsx: (context) =>
     openvsx(context, repositoryAddress(context.baseUrl, context.repositoryName, context.domain)),
   pacman: (context) =>

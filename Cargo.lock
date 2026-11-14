@@ -273,6 +273,7 @@ dependencies = [
  "astrum-format-ansible",
  "astrum-format-apt",
  "astrum-format-bazel",
+ "astrum-format-bazelcache",
  "astrum-format-cargo",
  "astrum-format-chef",
  "astrum-format-chrome",
@@ -284,15 +285,19 @@ dependencies = [
  "astrum-format-firefox",
  "astrum-format-gitlfs",
  "astrum-format-go",
+ "astrum-format-gradlecache",
  "astrum-format-helm",
  "astrum-format-hex",
+ "astrum-format-homebrew",
  "astrum-format-huggingface",
  "astrum-format-jetbrains",
+ "astrum-format-jsr",
  "astrum-format-maven",
  "astrum-format-nix",
  "astrum-format-npm",
  "astrum-format-nuget",
  "astrum-format-nx",
+ "astrum-format-opam",
  "astrum-format-openvsx",
  "astrum-format-p2",
  "astrum-format-pacman",
@@ -303,6 +308,7 @@ dependencies = [
  "astrum-format-r",
  "astrum-format-raw",
  "astrum-format-rubygems",
+ "astrum-format-sccache",
  "astrum-format-swift",
  "astrum-format-terraform",
  "astrum-format-turbo",
@@ -582,6 +588,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "astrum-format-bazelcache"
+version = "3.0.4"
+dependencies = [
+ "astrum-content",
+ "astrum-repo",
+ "async-trait",
+ "axum",
+ "futures-util",
+]
+
+[[package]]
 name = "astrum-format-cargo"
 version = "3.0.4"
 dependencies = [
@@ -838,6 +855,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "astrum-format-gradlecache"
+version = "3.0.4"
+dependencies = [
+ "astrum-content",
+ "astrum-repo",
+ "async-trait",
+ "axum",
+ "futures-util",
+]
+
+[[package]]
 name = "astrum-format-helm"
 version = "3.0.4"
 dependencies = [
@@ -900,6 +928,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "astrum-format-homebrew"
+version = "3.0.4"
+dependencies = [
+ "astrum-content",
+ "astrum-repo",
+ "async-trait",
+ "axum",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "url",
+]
+
+[[package]]
 name = "astrum-format-huggingface"
 version = "3.0.4"
 dependencies = [
@@ -944,6 +986,34 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
+]
+
+[[package]]
+name = "astrum-format-jsr"
+version = "3.0.4"
+dependencies = [
+ "astrum-blob",
+ "astrum-content",
+ "astrum-db",
+ "astrum-repo",
+ "async-trait",
+ "axum",
+ "bytes",
+ "chrono",
+ "flate2",
+ "futures-util",
+ "hex",
+ "sea-orm",
+ "semver",
+ "serde_json",
+ "sha2 0.10.9",
+ "tar",
+ "tempfile",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "url",
+ "uuid",
 ]
 
 [[package]]
@@ -1068,6 +1138,29 @@ dependencies = [
  "astrum-repo",
  "async-trait",
  "axum",
+]
+
+[[package]]
+name = "astrum-format-opam"
+version = "3.0.4"
+dependencies = [
+ "astrum-blob",
+ "astrum-content",
+ "astrum-db",
+ "astrum-repo",
+ "async-trait",
+ "axum",
+ "flate2",
+ "futures-util",
+ "hex",
+ "sea-orm",
+ "serde_json",
+ "sha2 0.10.9",
+ "tar",
+ "tempfile",
+ "tokio",
+ "tokio-util",
+ "tracing",
 ]
 
 [[package]]
@@ -1331,6 +1424,21 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
+]
+
+[[package]]
+name = "astrum-format-sccache"
+version = "3.0.4"
+dependencies = [
+ "astrum-content",
+ "astrum-db",
+ "astrum-repo",
+ "async-trait",
+ "axum",
+ "chrono",
+ "futures-util",
+ "httpdate",
+ "sea-orm",
 ]
 
 [[package]]
@@ -1656,6 +1764,7 @@ dependencies = [
  "astrum-format-ansible",
  "astrum-format-apt",
  "astrum-format-bazel",
+ "astrum-format-bazelcache",
  "astrum-format-cargo",
  "astrum-format-chef",
  "astrum-format-chrome",
@@ -1667,15 +1776,19 @@ dependencies = [
  "astrum-format-firefox",
  "astrum-format-gitlfs",
  "astrum-format-go",
+ "astrum-format-gradlecache",
  "astrum-format-helm",
  "astrum-format-hex",
+ "astrum-format-homebrew",
  "astrum-format-huggingface",
  "astrum-format-jetbrains",
+ "astrum-format-jsr",
  "astrum-format-maven",
  "astrum-format-nix",
  "astrum-format-npm",
  "astrum-format-nuget",
  "astrum-format-nx",
+ "astrum-format-opam",
  "astrum-format-openvsx",
  "astrum-format-p2",
  "astrum-format-pacman",
@@ -1686,6 +1799,7 @@ dependencies = [
  "astrum-format-r",
  "astrum-format-raw",
  "astrum-format-rubygems",
+ "astrum-format-sccache",
  "astrum-format-swift",
  "astrum-format-terraform",
  "astrum-format-turbo",

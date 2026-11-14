@@ -324,7 +324,7 @@ export function template(spec: Spec, blobStoreName = ''): RepositoryDocument {
   };
   const storage = document.storage as JsonObject;
   if (sections.writePolicy(spec)) {
-    storage.writePolicy = 'ALLOW_ONCE';
+    storage.writePolicy = ['bazelcache', 'sccache'].includes(spec.format) ? 'ALLOW' : 'ALLOW_ONCE';
   }
   if (sections.latestPolicy(spec)) {
     storage.latestPolicy = false;

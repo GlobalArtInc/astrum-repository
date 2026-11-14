@@ -190,7 +190,7 @@ A hosted repository takes `"writePolicy"` in `storage`. The sections of a proxy 
 ```
 
 `authentication` takes `"type": "bearerToken"` with `"bearerToken"` in place of the user name and
-password. A Cargo, Docker or Swift group takes `"writableMember"` next to `"memberNames"`.
+password. A Cargo, Docker, JSR or Swift group takes `"writableMember"` next to `"memberNames"`.
 
 To change a repository, read its settings, change them and send the whole document back with `PUT`.
 Passwords, tokens and signing keys are never returned; left out, the stored ones are kept.
