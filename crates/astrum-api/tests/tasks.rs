@@ -507,7 +507,7 @@ async fn schedules_fire_when_due_and_abandoned_runs_fail() {
 async fn built_in_tasks_are_created_once_and_stay_editable() {
     let fixture = ready().await;
     let db = fixture.state.db().conn();
-    assert_eq!(astrum_tasks::bootstrap(db).await.unwrap(), 5);
+    assert_eq!(astrum_tasks::bootstrap(db).await.unwrap(), 6);
     assert_eq!(astrum_tasks::bootstrap(db).await.unwrap(), 0);
     let listed = call(&fixture, Method::GET, TASKS, None).await.json();
     let names: Vec<&str> = listed["items"]
@@ -574,7 +574,7 @@ async fn built_in_tasks_are_created_once_and_stay_editable() {
 async fn usage_snapshot_is_added_to_an_existing_install_once() {
     let fixture = ready().await;
     let db = fixture.state.db().conn();
-    assert_eq!(astrum_tasks::bootstrap(db).await.unwrap(), 5);
+    assert_eq!(astrum_tasks::bootstrap(db).await.unwrap(), 6);
     let task = astrum_tasks::store::find_by_name(db, "Record repository usage")
         .await
         .unwrap()

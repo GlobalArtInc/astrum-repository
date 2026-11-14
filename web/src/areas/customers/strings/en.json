@@ -107,6 +107,7 @@
   "customers.usage.csv": "Download CSV",
   "customers.usage.repository": "Repository",
   "customers.usage.tableLabel": "Downloads per repository",
+  "customers.usage.chartLabel": "Downloads of the customer on each day",
   "customers.usage.empty": "No downloads in this period.",
   "customers.period.days": {
     "one": "{count} day",

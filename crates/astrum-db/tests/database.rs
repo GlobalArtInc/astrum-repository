@@ -108,8 +108,18 @@ async fn taking_back_the_customer_schema_drops_every_narrowed_token() {
     ] {
         conn.execute_unprepared(&sql).await.unwrap();
     }
-    let reverted = MIGRATIONS.revert(conn, 1).await.unwrap();
-    assert!(reverted[0].contains("Customers"), "{reverted:?}");
+    let from_customers = MIGRATIONS
+        .all()
+        .unwrap()
+        .iter()
+        .filter(|migration| migration.stamp >= 1_794_501_007_000)
+        .count();
+    let reverted = MIGRATIONS.revert(conn, from_customers).await.unwrap();
+    assert_eq!(reverted.len(), from_customers);
+    assert!(
+        reverted.last().unwrap().contains("Customers"),
+        "{reverted:?}"
+    );
     let names: Vec<String> = conn
         .query_all(Statement::from_string(
             DbBackend::Postgres,
@@ -121,7 +131,7 @@ async fn taking_back_the_customer_schema_drops_every_narrowed_token() {
         .map(|row| row.try_get::<String>("", "name").unwrap())
         .collect();
     assert_eq!(names, vec!["plain"]);
-    assert_eq!(db.migrate().await.unwrap().len(), 1);
+    assert_eq!(db.migrate().await.unwrap().len(), from_customers);
 }
 
 #[tokio::test]

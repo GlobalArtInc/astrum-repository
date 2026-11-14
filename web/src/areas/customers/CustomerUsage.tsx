@@ -98,7 +98,12 @@ export function CustomerUsage({ customerId }: CustomerUsageProps) {
               </Text>
             </div>
           </Flex>
-          <DownloadsChart days={dailyDownloads(usage.data.daily, days, new Date())} />
+          <DownloadsChart
+            days={dailyDownloads(usage.data.daily, days, new Date())}
+            value={(entry) => entry.downloads}
+            format={formatNumber}
+            ariaLabel={t('customers.usage.chartLabel')}
+          />
           <DataTable
             label={t('customers.usage.tableLabel')}
             columns={columns}

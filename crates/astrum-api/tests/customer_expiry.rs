@@ -3,13 +3,14 @@ mod support;
 use std::sync::Arc;
 
 use astrum_api::customer_expiry::CustomerTokenExpiry;
+use astrum_db::entity::repository;
 use astrum_db::setting;
 use astrum_db::system::{CUSTOMER_EXPIRY_NOTICE_KEY, CustomerExpiryNotice};
 use astrum_security::catalogue::ADMIN_USER;
 use astrum_security::ssrf::{SSRF_KEY, SsrfProtection};
 use astrum_security::{NewToken, Scope};
 use axum::http::{Method, StatusCode};
-use sea_orm::{ConnectionTrait, DbBackend, Statement};
+use sea_orm::{ActiveValue, ConnectionTrait, DbBackend, EntityTrait, Statement};
 use serde_json::{Value, json};
 use support::{Auth, Fixture};
 use uuid::Uuid;
@@ -26,6 +27,20 @@ async fn ready() -> Fixture {
     astrum_blob::bootstrap(fixture.state.db().conn(), fixture.data.path())
         .await
         .unwrap();
+    let now = chrono::Utc::now().fixed_offset();
+    repository::Entity::insert(repository::ActiveModel {
+        name: ActiveValue::Set("files".to_owned()),
+        format: ActiveValue::Set("raw".to_owned()),
+        kind: ActiveValue::Set("hosted".to_owned()),
+        online: ActiveValue::Set(true),
+        blob_store: ActiveValue::Set(None),
+        attributes: ActiveValue::Set(json!({})),
+        created_at: ActiveValue::Set(now),
+        updated_at: ActiveValue::Set(now),
+    })
+    .exec(fixture.state.db().conn())
+    .await
+    .unwrap();
     fixture
         .state
         .tasks()
@@ -340,6 +355,9 @@ async fn bootstrap_creates_the_task_once_after_an_old_first_bootstrap() {
     let fixture = Fixture::new().await;
     let db = fixture.state.db().conn();
     setting::put(db, "tasks.provisioned", &true).await.unwrap();
+    setting::put(db, "tasks.provisioned.usageSnapshot", &true)
+        .await
+        .unwrap();
     assert_eq!(astrum_tasks::bootstrap(db).await.unwrap(), 1);
     assert_eq!(astrum_tasks::bootstrap(db).await.unwrap(), 0);
 }
