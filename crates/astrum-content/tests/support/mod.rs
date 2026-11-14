@@ -1,22 +1,28 @@
 #![allow(dead_code)]
 
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use astrum_blob::{BlobStores, FileSettings, Settings, StoreConfig, content_of};
+use astrum_content::format::Format;
 use astrum_content::import::{Described, Imported, Plan};
+use astrum_content::store::Asset;
 use astrum_content::store::{self, ComponentKey, PutAsset};
 use astrum_content::transfer::{
-    Bundle, Conflict, DescribeFn, GenericTransfer, LocalSource, Outcome, PROMOTED, Terms, Transfer,
+    Bundle, Conflict, DescribeFn, GenericTransfer, LocalSource, Outcome, PROMOTED, Promoted, Terms,
+    Transfer,
 };
-use astrum_content::{Content, ContentError, Ctx};
+use astrum_content::{Content, ContentError, ContentRequest, Ctx};
 use astrum_repo::config::{Attributes, Group, Quota, Repository, Storage, WritePolicy};
 use astrum_repo::{RepositoryType, format};
 use astrum_security::{SecretBox, SecurityModel};
 use astrum_testkit::TestDatabase;
+use async_trait::async_trait;
+use axum::response::Response;
 use futures_util::future::BoxFuture;
 use sea_orm::{ConnectionTrait, DbBackend, Statement};
+use serde_json::{Map, Value, json};
 
 pub struct World {
     pub _test: TestDatabase,
@@ -69,7 +75,7 @@ pub async fn repository_of(
     policy: WritePolicy,
     kind: RepositoryType,
 ) -> Ctx {
-    repository_with(world, name, store, policy, kind, None).await
+    repository_with(world, name, store, policy, kind, false, None).await
 }
 
 pub async fn capped_repository(world: &World, name: &str, limit: i64) -> Ctx {
@@ -84,7 +90,21 @@ pub async fn capped_repository(world: &World, name: &str, limit: i64) -> Ctx {
         "default",
         WritePolicy::Allow,
         RepositoryType::Hosted,
+        false,
         Some(quota),
+    )
+    .await
+}
+
+pub async fn strict_repository(world: &World, name: &str) -> Ctx {
+    repository_with(
+        world,
+        name,
+        "default",
+        WritePolicy::Allow,
+        RepositoryType::Hosted,
+        true,
+        None,
     )
     .await
 }
@@ -95,6 +115,7 @@ async fn repository_with(
     store: &str,
     policy: WritePolicy,
     kind: RepositoryType,
+    strict: bool,
     quota: Option<Quota>,
 ) -> Ctx {
     let created = astrum_repo::store::Writer::begin(world.db.conn())
@@ -112,7 +133,7 @@ async fn repository_with(
                 }),
                 storage: Some(Storage {
                     blob_store_name: Some(store.to_owned()),
-                    strict_content_type_validation: Some(false),
+                    strict_content_type_validation: Some(strict),
                     write_policy: Some(policy),
                     latest_policy: None,
                     quota,
@@ -151,13 +172,42 @@ pub async fn seed(ctx: &Ctx, path: &str, body: &'static [u8]) {
     .unwrap();
 }
 
+pub async fn seed_in(ctx: &Ctx, path: &str, body: &'static [u8], attributes: Value) {
+    store::put(
+        ctx,
+        PutAsset {
+            write_policy: Some(WritePolicy::Allow),
+            ..PutAsset::hosted(ctx, path).component(ComponentKey {
+                attributes,
+                ..key()
+            })
+        },
+        content_of(body),
+    )
+    .await
+    .unwrap();
+}
+
+pub async fn component_attributes(ctx: &Ctx) -> Value {
+    let any = store::under(ctx.db(), ctx.name(), "/", 1).await.unwrap();
+    store::component_by_id(ctx.db(), any[0].component_id.unwrap())
+        .await
+        .unwrap()
+        .unwrap()
+        .attributes
+}
+
 pub async fn bundle_of(ctx: &Ctx) -> Bundle {
+    bundle_with(ctx, &transfer()).await
+}
+
+pub async fn bundle_with(ctx: &Ctx, transfer: &GenericTransfer) -> Bundle {
     let any = store::under(ctx.db(), ctx.name(), "/", 1).await.unwrap();
     let component = store::component_by_id(ctx.db(), any[0].component_id.unwrap())
         .await
         .unwrap()
         .unwrap();
-    transfer().bundle(ctx, &component).await.unwrap()
+    transfer.bundle(ctx, &component).await.unwrap()
 }
 
 pub fn plan(_: RepositoryType, path: &str, _: &str) -> Plan {
@@ -190,6 +240,169 @@ pub fn describe_rewritten(file: &Imported) -> BoxFuture<'_, Result<Option<Descri
     })
 }
 
+pub fn describe_by_version(file: &Imported) -> BoxFuture<'_, Result<Option<Described>, String>> {
+    Box::pin(async move {
+        let version = file.path.split('/').nth(2).unwrap_or_default().to_owned();
+        let mut put = file.put(file.path.clone());
+        put.component = Some(ComponentKey { version, ..key() });
+        Ok(Some(Described::source(put)))
+    })
+}
+
+pub fn describe_companion(file: &Imported) -> BoxFuture<'_, Result<Option<Described>, String>> {
+    Box::pin(async move {
+        let mut put = file.put(file.path.clone());
+        put.component = file.component.as_ref().map(|found| found.key());
+        let described = Described::source(put);
+        Ok(Some(match file.path.ends_with(".snupkg") {
+            true => described.keeping_component(),
+            false => described,
+        }))
+    })
+}
+
+pub fn describe_marking(file: &Imported) -> BoxFuture<'_, Result<Option<Described>, String>> {
+    Box::pin(async move {
+        let mut put = file.put(file.path.clone());
+        put.component = file.component.as_ref().map(|found| ComponentKey {
+            attributes: json!({"first": file.path}),
+            ..found.key()
+        });
+        let described = Described::source(put);
+        Ok(Some(match file.path.ends_with(".snupkg") {
+            true => described.keeping_component(),
+            false => described,
+        }))
+    })
+}
+
+pub fn describe_filtered(file: &Imported) -> BoxFuture<'_, Result<Option<Described>, String>> {
+    Box::pin(async move {
+        let mut kept = Map::new();
+        let note = file
+            .component
+            .as_ref()
+            .and_then(|found| found.attributes.get("note"))
+            .and_then(Value::as_object);
+        for name in ["a", "b"] {
+            if let Some(value) = note.and_then(|note| note.get(name)) {
+                kept.insert(name.to_owned(), value.clone());
+            }
+        }
+        let mut put = file.put(file.path.clone());
+        put.component = file.component.as_ref().map(|found| ComponentKey {
+            attributes: json!({"note": kept}),
+            ..found.key()
+        });
+        let described = Described::source(put);
+        Ok(Some(match file.path.ends_with(".snupkg") {
+            true => described.keeping_component(),
+            false => described,
+        }))
+    })
+}
+
+pub fn describe_unchecked(file: &Imported) -> BoxFuture<'_, Result<Option<Described>, String>> {
+    Box::pin(async move {
+        let mut put = file.put(file.path.clone());
+        put.component = file.component.as_ref().map(|found| found.key());
+        put.check_content_type = false;
+        Ok(Some(Described::source(put)))
+    })
+}
+
+pub fn describe_loosening(file: &Imported) -> BoxFuture<'_, Result<Option<Described>, String>> {
+    Box::pin(async move {
+        let mut put = file.put(file.path.clone());
+        put.component = file.component.as_ref().map(|found| found.key());
+        put.write_policy = Some(WritePolicy::Allow);
+        Ok(Some(Described::source(put)))
+    })
+}
+
+pub struct Recording {
+    pub seen: Arc<Mutex<Vec<Promoted>>>,
+    transfer: GenericTransfer,
+}
+
+impl Recording {
+    pub fn new(describe: DescribeFn, failure: Option<&'static str>) -> Self {
+        Self::around(transfer_of(describe), failure)
+    }
+
+    pub fn declaring(keys: &'static [&'static str]) -> Self {
+        Self::around(declaring(keys), None)
+    }
+
+    pub fn filtering(keys: &'static [&'static str]) -> Self {
+        Self::around(
+            GenericTransfer {
+                carried: keys,
+                ..transfer_of(describe_filtered)
+            },
+            None,
+        )
+    }
+
+    fn around(transfer: GenericTransfer, failure: Option<&'static str>) -> Self {
+        let seen = Arc::new(Mutex::new(Vec::new()));
+        let state = seen.clone();
+        let transfer = transfer.after_with(move |_, promoted| {
+            let state = state.clone();
+            Box::pin(async move {
+                state.lock().unwrap().push(promoted.clone());
+                match failure {
+                    Some(message) => Err(ContentError::BadRequest(message.to_owned())),
+                    None => Ok(()),
+                }
+            })
+        });
+        Self { seen, transfer }
+    }
+
+    pub fn calls(&self) -> Vec<Promoted> {
+        self.seen.lock().unwrap().clone()
+    }
+}
+
+#[async_trait]
+impl Format for Recording {
+    fn id(&self) -> &'static str {
+        "raw"
+    }
+
+    async fn handle(&self, _: Ctx, _: ContentRequest) -> Result<Response, ContentError> {
+        Err(ContentError::not_found("the double serves nothing"))
+    }
+
+    async fn get(&self, _: &Ctx, _: &str) -> Result<Option<Asset>, ContentError> {
+        Ok(None)
+    }
+
+    fn transfer(&self) -> Option<&dyn Transfer> {
+        Some(&self.transfer)
+    }
+}
+
+pub async fn receive_with(
+    format: &dyn Format,
+    source: &Ctx,
+    target: &Ctx,
+    bundle: &Bundle,
+    conflict: Conflict,
+) -> Result<Outcome, ContentError> {
+    format
+        .transfer()
+        .unwrap()
+        .receive(
+            target,
+            bundle,
+            &LocalSource::new(source.clone()),
+            Terms::new(conflict, PROMOTED),
+        )
+        .await
+}
+
 pub fn transfer_of(describe: DescribeFn) -> GenericTransfer {
     GenericTransfer {
         plan,
@@ -198,6 +411,15 @@ pub fn transfer_of(describe: DescribeFn) -> GenericTransfer {
         admit: None,
         replaceable: None,
         check_content_type: true,
+        carried: &[],
+        bundle_skip: None,
+    }
+}
+
+pub fn declaring(keys: &'static [&'static str]) -> GenericTransfer {
+    GenericTransfer {
+        carried: keys,
+        ..transfer()
     }
 }
 
@@ -215,6 +437,23 @@ pub async fn run(
     let mut terms = Terms::new(conflict, PROMOTED);
     terms.dry_run = dry_run;
     transfer()
+        .receive(target, bundle, &LocalSource::new(source.clone()), terms)
+        .await
+}
+
+pub async fn run_with(
+    format: &dyn Format,
+    source: &Ctx,
+    target: &Ctx,
+    bundle: &Bundle,
+    conflict: Conflict,
+    dry_run: bool,
+) -> Result<Outcome, ContentError> {
+    let mut terms = Terms::new(conflict, PROMOTED);
+    terms.dry_run = dry_run;
+    format
+        .transfer()
+        .unwrap()
         .receive(target, bundle, &LocalSource::new(source.clone()), terms)
         .await
 }

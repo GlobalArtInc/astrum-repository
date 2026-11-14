@@ -11,7 +11,9 @@ mod remote;
 mod upload;
 
 use astrum_content::format::SearchTarget;
+use astrum_content::import::{Described, Imported, Plan};
 use astrum_content::store;
+use astrum_content::transfer::{Bundle, GenericTransfer, Transfer};
 use astrum_content::{
     Asset, BrowseLayout, ContentError, ContentRequest, Ctx, Format, SearchKey, Serve, UploadField,
     UploadForm, UploadSpec, View, group, serve,
@@ -21,6 +23,7 @@ use async_trait::async_trait;
 use axum::body::Body;
 use axum::http::{Method, StatusCode, header};
 use axum::response::Response;
+use futures_util::future::BoxFuture;
 use sha2::{Digest, Sha256};
 
 pub use index::{File, Project};
@@ -55,6 +58,49 @@ const SEARCH_KEYS: &[SearchKey] = &[
 ];
 
 pub struct PyPi;
+
+static TRANSFER: GenericTransfer = GenericTransfer {
+    plan: import::plan,
+    describe: describe_imported,
+    after: None,
+    admit: Some(admit_bundle),
+    replaceable: None,
+    check_content_type: true,
+    carried: &[],
+    bundle_skip: None,
+};
+
+fn describe_imported(file: &Imported) -> BoxFuture<'_, Result<Option<Described>, String>> {
+    Box::pin(import::describe(file))
+}
+
+fn admit_bundle<'a>(_ctx: &'a Ctx, bundle: &'a Bundle) -> BoxFuture<'a, Result<(), ContentError>> {
+    Box::pin(std::future::ready(admit(bundle)))
+}
+
+fn admit(bundle: &Bundle) -> Result<(), ContentError> {
+    for asset in &bundle.assets {
+        if import::plan(RepositoryType::Hosted, &asset.path, &asset.kind) == Plan::Derived {
+            continue;
+        }
+        let filename = asset.path.rsplit('/').next().unwrap_or_default().to_owned();
+        let (path, _) = hosted::Package {
+            metadata: metadata::CoreMetadata::from_form([
+                ("name", bundle.name.as_str()),
+                ("version", bundle.version.as_str()),
+            ]),
+            filename,
+        }
+        .path()?;
+        if path != asset.path {
+            return Err(ContentError::BadRequest(format!(
+                "the bundle path {} does not match {path}, where the upload would store it",
+                asset.path
+            )));
+        }
+    }
+    Ok(())
+}
 
 #[derive(Debug, PartialEq, Eq)]
 enum Route {
@@ -321,6 +367,10 @@ impl Format for PyPi {
 
     fn search_keys(&self) -> &'static [SearchKey] {
         SEARCH_KEYS
+    }
+
+    fn transfer(&self) -> Option<&dyn Transfer> {
+        Some(&TRANSFER)
     }
 }
 

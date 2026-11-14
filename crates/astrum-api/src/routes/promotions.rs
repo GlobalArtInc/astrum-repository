@@ -1195,6 +1195,7 @@ mod tests {
                 .collect(),
             bytes_copied: 0,
             bytes_reused: 0,
+            warnings: Vec::new(),
         }
     }
 

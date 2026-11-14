@@ -10,8 +10,10 @@ use std::collections::HashMap;
 
 use astrum_blob::{BlobId, Digests, Written};
 use astrum_content::format::SearchTarget;
+use astrum_content::import::{Described, Imported};
 use astrum_content::proxy;
 use astrum_content::store::{self, ComponentKey, PutAsset};
+use astrum_content::transfer::{GenericTransfer, Transfer};
 use astrum_content::{
     Asset, BrowseLayout, CHALLENGE, ContentError, ContentRequest, Ctx, Format, Freshness,
     SearchKey, Serve, UploadField, UploadForm, UploadSpec, View, group as members, serve,
@@ -23,10 +25,26 @@ use axum::body::Body;
 use axum::http::{Method, StatusCode, header};
 use axum::response::Response;
 use futures_util::TryStreamExt;
+use futures_util::future::BoxFuture;
 use serde_json::json;
 
 use crate::gem::{GemError, Spec};
 use crate::index::{InfoEntry, Specs};
+
+static TRANSFER: GenericTransfer = GenericTransfer {
+    plan: import::plan,
+    describe: describe_imported,
+    after: None,
+    admit: None,
+    replaceable: None,
+    check_content_type: true,
+    carried: &[],
+    bundle_skip: None,
+};
+
+fn describe_imported(file: &Imported) -> BoxFuture<'_, Result<Option<Described>, String>> {
+    Box::pin(import::describe(file))
+}
 
 pub const ID: &str = "rubygems";
 pub const GEM: &str = "GEM";
@@ -673,6 +691,10 @@ impl Format for Rubygems {
 
     fn search_keys(&self) -> &'static [SearchKey] {
         SEARCH_KEYS
+    }
+
+    fn transfer(&self) -> Option<&dyn Transfer> {
+        Some(&TRANSFER)
     }
 }
 

@@ -1,7 +1,10 @@
 use astrum_blob::Written;
+use astrum_content::import::Plan;
 use astrum_content::store::{self, ComponentKey, PutAsset};
+use astrum_content::transfer::Bundle;
 use astrum_content::{Asset, ContentError, Ctx, View};
 use astrum_db::entity::asset;
+use astrum_repo::RepositoryType;
 use astrum_repo::config::WritePolicy;
 use chrono::Utc;
 use futures_util::TryStreamExt;
@@ -15,9 +18,9 @@ use sha2::{Digest, Sha256};
 use crate::deb::{self, Control};
 use crate::metadata::{self, Package};
 use crate::signing::{self, Keys};
-use crate::{DEB, DEB_TYPE, ID, METADATA, distribution};
+use crate::{DEB, DEB_TYPE, ID, METADATA, distribution, import};
 
-const MAX_CONTROL_PREFIX: u64 = 32 * 1024 * 1024;
+pub(crate) const MAX_CONTROL_PREFIX: u64 = 32 * 1024 * 1024;
 const GENERATION: &str = "1\n";
 
 fn release_path(distribution: &str) -> String {
@@ -54,6 +57,51 @@ fn write_policy(ctx: &Ctx) -> WritePolicy {
         .unwrap_or(WritePolicy::Allow)
 }
 
+pub(crate) fn describe_package(put: PutAsset, control: &Control) -> PutAsset {
+    let fields: Vec<Value> = control
+        .fields
+        .iter()
+        .map(|(key, value)| json!([key, value]))
+        .collect();
+    put.component(ComponentKey {
+        namespace: control.architecture().to_owned(),
+        name: control.package().to_owned(),
+        version: control.version().to_owned(),
+        kind: String::new(),
+        attributes: json!({}),
+    })
+    .kind(DEB)
+    .content_type(DEB_TYPE)
+    .attributes(json!({ ID: { "control": fields } }))
+}
+
+pub(crate) fn admit(ctx: &Ctx, bundle: &Bundle) -> Result<(), ContentError> {
+    if write_policy(ctx) == WritePolicy::Deny {
+        return Err(ContentError::BadRequest(format!(
+            "the repository {} is read-only",
+            ctx.name()
+        )));
+    }
+    let expected = deb::pool_path(&Control {
+        fields: vec![
+            ("Package".to_owned(), bundle.name.clone()),
+            ("Version".to_owned(), bundle.version.clone()),
+            ("Architecture".to_owned(), bundle.namespace.clone()),
+        ],
+    });
+    for asset in &bundle.assets {
+        if import::plan(RepositoryType::Hosted, &asset.path, &asset.kind) == Plan::Import
+            && asset.path != expected
+        {
+            return Err(ContentError::BadRequest(format!(
+                "the bundle path {} does not match {expected}, where the upload would store it",
+                asset.path
+            )));
+        }
+    }
+    Ok(())
+}
+
 pub async fn adopt(ctx: &Ctx, keys: &Keys, written: Written) -> Result<Asset, ContentError> {
     let data = prefix(ctx, &written).await?;
     let control = match tokio::task::spawn_blocking(move || deb::read_control(&data))
@@ -79,22 +127,7 @@ pub async fn adopt(ctx: &Ctx, keys: &Keys, written: Written) -> Result<Asset, Co
     if let Err(error) = allowed {
         return Err(refuse(ctx, &written, error));
     }
-    let fields: Vec<Value> = control
-        .fields
-        .iter()
-        .map(|(key, value)| json!([key, value]))
-        .collect();
-    let put = PutAsset::hosted(ctx, path)
-        .component(ComponentKey {
-            namespace: control.architecture().to_owned(),
-            name: control.package().to_owned(),
-            version: control.version().to_owned(),
-            kind: String::new(),
-            attributes: json!({}),
-        })
-        .kind(DEB)
-        .content_type(DEB_TYPE)
-        .attributes(json!({ ID: { "control": fields } }));
+    let put = describe_package(PutAsset::hosted(ctx, path), &control);
     let stored = store::adopt(ctx, put, &written).await?;
     rebuild(ctx, keys, true).await?;
     Ok(stored)

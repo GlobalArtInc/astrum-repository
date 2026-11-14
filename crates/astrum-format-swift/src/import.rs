@@ -43,14 +43,20 @@ fn component(file: &Imported, package: &Package) -> ComponentKey {
     if !swift.contains_key("metadata") {
         swift.insert("metadata".to_owned(), json!({}));
     }
-    if !swift.contains_key("repositoryURLs")
-        && let Some(listed) = swift
+    if !swift.contains_key("repositoryURLs") {
+        let listed: Vec<String> = swift
             .get("metadata")
             .and_then(|metadata| metadata.get("repositoryURLs"))
-            .filter(|listed| listed.is_array())
-            .cloned()
-    {
-        swift.insert("repositoryURLs".to_owned(), listed);
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+            .filter_map(Value::as_str)
+            .map(|url| url.trim().to_owned())
+            .filter(|url| !url.is_empty())
+            .collect();
+        if !listed.is_empty() {
+            swift.insert("repositoryURLs".to_owned(), json!(listed));
+        }
     }
     ComponentKey {
         namespace: package.scope.clone(),
@@ -86,12 +92,13 @@ pub async fn describe(file: &Imported) -> Result<Option<Described>, String> {
             if let Some(alternates) = known.get("alternates") {
                 swift.insert("alternates".to_owned(), alternates.clone());
             }
-            let put = file
+            let mut put = file
                 .put(package.manifest_path(&name))
                 .component(component(file, &package))
                 .kind(MANIFEST_KIND)
                 .content_type("text/x-swift")
                 .attributes(json!({ ID: swift }));
+            put.check_content_type = false;
             Ok(Some(Described::source(put).keeping_component()))
         }
         _ => Err("the path is neither a source archive nor a manifest".to_owned()),

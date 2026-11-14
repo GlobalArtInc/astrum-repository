@@ -59,11 +59,7 @@ impl Imported {
     pub fn put(&self, path: impl Into<String>) -> PutAsset {
         match self.cached() {
             true => PutAsset::cached(path),
-            false => PutAsset {
-                path: path.into(),
-                attributes: Value::Object(Default::default()),
-                ..Default::default()
-            },
+            false => PutAsset::hosted_in(&self.config, path),
         }
     }
 

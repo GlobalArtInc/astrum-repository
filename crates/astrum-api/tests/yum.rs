@@ -5,6 +5,8 @@ use std::io::{Read, Write};
 use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
 
+use astrum_content::transfer::{Bundle, Conflict, LocalSource, PROMOTED, Status, Terms};
+use astrum_content::{ContentError, Format};
 use astrum_format_yum::repodata::Repomd;
 use astrum_format_yum::testing::TestRpm;
 use astrum_security::ssrf::{SSRF_KEY, SsrfProtection};
@@ -577,4 +579,111 @@ async fn upload_specs_describe_the_directory_field() {
             }]
         })
     );
+}
+
+const PACKAGE: &str = "/el9/x86_64/Packages/hello-1.0-1.x86_64.rpm";
+
+async fn promotion_pair(strict: &str) -> Fixture {
+    let fixture = ready().await;
+    create(&fixture, "hosted", hosted("yum-source", 2, "PERMISSIVE")).await;
+    create(&fixture, "hosted", hosted("yum-target", 2, strict)).await;
+    fixture
+}
+
+async fn promote(fixture: &Fixture, bundle: &Bundle) -> Result<(), ContentError> {
+    let from = support::repository_ctx(fixture, "yum-source").await;
+    let to = support::repository_ctx(fixture, "yum-target").await;
+    let format = astrum_format_yum::Yum::default();
+    format
+        .transfer()
+        .expect("yum takes part in promotion")
+        .receive(
+            &to,
+            bundle,
+            &LocalSource::new(from),
+            Terms::new(Conflict::Fail, PROMOTED),
+        )
+        .await
+        .map(|_| ())
+}
+
+#[tokio::test]
+async fn rpms_are_promoted_and_the_target_rebuilds_its_repodata() {
+    let fixture = promotion_pair("STRICT").await;
+    let package = rpm("hello", "1.0");
+    let stored = put(
+        &fixture,
+        &format!("/repository/yum-source{PACKAGE}"),
+        package.clone(),
+    )
+    .await;
+    assert_eq!(stored.status, StatusCode::CREATED, "{}", stored.text());
+    let format = astrum_format_yum::Yum::default();
+    let bundle = support::bundle_of(&fixture, &format, "yum-source", PACKAGE).await;
+    let outcome = support::receive(&fixture, &format, "yum-source", "yum-target", &bundle).await;
+    assert_eq!(outcome.status, Status::Copied);
+    assert!(outcome.warnings.is_empty(), "{:?}", outcome.warnings);
+
+    let served = get(&fixture, &format!("/repository/yum-target{PACKAGE}")).await;
+    assert_eq!(served.body, package);
+    let mut scheduled = false;
+    for _ in 0..50 {
+        let found = astrum_content::store::find(
+            fixture.state.db().conn(),
+            "yum-target",
+            "/el9/x86_64/repodata/repomd.xml",
+        )
+        .await
+        .unwrap();
+        if found.is_some() {
+            scheduled = true;
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    }
+    assert!(scheduled, "the promotion did not schedule a rebuild");
+    let text = primary(&fixture, "yum-target", "/el9/x86_64").await;
+    assert!(text.contains("<location href=\"Packages/hello-1.0-1.x86_64.rpm\"/>"));
+}
+
+#[tokio::test]
+async fn rpm_promotion_refuses_what_the_upload_would_refuse() {
+    let fixture = promotion_pair("STRICT").await;
+    put(
+        &fixture,
+        &format!("/repository/yum-source{PACKAGE}"),
+        rpm("hello", "1.0"),
+    )
+    .await;
+    put(
+        &fixture,
+        "/repository/yum-source/el9/x86_64/notes.txt",
+        b"plain".to_vec(),
+    )
+    .await;
+    let format = astrum_format_yum::Yum::default();
+    let bundle = support::bundle_of(&fixture, &format, "yum-source", PACKAGE).await;
+    for (path, message) in [
+        (
+            "/el9/hello-1.0-1.x86_64.rpm",
+            "RPM packages of this repository must be stored at least 2 directories deep, the depth at which its repodata is generated: /el9/hello-1.0-1.x86_64.rpm",
+        ),
+        (
+            "/el9/x86_64/notes.txt",
+            "Only RPM packages can be stored in a repository with the strict layout policy: /el9/x86_64/notes.txt",
+        ),
+    ] {
+        let mut crafted = bundle.clone();
+        crafted.assets[0].path = path.to_owned();
+        match promote(&fixture, &crafted).await {
+            Err(ContentError::BadRequest(found)) => assert_eq!(found, message),
+            other => panic!("expected a refusal, got {other:?}"),
+        }
+        assert!(
+            astrum_content::store::find(fixture.state.db().conn(), "yum-target", path)
+                .await
+                .unwrap()
+                .is_none()
+        );
+    }
 }

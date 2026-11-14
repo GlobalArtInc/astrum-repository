@@ -100,15 +100,12 @@ pub async fn describe(file: &Imported) -> Result<Option<Described>, String> {
                     PACKAGE_KIND,
                 ),
             };
-            let path = match path.eq_ignore_ascii_case(&file.path) {
-                true => file.path.clone(),
-                false => {
-                    return Err(format!(
-                        "the package inside is {} {}, which belongs at {path}",
-                        metadata.id, metadata.normalized_version
-                    ));
-                }
-            };
+            if !path.eq_ignore_ascii_case(&file.path) {
+                return Err(format!(
+                    "the package inside is {} {}, which belongs at {path}",
+                    metadata.id, metadata.normalized_version
+                ));
+            }
             let put = file
                 .put(path)
                 .component(key)

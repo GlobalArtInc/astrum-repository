@@ -529,6 +529,8 @@ pub static TRANSFER: DockerTransfer = DockerTransfer {
         admit: Some(admit),
         replaceable: Some(replaceable),
         check_content_type: false,
+        carried: &[],
+        bundle_skip: None,
     },
 };
 

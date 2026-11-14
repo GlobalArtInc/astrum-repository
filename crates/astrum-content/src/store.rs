@@ -25,6 +25,13 @@ use crate::transfer::{AssetOutcome, AssetStatus, Conflict, MAX_COMPONENTS, Outco
 use crate::usage::{self, Usage};
 use crate::{Content, ContentError, Ctx, holds};
 
+mod drift;
+
+pub use drift::Intent;
+use drift::{
+    Stance, drifting, judge, keeps_stored, mark_replaced, merged, renew, wanted, written_identities,
+};
+
 pub type Asset = asset::Model;
 pub type Component = component::Model;
 
@@ -54,7 +61,11 @@ pub struct PutAsset {
 
 impl PutAsset {
     pub fn hosted(ctx: &Ctx, path: impl Into<String>) -> Self {
-        let storage = ctx.repository.attributes.storage.as_ref();
+        Self::hosted_in(&ctx.repository, path)
+    }
+
+    pub fn hosted_in(repository: &Repository, path: impl Into<String>) -> Self {
+        let storage = repository.attributes.storage.as_ref();
         Self {
             path: path.into(),
             check_content_type: storage
@@ -1258,6 +1269,7 @@ impl Decision {
             assets: self.assets,
             bytes_copied: self.bytes_copied,
             bytes_reused: self.bytes_reused,
+            warnings: Vec::new(),
         }
     }
 }
@@ -1266,6 +1278,7 @@ struct Executed {
     outcome: Outcome,
     committed: bool,
     unused: Vec<(String, Uuid)>,
+    refreshed: Vec<ComponentIdentity>,
 }
 
 fn check_write(
@@ -1422,7 +1435,7 @@ async fn find_component(
         .await?)
 }
 
-type ComponentIdentity = (String, String, String);
+pub type ComponentIdentity = (String, String, String);
 
 fn component_keys<'a>(
     puts: impl Iterator<Item = &'a PutAsset>,
@@ -1462,6 +1475,16 @@ pub async fn preview_many_with(
     conflict: Conflict,
     replaceable: Option<Replaceable<'_>>,
 ) -> Result<Outcome, ContentError> {
+    preview_many_carrying(ctx, planned, conflict, replaceable, &[]).await
+}
+
+pub async fn preview_many_carrying(
+    ctx: &Ctx,
+    planned: &[Planned],
+    conflict: Conflict,
+    replaceable: Option<Replaceable<'_>>,
+    intents: &[Intent],
+) -> Result<Outcome, ContentError> {
     let repository = ctx.name();
     let paths: Vec<String> = planned.iter().map(|item| item.put.path.clone()).collect();
     let existing = existing_assets(ctx.db(), repository, &paths).await?;
@@ -1482,13 +1505,40 @@ pub async fn preview_many_with(
         replaceable.map(|allowed| allowed as &dyn Fn(&str) -> bool),
     )?;
     refuse_protected(ctx.db(), &ctx.content, repository, &decision, &existing).await?;
+    let written = written_identities(&candidates, &decision);
     let mut component_ids = Vec::new();
+    let mut drifted = HashSet::new();
     for key in component_keys(planned.iter().map(|item| &item.put))? {
-        if let Some(found) = find_component(ctx.db(), repository, &key).await? {
-            component_ids.push(found.id);
+        let Some(found) = find_component(ctx.db(), repository, &key).await? else {
+            continue;
+        };
+        component_ids.push(found.id);
+        let identity = identity_of(&key);
+        if !written.contains(&identity)
+            && wanted(intents, &identity)
+                .map(|wanted| merged(&found.attributes, wanted))
+                .transpose()?
+                .flatten()
+                .is_some()
+        {
+            drifted.insert(identity);
         }
     }
-    Ok(decision.outcome(component_ids))
+    let (decision, replaced) = judge(
+        repository,
+        &candidates,
+        &existing,
+        decision,
+        &drifted,
+        Stance {
+            conflict,
+            planning: true,
+            replaceable,
+        },
+    )?;
+    let mut outcome = decision.outcome(component_ids);
+    mark_replaced(&mut outcome, &replaced);
+    Ok(outcome)
 }
 
 fn validate_many(items: &[(PutAsset, Written)]) -> Result<Vec<ComponentKey>, ContentError> {
@@ -1537,6 +1587,19 @@ pub async fn record_many_with(
     action: &str,
     replaceable: Option<Replaceable<'_>>,
 ) -> Result<Outcome, ContentError> {
+    record_many_carrying(ctx, items, conflict, action, replaceable, &[])
+        .await
+        .map(|(outcome, _)| outcome)
+}
+
+pub async fn record_many_carrying(
+    ctx: &Ctx,
+    items: Vec<(PutAsset, Written)>,
+    conflict: Conflict,
+    action: &str,
+    replaceable: Option<Replaceable<'_>>,
+    intents: &[Intent],
+) -> Result<(Outcome, Vec<ComponentIdentity>), ContentError> {
     let blobs: Vec<(String, Uuid)> = items
         .iter()
         .map(|(_, written)| (written.store.clone(), written.id.uuid()))
@@ -1555,23 +1618,30 @@ pub async fn record_many_with(
             return Err(error.into());
         }
     };
-    let executed = write_many(ctx, &txn, &items, &keys, conflict, action, replaceable).await;
+    let rules = Rules {
+        conflict,
+        action,
+        replaceable,
+        intents,
+    };
+    let executed = write_many(ctx, &txn, &items, &keys, rules).await;
     match executed {
         Ok(Executed {
             outcome,
             committed: true,
             unused,
+            refreshed,
         }) => match txn.commit().await {
             Ok(()) => {
                 abandon(&ctx.content, unused, false).await;
-                Ok(outcome)
+                Ok((outcome, refreshed))
             }
             Err(error) => Err(error.into()),
         },
         Ok(Executed { outcome, .. }) => {
             rolled_back(txn).await;
             abandon(&ctx.content, blobs, true).await;
-            Ok(outcome)
+            Ok((outcome, Vec::new()))
         }
         Err(error) => {
             rolled_back(txn).await;
@@ -1599,15 +1669,26 @@ fn changed_meanwhile(repository: &str) -> ContentError {
     ))
 }
 
+struct Rules<'a> {
+    conflict: Conflict,
+    action: &'a str,
+    replaceable: Option<Replaceable<'a>>,
+    intents: &'a [Intent],
+}
+
 async fn write_many(
     ctx: &Ctx,
     txn: &impl ConnectionTrait,
     items: &[(PutAsset, Written)],
     keys: &[ComponentKey],
-    conflict: Conflict,
-    action: &str,
-    replaceable: Option<Replaceable<'_>>,
+    rules: Rules<'_>,
 ) -> Result<Executed, ContentError> {
+    let Rules {
+        conflict,
+        action,
+        replaceable,
+        intents,
+    } = rules;
     let repository = ctx.name();
     if !lock_repository(txn, repository).await? {
         return Err(missing_repository(repository));
@@ -1710,7 +1791,30 @@ async fn write_many(
         replaceable.map(|allowed| allowed as &dyn Fn(&str) -> bool),
     )?;
     refuse_protected(txn, &ctx.content, repository, &decision, &existing).await?;
-    if !decision.writes {
+    let written_keys = written_identities(&candidates, &decision);
+    let drift = match matches!(decision.status, Status::Copied | Status::Unchanged) {
+        true => drifting(txn, repository, &resolved, &written_keys, intents).await?,
+        false => Vec::new(),
+    };
+    let drifted: HashSet<ComponentIdentity> =
+        drift.iter().map(|found| found.identity.clone()).collect();
+    let (decision, replaced) = judge(
+        repository,
+        &candidates,
+        &existing,
+        decision,
+        &drifted,
+        Stance {
+            conflict,
+            planning: false,
+            replaceable,
+        },
+    )?;
+    let drift = match replaced.is_empty() {
+        true => Vec::new(),
+        false => drift,
+    };
+    if !decision.writes && drift.is_empty() {
         let ids: Vec<i64> = match keys.is_empty() {
             true => existing
                 .values()
@@ -1728,6 +1832,7 @@ async fn write_many(
             outcome: decision.outcome(ids),
             committed: false,
             unused: Vec::new(),
+            refreshed: Vec::new(),
         });
     }
     if let Some(limit) = hard_limit(ctx) {
@@ -1745,16 +1850,6 @@ async fn write_many(
         }
         require_growth_to_fit(repository, limit, usage.bytes, replaced, added)?;
     }
-    let mut written_keys: HashSet<ComponentIdentity> = HashSet::new();
-    for (index, (put, _)) in items.iter().enumerate() {
-        if matches!(
-            decision.assets[index].status,
-            AssetStatus::New | AssetStatus::Replaced
-        ) && let Some(found) = put.component.as_ref()
-        {
-            written_keys.insert(identity_of(found));
-        }
-    }
     for found in resolved
         .iter()
         .filter(|found| written_keys.contains(&identity_of(found.key)))
@@ -1762,7 +1857,24 @@ async fn write_many(
         if found.id.is_none() {
             return Err(changed_meanwhile(repository));
         }
-        upsert_component(txn, repository, ctx.format_id(), found.key, now).await?;
+        let identity = identity_of(found.key);
+        match !found.created && keeps_stored(intents, &identity) {
+            true => renew(txn, found.id.unwrap_or_default(), now).await?,
+            false => {
+                upsert_component(txn, repository, ctx.format_id(), found.key, now).await?;
+            }
+        }
+    }
+    for found in &drift {
+        component::Entity::update_many()
+            .col_expr(
+                component::Column::Attributes,
+                Expr::value(found.attributes.clone()),
+            )
+            .col_expr(component::Column::UpdatedAt, Expr::value(now))
+            .filter(component::Column::Id.eq(found.id))
+            .exec(txn)
+            .await?;
     }
     let mut order: Vec<usize> = (0..items.len()).collect();
     order.sort_by(|a, b| items[*a].0.path.cmp(&items[*b].0.path));
@@ -1822,11 +1934,13 @@ async fn write_many(
     for old in left_components {
         drop_empty_component(txn, old).await?;
     }
-    let outcome = decision.outcome(ids);
+    let mut outcome = decision.outcome(ids);
+    mark_replaced(&mut outcome, &replaced);
     Ok(Executed {
         outcome,
         committed: true,
         unused,
+        refreshed: drift.into_iter().map(|found| found.identity).collect(),
     })
 }
 

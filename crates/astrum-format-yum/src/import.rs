@@ -62,11 +62,12 @@ pub async fn describe(file: &Imported) -> Result<Option<Described>, String> {
         )));
     }
     let package = package(file).await?;
-    let put = file
+    let mut put = file
         .put(file.path.clone())
         .component(component(&package))
         .kind(RPM)
         .content_type(RPM_TYPE)
         .attributes(json!({"yum": package.attributes()}));
+    put.check_content_type = false;
     Ok(Some(Described::source(put)))
 }

@@ -30,6 +30,8 @@ static TARBALLS: GenericTransfer = GenericTransfer {
     admit: None,
     replaceable: None,
     check_content_type: true,
+    carried: &[],
+    bundle_skip: None,
 };
 
 fn verified(file: &Imported) -> BoxFuture<'_, Result<Option<Described>, String>> {

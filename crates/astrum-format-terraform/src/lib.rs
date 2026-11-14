@@ -11,11 +11,13 @@ mod sums;
 mod tokens;
 pub mod versions;
 
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::collections::{BTreeMap, HashMap};
+use std::sync::{Arc, Mutex, OnceLock};
 
 use astrum_content::format::SearchTarget;
+use astrum_content::import::{Described, Imported};
 use astrum_content::store;
+use astrum_content::transfer::{Bundle, GenericTransfer, Promoted, Transfer};
 use astrum_content::{
     Asset, ContentError, ContentRequest, Ctx, Format, SearchKey, Serve, UploadField, UploadForm,
     UploadSpec, View, serve,
@@ -24,6 +26,7 @@ use astrum_repo::RepositoryType;
 use async_trait::async_trait;
 use axum::http::{Method, StatusCode};
 use axum::response::{IntoResponse, Response};
+use futures_util::future::BoxFuture;
 use serde_json::{Value, json};
 
 use paths::{Endpoint, FileKind, Module, Provider};
@@ -61,10 +64,21 @@ const SEARCH_KEYS: &[SearchKey] = &[
     },
 ];
 
+type Locks = Arc<Mutex<HashMap<String, Arc<tokio::sync::Mutex<()>>>>>;
+
 #[derive(Default)]
 pub struct Terraform {
     secret: tokens::Secret,
-    locks: Mutex<HashMap<String, Arc<tokio::sync::Mutex<()>>>>,
+    locks: Locks,
+    transfer: OnceLock<GenericTransfer>,
+}
+
+fn lock_in(locks: &Locks, key: &str) -> Arc<tokio::sync::Mutex<()>> {
+    let mut locks = locks.lock().expect("the lock map is never poisoned");
+    if locks.len() > 4096 {
+        locks.retain(|_, lock| Arc::strong_count(lock) > 1);
+    }
+    locks.entry(key.to_owned()).or_default().clone()
 }
 
 pub enum Download {
@@ -136,11 +150,7 @@ pub fn mirror_index_document(versions: &[String]) -> Value {
 
 impl Terraform {
     pub(crate) fn lock(&self, key: &str) -> Arc<tokio::sync::Mutex<()>> {
-        let mut locks = self.locks.lock().expect("the lock map is never poisoned");
-        if locks.len() > 4096 {
-            locks.retain(|_, lock| Arc::strong_count(lock) > 1);
-        }
-        locks.entry(key.to_owned()).or_default().clone()
+        lock_in(&self.locks, key)
     }
 
     pub(crate) async fn tokens(&self, ctx: &Ctx) -> Result<tokens::Tokens, ContentError> {
@@ -378,6 +388,147 @@ impl Terraform {
     }
 }
 
+fn transfer_with(locks: Locks) -> GenericTransfer {
+    GenericTransfer {
+        plan: import::plan,
+        describe: describe_imported,
+        after: None,
+        admit: Some(admit_bundle),
+        replaceable: None,
+        check_content_type: true,
+        carried: &[],
+        bundle_skip: Some(generated_by_the_server),
+    }
+    .after_with(move |ctx, promoted| {
+        let locks = locks.clone();
+        Box::pin(async move { refresh(&locks, ctx, promoted).await })
+    })
+}
+
+fn generated_by_the_server(asset: &astrum_content::Asset) -> bool {
+    asset.attributes[ID]["generated"].as_bool().unwrap_or(false)
+}
+
+fn describe_imported(file: &Imported) -> BoxFuture<'_, Result<Option<Described>, String>> {
+    Box::pin(import::describe(file))
+}
+
+fn admit_bundle<'a>(ctx: &'a Ctx, bundle: &'a Bundle) -> BoxFuture<'a, Result<(), ContentError>> {
+    Box::pin(admit(ctx, bundle))
+}
+
+async fn refresh(locks: &Locks, ctx: &Ctx, promoted: &Promoted) -> Result<(), ContentError> {
+    let mut providers: BTreeMap<String, Provider> = BTreeMap::new();
+    for path in promoted
+        .components
+        .iter()
+        .flat_map(|component| &component.paths)
+        .chain(&promoted.loose)
+    {
+        if let Endpoint::ProviderFile(provider, ..) = Endpoint::parse(path) {
+            providers.entry(provider.directory()).or_insert(provider);
+        }
+    }
+    let mut failure = None;
+    for provider in providers.values() {
+        if let Err(error) = hosted::refresh_in(locks, ctx, provider).await {
+            tracing::warn!(repository = ctx.name(), provider = %provider.address(), version = %provider.version, %error, "the checksums of a promoted provider were not refreshed");
+            failure.get_or_insert(error);
+        }
+    }
+    failure.map_or(Ok(()), Err)
+}
+
+fn module_archive(path: &str) -> Option<(Module, &'static str)> {
+    match Endpoint::parse(path) {
+        Endpoint::ModuleArchive(module, file) => {
+            paths::archive_extension(&file).map(|extension| (module, extension))
+        }
+        _ => None,
+    }
+}
+
+fn expect_path(asset: &str, expected: &str, what: &str) -> Result<(), ContentError> {
+    match expected == asset {
+        true => Ok(()),
+        false => Err(ContentError::BadRequest(format!(
+            "{asset} is not the path of its {what}, which is {expected}"
+        ))),
+    }
+}
+
+async fn admit_module(
+    ctx: &Ctx,
+    path: &str,
+    module: &Module,
+    extension: &str,
+) -> Result<(), ContentError> {
+    let expected = module.archive_path(extension);
+    expect_path(path, &expected, "module archive")?;
+    for other in hosted::in_directory(ctx, &module.directory(), &[MODULE_ARCHIVE]).await? {
+        if other.path != expected {
+            return Err(ContentError::BadRequest(format!(
+                "Module {} version {} already exists as {}",
+                module.address(),
+                module.version,
+                other.path
+            )));
+        }
+    }
+    Ok(())
+}
+
+struct Bundled {
+    provider: Provider,
+    packages: BTreeMap<String, String>,
+    own_sums: bool,
+}
+
+fn generated(asset: &astrum_content::transfer::BundleAsset) -> bool {
+    asset.attributes[ID]["generated"].as_bool().unwrap_or(false)
+}
+
+async fn admit(ctx: &Ctx, bundle: &Bundle) -> Result<(), ContentError> {
+    let mut releases: BTreeMap<String, Bundled> = BTreeMap::new();
+    for asset in &bundle.assets {
+        match Endpoint::parse(&asset.path) {
+            Endpoint::ProviderFile(provider, file, kind) => {
+                let expected = provider.file_path(&provider.stored_name(&kind, &file));
+                expect_path(&asset.path, &expected, "provider file")?;
+                let release = releases
+                    .entry(provider.directory())
+                    .or_insert_with(|| Bundled {
+                        provider: provider.clone(),
+                        packages: BTreeMap::new(),
+                        own_sums: false,
+                    });
+                match kind {
+                    FileKind::Archive { .. } => {
+                        release
+                            .packages
+                            .insert(file, asset.sha256.to_ascii_lowercase());
+                    }
+                    FileKind::Shasums => release.own_sums |= !generated(asset),
+                    _ => {}
+                }
+            }
+            _ => {
+                let (module, extension) = module_archive(&asset.path).ok_or_else(|| {
+                    ContentError::BadRequest(format!(
+                        "{} is not a module archive or a provider file",
+                        asset.path
+                    ))
+                })?;
+                admit_module(ctx, &asset.path, &module, extension).await?;
+            }
+        }
+    }
+    for release in releases.values().filter(|release| !release.own_sums) {
+        hosted::admit_packages(ctx, &release.provider, release.packages.clone()).await?;
+    }
+    Ok(())
+}
+
 #[async_trait]
 impl Format for Terraform {
     fn id(&self) -> &'static str {
@@ -478,5 +629,12 @@ impl Format for Terraform {
 
     fn search_keys(&self) -> &'static [SearchKey] {
         SEARCH_KEYS
+    }
+
+    fn transfer(&self) -> Option<&dyn Transfer> {
+        Some(
+            self.transfer
+                .get_or_init(|| transfer_with(self.locks.clone())),
+        )
     }
 }
