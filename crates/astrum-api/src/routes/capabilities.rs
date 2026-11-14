@@ -1,7 +1,8 @@
 use astrum_db::audit::Event;
 use astrum_db::system::{
-    BASE_URL_KEY, BRANDING_KEY, BaseUrl, Branding, DEFAULT_TITLE, PROMETHEUS_KEY, Prometheus,
-    SPACE_ALERT_KEY, SpaceAlert, UI_SETTINGS_KEY, UiSettings,
+    BASE_URL_KEY, BRANDING_KEY, BaseUrl, Branding, CUSTOMER_EXPIRY_NOTICE_KEY,
+    CustomerExpiryNotice, DEFAULT_TITLE, PROMETHEUS_KEY, Prometheus, SPACE_ALERT_KEY, SpaceAlert,
+    UI_SETTINGS_KEY, UiSettings,
 };
 use astrum_db::{revision, setting};
 use astrum_security::sessions::TIMEOUT_KEY;
@@ -29,7 +30,15 @@ pub const UI_SETTINGS: &str = "rapture.settings";
 pub const BRANDING: &str = "rapture.branding";
 pub const PROMETHEUS: &str = "metrics.prometheus";
 pub const SPACE_ALERT: &str = "blobstores.space";
-const TYPES: [&str; 5] = [BASE_URL, UI_SETTINGS, BRANDING, PROMETHEUS, SPACE_ALERT];
+pub const CUSTOMER_EXPIRY_NOTICE: &str = "customers.expiryNotice";
+const TYPES: [&str; 6] = [
+    BASE_URL,
+    UI_SETTINGS,
+    BRANDING,
+    PROMETHEUS,
+    SPACE_ALERT,
+    CUSTOMER_EXPIRY_NOTICE,
+];
 
 pub fn routes() -> Router<AppState> {
     Router::new()
@@ -47,6 +56,7 @@ fn type_name(kind: &str) -> &'static str {
         UI_SETTINGS => "UI: Settings",
         PROMETHEUS => "Metrics: Prometheus",
         SPACE_ALERT => "Blob Stores: Space Alert",
+        CUSTOMER_EXPIRY_NOTICE => "Customers: Expiry Notice",
         _ => "UI: Branding",
     }
 }
@@ -54,7 +64,7 @@ fn type_name(kind: &str) -> &'static str {
 fn category(kind: &str) -> &'static str {
     match kind {
         BASE_URL => "Core",
-        PROMETHEUS | SPACE_ALERT => "Monitoring",
+        PROMETHEUS | SPACE_ALERT | CUSTOMER_EXPIRY_NOTICE => "Monitoring",
         _ => "UI",
     }
 }
@@ -174,6 +184,29 @@ fn type_json(kind: &str) -> Value {
                 Some("true"),
                 None,
             )],
+        ),
+        CUSTOMER_EXPIRY_NOTICE => (
+            "Tells the notification channels when a customer token is about to expire and when it has expired, so that it can be renewed. Nothing is sent to customers.\n\n<p>A notice is sent once for each day count listed, and once when the token has expired. Tokens that expired more than a week ago are not announced.</p>",
+            vec![
+                field(
+                    "days",
+                    "string",
+                    "Days before expiry",
+                    "Up to five day counts from 1 to 365, separated by commas, e.g. 30, 7, 1",
+                    true,
+                    Some("30, 7, 1"),
+                    None,
+                ),
+                field(
+                    "channels",
+                    "string",
+                    "Notification channels",
+                    "Names of the channels under Settings, System, Notifications that get the notices, separated by commas",
+                    true,
+                    None,
+                    None,
+                ),
+            ],
         ),
         SPACE_ALERT => (
             "Watches the free space of the blob stores and sends a message to notification channels when a store runs low, passes its soft quota, cannot be reached or is forecast to fill up soon, when a repository nears or reaches its quota, and again when the problem is over.\n\n<p>File, remote and group stores tell their free space; S3 stores only take part through their quota and their reachability.</p>",
@@ -395,6 +428,24 @@ async fn load(state: &AppState, kind: &str) -> Result<Option<Stored>, ApiError> 
                     text(metrics.repositories),
                 )]),
             }),
+        CUSTOMER_EXPIRY_NOTICE => {
+            setting::get::<CustomerExpiryNotice>(db, CUSTOMER_EXPIRY_NOTICE_KEY)
+                .await?
+                .map(|notice| Stored {
+                    enabled: notice.enabled,
+                    notes: notice.notes,
+                    description: Some(format!(
+                        "{} days before expiry and when expired; {}",
+                        day_list(&notice.days),
+                        notice.channels.join(", ")
+                    )),
+                    status: None,
+                    properties: Map::from_iter([
+                        ("days".to_owned(), text(day_list(&notice.days))),
+                        ("channels".to_owned(), text(notice.channels.join(", "))),
+                    ]),
+                })
+        }
         SPACE_ALERT => match setting::get::<SpaceAlert>(db, SPACE_ALERT_KEY).await? {
             Some(alert) => Some(Stored {
                 enabled: alert.enabled,
@@ -697,6 +748,16 @@ async fn save(state: &AppState, kind: &str, xo: &CapabilityXo) -> Result<(), Api
             };
             setting::put(db, PROMETHEUS_KEY, &metrics).await?;
         }
+        CUSTOMER_EXPIRY_NOTICE => {
+            let defaults = CustomerExpiryNotice::default();
+            let notice = CustomerExpiryNotice {
+                days: day_counts(properties, &defaults.days)?,
+                channels: channels(state, properties).await?,
+                enabled,
+                notes,
+            };
+            setting::put(db, CUSTOMER_EXPIRY_NOTICE_KEY, &notice).await?;
+        }
         SPACE_ALERT => {
             let defaults = SpaceAlert::default();
             let alert = SpaceAlert {
@@ -745,6 +806,53 @@ async fn save(state: &AppState, kind: &str, xo: &CapabilityXo) -> Result<(), Api
         _ => return Err(ApiError::not_found("Capability not found")),
     }
     Ok(())
+}
+
+fn day_list(days: &[u32]) -> String {
+    days.iter()
+        .map(u32::to_string)
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+fn day_counts(properties: &Map<String, Value>, default: &[u32]) -> Result<Vec<u32>, ApiError> {
+    let Some(value) = property(properties, "days").filter(|value| !value.trim().is_empty()) else {
+        return Ok(default.to_vec());
+    };
+    let mut counts = Vec::new();
+    for part in value
+        .split(',')
+        .map(str::trim)
+        .filter(|part| !part.is_empty())
+    {
+        let day = part.parse::<u32>().map_err(|_| {
+            ApiError::invalid(
+                "properties.days",
+                "Days before expiry must be whole numbers",
+            )
+        })?;
+        if !(1..=365).contains(&day) {
+            return Err(ApiError::invalid(
+                "properties.days",
+                "Days before expiry must be between 1 and 365",
+            ));
+        }
+        if counts.contains(&day) {
+            return Err(ApiError::invalid(
+                "properties.days",
+                "Each day count may be listed only once",
+            ));
+        }
+        counts.push(day);
+    }
+    if counts.is_empty() || counts.len() > 5 {
+        return Err(ApiError::invalid(
+            "properties.days",
+            "Name between one and five day counts",
+        ));
+    }
+    counts.sort_unstable_by(|left, right| right.cmp(left));
+    Ok(counts)
 }
 
 async fn channels(
@@ -866,6 +974,7 @@ async fn remove(
         UI_SETTINGS => UI_SETTINGS_KEY,
         PROMETHEUS => PROMETHEUS_KEY,
         SPACE_ALERT => SPACE_ALERT_KEY,
+        CUSTOMER_EXPIRY_NOTICE => CUSTOMER_EXPIRY_NOTICE_KEY,
         _ => BRANDING_KEY,
     };
     let before = relying_party::current_id(&state);

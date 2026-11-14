@@ -127,6 +127,9 @@ fn token_body(token: &str, lifetime: i64, scope: Option<&str>) -> Response {
 }
 
 async fn issue(state: &AppState, subject: &Subject) -> Result<String, RegistryError> {
+    subject
+        .require_unnarrowed()
+        .map_err(|error| RegistryError::denied(error.to_string()))?;
     state
         .security()
         .issue_format_token(
@@ -206,7 +209,10 @@ pub async fn oauth(
     };
     let security = state.security();
     if looks_like_token(password) {
-        return match security.authenticate_token(Some(username), password).await {
+        return match security
+            .authenticate_token(Some(username), password, astrum_api::client::current())
+            .await
+        {
             Ok(_) => token_body(password, LIFETIME_SECONDS, scope),
             Err(_) => oauth_error(StatusCode::UNAUTHORIZED, "invalid_grant"),
         };

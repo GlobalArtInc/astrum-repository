@@ -30,6 +30,7 @@ import {
 import { type ReactNode, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { useApi } from '../../../api';
+import { useSession } from '../../../auth/state';
 import { formatNumber, useI18n, useT } from '../../../i18n';
 import {
   COMPACT,
@@ -45,6 +46,8 @@ import {
   useMediaQuery,
   useToast,
 } from '../../../ui';
+import { SECURITY_SUMMARY } from '../../security/api';
+import type { SecuritySummary, SummaryRepository } from '../../security/findings/model';
 import { Pager, pageCount, pageSlice } from '../Pager';
 import { OnlineStatus } from '../parts';
 import { browseUrl } from '../tree/model';
@@ -273,7 +276,36 @@ function RowMenu({ item }: { item: RepositoryItem }) {
   );
 }
 
-function RepositoryCards({ items }: { items: RepositoryItem[] }) {
+type SecurityByRepository = Map<string, SummaryRepository>;
+
+interface SecurityBadgesProps {
+  row: SummaryRepository | undefined;
+}
+
+function SecurityBadges({ row }: SecurityBadgesProps) {
+  const t = useT();
+  const { language } = useI18n();
+  if (row === undefined) {
+    return null;
+  }
+  return (
+    <Flex gap="2" align="center" wrap="wrap">
+      <Badge color={row.blocked > 0 ? 'red' : 'gray'} variant="soft" radius="full">
+        {t('browse.list.blockedCount', { count: formatNumber(language, row.blocked) })}
+      </Badge>
+      <Badge color={row.critical > 0 ? 'red' : 'gray'} variant="soft" radius="full">
+        {t('browse.list.criticalCount', { count: formatNumber(language, row.critical) })}
+      </Badge>
+    </Flex>
+  );
+}
+
+interface RepositoryCardsProps {
+  items: RepositoryItem[];
+  security: SecurityByRepository;
+}
+
+function RepositoryCards({ items, security }: RepositoryCardsProps) {
   const t = useT();
   const toast = useToast();
   const copy = async (item: RepositoryItem) => {
@@ -304,6 +336,7 @@ function RepositoryCards({ items }: { items: RepositoryItem[] }) {
               <FormatBadge format={item.format} />
               <TypeBadge type={item.type} />
             </Flex>
+            {security.size > 0 && <SecurityBadges row={security.get(item.name)} />}
           </div>
           <IconButton
             variant="outline"
@@ -354,15 +387,14 @@ function SortHeader({
   );
 }
 
-function RepositoryTable({
-  items,
-  filters,
-  onChange,
-}: {
+interface RepositoryTableProps {
   items: RepositoryItem[];
   filters: ListFilters;
   onChange: FilterChange;
-}) {
+  security: SecurityByRepository;
+}
+
+function RepositoryTable({ items, filters, onChange, security }: RepositoryTableProps) {
   const t = useT();
   const navigate = useNavigate();
   return (
@@ -375,6 +407,7 @@ function RepositoryTable({
           <SortHeader column="type" filters={filters} onChange={onChange} />
           <SortHeader column="status" filters={filters} onChange={onChange} />
           <Table.ColumnHeaderCell>{t('browse.list.url')}</Table.ColumnHeaderCell>
+          {security.size > 0 && <Table.ColumnHeaderCell>{t('browse.list.security')}</Table.ColumnHeaderCell>}
           <Table.ColumnHeaderCell width="56px">
             <span className="visually-hidden">{t('browse.list.actions')}</span>
           </Table.ColumnHeaderCell>
@@ -414,6 +447,11 @@ function RepositoryTable({
                 <CopyButton text={withSlash(item.url)} label={t('browse.list.copyUrl')} />
               </span>
             </Table.Cell>
+            {security.size > 0 && (
+              <Table.Cell>
+                <SecurityBadges row={security.get(item.name)} />
+              </Table.Cell>
+            )}
             <Table.Cell align="right">
               <RowMenu item={item} />
             </Table.Cell>
@@ -447,6 +485,12 @@ export default function RepositoryListPage() {
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const query = useApi<RepositoryItem[]>(REPOSITORIES_PATH);
+  const signedIn = useSession().user !== null;
+  const summary = useApi<SecuritySummary>(signedIn ? SECURITY_SUMMARY : null);
+  const security: SecurityByRepository = useMemo(
+    () => new Map((summary.data?.repositories ?? []).map((row) => [row.repository, row])),
+    [summary.data],
+  );
   const collator = useMemo(
     () => new Intl.Collator(language, { numeric: true, sensitivity: 'base' }),
     [language],
@@ -545,9 +589,9 @@ export default function RepositoryListPage() {
           ) : (
             <>
               {phone ? (
-                <RepositoryCards items={visible} />
+                <RepositoryCards items={visible} security={security} />
               ) : (
-                <RepositoryTable items={visible} filters={filters} onChange={change} />
+                <RepositoryTable items={visible} filters={filters} onChange={change} security={security} />
               )}
               <Pager
                 total={shown.length}

@@ -3,8 +3,9 @@ pub mod module;
 use std::collections::BTreeSet;
 
 use astrum_blob::Written;
+use astrum_content::inventory::{Inventory, PackageRef};
 use astrum_content::proxy;
-use astrum_content::store::{self, ComponentKey, PutAsset};
+use astrum_content::store::{self, Component, ComponentKey, PutAsset};
 use astrum_content::zip::{self, ZipError};
 use astrum_content::{
     Asset, BrowseLayout, ContentError, ContentRequest, Ctx, Format, Freshness, Serve, UploadField,
@@ -85,6 +86,25 @@ fn component_key(module: &str, version: &str) -> ComponentKey {
         kind: String::new(),
         attributes: json!({}),
     }
+}
+
+fn package_inventory(name: &str, version: &str) -> Option<Inventory> {
+    if name.is_empty() || version.is_empty() {
+        return None;
+    }
+    let purl = format!("pkg:golang/{name}@{version}");
+    Some(Inventory {
+        key: purl.clone(),
+        packages: vec![PackageRef {
+            ecosystem: "Go".to_owned(),
+            name: name.to_owned(),
+            version: version.to_owned(),
+            purl,
+        }],
+        license: None,
+        complete: true,
+        ..Inventory::default()
+    })
 }
 
 fn kind_of(request: &Request) -> (&'static str, &'static str, Freshness) {
@@ -551,6 +571,14 @@ impl Format for Go {
         ID
     }
 
+    async fn inventory(
+        &self,
+        _ctx: &Ctx,
+        component: &Component,
+    ) -> Result<Option<Inventory>, ContentError> {
+        Ok(package_inventory(&component.name, &component.version))
+    }
+
     async fn handle(&self, ctx: Ctx, request: ContentRequest) -> Result<Response, ContentError> {
         match (&request.method, ctx.kind()) {
             (&Method::GET | &Method::HEAD, _) => self.read(&ctx, &request).await,
@@ -642,6 +670,16 @@ impl Format for Go {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn hosted_and_proxy_modules_keep_their_path_and_version() {
+        let hosted = package_inventory("example.com/hello", "v1.0.0").unwrap();
+        assert_eq!(hosted.key, "pkg:golang/example.com/hello@v1.0.0");
+        assert_eq!(hosted.packages[0].name, "example.com/hello");
+        let proxy = package_inventory("github.com/google/uuid", "v1.6.0").unwrap();
+        assert_eq!(proxy.key, "pkg:golang/github.com/google/uuid@v1.6.0");
+        assert!(package_inventory("example.com/hello", "").is_none());
+    }
 
     #[tokio::test]
     async fn module_zips_name_their_module_and_version() {

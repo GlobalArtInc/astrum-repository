@@ -788,3 +788,44 @@ async fn promotion_refuses_gem_paths_that_do_not_match_their_spec() {
     }
     assert_eq!(blobs(&fixture).await, before);
 }
+
+#[tokio::test]
+async fn a_token_limited_to_repositories_gets_no_api_key() {
+    let fixture = ready().await;
+    create(&fixture, "hosted", hosted("gems", "ALLOW")).await;
+    let realms = fixture
+        .call(
+            Method::PUT,
+            "/service/rest/v1/security/realms/active",
+            Auth::Admin,
+            Some(json!([
+                "AstrumAuthenticatingRealm",
+                "AccessTokenRealm",
+                "RubyGemsApiKey"
+            ])),
+        )
+        .await;
+    assert_eq!(realms.status, StatusCode::NO_CONTENT, "{}", realms.text());
+    let (_, token) = fixture.customer_token("acme", &["gems"]).await;
+    for method in [Method::GET, Method::POST, Method::DELETE] {
+        let reply = fixture
+            .call(
+                method.clone(),
+                "/repository/gems/api/v1/api_key",
+                Auth::Basic("acme", &token),
+                None,
+            )
+            .await;
+        assert_eq!(
+            reply.status,
+            StatusCode::FORBIDDEN,
+            "{method}: {}",
+            reply.text()
+        );
+    }
+    assert!(
+        !text(&fixture, "/repository/gems/api/v1/api_key")
+            .await
+            .is_empty()
+    );
+}

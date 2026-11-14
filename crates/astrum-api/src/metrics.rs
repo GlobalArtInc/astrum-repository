@@ -101,6 +101,8 @@ fn classify(path: &str) -> (&'static str, Option<&str>) {
         "internal"
     } else if path.starts_with("/service/rest/") {
         "rest"
+    } else if path.starts_with("/service/share/") {
+        "share"
     } else if path.starts_with("/service/") {
         "service"
     } else if path == "/mcp"
@@ -231,6 +233,9 @@ struct Collected {
     disk: Option<(u64, u64)>,
     alerts: Vec<(String, String)>,
     replication: Option<replication::Measured>,
+    scan: Option<astrum_scan::queue::Depth>,
+    backlog: Option<astrum_scan::matcher::Backlog>,
+    verdict_queue: Option<astrum_scan::verdict::Depth>,
 }
 
 async fn usage(state: &AppState) -> Option<HashMap<String, i64>> {
@@ -285,7 +290,20 @@ async fn disk(state: &AppState) -> Option<(u64, u64)> {
 }
 
 async fn collect(state: &AppState) -> Collected {
-    let (stores, checks, repositories, usage, tasks, pending, disk, alerts, replication) = tokio::join!(
+    let (
+        stores,
+        checks,
+        repositories,
+        usage,
+        tasks,
+        pending,
+        disk,
+        alerts,
+        scan,
+        backlog,
+        verdict_queue,
+        replication,
+    ) = tokio::join!(
         async { measure_all(state).await.ok() },
         health::run(state),
         async { astrum_repo::store::list(state.db().conn()).await.ok() },
@@ -294,6 +312,9 @@ async fn collect(state: &AppState) -> Collected {
         pending(state),
         disk(state),
         crate::space::tracked(state),
+        async { astrum_scan::queue::depth(state.db().conn()).await.ok() },
+        async { astrum_scan::matcher::backlog(state.db().conn()).await.ok() },
+        async { astrum_scan::verdict::depth(state.db().conn()).await.ok() },
         replication::measure(state),
     );
     Collected {
@@ -305,6 +326,9 @@ async fn collect(state: &AppState) -> Collected {
         pending,
         disk,
         alerts,
+        scan,
+        backlog,
+        verdict_queue,
         replication,
     }
 }
@@ -631,6 +655,266 @@ pub async fn render(state: &AppState, settings: &Prometheus) -> String {
         out.sample("astrum_notification_deliveries_pending", &[], pending);
     }
 
+    if let Some(depth) = &collected.scan {
+        out.family(
+            "astrum_scan_queue_depth",
+            "gauge",
+            "Components waiting to be scanned, on every node together.",
+        );
+        out.sample("astrum_scan_queue_depth", &[], depth.queued);
+        out.family(
+            "astrum_scan_queue_oldest_seconds",
+            "gauge",
+            "Age of the oldest component in the scan queue, 0 when it is empty.",
+        );
+        out.sample(
+            "astrum_scan_queue_oldest_seconds",
+            &[],
+            depth.oldest_seconds,
+        );
+    }
+    let scans = state.scan_metrics().snapshot();
+    out.family(
+        "astrum_scan_seconds",
+        "histogram",
+        "Time this node took to scan one component, failed attempts included.",
+    );
+    for (bound, count) in astrum_scan::worker::BUCKETS.iter().zip(scans.buckets) {
+        out.sample(
+            "astrum_scan_seconds_bucket",
+            &[("le", &bound.to_string())],
+            count,
+        );
+    }
+    out.sample("astrum_scan_seconds_bucket", &[("le", "+Inf")], scans.count);
+    out.sample("astrum_scan_seconds_sum", &[], scans.sum);
+    out.sample("astrum_scan_seconds_count", &[], scans.count);
+    out.family(
+        "astrum_scan_failures_total",
+        "counter",
+        "Scan attempts of this node that failed, retried ones included.",
+    );
+    out.sample("astrum_scan_failures_total", &[], scans.failures);
+
+    if let Some(backlog) = &collected.backlog {
+        out.family(
+            "astrum_scan_unmatched_packages",
+            "gauge",
+            "Packages waiting to be matched against the advisories, on every node together.",
+        );
+        out.sample("astrum_scan_unmatched_packages", &[], backlog.unmatched);
+        out.family(
+            "astrum_scan_rejudge_pending_packages",
+            "gauge",
+            "Packages whose match changed and whose components are not all queued for judgement yet.",
+        );
+        out.sample("astrum_scan_rejudge_pending_packages", &[], backlog.rejudge);
+    }
+    let matches = state.matcher_metrics().snapshot();
+    out.family(
+        "astrum_scan_match_seconds",
+        "histogram",
+        "Time this node took to match one batch of packages against the advisories.",
+    );
+    for (bound, count) in astrum_scan::worker::BUCKETS.iter().zip(matches.buckets) {
+        out.sample(
+            "astrum_scan_match_seconds_bucket",
+            &[("le", &bound.to_string())],
+            count,
+        );
+    }
+    out.sample(
+        "astrum_scan_match_seconds_bucket",
+        &[("le", "+Inf")],
+        matches.count,
+    );
+    out.sample("astrum_scan_match_seconds_sum", &[], matches.sum);
+    out.sample("astrum_scan_match_seconds_count", &[], matches.count);
+    out.family(
+        "astrum_scan_matches_total",
+        "counter",
+        "Matches of packages with advisories that this node added or removed.",
+    );
+    out.sample(
+        "astrum_scan_matches_total",
+        &[("change", "added")],
+        matches.added,
+    );
+    out.sample(
+        "astrum_scan_matches_total",
+        &[("change", "removed")],
+        matches.removed,
+    );
+    out.family(
+        "astrum_scan_match_skipped_total",
+        "counter",
+        "Advisories and packages this node could not judge: unreadable ranges, unreadable versions, cut-off lists.",
+    );
+    out.sample(
+        "astrum_scan_match_skipped_total",
+        &[("reason", "advisory_ranges")],
+        matches.skipped_advisories,
+    );
+    out.sample(
+        "astrum_scan_match_skipped_total",
+        &[("reason", "package_version")],
+        matches.unresolved_packages,
+    );
+    out.sample(
+        "astrum_scan_match_skipped_total",
+        &[("reason", "advisory_cap")],
+        matches.truncated_packages,
+    );
+    out.family(
+        "astrum_scan_match_failures_total",
+        "counter",
+        "Matching or queueing steps of this node that failed and are retried.",
+    );
+    out.sample("astrum_scan_match_failures_total", &[], matches.failures);
+
+    if let Some(depth) = &collected.verdict_queue {
+        out.family(
+            "astrum_policy_dirty_subjects",
+            "gauge",
+            "Subjects waiting for their verdict to be recomputed, on every node together.",
+        );
+        out.sample("astrum_policy_dirty_subjects", &[], depth.queued);
+        out.family(
+            "astrum_policy_dirty_oldest_seconds",
+            "gauge",
+            "Age of the oldest subject waiting for its verdict, 0 when none waits.",
+        );
+        out.sample(
+            "astrum_policy_dirty_oldest_seconds",
+            &[],
+            depth.oldest_seconds,
+        );
+    }
+    let verdicts = state.verdict_metrics().snapshot();
+    out.family(
+        "astrum_policy_verdict_seconds",
+        "histogram",
+        "Time this node took to judge one batch of subjects.",
+    );
+    for (bound, count) in astrum_scan::worker::BUCKETS.iter().zip(verdicts.buckets) {
+        out.sample(
+            "astrum_policy_verdict_seconds_bucket",
+            &[("le", &bound.to_string())],
+            count,
+        );
+    }
+    out.sample(
+        "astrum_policy_verdict_seconds_bucket",
+        &[("le", "+Inf")],
+        verdicts.count,
+    );
+    out.sample("astrum_policy_verdict_seconds_sum", &[], verdicts.sum);
+    out.sample("astrum_policy_verdict_seconds_count", &[], verdicts.count);
+    out.family(
+        "astrum_policy_verdicts_total",
+        "counter",
+        "Verdicts this node stored, by state; the state error means a policy that cannot be read.",
+    );
+    for (state_of, count) in astrum_scan::verdict::STATES.iter().zip(verdicts.written) {
+        out.sample(
+            "astrum_policy_verdicts_total",
+            &[("state", state_of.as_str())],
+            count,
+        );
+    }
+    out.family(
+        "astrum_policy_verdicts_dropped_total",
+        "counter",
+        "Verdicts this node deleted because the subject has no policy, the policy is off or the component is gone.",
+    );
+    out.sample(
+        "astrum_policy_verdicts_dropped_total",
+        &[],
+        verdicts.dropped,
+    );
+    out.family(
+        "astrum_policy_verdict_failures_total",
+        "counter",
+        "Batches of subjects this node failed to judge; their marks stay queued.",
+    );
+    out.sample(
+        "astrum_policy_verdict_failures_total",
+        &[],
+        verdicts.failures,
+    );
+    out.family(
+        "astrum_policy_exceptions_unreadable",
+        "gauge",
+        "Policy exceptions this node skipped because their stored form cannot be read; skipping only makes verdicts stricter.",
+    );
+    out.sample(
+        "astrum_policy_exceptions_unreadable",
+        &[],
+        state.policy_cache().unreadable_exceptions() as u64,
+    );
+    out.family(
+        "astrum_policy_sweeper_runs_total",
+        "counter",
+        "Sweeps for expired exceptions and changed policies on this node, by result.",
+    );
+    out.sample(
+        "astrum_policy_sweeper_runs_total",
+        &[("result", "done")],
+        verdicts.sweeps_done,
+    );
+    out.sample(
+        "astrum_policy_sweeper_runs_total",
+        &[("result", "busy")],
+        verdicts.sweeps_busy,
+    );
+    out.sample(
+        "astrum_policy_sweeper_runs_total",
+        &[("result", "failed")],
+        verdicts.sweeps_failed,
+    );
+    out.family(
+        "astrum_policy_sweeper_marked_total",
+        "counter",
+        "Subjects this node's sweeps marked for a new verdict.",
+    );
+    out.sample(
+        "astrum_policy_sweeper_marked_total",
+        &[],
+        verdicts.swept_subjects,
+    );
+    let gate = state.gate_metrics().snapshot();
+    out.family(
+        "astrum_policy_gate_decisions_total",
+        "counter",
+        "Download checks of repositories with a content policy on this node, by result. pass, blocked and would_block follow the stored verdict; unguarded means the repository of the asset has no policy; inline_scan_pass, inline_scan_blocked and inline_scan_unscanned mean the component was scanned at download (the last one: the scan left it unscanned and the policy lets it pass); inline_scan_timeout and inline_scan_error mean the scan did not finish or failed, so the unscanned setting applied; mark_failed counts a component without a verdict that could not be queued for the workers, besides its decision; notice_failed counts a refusal whose notification could not be written or queued, besides its decision; error means the check failed and the download was refused.",
+    );
+    for (outcome, count) in crate::gate::Outcome::ALL.iter().zip(gate.results) {
+        out.sample(
+            "astrum_policy_gate_decisions_total",
+            &[("result", outcome.label())],
+            count,
+        );
+    }
+    out.family(
+        "astrum_policy_gate_seconds",
+        "histogram",
+        "Time the download check of this node took, a scan at download included.",
+    );
+    for (bound, count) in crate::gate::BUCKETS.iter().zip(gate.buckets) {
+        out.sample(
+            "astrum_policy_gate_seconds_bucket",
+            &[("le", &bound.to_string())],
+            count,
+        );
+    }
+    out.sample(
+        "astrum_policy_gate_seconds_bucket",
+        &[("le", "+Inf")],
+        gate.count,
+    );
+    out.sample("astrum_policy_gate_seconds_sum", &[], gate.sum);
+    out.sample("astrum_policy_gate_seconds_count", &[], gate.count);
+
     if let Some(at) = state.tasks().last_tick() {
         out.family(
             "astrum_scheduler_last_tick_timestamp_seconds",
@@ -714,6 +998,10 @@ mod tests {
         );
         assert_eq!(classify("/service/rest/v1/status"), ("rest", None));
         assert_eq!(classify(PATH), ("service", None));
+        assert_eq!(
+            classify("/service/share/astrum_share_x/a.txt"),
+            ("share", None)
+        );
         assert_eq!(classify("/mcp"), ("mcp", None));
         assert_eq!(classify("/v2/"), ("docker", None));
         assert_eq!(classify("/browse"), ("web", None));

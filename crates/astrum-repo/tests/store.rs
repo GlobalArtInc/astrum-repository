@@ -1,7 +1,7 @@
-use astrum_db::entity::{blob_store, repository};
+use astrum_db::entity::{access_token, blob_store, content_policy, repository};
 use astrum_repo::{Repository, Request, Spec, WriteError, Writer, store};
 use astrum_testkit::TestDatabase;
-use sea_orm::{ActiveValue, DatabaseConnection, EntityTrait};
+use sea_orm::{ActiveValue, ConnectionTrait, DatabaseConnection, EntityTrait, QueryOrder};
 use serde_json::{Value, json};
 
 async fn ready() -> (TestDatabase, astrum_db::Database) {
@@ -101,7 +101,8 @@ async fn deleting_a_member_takes_it_out_of_every_group() {
         .delete("Releases")
         .await
         .unwrap();
-    assert_eq!(deleted.name, "releases");
+    assert_eq!(deleted.repository.name, "releases");
+    assert!(deleted.tokens.is_empty());
     let names: Vec<(String, Vec<String>)> = store::list(db.conn())
         .await
         .unwrap()
@@ -128,6 +129,168 @@ async fn deleting_a_member_takes_it_out_of_every_group() {
         .delete("releases")
         .await;
     assert!(matches!(missing, Err(WriteError::NotFound(_))));
+}
+
+async fn content_policy(db: &DatabaseConnection, name: &str) {
+    let now = chrono::Utc::now().fixed_offset();
+    content_policy::Entity::insert(content_policy::ActiveModel {
+        name: ActiveValue::Set(name.to_owned()),
+        notes: ActiveValue::Set(String::new()),
+        vulnerabilities: ActiveValue::Set(json!({"mode": "off"})),
+        licenses: ActiveValue::Set(json!({"mode": "off"})),
+        signatures: ActiveValue::Set(json!({"mode": "off"})),
+        cooldown: ActiveValue::Set(json!({"mode": "off"})),
+        revision: ActiveValue::Set(1),
+        created_at: ActiveValue::Set(now),
+        updated_at: ActiveValue::Set(now),
+    })
+    .exec(db)
+    .await
+    .unwrap();
+}
+
+fn with_policy(format: &str, kind: &str, mut body: Value, policy: &str) -> Repository {
+    body["policy"] = json!({"name": policy});
+    prepared(format, kind, body)
+}
+
+#[tokio::test]
+async fn a_policy_section_names_an_existing_content_policy() {
+    let (_test, db) = ready().await;
+    content_policy(db.conn(), "strict").await;
+    let releases = |policy: &str| {
+        with_policy(
+            "maven",
+            "hosted",
+            json!({
+                "name": "releases", "online": true,
+                "storage": {"blobStoreName": "default", "strictContentTypeValidation": true, "writePolicy": "ALLOW"},
+                "maven": {"versionPolicy": "RELEASE", "layoutPolicy": "STRICT"},
+            }),
+            policy,
+        )
+    };
+    let missing = Writer::begin(db.conn())
+        .await
+        .unwrap()
+        .create(releases("lenient"))
+        .await;
+    let Err(WriteError::Invalid(problems)) = missing else {
+        panic!("{missing:?}");
+    };
+    assert_eq!(problems[0].id, "PARAMETER policyName");
+    assert_eq!(
+        problems[0].message,
+        "the content policy \"lenient\" does not exist"
+    );
+    create(db.conn(), releases("strict")).await;
+    let found = store::find(db.conn(), "releases").await.unwrap().unwrap();
+    assert_eq!(
+        found.attributes.policy.and_then(|policy| policy.name),
+        Some("strict".to_owned())
+    );
+}
+
+#[tokio::test]
+async fn the_writer_lists_the_users_of_a_content_policy_and_commits_what_it_changed() {
+    let (_test, db) = ready().await;
+    content_policy(db.conn(), "strict").await;
+    content_policy(db.conn(), "idle").await;
+    create(
+        db.conn(),
+        with_policy(
+            "maven",
+            "hosted",
+            json!({
+                "name": "releases", "online": true,
+                "storage": {"blobStoreName": "default", "strictContentTypeValidation": true, "writePolicy": "ALLOW"},
+                "maven": {"versionPolicy": "RELEASE", "layoutPolicy": "STRICT"},
+            }),
+            "strict",
+        ),
+    )
+    .await;
+    let writer = Writer::begin(db.conn()).await.unwrap();
+    assert_eq!(writer.content_policy_users("strict"), ["releases"]);
+    assert!(writer.content_policy_users("idle").is_empty());
+    content_policy::Entity::delete_by_id("idle".to_owned())
+        .exec(writer.transaction())
+        .await
+        .unwrap();
+    writer.commit().await.unwrap();
+    let left = content_policy::Entity::find().all(db.conn()).await.unwrap();
+    assert_eq!(left.len(), 1);
+    assert_eq!(left[0].name, "strict");
+}
+
+#[tokio::test]
+async fn groups_have_no_policy_of_their_own() {
+    let (_test, db) = ready().await;
+    content_policy(db.conn(), "strict").await;
+    create(db.conn(), hosted("releases")).await;
+    let grouped = with_policy(
+        "maven",
+        "group",
+        json!({
+            "name": "public", "online": true,
+            "storage": {"blobStoreName": "default", "strictContentTypeValidation": true},
+            "group": {"memberNames": ["releases"]},
+        }),
+        "strict",
+    );
+    create(db.conn(), grouped).await;
+    let public = store::find(db.conn(), "public").await.unwrap().unwrap();
+    assert_eq!(public.attributes.policy, None);
+}
+
+#[tokio::test]
+async fn deleting_a_repository_takes_its_name_out_of_the_tokens_whatever_the_case() {
+    let (_test, db) = ready().await;
+    create(db.conn(), hosted("Releases")).await;
+    create(db.conn(), hosted("snapshots")).await;
+    for (number, listed) in [
+        (1, "ARRAY['releases','snapshots']"),
+        (2, "ARRAY['releases']"),
+        (3, "ARRAY['snapshots']"),
+        (4, "NULL::text[]"),
+    ] {
+        db.conn()
+            .execute_unprepared(&format!(
+                "INSERT INTO access_token (id, user_id, name, token_hash, token_hint, scope, expires_at, repositories) \
+                 VALUES ('00000000-0000-0000-0000-00000000000{number}', 'u', 'token-{number}', 'hash-{number}', 'hint', 'READ', now() + interval '1 day', {listed})"
+            ))
+            .await
+            .unwrap();
+    }
+    let deleted = Writer::begin(db.conn())
+        .await
+        .unwrap()
+        .delete("RELEASES")
+        .await
+        .unwrap();
+    let changes: Vec<(&str, bool)> = deleted
+        .tokens
+        .iter()
+        .map(|change| (change.name.as_str(), change.removed))
+        .collect();
+    assert_eq!(changes, [("token-1", false), ("token-2", true)]);
+    let kept: Vec<(String, Option<Vec<String>>)> = access_token::Entity::find()
+        .order_by_asc(access_token::Column::Name)
+        .all(db.conn())
+        .await
+        .unwrap()
+        .into_iter()
+        .map(|token| (token.name, token.repositories))
+        .collect();
+    let snapshots = Some(vec!["snapshots".to_owned()]);
+    assert_eq!(
+        kept,
+        [
+            ("token-1".to_owned(), snapshots.clone()),
+            ("token-3".to_owned(), snapshots),
+            ("token-4".to_owned(), None),
+        ]
+    );
 }
 
 #[tokio::test]

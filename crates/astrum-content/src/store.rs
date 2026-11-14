@@ -57,6 +57,7 @@ pub struct PutAsset {
     pub write_policy: Option<WritePolicy>,
     pub remote_etag: Option<String>,
     pub remote_last_modified: Option<DateTime<FixedOffset>>,
+    pub upstream_published_at: Option<DateTime<FixedOffset>>,
     pub verified: bool,
     pub declared_size: Option<u64>,
 }
@@ -114,6 +115,11 @@ impl PutAsset {
 
     pub fn declared_size(mut self, size: Option<u64>) -> Self {
         self.declared_size = size;
+        self
+    }
+
+    pub fn published(mut self, at: DateTime<FixedOffset>) -> Self {
+        self.upstream_published_at = Some(at);
         self
     }
 }
@@ -658,6 +664,7 @@ fn asset_row(
         last_verified_at: ActiveValue::Set(put.verified.then_some(now)),
         remote_etag: ActiveValue::Set(put.remote_etag.clone()),
         remote_last_modified: ActiveValue::Set(put.remote_last_modified),
+        upstream_published_at: ActiveValue::Set(put.upstream_published_at),
     }
 }
 
@@ -687,6 +694,12 @@ async fn upsert_asset(
                     asset::Column::RemoteEtag,
                     asset::Column::RemoteLastModified,
                 ])
+                .value(
+                    asset::Column::UpstreamPublishedAt,
+                    Expr::cust(
+                        "COALESCE(excluded.upstream_published_at, asset.upstream_published_at)",
+                    ),
+                )
                 .to_owned(),
         )
         .exec_with_returning(db)

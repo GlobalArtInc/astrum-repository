@@ -12,6 +12,7 @@ import {
   type Channel,
   type ChannelType,
   EVENT_LABELS,
+  type EventId,
   fromChannel,
   type TestResult,
   TYPE_LABELS,
@@ -25,7 +26,16 @@ const TYPE_ICONS: Record<ChannelType, typeof Send> = {
   webhook: Webhook,
   email: Mail,
 };
-const EVENT_COLORS = { published: 'green', promoted: 'violet', updated: 'blue', deleted: 'red' } as const;
+const SECURITY_EVENTS: EventId[] = ['vulnerability.found', 'policy.blocked'];
+const EVENT_COLORS = {
+  published: 'green',
+  promoted: 'violet',
+  updated: 'blue',
+  deleted: 'red',
+  'vulnerability.found': 'orange',
+  'policy.blocked': 'red',
+  'cooldown.released': 'amber',
+} as const;
 
 function ChannelRow({
   channel,
@@ -116,7 +126,13 @@ function ChannelRow({
       </Table.Cell>
       <Table.Cell>
         {channel.repositories.length === 0 ? (
-          <span className={styles.muted}>{t('notify.notifications.allHosted')}</span>
+          <span className={styles.muted}>
+            {t(
+              channel.events.some((event) => SECURITY_EVENTS.includes(event))
+                ? 'notify.notifications.allKinds'
+                : 'notify.notifications.allHosted',
+            )}
+          </span>
         ) : (
           <div className={styles.badges}>
             {shown.map((name) => (

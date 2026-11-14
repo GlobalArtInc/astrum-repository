@@ -2,6 +2,7 @@ mod document;
 mod domain;
 mod formats;
 mod group;
+mod policy;
 mod problems;
 mod proxy;
 mod signing;
@@ -19,6 +20,7 @@ pub use formats::{
     Npm, NugetProxy, NugetVersion, Raw, Terraform, VersionPolicy, Yum, valid_store_dir,
 };
 pub use group::Group;
+pub use policy::Policy;
 pub use problems::{Problem, Problems};
 pub use proxy::{
     Authentication, AuthenticationType, Connection, Firewall, FirewallMode, HttpClient,
@@ -132,6 +134,7 @@ macro_rules! sections {
 sections! {
     Storage: storage: Storage = "storage",
     Cleanup: cleanup: Cleanup = "cleanup",
+    Policy: policy: Policy = "policy",
     Component: component: Component = "component",
     Proxy: proxy: Proxy = "proxy",
     NegativeCache: negative_cache: NegativeCache = "negativeCache",
@@ -286,6 +289,13 @@ impl Repository {
             .storage
             .as_ref()
             .and_then(|storage| storage.blob_store_name.as_deref())
+    }
+
+    pub fn policy_name(&self) -> Option<&str> {
+        self.attributes
+            .policy
+            .as_ref()
+            .and_then(|policy| policy.name.as_deref())
     }
 
     pub fn group(&self) -> Option<&Group> {

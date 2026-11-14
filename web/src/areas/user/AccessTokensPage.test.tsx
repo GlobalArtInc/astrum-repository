@@ -70,6 +70,40 @@ describe('the access tokens page', () => {
     await waitFor(() => expect(server.calls.some((call) => call.method === 'DELETE')).toBe(true));
   }, 20_000);
 
+  it('sends the repository limit only with the Read scope', async () => {
+    const server = fakeServer({
+      'GET /service/rest/internal/access-tokens': () => jsonResponse([]),
+      'GET /service/rest/v1/repositories': () =>
+        jsonResponse([{ name: 'releases', format: 'raw', type: 'hosted' }]),
+      'POST /service/rest/internal/access-tokens': ({ body }) =>
+        jsonResponse({ ...TOKEN, name: (body as { name: string }).name, token: 'astrum_limited' }, 201),
+    });
+    vi.stubGlobal('fetch', server.fetch);
+    renderWithApp(<AccessTokensPage />);
+    await userEvent.type(await screen.findByRole('textbox', { name: 'Name' }), 'mirror');
+    await userEvent.click(screen.getByRole('button', { name: 'Limit to repositories' }));
+    await userEvent.click(await screen.findByRole('option', { name: /^releases / }));
+    await userEvent.keyboard('{Escape}');
+    await userEvent.click(screen.getByRole('button', { name: 'Create Token' }));
+    await waitFor(() => expect(server.calls.some((call) => call.method === 'POST')).toBe(true));
+    expect(server.calls.find((call) => call.method === 'POST')?.body).toMatchObject({
+      scope: 'READ',
+      repositories: ['releases'],
+    });
+    await userEvent.click(await screen.findByRole('button', { name: 'Done' }));
+    await userEvent.type(screen.getByRole('textbox', { name: 'Name' }), 'writer');
+    await userEvent.click(screen.getByRole('combobox', { name: 'Access' }));
+    await userEvent.click(await screen.findByRole('option', { name: 'Read and write' }));
+    expect(screen.queryByRole('button', { name: 'Limit to repositories' })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Create Token' }));
+    await waitFor(() => expect(server.calls.filter((call) => call.method === 'POST')).toHaveLength(2));
+    expect(server.calls.filter((call) => call.method === 'POST')[1]?.body).toEqual({
+      name: 'writer',
+      scope: 'WRITE',
+      expiresInDays: 90,
+    });
+  });
+
   it('lists connected agents and disconnects one', async () => {
     const server = fakeServer({
       'GET /service/rest/internal/access-tokens': () => jsonResponse([]),

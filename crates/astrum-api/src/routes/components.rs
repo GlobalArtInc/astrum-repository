@@ -147,13 +147,17 @@ fn component_json(base: &str, component: &Component, assets: &[Asset]) -> Value 
     })
 }
 
-struct Visibility {
-    full: BTreeSet<String>,
-    selected: BTreeMap<String, Ctx>,
+pub(crate) struct Visibility {
+    pub(crate) full: BTreeSet<String>,
+    pub(crate) selected: BTreeMap<String, Ctx>,
     shown_as: Option<String>,
 }
 
 impl Visibility {
+    pub(crate) fn repositories(&self) -> Vec<String> {
+        self.full.iter().cloned().collect()
+    }
+
     fn names(&self) -> Vec<String> {
         self.full
             .iter()
@@ -162,7 +166,7 @@ impl Visibility {
             .collect()
     }
 
-    fn sees(&self, repository: &str, path: &str) -> bool {
+    pub(crate) fn sees(&self, repository: &str, path: &str) -> bool {
         self.full.contains(repository)
             || self
                 .selected
@@ -213,7 +217,7 @@ async fn members(state: &AppState, name: &str) -> Result<Option<Vec<String>>, Ap
     ))
 }
 
-async fn visibility(
+pub(crate) async fn visibility(
     state: &AppState,
     caller: &Caller,
     only: Option<&str>,
@@ -836,21 +840,19 @@ async fn located(
     Ok((visibility, repository, number))
 }
 
-async fn get_component(
-    State(state): State<AppState>,
-    caller: Caller,
-    headers: HeaderMap,
-    uri: Uri,
-    Path(id): Path<String>,
-) -> Result<Response, ApiError> {
-    let (visibility, _, number) = located(&state, &caller, &id).await?;
+pub(crate) async fn visible_component(
+    state: &AppState,
+    caller: &Caller,
+    id: &str,
+) -> Result<(Visibility, Component, Vec<Asset>), ApiError> {
+    let (visibility, _, number) = located(state, caller, id).await?;
     let missing = || ApiError::not_found("Component not found");
-    let mut component = store::component_by_id(state.db().conn(), number)
+    let component = store::component_by_id(state.db().conn(), number)
         .await
         .map_err(ApiError::internal)?
         .filter(|component| visibility.holds(&component.repository))
         .ok_or_else(missing)?;
-    let mut assets: Vec<Asset> = store::assets_of(state.db().conn(), number)
+    let assets: Vec<Asset> = store::assets_of(state.db().conn(), number)
         .await
         .map_err(ApiError::internal)?
         .into_iter()
@@ -859,6 +861,17 @@ async fn get_component(
     if assets.is_empty() {
         return Err(missing());
     }
+    Ok((visibility, component, assets))
+}
+
+async fn get_component(
+    State(state): State<AppState>,
+    caller: Caller,
+    headers: HeaderMap,
+    uri: Uri,
+    Path(id): Path<String>,
+) -> Result<Response, ApiError> {
+    let (visibility, mut component, mut assets) = visible_component(&state, &caller, &id).await?;
     visibility.present(Some(&mut component), &mut assets);
     Ok(axum::Json(component_json(
         &base_url(&headers, &uri),

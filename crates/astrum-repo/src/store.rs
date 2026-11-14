@@ -1,10 +1,11 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use astrum_db::entity::{blob_store, cleanup_policy, repository, routing_rule};
+use astrum_db::entity::{blob_store, cleanup_policy, content_policy, repository, routing_rule};
+use sea_orm::prelude::Uuid;
 use sea_orm::sea_query::{Expr, Func};
 use sea_orm::{
-    ActiveValue, ColumnTrait, ConnectionTrait, DatabaseConnection, DatabaseTransaction, DbErr,
-    EntityTrait, QueryFilter, QueryOrder, QuerySelect, SqlErr, TransactionTrait,
+    ActiveValue, ColumnTrait, ConnectionTrait, DatabaseConnection, DatabaseTransaction, DbBackend,
+    DbErr, EntityTrait, QueryFilter, QueryOrder, QuerySelect, SqlErr, Statement, TransactionTrait,
 };
 
 use crate::RepositoryType;
@@ -12,6 +13,33 @@ use crate::config::{DomainRouting, Problem, Problems, Repository, Section, Signi
 use crate::routing::RoutingRule;
 
 const WRITE_LOCK: i64 = i64::from_be_bytes(*b"astrrepo");
+
+const LISTING_TOKENS: &str = "\
+SELECT id, name, user_id, customer, repositories \
+FROM access_token \
+WHERE repositories IS NOT NULL AND $1 = ANY(repositories) \
+ORDER BY id \
+FOR UPDATE";
+const DROPPING_TOKENS: &str = "DELETE FROM access_token WHERE id = ANY($1)";
+const NARROWING_TOKENS: &str = "\
+UPDATE access_token SET repositories = array_remove(repositories, $2) \
+WHERE id = ANY($1)";
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct TokenChange {
+    pub id: Uuid,
+    pub name: String,
+    pub user_id: String,
+    pub customer: Option<String>,
+    pub repositories: Vec<String>,
+    pub removed: bool,
+}
+
+#[derive(Clone, Debug)]
+pub struct Deleted {
+    pub repository: Repository,
+    pub tokens: Vec<TokenChange>,
+}
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -177,6 +205,7 @@ pub struct Writer {
     blob_stores: BTreeSet<String>,
     grouped: BTreeMap<String, String>,
     cleanup_policies: BTreeMap<String, String>,
+    content_policies: BTreeSet<String>,
     routing_rules: BTreeSet<String>,
     reserved_ports: Vec<u16>,
 }
@@ -217,6 +246,12 @@ impl Writer {
             .into_tuple()
             .all(&txn)
             .await?;
+        let content_policies: Vec<String> = content_policy::Entity::find()
+            .select_only()
+            .column(content_policy::Column::Name)
+            .into_tuple()
+            .all(&txn)
+            .await?;
         let routing_rules: Vec<String> = routing_rule::Entity::find()
             .select_only()
             .column(routing_rule::Column::Name)
@@ -229,6 +264,7 @@ impl Writer {
             blob_stores,
             grouped,
             cleanup_policies: cleanup_policies.into_iter().collect(),
+            content_policies: content_policies.into_iter().collect(),
             routing_rules: routing_rules.into_iter().collect(),
             reserved_ports: Vec::new(),
         })
@@ -315,7 +351,7 @@ impl Writer {
         Ok(repository)
     }
 
-    pub async fn delete(self, name: &str) -> Result<Repository, WriteError> {
+    pub async fn delete(self, name: &str) -> Result<Deleted, WriteError> {
         let existing = self
             .find(name)
             .cloned()
@@ -334,8 +370,64 @@ impl Writer {
                 self.save(&changed).await?;
             }
         }
+        let tokens = self.release_tokens(&existing.name).await?;
         self.txn.commit().await?;
-        Ok(existing)
+        Ok(Deleted {
+            repository: existing,
+            tokens,
+        })
+    }
+
+    async fn release_tokens(&self, name: &str) -> Result<Vec<TokenChange>, DbErr> {
+        let listed = name.to_ascii_lowercase();
+        let rows = self
+            .txn
+            .query_all(Statement::from_sql_and_values(
+                DbBackend::Postgres,
+                LISTING_TOKENS,
+                [listed.clone().into()],
+            ))
+            .await?;
+        let mut changes = Vec::with_capacity(rows.len());
+        for row in &rows {
+            let repositories: Vec<String> = row.try_get("", "repositories")?;
+            changes.push(TokenChange {
+                id: row.try_get("", "id")?,
+                name: row.try_get("", "name")?,
+                user_id: row.try_get("", "user_id")?,
+                customer: row.try_get("", "customer")?,
+                removed: repositories.iter().all(|kept| *kept == listed),
+                repositories,
+            });
+        }
+        let ids = |removed: bool| -> Vec<Uuid> {
+            changes
+                .iter()
+                .filter(|change| change.removed == removed)
+                .map(|change| change.id)
+                .collect()
+        };
+        let dropped = ids(true);
+        if !dropped.is_empty() {
+            self.txn
+                .execute(Statement::from_sql_and_values(
+                    DbBackend::Postgres,
+                    DROPPING_TOKENS,
+                    [dropped.into()],
+                ))
+                .await?;
+        }
+        let narrowed = ids(false);
+        if !narrowed.is_empty() {
+            self.txn
+                .execute(Statement::from_sql_and_values(
+                    DbBackend::Postgres,
+                    NARROWING_TOKENS,
+                    [narrowed.into(), listed.into()],
+                ))
+                .await?;
+        }
+        Ok(changes)
     }
 
     pub async fn forget_cleanup_policy(
@@ -378,6 +470,30 @@ impl Writer {
         }
         self.txn.commit().await?;
         Ok(Some(changed))
+    }
+
+    pub fn content_policy_users(&self, policy: &str) -> Vec<String> {
+        self.repositories
+            .iter()
+            .filter(|repository| {
+                repository
+                    .attributes
+                    .policy
+                    .as_ref()
+                    .and_then(|attached| attached.name.as_deref())
+                    == Some(policy)
+            })
+            .map(|repository| repository.name.clone())
+            .collect()
+    }
+
+    pub fn transaction(&self) -> &DatabaseTransaction {
+        &self.txn
+    }
+
+    pub async fn commit(self) -> Result<(), Error> {
+        self.txn.commit().await?;
+        Ok(())
     }
 
     pub fn rule_users(&self, rule: &str) -> Vec<String> {
@@ -521,6 +637,18 @@ impl Writer {
                 ),
                 Some(_) => {}
             }
+        }
+        if let Some(policy) = candidate
+            .attributes
+            .policy
+            .as_ref()
+            .and_then(|policy| policy.name.as_deref())
+            && !self.content_policies.contains(policy)
+        {
+            problems.add(
+                "policyName",
+                format!("the content policy \"{policy}\" does not exist"),
+            );
         }
         if let Some(rule) = &candidate.attributes.routing_rule_name
             && !self.routing_rules.contains(rule)

@@ -1,3 +1,6 @@
+use std::collections::BTreeSet;
+
+use astrum_repo::config::valid_name;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -201,6 +204,58 @@ pub struct SelectorGrant {
     pub format: String,
     pub repository: String,
     pub actions: Vec<Action>,
+}
+
+impl SelectorGrant {
+    pub fn narrow_to(&self, repositories: &BTreeSet<String>) -> Vec<SelectorGrant> {
+        let listed = crate::permission::plain_names(repositories);
+        let mut actions: Vec<Action> = Vec::new();
+        for action in &self.actions {
+            let kept: &[Action] = match action {
+                Action::Read => &[Action::Read],
+                Action::Browse => &[Action::Browse],
+                Action::All => &[Action::Browse, Action::Read],
+                _ => &[],
+            };
+            for action in kept {
+                if !actions.contains(action) {
+                    actions.push(*action);
+                }
+            }
+        }
+        if actions.is_empty() || listed.is_empty() {
+            return Vec::new();
+        }
+        if self.format != "*" && !valid_name(&self.format) {
+            return Vec::new();
+        }
+        let mut grants = Vec::new();
+        let mut push = |format: String, repository: String| {
+            grants.push(SelectorGrant {
+                selector: self.selector.clone(),
+                format,
+                repository,
+                actions: actions.clone(),
+            });
+        };
+        if self.repository == "*" {
+            for name in listed {
+                push(self.format.clone(), name);
+            }
+        } else if let Some(format) = self.repository.strip_prefix("*-") {
+            if valid_name(format) && (self.format == "*" || self.format == format) {
+                for name in listed {
+                    push(format.to_owned(), name);
+                }
+            }
+        } else if valid_name(&self.repository) {
+            let name = self.repository.to_ascii_lowercase();
+            if listed.contains(&name) {
+                push(self.format.clone(), name);
+            }
+        }
+        grants
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -522,5 +577,85 @@ mod tests {
         .unwrap();
         assert_eq!(without_format.selector_grant().unwrap().format, "*");
         assert!(PrivilegeKind::from_stored("p", "script", &json!({})).is_err());
+    }
+
+    fn grant(format: &str, repository: &str, actions: &[Action]) -> SelectorGrant {
+        SelectorGrant {
+            selector: "docs".to_owned(),
+            format: format.to_owned(),
+            repository: repository.to_owned(),
+            actions: actions.to_vec(),
+        }
+    }
+
+    fn narrowed_grants(grant: &SelectorGrant, repositories: &[&str]) -> Vec<(String, String)> {
+        let listed: BTreeSet<String> = repositories.iter().map(|name| (*name).to_owned()).collect();
+        grant
+            .narrow_to(&listed)
+            .into_iter()
+            .map(|grant| (grant.format, grant.repository))
+            .collect()
+    }
+
+    fn pairs(items: &[(&str, &str)]) -> Vec<(String, String)> {
+        items
+            .iter()
+            .map(|(format, repository)| ((*format).to_owned(), (*repository).to_owned()))
+            .collect()
+    }
+
+    #[test]
+    fn narrowing_selector_grants_expands_wildcards_only_to_the_list() {
+        let read = [Action::Read, Action::Browse];
+        let both = ["a", "b"];
+        assert_eq!(
+            narrowed_grants(&grant("*", "*", &read), &both),
+            pairs(&[("*", "a"), ("*", "b")])
+        );
+        assert_eq!(
+            narrowed_grants(&grant("*", "*-raw", &read), &both),
+            pairs(&[("raw", "a"), ("raw", "b")])
+        );
+        assert_eq!(
+            narrowed_grants(&grant("raw", "*-raw", &read), &["a"]),
+            pairs(&[("raw", "a")])
+        );
+        assert!(narrowed_grants(&grant("maven2", "*-raw", &read), &both).is_empty());
+        assert_eq!(
+            narrowed_grants(&grant("raw", "A", &read), &both),
+            pairs(&[("raw", "a")])
+        );
+        assert!(narrowed_grants(&grant("raw", "c", &read), &both).is_empty());
+        for hostile in ["a*", "*a", "a:b", "*-*", "*-", "", "a,b", "**"] {
+            assert!(
+                narrowed_grants(&grant("*", hostile, &read), &both).is_empty(),
+                "{hostile}"
+            );
+        }
+        assert!(narrowed_grants(&grant("a:b", "*", &read), &both).is_empty());
+        assert!(narrowed_grants(&grant("*", "*", &read), &[]).is_empty());
+        assert!(narrowed_grants(&grant("*", "*", &read), &["*", "a:b"]).is_empty());
+    }
+
+    #[test]
+    fn narrowing_selector_grants_keeps_only_read_actions() {
+        let listed: BTreeSet<String> = ["a".to_owned()].into();
+        let kept = |actions: &[Action]| -> Vec<Vec<Action>> {
+            grant("*", "*", actions)
+                .narrow_to(&listed)
+                .into_iter()
+                .map(|grant| grant.actions)
+                .collect()
+        };
+        assert_eq!(
+            kept(&[Action::Read, Action::Add, Action::Delete]),
+            vec![vec![Action::Read]]
+        );
+        assert_eq!(
+            kept(&[Action::All]),
+            vec![vec![Action::Browse, Action::Read]]
+        );
+        assert!(kept(&[Action::Add, Action::Edit, Action::Delete]).is_empty());
+        assert!(kept(&[]).is_empty());
     }
 }

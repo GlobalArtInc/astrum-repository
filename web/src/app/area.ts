@@ -35,6 +35,7 @@ export interface SettingsTile {
   id: string;
   to: string;
   need?: Need;
+  requiresUser?: boolean;
   section?: SettingsSection;
   title?: string;
   description?: string;

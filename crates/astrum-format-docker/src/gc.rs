@@ -12,6 +12,7 @@ use futures_util::TryStreamExt;
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
 use serde_json::json;
 
+use crate::children;
 use crate::manifest::{self, Manifest};
 use crate::storage::{self, BLOB, MANIFEST, TAG};
 
@@ -113,7 +114,7 @@ fn digest_of(asset: &Asset) -> Option<String> {
         .map(str::to_owned)
 }
 
-async fn read_manifest(run: &Run, asset: &Asset) -> Result<Manifest, String> {
+pub(crate) async fn read_manifest(run: &Run, asset: &Asset) -> Result<Manifest, String> {
     let blob_store = run
         .content()
         .blob_stores()
@@ -233,6 +234,7 @@ async fn collect(
         }
         let path = asset.path.clone();
         store::delete_asset(run.content(), asset).await?;
+        children::forget(run.db(), repository, &digest).await?;
         deleted_manifests += 1;
         run.count("manifests", 1);
         run.audit(

@@ -150,7 +150,7 @@ fn code_of(error: &ContentError) -> &'static str {
     match error {
         ContentError::NotFound(_) => "NotFound",
         ContentError::Unauthorized => "MissingAuthentication",
-        ContentError::Forbidden => "InsufficientPermissions",
+        ContentError::Forbidden | ContentError::Blocked(_) => "InsufficientPermissions",
         ContentError::MethodNotAllowed { .. } => "MethodNotAllowed",
         ContentError::BadRequest(_) => "InvalidInput",
         ContentError::Conflict(_) | ContentError::Protected(_) => "PackageRejected",
@@ -177,6 +177,7 @@ fn api_error(ctx: &Ctx, error: ContentError) -> Response {
         status,
         &json!({"error": {"code": code_of(&error), "message": message}}),
     );
+    error.mark(&mut response);
     let headers = response.headers_mut();
     match &error {
         ContentError::Unauthorized => {
@@ -876,6 +877,14 @@ pub mod testing {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn blocked_content_has_the_code_of_forbidden() {
+        assert_eq!(
+            code_of(&ContentError::Blocked("blocked by policy".to_owned())),
+            code_of(&ContentError::Forbidden)
+        );
+    }
 
     #[test]
     fn paths_route_to_the_api_and_the_archives() {

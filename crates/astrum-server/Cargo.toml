@@ -64,6 +64,7 @@ astrum-logging.workspace = true
 astrum-security.workspace = true
 astrum-replication.workspace = true
 astrum-repo.workspace = true
+astrum-scan.workspace = true
 astrum-tasks.workspace = true
 axum.workspace = true
 clap.workspace = true

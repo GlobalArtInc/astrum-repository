@@ -282,3 +282,25 @@ location /tool/ {
 This suits raw downloads and formats whose indexes use relative links. Metadata that carries absolute
 links, such as npm package documents, keeps pointing at `/repository/<name>/` on the server's own
 address, so test a client against the rewritten address before publishing it.
+
+## Share link addresses in access logs
+
+A [share link](../use/share-links.md) carries its secret in the path, as `/service/share/<secret>/...`. Whoever
+reads an access log that holds such a path can download the files of that link until it expires, so the proxy
+must mask the secret before it writes the line. The server masks the secret in its own log already. For nginx,
+define the masked path in the `http` block and log with it:
+
+```nginx
+map $request_uri $logged_uri {
+    ~^/service/share/[^/?]+(.*)$  "/service/share/<hidden>$1";
+    default                       $request_uri;
+}
+
+log_format masked '$remote_addr - $remote_user [$time_local] "$request_method $logged_uri $server_protocol" '
+                   '$status $body_bytes_sent "$http_referer" "$http_user_agent"';
+
+access_log /var/log/nginx/access.log masked;
+```
+
+Any other proxy needs the same rule for the request path: replace the segment after `/service/share/` with a
+fixed text before the line is written, or leave `/service/share/` out of the access log altogether.

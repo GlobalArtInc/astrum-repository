@@ -235,7 +235,7 @@ pub(crate) fn describe(
         true => format!("{}{METADATA_SUFFIX}", wanted.filename),
         false => wanted.filename.clone(),
     };
-    PutAsset::cached(path)
+    let put = PutAsset::cached(path)
         .component(ComponentKey {
             namespace: String::new(),
             name: project.to_owned(),
@@ -250,7 +250,11 @@ pub(crate) fn describe(
             "package"
         })
         .content_type(name::content_type(&filename))
-        .attributes(json!({ "pypi": Value::Object(pypi) }))
+        .attributes(json!({ "pypi": Value::Object(pypi) }));
+    match file.published() {
+        Some(at) => put.published(at),
+        None => put,
+    }
 }
 
 async fn annotate(ctx: &Ctx, asset: &Asset, filename: &str) {

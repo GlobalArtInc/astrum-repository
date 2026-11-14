@@ -319,9 +319,12 @@ dependencies = [
  "astrum-mcp",
  "astrum-notify",
  "astrum-outbound",
+ "astrum-policy",
  "astrum-replication",
  "astrum-repo",
+ "astrum-scan",
  "astrum-security",
+ "astrum-signature",
  "astrum-tasks",
  "astrum-testkit",
  "async-trait",
@@ -339,6 +342,7 @@ dependencies = [
  "prost",
  "regex",
  "reqwest",
+ "ring",
  "rustix",
  "sea-orm",
  "serde",
@@ -422,6 +426,7 @@ dependencies = [
  "astrum-blob",
  "astrum-db",
  "astrum-outbound",
+ "astrum-policy",
  "astrum-repo",
  "astrum-security",
  "astrum-testkit",
@@ -772,21 +777,28 @@ dependencies = [
  "astrum-blob",
  "astrum-content",
  "astrum-db",
+ "astrum-policy",
  "astrum-repo",
+ "astrum-sbom",
+ "astrum-scan",
  "astrum-security",
+ "astrum-signature",
  "astrum-tasks",
  "async-trait",
  "axum",
  "base64 0.22.1",
  "bytes",
  "chrono",
+ "flate2",
  "futures-util",
  "hex",
  "percent-encoding",
+ "ruzstd",
  "sea-orm",
  "serde",
  "serde_json",
  "sha2 0.10.9",
+ "tar",
  "tokio",
  "tracing",
  "url",
@@ -1111,6 +1123,7 @@ dependencies = [
  "astrum-content",
  "astrum-db",
  "astrum-repo",
+ "astrum-scan",
  "async-trait",
  "axum",
  "base64 0.22.1",
@@ -1119,6 +1132,7 @@ dependencies = [
  "futures-util",
  "hex",
  "multer",
+ "percent-encoding",
  "quick-xml",
  "sea-orm",
  "serde",
@@ -1340,6 +1354,7 @@ dependencies = [
  "astrum-content",
  "astrum-db",
  "astrum-repo",
+ "astrum-scan",
  "async-trait",
  "axum",
  "bytes",
@@ -1660,6 +1675,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "astrum-policy"
+version = "3.0.4"
+dependencies = [
+ "astrum-db",
+ "astrum-testkit",
+ "base64 0.22.1",
+ "chrono",
+ "hex",
+ "sea-orm",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "thiserror 2.0.21",
+ "tokio",
+ "tracing",
+ "uuid",
+ "x509-parser",
+]
+
+[[package]]
 name = "astrum-replication"
 version = "3.0.4"
 dependencies = [
@@ -1706,6 +1741,42 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
+]
+
+[[package]]
+name = "astrum-sbom"
+version = "3.0.4"
+dependencies = [
+ "base64 0.22.1",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "astrum-scan"
+version = "3.0.4"
+dependencies = [
+ "astrum-blob",
+ "astrum-content",
+ "astrum-db",
+ "astrum-outbound",
+ "astrum-policy",
+ "astrum-security",
+ "astrum-testkit",
+ "async-trait",
+ "axum",
+ "chrono",
+ "futures-util",
+ "reqwest",
+ "sea-orm",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.21",
+ "tokio",
+ "tracing",
+ "url",
+ "uuid",
 ]
 
 [[package]]
@@ -1808,6 +1879,7 @@ dependencies = [
  "astrum-logging",
  "astrum-replication",
  "astrum-repo",
+ "astrum-scan",
  "astrum-security",
  "astrum-tasks",
  "astrum-testkit",
@@ -1834,6 +1906,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "astrum-signature"
+version = "3.0.4"
+dependencies = [
+ "base64 0.22.1",
+ "hex",
+ "ring",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "x509-parser",
+]
+
+[[package]]
 name = "astrum-tasks"
 version = "3.0.4"
 dependencies = [
@@ -1842,7 +1927,9 @@ dependencies = [
  "astrum-content",
  "astrum-db",
  "astrum-mail",
+ "astrum-notify",
  "astrum-repo",
+ "astrum-scan",
  "astrum-security",
  "astrum-testkit",
  "async-trait",

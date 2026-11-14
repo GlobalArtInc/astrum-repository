@@ -53,7 +53,9 @@ impl Caller {
 
     pub fn signed_in(&self) -> Result<&Subject, ApiError> {
         match &self.0 {
-            Some(subject) if !subject.anonymous => Ok(subject),
+            Some(subject) if !subject.anonymous => subject
+                .require_unnarrowed()
+                .map_err(|_| ApiError::forbidden()),
             _ => Err(ApiError::Unauthorized),
         }
     }
@@ -88,7 +90,8 @@ pub async fn authenticate(
     next: Next,
 ) -> Response {
     let from_ui = is_ui(request.headers());
-    if crate::routes::oauth::is_endpoint(request.uri().path()) {
+    let path = request.uri().path();
+    if crate::routes::oauth::is_endpoint(path) || crate::routes::share::is_endpoint(path) {
         request.extensions_mut().insert(Caller(None));
         return next.run(request).await;
     }
@@ -155,7 +158,9 @@ async fn resolve(
         let mut refused_gate = None;
         let (user, result) = match credentials {
             Credentials::Basic(user, password) if looks_like_token(&password) => {
-                let result = security.authenticate_token(Some(&user), &password).await;
+                let result = security
+                    .authenticate_token(Some(&user), &password, crate::client::current())
+                    .await;
                 (user, result)
             }
             Credentials::Basic(user, password) => {
@@ -175,7 +180,9 @@ async fn resolve(
             }
             Credentials::Token(token) => (
                 String::new(),
-                security.authenticate_token(None, &token).await,
+                security
+                    .authenticate_token(None, &token, crate::client::current())
+                    .await,
             ),
             Credentials::FormatToken(token)
                 if looks_like_format_token(&token)

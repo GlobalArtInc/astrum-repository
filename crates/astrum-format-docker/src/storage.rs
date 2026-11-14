@@ -174,6 +174,31 @@ pub async fn referrers(
     .await
 }
 
+pub async fn document_referrers(
+    ctx: &Ctx,
+    image: &str,
+    subject: &Digest,
+    limit: i64,
+) -> Result<Vec<Asset>, ContentError> {
+    Ok(asset::Entity::find()
+        .from_raw_sql(Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            "SELECT * FROM asset WHERE format = 'docker' AND repository = $1 \
+             AND kind = 'manifest' AND attributes #>> '{docker,name}' = $2 \
+             AND attributes #>> '{docker,subject}' = $3 \
+             AND attributes #>> '{docker,artifactKind}' IN ('sbom', 'attestation') \
+             ORDER BY id DESC LIMIT $4",
+            vec![
+                ctx.name().into(),
+                image.into(),
+                subject.to_string().into(),
+                limit.into(),
+            ],
+        ))
+        .all(ctx.db())
+        .await?)
+}
+
 pub async fn referrer_digests(
     ctx: &Ctx,
     image: &str,
@@ -296,10 +321,7 @@ pub fn manifest_attributes(
     manifest: &Manifest,
     tag: Option<&str>,
 ) -> Value {
-    let kind = match tag {
-        Some(tag) => crate::manifest::kind_for_tag(manifest.kind, tag),
-        None => manifest.kind,
-    };
+    let kind = manifest.kind;
     let mut docker = Map::new();
     docker.insert("name".to_owned(), image.into());
     docker.insert("digest".to_owned(), digest.to_string().into());
@@ -340,7 +362,7 @@ pub fn manifest_put(
         .attributes(attributes);
     put.verified = false;
     if let Some(tag) = tag {
-        let kind = crate::manifest::kind_for_tag(manifest.kind, tag);
+        let kind = manifest.kind;
         put = put.component(ComponentKey {
             namespace: String::new(),
             name: image.to_owned(),
@@ -372,6 +394,27 @@ pub async fn read_all(ctx: &Ctx, asset: &Asset, limit: usize) -> Result<Vec<u8>,
                 "{} is larger than {limit} bytes",
                 asset.path
             ))));
+        }
+        collected.extend_from_slice(&chunk);
+    }
+    Ok(collected)
+}
+
+pub async fn read_capped(ctx: &Ctx, asset: &Asset, limit: usize) -> Result<Vec<u8>, ContentError> {
+    let store = ctx.content.blob_stores().get(&asset.blob_store).await?;
+    let Some(content) = store.read(asset.blob_id.into()).await? else {
+        return Err(ContentError::not_found(format!(
+            "the blob of {} is missing",
+            asset.path
+        )));
+    };
+    let mut stream = content.stream;
+    let mut collected = Vec::with_capacity(asset.size.clamp(0, limit as i64 + 1) as usize);
+    while let Some(chunk) = stream.try_next().await.map_err(ContentError::internal)? {
+        let room = limit + 1 - collected.len();
+        if chunk.len() >= room {
+            collected.extend_from_slice(&chunk[..room]);
+            break;
         }
         collected.extend_from_slice(&chunk);
     }

@@ -1,6 +1,28 @@
 use std::collections::BTreeSet;
 use std::fmt;
 
+use astrum_repo::config::valid_name;
+
+const DOMAIN: &str = "astrum";
+const VIEW: &str = "repository-view";
+const PARTS: usize = 5;
+const READ_ACTIONS: [&str; 2] = ["browse", "read"];
+
+pub fn plain_names(names: &BTreeSet<String>) -> BTreeSet<String> {
+    names
+        .iter()
+        .filter(|name| valid_name(name))
+        .map(|name| name.to_ascii_lowercase())
+        .collect()
+}
+
+fn part_allows(part: &Part, wanted: &str) -> bool {
+    match part {
+        Part::Any => true,
+        Part::Set(values) => values.contains(wanted),
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 enum Part {
     Any,
@@ -75,6 +97,47 @@ impl Permission {
             .iter()
             .skip(shape.len())
             .all(|part| *part == Part::Any)
+    }
+
+    pub fn narrow_to(&self, repositories: &BTreeSet<String>) -> Option<Permission> {
+        let listed = plain_names(repositories);
+        if listed.is_empty() {
+            return None;
+        }
+        if self.parts.iter().skip(PARTS).any(|part| *part != Part::Any) {
+            return None;
+        }
+        let part = |index: usize| self.parts.get(index).unwrap_or(&Part::Any);
+        if !part_allows(part(0), DOMAIN) || !part_allows(part(1), VIEW) {
+            return None;
+        }
+        let repository = match part(3) {
+            Part::Any => listed,
+            Part::Set(granted) => granted.intersection(&listed).cloned().collect(),
+        };
+        let actions = match part(4) {
+            Part::Any => READ_ACTIONS
+                .iter()
+                .map(|action| (*action).to_owned())
+                .collect(),
+            Part::Set(granted) => granted
+                .iter()
+                .filter(|action| READ_ACTIONS.contains(&action.as_str()))
+                .cloned()
+                .collect::<BTreeSet<_>>(),
+        };
+        if repository.is_empty() || actions.is_empty() {
+            return None;
+        }
+        Some(Self {
+            parts: vec![
+                Part::Set(BTreeSet::from([DOMAIN.to_owned()])),
+                Part::Set(BTreeSet::from([VIEW.to_owned()])),
+                part(2).clone(),
+                Part::Set(repository),
+                Part::Set(actions),
+            ],
+        })
     }
 
     pub fn last_values(&self) -> Option<BTreeSet<&str>> {
@@ -199,5 +262,127 @@ mod tests {
         let permission = Permission::parse("Astrum:users:update,read").unwrap();
         assert_eq!(permission.to_string(), "astrum:users:read,update");
         assert_eq!(Permission::parse("a:*,b").unwrap().to_string(), "a:*");
+    }
+
+    fn narrowed(granted: &str, repositories: &[&str]) -> Option<String> {
+        let listed: BTreeSet<String> = repositories.iter().map(|name| (*name).to_owned()).collect();
+        Permission::parse(granted)
+            .unwrap()
+            .narrow_to(&listed)
+            .map(|permission| permission.to_string())
+    }
+
+    #[test]
+    fn narrowing_keeps_only_reads_of_the_listed_repositories() {
+        let both = ["a", "b"];
+        let rows: [(&str, &[&str], Option<&str>); 36] = [
+            (
+                "astrum:*",
+                &both,
+                Some("astrum:repository-view:*:a,b:browse,read"),
+            ),
+            ("*", &both, Some("astrum:repository-view:*:a,b:browse,read")),
+            (
+                "astrum",
+                &both,
+                Some("astrum:repository-view:*:a,b:browse,read"),
+            ),
+            (
+                "astrum:repository-view",
+                &both,
+                Some("astrum:repository-view:*:a,b:browse,read"),
+            ),
+            (
+                "astrum:repository-view:*:*:*",
+                &both,
+                Some("astrum:repository-view:*:a,b:browse,read"),
+            ),
+            (
+                "astrum:repository-view:maven2",
+                &both,
+                Some("astrum:repository-view:maven2:a,b:browse,read"),
+            ),
+            (
+                "astrum:repository-view:maven2:*:*",
+                &both,
+                Some("astrum:repository-view:maven2:a,b:browse,read"),
+            ),
+            (
+                "astrum:repository-view:raw:a:read",
+                &both,
+                Some("astrum:repository-view:raw:a:read"),
+            ),
+            ("astrum:repository-view:raw:c:read", &both, None),
+            (
+                "astrum:repository-view:raw:a,c:browse",
+                &both,
+                Some("astrum:repository-view:raw:a:browse"),
+            ),
+            (
+                "astrum:repository-view:raw,npm:*:read",
+                &both,
+                Some("astrum:repository-view:npm,raw:a,b:read"),
+            ),
+            (
+                "astrum,other:repository-view:*:a:read",
+                &both,
+                Some("astrum:repository-view:*:a:read"),
+            ),
+            ("astrum:users:read", &both, None),
+            ("astrum:users:*", &both, None),
+            ("astrum:settings:*", &both, None),
+            ("astrum:blobstores:*", &both, None),
+            ("astrum:tasks:*", &both, None),
+            ("astrum:repository-admin:*:*:*", &both, None),
+            ("astrum:repository-content-selector:*:*:*:*", &both, None),
+            ("astrum:made-up:*:*:*:*", &both, None),
+            ("other:repository-view:*:*:*", &both, None),
+            ("other:*", &both, None),
+            ("astrum:repository-view:*:*:add", &both, None),
+            ("astrum:repository-view:*:*:edit,delete", &both, None),
+            (
+                "astrum:repository-view:*:*:read,add,delete",
+                &both,
+                Some("astrum:repository-view:*:a,b:read"),
+            ),
+            ("astrum:repository-view:*:*:bogus", &both, None),
+            ("astrum:repository-view:*:*:read:own", &both, None),
+            (
+                "astrum:repository-view:*:*:read:*",
+                &both,
+                Some("astrum:repository-view:*:a,b:read"),
+            ),
+            (
+                "Astrum:Repository-View:RAW:A:READ",
+                &["A"],
+                Some("astrum:repository-view:raw:a:read"),
+            ),
+            ("astrum:*", &[], None),
+            ("astrum:*", &["*"], None),
+            (
+                "astrum:*",
+                &["a:b", "a,b", "", " a", "a*", "_a", ".a", "*-raw"],
+                None,
+            ),
+            (
+                "astrum:*",
+                &["*", "a"],
+                Some("astrum:repository-view:*:a:browse,read"),
+            ),
+            ("astrum:repository-view:*:a:read", &["a:*"], None),
+            ("astrum:repository-view:*:*:*", &["a b"], None),
+            (
+                "astrum:repository-view:*:*:*",
+                &["a", "A"],
+                Some("astrum:repository-view:*:a:browse,read"),
+            ),
+        ];
+        for (granted, listed, expected) in rows {
+            assert_eq!(
+                narrowed(granted, listed).as_deref(),
+                expected,
+                "{granted} narrowed to {listed:?}"
+            );
+        }
     }
 }

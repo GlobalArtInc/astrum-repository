@@ -5,7 +5,7 @@ use astrum_content::store::{self, ComponentKey, PutAsset};
 use astrum_content::{Asset, ContentError, Ctx, Freshness, group, proxy};
 use astrum_repo::RepositoryType;
 use bytes::Bytes;
-use chrono::{DateTime, FixedOffset};
+use chrono::{DateTime, FixedOffset, TimeDelta, TimeZone, Utc};
 use futures_util::{StreamExt, TryStreamExt};
 use serde_json::{Value, json};
 
@@ -134,14 +134,91 @@ async fn leaf(ctx: &Ctx, name: &Name) -> Result<Option<Loaded>, ContentError> {
             })
             .await?;
             match found {
-                Some(asset) => Ok(Some(Loaded {
-                    doc: read_json(ctx, &asset).await?,
-                    modified: Some(asset.blob_updated_at),
-                })),
+                Some(asset) => {
+                    let doc = read_json(ctx, &asset).await?;
+                    Ok(Some(cooled(ctx, name, doc, asset.blob_updated_at).await?))
+                }
                 None => Ok(None),
             }
         }
         RepositoryType::Group => Ok(None),
+    }
+}
+
+async fn cooled(
+    ctx: &Ctx,
+    name: &Name,
+    doc: Value,
+    modified: DateTime<FixedOffset>,
+) -> Result<Loaded, ContentError> {
+    let Some(cooldown) = ctx
+        .content
+        .gate()
+        .cooldown(ctx)
+        .await?
+        .filter(|cooldown| cooldown.block)
+    else {
+        return Ok(Loaded {
+            doc,
+            modified: Some(modified),
+        });
+    };
+    let now = Utc::now();
+    let namespace = name.scope.as_deref().unwrap_or_default();
+    let display = name.to_string();
+    let mut gone = BTreeSet::new();
+    let mut unlocked: Option<DateTime<Utc>> = None;
+    for version in packument::versions(&doc)
+        .into_iter()
+        .flat_map(|versions| versions.keys())
+    {
+        let Some(published) = published_at(&doc, version, now) else {
+            continue;
+        };
+        if cooldown.hides(&display, namespace, &name.bare, version, Some(published)) {
+            gone.insert(version.clone());
+        }
+        let available = cooldown.available_at(published);
+        if available <= now {
+            unlocked = unlocked.max(Some(available));
+        }
+    }
+    let modified = match unlocked {
+        Some(at) if at > modified.with_timezone(&Utc) => at.fixed_offset(),
+        _ => modified,
+    };
+    Ok(Loaded {
+        doc: packument::remove_versions(doc, &gone),
+        modified: Some(modified),
+    })
+}
+
+fn published_at(doc: &Value, version: &str, now: DateTime<Utc>) -> Option<DateTime<Utc>> {
+    let text = doc.get("time")?.get(version)?.as_str()?;
+    let published = DateTime::parse_from_rfc3339(text).ok()?.with_timezone(&Utc);
+    let earliest = Utc.with_ymd_and_hms(2005, 1, 1, 0, 0, 0).single()?;
+    (published >= earliest && published <= now + TimeDelta::days(1)).then_some(published)
+}
+
+pub async fn cached_date(
+    ctx: &Ctx,
+    name: &Name,
+    path: &str,
+    version: &str,
+) -> Result<Option<DateTime<FixedOffset>>, ContentError> {
+    let stored = store::find(ctx.db(), ctx.name(), path).await?;
+    if stored.is_some_and(|asset| proxy::is_fresh(ctx, &asset, Freshness::Content)) {
+        return Ok(None);
+    }
+    let Some(asset) = store::find(ctx.db(), ctx.name(), &name.packument_path()).await? else {
+        return Ok(None);
+    };
+    match read_json(ctx, &asset).await {
+        Ok(doc) => Ok(published_at(&doc, version, Utc::now()).map(|at| at.fixed_offset())),
+        Err(error) => {
+            tracing::info!(repository = ctx.name(), package = %name, %error, "the publish date of a tarball stays unknown");
+            Ok(None)
+        }
     }
 }
 

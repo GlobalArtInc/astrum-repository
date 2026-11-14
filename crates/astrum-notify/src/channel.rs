@@ -780,6 +780,30 @@ pub(crate) mod tests {
     }
 
     #[test]
+    fn the_security_events_are_accepted_and_unknown_events_are_refused() {
+        let mut hook = draft("webhook");
+        hook.secret = Some("https://hooks.example.com/x".into());
+        hook.events = Some(vec!["policy.blocked".into(), "vulnerability.found".into()]);
+        let valid = validate(&hook, None, false).unwrap();
+        assert_eq!(
+            valid.channel.events,
+            [Action::VulnerabilityFound, Action::PolicyBlocked]
+        );
+        hook.events = Some(vec!["policy.blocked".into(), "policy.allowed".into()]);
+        assert_eq!(validate(&hook, None, false).err().unwrap().field, "events");
+    }
+
+    #[test]
+    fn channels_can_choose_the_release_event() {
+        let mut telegram = draft("telegram");
+        telegram.chat_id = Some("-1001234567890".into());
+        telegram.secret = Some("123456:AAH-x_y".into());
+        telegram.events = Some(vec!["cooldown.released".into()]);
+        let valid = validate(&telegram, None, false).unwrap();
+        assert_eq!(valid.channel.events, [Action::CooldownReleased]);
+    }
+
+    #[test]
     fn webhooks_keep_their_secrets_only_for_the_same_host_and_proxy() {
         let mut hook = draft("webhook");
         hook.secret = Some("https://user:pw@hooks.example.com/x".into());

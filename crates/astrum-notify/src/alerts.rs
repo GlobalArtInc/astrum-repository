@@ -1,9 +1,15 @@
-use sea_orm::{ConnectionTrait, DbBackend, DbErr, Statement};
+use std::collections::BTreeMap;
+
+use astrum_db::setting;
+use chrono::{DateTime, Duration, Utc};
+use sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, DbErr, Statement, TransactionTrait};
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::Notifier;
 use crate::channel::Channel;
 use crate::messages::Markup;
+use crate::notice::Action;
+use crate::{Notifier, store};
 
 pub const ALERT: &str = "blobstore.alert";
 pub const RECOVERED: &str = "blobstore.recovered";
@@ -11,6 +17,20 @@ pub const REPLICATION_FAILING: &str = "replication.failing";
 pub const REPLICATION_DEAD_ITEMS: &str = "replication.dead_items";
 pub const REPLICATION_RECOVERED: &str = "replication.recovered";
 const ERROR_EXCERPT: usize = 200;
+pub const STALE: &str = "advisories.stale";
+pub const STALE_STATE_KEY: &str = "advisories.staleAlert.state";
+pub const STALE_REPEAT_HOURS: i64 = 24;
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct StaleFeed {
+    pub ecosystem: String,
+    pub synced_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+struct StaleState {
+    notified: BTreeMap<String, DateTime<Utc>>,
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Problem {
@@ -57,6 +77,9 @@ struct Texts {
     forecast: &'static str,
     no_forecast: &'static str,
     open: &'static str,
+    stale: &'static str,
+    stale_synced: &'static str,
+    stale_never: &'static str,
 }
 
 const EN: Texts = Texts {
@@ -74,6 +97,9 @@ const EN: Texts = Texts {
     forecast: "will be full in {days} days at the current growth",
     no_forecast: "is no longer forecast to fill up soon",
     open: "Open the blob stores",
+    stale: "Vulnerability data is out of date",
+    stale_synced: "last synced {at}, more than {days} days ago",
+    stale_never: "has never been synced",
 };
 
 const RU: Texts = Texts {
@@ -91,6 +117,9 @@ const RU: Texts = Texts {
     forecast: "заполнится через {days} дн. при нынешнем росте",
     no_forecast: "больше не заполнится в ближайшее время",
     open: "Открыть blob store",
+    stale: "Данные об уязвимостях устарели",
+    stale_synced: "последняя синхронизация {at}, больше {days} дн. назад",
+    stale_never: "ещё ни разу не синхронизировались",
 };
 
 fn texts(channel: &Channel) -> &'static Texts {
@@ -100,7 +129,12 @@ fn texts(channel: &Channel) -> &'static Texts {
 pub fn is_alert(event: &str) -> bool {
     matches!(
         event,
-        ALERT | RECOVERED | REPLICATION_FAILING | REPLICATION_DEAD_ITEMS | REPLICATION_RECOVERED
+        ALERT
+            | RECOVERED
+            | STALE
+            | REPLICATION_FAILING
+            | REPLICATION_DEAD_ITEMS
+            | REPLICATION_RECOVERED
     )
 }
 
@@ -111,6 +145,7 @@ pub fn title(channel: &Channel, event: &str) -> &'static str {
         REPLICATION_FAILING | REPLICATION_DEAD_ITEMS | REPLICATION_RECOVERED => {
             replication_title(channel, event)
         }
+        STALE => texts.stale,
         _ => texts.alert,
     }
 }
@@ -349,6 +384,27 @@ pub fn render_replication(channel: &Channel, event: &str, report: &ReplicationRe
     text
 }
 
+pub fn render_stale(channel: &Channel, feeds: &[StaleFeed], days: i64) -> String {
+    let markup = Markup::of(channel);
+    let texts = texts(channel);
+    let mut text = format!("⚠️ {}", markup.bold(texts.stale));
+    for feed in feeds {
+        let reason = match feed.synced_at {
+            Some(at) => texts
+                .stale_synced
+                .replace("{at}", &at.format("%Y-%m-%d").to_string())
+                .replace("{days}", &days.to_string()),
+            None => texts.stale_never.to_owned(),
+        };
+        text.push_str(&format!(
+            "\n• {}: {}",
+            markup.code(&feed.ecosystem),
+            markup.escape(&reason)
+        ));
+    }
+    text
+}
+
 pub async fn queue(
     db: &impl ConnectionTrait,
     channel: &Channel,
@@ -368,6 +424,72 @@ pub async fn queue(
     ))
     .await?;
     Ok(())
+}
+
+fn custom(error: impl std::fmt::Display) -> DbErr {
+    DbErr::Custom(error.to_string())
+}
+
+pub async fn alert_stale(
+    db: &DatabaseConnection,
+    feeds: &[StaleFeed],
+    days: i64,
+    now: DateTime<Utc>,
+) -> Result<usize, DbErr> {
+    let txn = db.begin().await?;
+    let sent = alert_stale_in(&txn, feeds, days, now).await?;
+    txn.commit().await?;
+    Ok(sent)
+}
+
+async fn alert_stale_in(
+    db: &impl ConnectionTrait,
+    feeds: &[StaleFeed],
+    days: i64,
+    now: DateTime<Utc>,
+) -> Result<usize, DbErr> {
+    let before: StaleState = setting::get(db, STALE_STATE_KEY)
+        .await
+        .map_err(custom)?
+        .unwrap_or_default();
+    let repeat = Duration::hours(STALE_REPEAT_HOURS);
+    let due: Vec<StaleFeed> = feeds
+        .iter()
+        .filter(|feed| {
+            before
+                .notified
+                .get(&feed.ecosystem)
+                .is_none_or(|at| now - *at >= repeat)
+        })
+        .cloned()
+        .collect();
+    let mut sent = 0;
+    if !due.is_empty() {
+        for channel in store::list(db).await? {
+            if !channel.enabled || !channel.wants(Action::VulnerabilityFound) {
+                continue;
+            }
+            let text = render_stale(&channel, &due, days);
+            queue(db, &channel, STALE, text).await?;
+            sent += 1;
+        }
+    }
+    let mut after = StaleState::default();
+    for feed in feeds {
+        let at = before
+            .notified
+            .get(&feed.ecosystem)
+            .copied()
+            .filter(|_| !due.iter().any(|sent| sent.ecosystem == feed.ecosystem))
+            .unwrap_or(now);
+        after.notified.insert(feed.ecosystem.clone(), at);
+    }
+    if after != before {
+        setting::put(db, STALE_STATE_KEY, &after)
+            .await
+            .map_err(custom)?;
+    }
+    Ok(sent)
 }
 
 impl Notifier {
@@ -551,6 +673,47 @@ mod tests {
         assert_eq!(
             excerpt("Authorization: bearer abc; mytoken=keep xtoken=a the token refused"),
             "Authorization: bearer [hidden] mytoken=keep xtoken=a the token refused"
+        );
+    }
+
+    #[test]
+    fn the_stale_alert_follows_the_language_and_markup_of_the_channel() {
+        let feeds = vec![
+            StaleFeed {
+                ecosystem: "npm".into(),
+                synced_at: Some(
+                    DateTime::parse_from_rfc3339("2026-10-01T08:00:00Z")
+                        .unwrap()
+                        .to_utc(),
+                ),
+            },
+            StaleFeed {
+                ecosystem: "Py<PI>".into(),
+                synced_at: None,
+            },
+        ];
+        assert_eq!(
+            render_stale(&channel(ChannelType::Telegram, "en"), &feeds, 7),
+            "⚠️ <b>Vulnerability data is out of date</b>\n\
+             • <code>npm</code>: last synced 2026-10-01, more than 7 days ago\n\
+             • <code>Py&lt;PI&gt;</code>: has never been synced"
+        );
+        assert_eq!(
+            render_stale(&channel(ChannelType::Slack, "ru"), &feeds, 7),
+            "⚠️ *Данные об уязвимостях устарели*\n\
+             • `npm`: последняя синхронизация 2026-10-01, больше 7 дн. назад\n\
+             • `Py&lt;PI&gt;`: ещё ни разу не синхронизировались"
+        );
+        assert!(is_alert(STALE));
+        let email = channel(ChannelType::Email, "en");
+        let rendered = Rendered {
+            event: STALE.into(),
+            text: render_stale(&email, &feeds, 7),
+            notice: None,
+        };
+        assert_eq!(
+            subject(&email, &rendered),
+            "Vulnerability data is out of date"
         );
     }
 }

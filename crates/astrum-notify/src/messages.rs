@@ -3,7 +3,7 @@ use std::collections::BTreeSet;
 use percent_encoding::{AsciiSet, NON_ALPHANUMERIC, utf8_percent_encode};
 
 use crate::channel::{Channel, ChannelType};
-use crate::notice::{Action, Notice};
+use crate::notice::{Action, Detail, Notice};
 
 pub const SUMMARY_THRESHOLD: usize = 5;
 const SUMMARY_MAX_LINES: usize = 20;
@@ -29,11 +29,20 @@ struct Texts {
     promoted: &'static str,
     updated: &'static str,
     deleted: &'static str,
+    vulnerability_found: &'static str,
+    policy_blocked: &'static str,
+    released_title: &'static str,
+    released: &'static str,
+    in_word: &'static str,
     repository: &'static str,
+    advisory: &'static str,
+    policy: &'static str,
+    severities: [&'static str; 5],
     by: &'static str,
     system: &'static str,
     open: &'static str,
     summary: &'static str,
+    security_summary: &'static str,
     more: &'static str,
     test_title: &'static str,
     test_body: &'static str,
@@ -44,11 +53,20 @@ const RU: Texts = Texts {
     promoted: "Продвинут компонент",
     updated: "Обновлён компонент",
     deleted: "Удалён компонент",
+    vulnerability_found: "Найдена уязвимость",
+    policy_blocked: "Скачивание заблокировано политикой",
+    released_title: "Версия доступна",
+    released: "{} можно скачать сейчас",
+    in_word: "в",
     repository: "Репозиторий",
+    advisory: "Уязвимость",
+    policy: "Политика",
+    severities: ["критическая", "высокая", "средняя", "низкая", "неизвестна"],
     by: "Автор",
     system: "система",
     open: "Открыть в Astrum Repository",
     summary: "Изменения компонентов: {}",
+    security_summary: "Уведомления безопасности: {}",
     more: "…и ещё {}",
     test_title: "Тестовое сообщение от Astrum Repository",
     test_body: "Уведомления канала «{}» настроены правильно.",
@@ -59,11 +77,20 @@ const EN: Texts = Texts {
     promoted: "Component promoted",
     updated: "Component updated",
     deleted: "Component deleted",
+    vulnerability_found: "Vulnerability found",
+    policy_blocked: "Download blocked by policy",
+    released_title: "Version can be downloaded",
+    released: "{} can be downloaded now",
+    in_word: "in",
     repository: "Repository",
+    advisory: "Advisory",
+    policy: "Policy",
+    severities: ["critical", "high", "medium", "low", "unknown"],
     by: "By",
     system: "system",
     open: "Open in Astrum Repository",
     summary: "Component changes: {}",
+    security_summary: "Security notices: {}",
     more: "…and {} more",
     test_title: "Test message from Astrum Repository",
     test_body: "Notifications of the channel “{}” are set up correctly.",
@@ -179,7 +206,10 @@ impl Links {
     }
 
     pub fn pull_command(&self, notice: &Notice) -> Option<String> {
-        if notice.format != "docker" || notice.action == Action::Deleted {
+        if notice.format != "docker"
+            || notice.action == Action::Deleted
+            || notice.action.is_security()
+        {
             return None;
         }
         let base = self.base()?;
@@ -239,6 +269,9 @@ fn emoji(notice: &Notice) -> &'static str {
         Action::Promoted => "🚀",
         Action::Updated => "🔄",
         Action::Deleted => "🗑️",
+        Action::VulnerabilityFound => "🛡️",
+        Action::PolicyBlocked => "⛔",
+        Action::CooldownReleased => "🔓",
     }
 }
 
@@ -248,7 +281,51 @@ fn title(texts: &Texts, action: Action) -> &'static str {
         Action::Promoted => texts.promoted,
         Action::Updated => texts.updated,
         Action::Deleted => texts.deleted,
+        Action::VulnerabilityFound => texts.vulnerability_found,
+        Action::PolicyBlocked => texts.policy_blocked,
+        Action::CooldownReleased => texts.released_title,
     }
+}
+
+fn severity(texts: &Texts, name: &str) -> &'static str {
+    match name {
+        "critical" => texts.severities[0],
+        "high" => texts.severities[1],
+        "medium" => texts.severities[2],
+        "low" => texts.severities[3],
+        _ => texts.severities[4],
+    }
+}
+
+fn detail_lines(markup: Markup, texts: &Texts, notice: &Notice) -> Vec<String> {
+    let empty = Detail::default();
+    let detail = notice.detail.as_ref().unwrap_or(&empty);
+    let mut lines = Vec::new();
+    if notice.action == Action::VulnerabilityFound
+        && let Some(advisory) = detail.advisory.as_deref()
+    {
+        let mut line = format!("{}: {}", texts.advisory, markup.code(advisory));
+        if let Some(name) = detail.severity.as_deref() {
+            line.push_str(" · ");
+            line.push_str(&markup.escape(severity(texts, name)));
+        }
+        lines.push(line);
+    }
+    if let Some(policy) = detail.policy.as_deref() {
+        lines.push(format!("{}: {}", texts.policy, markup.code(policy)));
+    }
+    lines
+}
+
+fn released(markup: Markup, texts: &Texts, notice: &Notice) -> String {
+    let subject = format!(
+        "{} ({}) {} {}",
+        markup.strong(&coordinates(notice)),
+        markup.escape(&notice.format),
+        texts.in_word,
+        markup.code(&notice.repository)
+    );
+    texts.released.replacen("{}", &subject, 1)
 }
 
 fn initiator(texts: &Texts, initiator: Option<&str>) -> Option<String> {
@@ -265,21 +342,30 @@ fn initiator(texts: &Texts, initiator: Option<&str>) -> Option<String> {
 pub fn single(channel: &Channel, links: &Links, notice: &Notice) -> String {
     let markup = Markup::of(channel);
     let texts = texts(channel);
-    let mut text = format!(
-        "{} {}\n{}\n{}: {}",
-        emoji(notice),
-        markup.bold(title(texts, notice.action)),
-        markup.strong(&coordinates(notice)),
-        texts.repository,
-        markup.code(&notice.repository)
-    );
-    if !notice.format.is_empty() {
-        text.push_str(" · ");
-        text.push_str(&markup.escape(&notice.format));
-    }
-    if let Some(by) = initiator(texts, notice.initiator.as_deref()) {
-        text.push_str(&format!("\n{}: {}", texts.by, markup.escape(&by)));
-    }
+    let mut text = if notice.action == Action::CooldownReleased {
+        format!("{} {}", emoji(notice), released(markup, texts, notice))
+    } else {
+        let mut text = format!(
+            "{} {}\n{}\n{}: {}",
+            emoji(notice),
+            markup.bold(title(texts, notice.action)),
+            markup.strong(&coordinates(notice)),
+            texts.repository,
+            markup.code(&notice.repository)
+        );
+        if !notice.format.is_empty() {
+            text.push_str(" · ");
+            text.push_str(&markup.escape(&notice.format));
+        }
+        for line in detail_lines(markup, texts, notice) {
+            text.push('\n');
+            text.push_str(&line);
+        }
+        if let Some(by) = initiator(texts, notice.initiator.as_deref()) {
+            text.push_str(&format!("\n{}: {}", texts.by, markup.escape(&by)));
+        }
+        text
+    };
     if let Some(pull) = links.pull_command(notice) {
         text.push('\n');
         text.push_str(&markup.code(&pull));
@@ -294,22 +380,33 @@ pub fn single(channel: &Channel, links: &Links, notice: &Notice) -> String {
 fn summary(channel: &Channel, notices: &[Notice], overflow: usize) -> String {
     let markup = Markup::of(channel);
     let texts = texts(channel);
+    let heading = if notices.iter().all(|notice| notice.action.is_security()) {
+        texts.security_summary
+    } else {
+        texts.summary
+    };
     let mut text = format!(
         "📋 {}",
-        markup.bold(
-            &texts
-                .summary
-                .replace("{}", &(notices.len() + overflow).to_string())
-        )
+        markup.bold(&heading.replace("{}", &(notices.len() + overflow).to_string()))
     );
     let mut shown = 0;
     for notice in notices {
-        let line = format!(
+        let mut line = format!(
             "\n{} {} · {}",
             emoji(notice),
             markup.strong(&coordinates(notice)),
             markup.code(&notice.repository)
         );
+        if let Some(detail) = notice.detail.as_ref() {
+            let extra = match notice.action {
+                Action::VulnerabilityFound => detail.advisory.as_deref(),
+                _ => detail.policy.as_deref(),
+            };
+            if let Some(extra) = extra {
+                line.push_str(" · ");
+                line.push_str(&markup.code(extra));
+            }
+        }
         if shown == SUMMARY_MAX_LINES
             || text.chars().count() + line.chars().count() > SUMMARY_MAX_LENGTH
         {
@@ -351,7 +448,7 @@ pub fn render(
     notices
         .iter()
         .map(|notice| Rendered {
-            event: format!("component.{}", notice.action.id()),
+            event: notice.action.event().to_owned(),
             text: single(channel, links, notice),
             notice: Some(notice.clone()),
         })
@@ -381,6 +478,9 @@ pub fn subject(channel: &Channel, rendered: &Rendered) -> String {
         None if crate::alerts::is_alert(&rendered.event) => {
             crate::alerts::title(channel, &rendered.event).to_owned()
         }
+        None if crate::customers::is_notice(&rendered.event) => {
+            crate::customers::title(&rendered.event).to_owned()
+        }
         None => texts.summary.replace("{}", "…"),
     }
 }
@@ -401,6 +501,7 @@ mod tests {
             action: Action::Published,
             initiator: Some("jane".into()),
             component_id: Some(3),
+            detail: None,
         }
     }
 
@@ -511,6 +612,39 @@ mod tests {
     }
 
     #[test]
+    fn a_released_version_is_announced_in_one_sentence() {
+        let mut released = notice("npm", "", "lodash", "4.17.22");
+        released.action = Action::CooldownReleased;
+        let slack = single(
+            &channel(ChannelType::Slack, "en"),
+            &Links::default(),
+            &released,
+        );
+        assert_eq!(
+            slack,
+            "🔓 `lodash@4.17.22` (npm) in `releases` can be downloaded now"
+        );
+        let mut hostile = notice("maven2", "g", "x<y", "1.0");
+        hostile.action = Action::CooldownReleased;
+        let html = single(
+            &channel(ChannelType::Telegram, "en"),
+            &Links::default(),
+            &hostile,
+        );
+        assert_eq!(
+            html,
+            "🔓 <b>g:x&lt;y:1.0</b> (maven2) in <code>releases</code> can be downloaded now"
+        );
+        let hooks = render(
+            &channel(ChannelType::Webhook, "en"),
+            &Links::default(),
+            &[released],
+            0,
+        );
+        assert_eq!(hooks[0].event, "cooldown.released");
+    }
+
+    #[test]
     fn many_changes_become_one_summary_except_for_json_webhooks() {
         let notices: Vec<_> = (0..7)
             .map(|i| notice("maven2", "g", &format!("a{i}"), "1"))
@@ -524,5 +658,157 @@ mod tests {
         let hooks = render(&channel(ChannelType::Webhook, "en"), &links, &notices, 2);
         assert_eq!(hooks.len(), 7);
         assert_eq!(hooks[0].event, "component.published");
+    }
+
+    fn security(action: Action, advisory: Option<&str>) -> Notice {
+        let mut found = notice("maven2", "org.example", "demo", "1.0");
+        found.action = action;
+        found.initiator = None;
+        found.detail = Some(Detail {
+            policy: Some("strict".into()),
+            advisory: advisory.map(str::to_owned),
+            severity: advisory.map(|_| "critical".to_owned()),
+        });
+        found
+    }
+
+    #[test]
+    fn security_notices_are_titled_in_every_markup_and_language_and_never_carry_reasons() {
+        let vulnerable = security(Action::VulnerabilityFound, Some("GHSA-1"));
+        let blocked = security(Action::PolicyBlocked, None);
+        let cases = [
+            (
+                ChannelType::Telegram,
+                "en",
+                &vulnerable,
+                "🛡️ <b>Vulnerability found</b>\n<b>org.example:demo:1.0</b>\nRepository: <code>releases</code> · maven2\nAdvisory: <code>GHSA-1</code> · critical\nPolicy: <code>strict</code>",
+            ),
+            (
+                ChannelType::Telegram,
+                "ru",
+                &vulnerable,
+                "🛡️ <b>Найдена уязвимость</b>\n<b>org.example:demo:1.0</b>\nРепозиторий: <code>releases</code> · maven2\nУязвимость: <code>GHSA-1</code> · критическая\nПолитика: <code>strict</code>",
+            ),
+            (
+                ChannelType::Slack,
+                "en",
+                &vulnerable,
+                "🛡️ *Vulnerability found*\n`org.example:demo:1.0`\nRepository: `releases` · maven2\nAdvisory: `GHSA-1` · critical\nPolicy: `strict`",
+            ),
+            (
+                ChannelType::Slack,
+                "ru",
+                &vulnerable,
+                "🛡️ *Найдена уязвимость*\n`org.example:demo:1.0`\nРепозиторий: `releases` · maven2\nУязвимость: `GHSA-1` · критическая\nПолитика: `strict`",
+            ),
+            (
+                ChannelType::Email,
+                "en",
+                &vulnerable,
+                "🛡️ Vulnerability found\norg.example:demo:1.0\nRepository: releases · maven2\nAdvisory: GHSA-1 · critical\nPolicy: strict",
+            ),
+            (
+                ChannelType::Email,
+                "ru",
+                &vulnerable,
+                "🛡️ Найдена уязвимость\norg.example:demo:1.0\nРепозиторий: releases · maven2\nУязвимость: GHSA-1 · критическая\nПолитика: strict",
+            ),
+            (
+                ChannelType::Telegram,
+                "en",
+                &blocked,
+                "⛔ <b>Download blocked by policy</b>\n<b>org.example:demo:1.0</b>\nRepository: <code>releases</code> · maven2\nPolicy: <code>strict</code>",
+            ),
+            (
+                ChannelType::Telegram,
+                "ru",
+                &blocked,
+                "⛔ <b>Скачивание заблокировано политикой</b>\n<b>org.example:demo:1.0</b>\nРепозиторий: <code>releases</code> · maven2\nПолитика: <code>strict</code>",
+            ),
+            (
+                ChannelType::Slack,
+                "en",
+                &blocked,
+                "⛔ *Download blocked by policy*\n`org.example:demo:1.0`\nRepository: `releases` · maven2\nPolicy: `strict`",
+            ),
+            (
+                ChannelType::Slack,
+                "ru",
+                &blocked,
+                "⛔ *Скачивание заблокировано политикой*\n`org.example:demo:1.0`\nРепозиторий: `releases` · maven2\nПолитика: `strict`",
+            ),
+            (
+                ChannelType::Email,
+                "en",
+                &blocked,
+                "⛔ Download blocked by policy\norg.example:demo:1.0\nRepository: releases · maven2\nPolicy: strict",
+            ),
+            (
+                ChannelType::Email,
+                "ru",
+                &blocked,
+                "⛔ Скачивание заблокировано политикой\norg.example:demo:1.0\nРепозиторий: releases · maven2\nПолитика: strict",
+            ),
+        ];
+        for (kind, language, notice, expected) in cases {
+            let channel = channel(kind, language);
+            assert_eq!(single(&channel, &Links::default(), notice), expected);
+        }
+        let rendered = Rendered {
+            event: "vulnerability.found".into(),
+            text: String::new(),
+            notice: Some(vulnerable.clone()),
+        };
+        assert_eq!(
+            subject(&channel(ChannelType::Email, "en"), &rendered),
+            "Vulnerability found: org.example:demo:1.0"
+        );
+        let hooks = render(
+            &channel(ChannelType::Webhook, "en"),
+            &Links::default(),
+            &[vulnerable, blocked],
+            0,
+        );
+        assert_eq!(hooks[0].event, "vulnerability.found");
+        assert_eq!(hooks[1].event, "policy.blocked");
+    }
+
+    #[test]
+    fn text_from_outside_is_escaped_and_a_docker_security_notice_has_no_pull_command() {
+        let mut hostile = security(Action::VulnerabilityFound, Some("GHSA-<b>x</b>&"));
+        hostile.format = "docker".into();
+        let links = Links {
+            base_url: Some("https://repo.example.com".into()),
+        };
+        let html = single(&channel(ChannelType::Telegram, "en"), &links, &hostile);
+        assert!(
+            html.contains("<code>GHSA-&lt;b&gt;x&lt;/b&gt;&amp;</code>"),
+            "{html}"
+        );
+        assert!(!html.contains("docker pull"));
+        assert!(links.pull_command(&hostile).is_none());
+        assert!(links.component(&hostile).is_some());
+    }
+
+    #[test]
+    fn a_window_of_security_notices_is_one_summary_with_its_own_title() {
+        let notices: Vec<_> = (0..7)
+            .map(|i| {
+                let mut found = security(Action::VulnerabilityFound, Some("GHSA-1"));
+                found.name = format!("a{i}");
+                found
+            })
+            .collect();
+        let chat = render(
+            &channel(ChannelType::Telegram, "en"),
+            &Links::default(),
+            &notices,
+            3,
+        );
+        assert_eq!(chat.len(), 1);
+        assert_eq!(chat[0].event, SUMMARY);
+        assert!(chat[0].text.starts_with("📋 <b>Security notices: 10</b>"));
+        assert!(chat[0].text.contains("<code>GHSA-1</code>"));
+        assert!(chat[0].text.contains("…and 3 more"));
     }
 }

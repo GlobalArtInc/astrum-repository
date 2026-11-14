@@ -3,8 +3,9 @@ use std::collections::BTreeSet;
 use astrum_blob::config::Settings;
 use astrum_blob::{FillPolicy, SoftQuota, quota};
 use axum::Router;
-use axum::extract::State;
+use axum::extract::{Path, State};
 use axum::routing::get;
+use sea_orm::{DbBackend, FromQueryResult, Statement};
 use serde::Serialize;
 
 use super::UI;
@@ -14,7 +15,22 @@ use crate::routes::blobstores::measure_all;
 use crate::{ApiError, AppState, Caller};
 
 pub fn routes() -> Router<AppState> {
-    Router::new().route(&format!("{UI}/blobstores"), get(list))
+    Router::new()
+        .route(&format!("{UI}/blobstores"), get(list))
+        .route(&format!("{UI}/blobstores/{{name}}/usage"), get(usage))
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Usage {
+    assets: i64,
+    bytes: i64,
+}
+
+#[derive(FromQueryResult)]
+struct UsageRow {
+    assets: i64,
+    bytes: i64,
 }
 
 #[derive(Serialize)]
@@ -149,4 +165,39 @@ async fn list(
         });
     }
     Ok(axum::Json(items))
+}
+
+async fn usage(
+    State(state): State<AppState>,
+    caller: Caller,
+    Path(name): Path<String>,
+) -> Result<axum::Json<Usage>, ApiError> {
+    caller.require("astrum:blobstores:read")?;
+    let config = state
+        .blob_stores()
+        .config(&name)
+        .await
+        .map_err(ApiError::internal)?
+        .ok_or_else(|| ApiError::not_found(format!("There is no blob store named '{name}'")))?;
+    let members = config
+        .group()
+        .map(|group| group.members.clone())
+        .unwrap_or_default();
+    let statement = Statement::from_sql_and_values(
+        DbBackend::Postgres,
+        "SELECT count(*)::bigint AS assets, coalesce(sum(size), 0)::bigint AS bytes FROM asset \
+         WHERE blob_store = $1 OR blob_store = ANY($2)",
+        [config.name.clone().into(), members.into()],
+    );
+    let row = UsageRow::find_by_statement(statement)
+        .one(state.db().conn())
+        .await?
+        .unwrap_or(UsageRow {
+            assets: 0,
+            bytes: 0,
+        });
+    Ok(axum::Json(Usage {
+        assets: row.assets,
+        bytes: row.bytes,
+    }))
 }

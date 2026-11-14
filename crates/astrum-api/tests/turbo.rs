@@ -2,7 +2,7 @@ mod support;
 
 use std::sync::Arc;
 
-use astrum_security::Scope;
+use astrum_security::{NewToken, Scope};
 use axum::body::Body;
 use axum::http::{Method, StatusCode};
 use serde_json::{Value, json};
@@ -39,7 +39,7 @@ async fn token(fixture: &Fixture, scope: Scope) -> String {
     fixture
         .state
         .security()
-        .create_token("admin", "turbo", scope, None)
+        .create_token("admin", NewToken::personal("turbo", scope, None))
         .await
         .unwrap()
         .1

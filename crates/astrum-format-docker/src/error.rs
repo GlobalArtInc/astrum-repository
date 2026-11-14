@@ -132,6 +132,7 @@ impl From<ContentError> for RegistryError {
             }
             ContentError::Unauthorized => Self::unauthorized(),
             ContentError::Forbidden => Self::denied("requested access to the resource is denied"),
+            ContentError::Blocked(message) => Self::denied(message),
             ContentError::MethodNotAllowed { method, allow } => {
                 Self::unsupported(format!("{method} is not allowed here"))
                     .header(header::ALLOW, allow)
@@ -217,6 +218,11 @@ mod tests {
         assert_eq!(
             (forbidden.status, forbidden.code),
             (StatusCode::FORBIDDEN, "DENIED")
+        );
+        let blocked = RegistryError::from(ContentError::Blocked("blocked by policy".to_owned()));
+        assert_eq!(
+            (blocked.status, blocked.code),
+            (forbidden.status, forbidden.code)
         );
         let range = RegistryError::from(ContentError::RangeNotSatisfiable(12)).into_response();
         assert_eq!(range.status(), StatusCode::RANGE_NOT_SATISFIABLE);

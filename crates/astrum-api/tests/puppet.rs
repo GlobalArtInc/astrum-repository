@@ -5,8 +5,8 @@ use std::net::SocketAddr;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
-use astrum_security::Scope;
 use astrum_security::ssrf::{SSRF_KEY, SsrfProtection};
+use astrum_security::{NewToken, Scope};
 use axum::Router;
 use axum::body::Body;
 use axum::extract::{Path, RawQuery, State};
@@ -224,7 +224,7 @@ async fn hosted_modules_publish_and_answer_the_forge_api() {
     let (_, token) = fixture
         .state
         .security()
-        .create_token("admin", "forge", Scope::Write, None)
+        .create_token("admin", NewToken::personal("forge", Scope::Write, None))
         .await
         .unwrap();
     let bearer = format!("Bearer {token}");
@@ -644,7 +644,7 @@ async fn write_policies_permissions_and_other_repository_kinds() {
     let (_, token) = fixture
         .state
         .security()
-        .create_token("admin", "puppet", Scope::Read, None)
+        .create_token("admin", NewToken::personal("puppet", Scope::Read, None))
         .await
         .unwrap();
     for authorization in [

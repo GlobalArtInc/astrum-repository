@@ -5,6 +5,7 @@ use futures_util::StreamExt;
 use futures_util::stream;
 
 use crate::digest::{self, Hasher};
+use crate::limit::Limiter;
 use crate::{BlobId, BlobStore, ContentStream, Digests, Error, Written};
 
 type Failure = Arc<Mutex<Option<Error>>>;
@@ -16,6 +17,7 @@ struct Checking {
     id: BlobId,
     expected: Digests,
     failure: Failure,
+    limiter: Option<Limiter>,
 }
 
 pub(crate) async fn through<S: BlobStore + ?Sized>(
@@ -23,24 +25,60 @@ pub(crate) async fn through<S: BlobStore + ?Sized>(
     id: BlobId,
     expected: &Digests,
 ) -> Result<Written, Error> {
-    digest::require(store.name(), id, expected)?;
-    let Some(content) = store.read(id).await? else {
+    let (written, _) = pipe(store, id, expected, store, None).await?;
+    Ok(written)
+}
+
+pub async fn copy(
+    from: &dyn BlobStore,
+    id: &BlobId,
+    digests: &Digests,
+    to: &dyn BlobStore,
+    limiter: Option<&Limiter>,
+) -> Result<Written, Error> {
+    let (written, source_size) = pipe(from, *id, digests, to, limiter).await?;
+    if written.size != source_size {
+        if let Err(error) = to.delete(written.id).await {
+            tracing::warn!(store = to.name(), blob = %written.id, %error, "a copy of the wrong size could not be discarded");
+        }
+        return Err(Error::Digest {
+            store: from.name().to_owned(),
+            id: *id,
+            algorithm: "size",
+            expected: source_size.to_string(),
+            actual: written.size.to_string(),
+        });
+    }
+    Ok(written)
+}
+
+async fn pipe<F: BlobStore + ?Sized, T: BlobStore + ?Sized>(
+    from: &F,
+    id: BlobId,
+    expected: &Digests,
+    to: &T,
+    limiter: Option<&Limiter>,
+) -> Result<(Written, u64), Error> {
+    digest::require(from.name(), id, expected)?;
+    let Some(content) = from.read(id).await? else {
         return Err(Error::Missing {
-            store: store.name().to_owned(),
+            store: from.name().to_owned(),
             id,
         });
     };
+    let source_size = content.size;
     let failure = Failure::default();
     let verified = checking(Checking {
         content: content.stream,
         hasher: Hasher::default(),
-        store: store.name().to_owned(),
+        store: from.name().to_owned(),
         id,
         expected: expected.clone(),
         failure: failure.clone(),
+        limiter: limiter.cloned(),
     });
-    match store.put(verified).await {
-        Ok(written) => Ok(written),
+    match to.put(verified).await {
+        Ok(written) => Ok((written, source_size)),
         Err(error) => Err(failure
             .lock()
             .expect("the duplicate failure lock is never poisoned")
@@ -55,6 +93,9 @@ fn checking(state: Checking) -> ContentStream {
         match state.content.next().await {
             Some(Ok(bytes)) => {
                 state.hasher.update(&bytes);
+                if let Some(limiter) = &state.limiter {
+                    limiter.acquire(bytes.len()).await;
+                }
                 Some((Ok(bytes), Some(state)))
             }
             Some(Err(error)) => Some((Err(error), None)),

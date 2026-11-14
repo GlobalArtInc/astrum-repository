@@ -89,6 +89,8 @@ pub struct Metadata {
     pub license_url: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub license_expression: Option<String>,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub license_file: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub icon_url: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -191,6 +193,7 @@ pub fn parse_nuspec(bytes: &[u8]) -> Result<Metadata, NuspecError> {
     let license_expression = license
         .filter(|license| license.attribute("type") == Some("expression"))
         .and_then(Element::value);
+    let license_file = license.is_some_and(|license| license.attribute("type") == Some("file"));
     let mut package_types: Vec<String> = metadata
         .child("packageTypes")
         .map(|types| {
@@ -233,6 +236,7 @@ pub fn parse_nuspec(bytes: &[u8]) -> Result<Metadata, NuspecError> {
         project_url: metadata.text_of("projectUrl"),
         license_url: metadata.text_of("licenseUrl"),
         license_expression,
+        license_file,
         icon_url: metadata.text_of("iconUrl"),
         icon: metadata.text_of("icon"),
         readme: metadata.text_of("readme"),

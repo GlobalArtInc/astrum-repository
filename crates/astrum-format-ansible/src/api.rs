@@ -91,6 +91,7 @@ pub fn error(error: ContentError) -> Response {
             "permission_denied",
             "You do not have permission to perform this action.",
         ),
+        ContentError::Blocked(_) => ("permission_denied", "Blocked by policy."),
         ContentError::MethodNotAllowed { .. } => ("method_not_allowed", "Method not allowed."),
         ContentError::Conflict(_) | ContentError::Protected(_) => ("conflict", "Conflict."),
         ContentError::BadGateway(_) | ContentError::Unavailable(_) => {
@@ -114,6 +115,7 @@ pub fn error(error: ContentError) -> Response {
         None,
         &json!({"errors": [{"status": status.as_u16().to_string(), "code": code, "title": title, "detail": detail}]}),
     );
+    error.mark(&mut response);
     let headers = response.headers_mut();
     match error {
         ContentError::Unauthorized => {
@@ -364,6 +366,15 @@ mod tests {
             root: "/repository/galaxy".to_owned(),
             absolute: "https://r.example/repository/galaxy".to_owned(),
         }
+    }
+
+    #[test]
+    fn a_refusal_by_a_policy_is_a_permission_error_with_its_text_and_not_invalid_input() {
+        let refused = error(ContentError::blocked_by("strict", "GHSA-1: high in a@1"));
+        assert_eq!(refused.status(), StatusCode::FORBIDDEN);
+        assert_eq!(refused.headers()["x-astrum-blocked-by"], "strict");
+        let plain = error(ContentError::Forbidden);
+        assert!(plain.headers().get("x-astrum-blocked-by").is_none());
     }
 
     #[test]

@@ -77,6 +77,20 @@ fn section_keys_are_the_json_names() {
 }
 
 #[test]
+fn a_policy_shows_in_the_document_only_when_set() {
+    let hosted = spec("maven", "hosted");
+    let mut body = minimal(hosted, "x");
+    body["policy"] = json!({"name": "strict"});
+    let repository = prepare(hosted, body, None).unwrap();
+    assert_eq!(
+        repository.document("http://h")["policy"],
+        json!({"name": "strict"})
+    );
+    let plain = prepare(hosted, minimal(hosted, "y"), None).unwrap();
+    assert!(plain.document("http://h").get("policy").is_none());
+}
+
+#[test]
 fn names_follow_the_documented_pattern() {
     for good in ["maven-releases", "-x", "a.b_c", "A1", &"x".repeat(200)] {
         assert!(

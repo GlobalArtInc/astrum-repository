@@ -6,6 +6,7 @@ use astrum_security::AnonymousSettings;
 use astrum_security::model::ANONYMOUS_KEY;
 use axum::body::Body;
 use axum::http::{Method, StatusCode};
+use sea_orm::{ConnectionTrait, DbBackend, Statement};
 use serde_json::{Value, json};
 
 use crate::support::{Auth, Fixture, Reply};
@@ -220,4 +221,32 @@ pub fn names(value: &Value, field: &str) -> Vec<String> {
         .iter()
         .map(|item| item[field].as_str().unwrap_or_default().to_owned())
         .collect()
+}
+
+pub async fn waiting(
+    fixture: &Fixture,
+    repository: &str,
+    names: Vec<String>,
+    available_in_secs: f64,
+    blocked: bool,
+) {
+    fixture
+        .state
+        .db()
+        .conn()
+        .execute(Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            "WITH added AS (INSERT INTO component (repository, format, namespace, name, version) \
+               SELECT $1, 'raw', '', name, '1.0' FROM unnest($2::text[]) AS name RETURNING id) \
+             INSERT INTO cooldown_wait (repository, component_id, published_at, available_at, blocked) \
+             SELECT $1, id, now() - interval '3 days', now() + make_interval(secs => $3), $4 FROM added",
+            [
+                repository.into(),
+                names.into(),
+                available_in_secs.into(),
+                blocked.into(),
+            ],
+        ))
+        .await
+        .unwrap();
 }

@@ -1,6 +1,6 @@
 import { ApiError, type FieldError } from '../../api';
 import type { Translate } from '../../i18n';
-import type { StoreType } from './api';
+import type { BlobStoreUsage, StoreType, UiBlobStore } from './api';
 
 export type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 export type JsonObject = { [key: string]: Json };
@@ -148,6 +148,10 @@ function write(def: FieldDef, value: StoreValues[Key]): Json {
 
 export function quotaMegabytes(bytes: number): number {
   return Math.round((bytes / MB) * 1_000_000) / 1_000_000;
+}
+
+export function holdsMovedAssets(store: UiBlobStore, usage: BlobStoreUsage | undefined): boolean {
+  return store.repositoryCount === 0 && (usage?.assets ?? 0) > 0;
 }
 
 export function fromDocument(document: StoreDocument): StoreValues {

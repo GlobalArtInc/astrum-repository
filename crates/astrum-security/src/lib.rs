@@ -2,6 +2,7 @@ pub mod api_keys;
 pub mod bootstrap;
 pub mod catalogue;
 pub mod credentials;
+pub mod customers;
 pub mod format_tokens;
 pub mod ip_allow;
 pub mod ldap;
@@ -41,8 +42,10 @@ pub use secrets::SecretBox;
 pub use selector::{Selector, SelectorError};
 pub use sessions::{ActiveSession, NewSession};
 pub use ssrf::SsrfProtection;
-pub use subject::{EXTERNAL_CREDENTIALS, Scope, Subject};
-pub use tokens::{TokenError, TokenInfo};
+pub use subject::{
+    EXTERNAL_CREDENTIALS, NarrowedSubject, PublicIdentity, Scope, Subject, TokenRef,
+};
+pub use tokens::{NewToken, TokenError, TokenInfo};
 pub use two_factor::{FactorSummary, Gate, Pending, Standing, TwoFactorPolicy};
 
 const VERIFIED_FOR: Duration = Duration::from_secs(300);

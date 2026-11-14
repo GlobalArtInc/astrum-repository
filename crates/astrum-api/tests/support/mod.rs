@@ -119,6 +119,64 @@ impl Fixture {
         server
     }
 
+    pub async fn customer_token(
+        &self,
+        customer_id: &str,
+        repositories: &[&str],
+    ) -> (uuid::Uuid, String) {
+        self.customer_token_of(ADMIN_USER, customer_id, repositories)
+            .await
+    }
+
+    pub async fn customer_token_of(
+        &self,
+        owner: &str,
+        customer_id: &str,
+        repositories: &[&str],
+    ) -> (uuid::Uuid, String) {
+        use astrum_db::entity::customer;
+        use sea_orm::{ActiveValue, EntityTrait};
+        let db = self.state.db().conn();
+        if customer::Entity::find_by_id(customer_id)
+            .one(db)
+            .await
+            .unwrap()
+            .is_none()
+        {
+            customer::Entity::insert(customer::ActiveModel {
+                id: ActiveValue::Set(customer_id.to_owned()),
+                name: ActiveValue::Set(customer_id.to_owned()),
+                reference: ActiveValue::Set(String::new()),
+                note: ActiveValue::Set(String::new()),
+                disabled: ActiveValue::Set(false),
+                created_by: ActiveValue::Set(ADMIN_USER.to_owned()),
+                created_at: ActiveValue::Set(chrono::Utc::now().fixed_offset()),
+            })
+            .exec(db)
+            .await
+            .unwrap();
+        }
+        let (info, token) = self
+            .state
+            .security()
+            .create_token(
+                owner,
+                astrum_security::NewToken {
+                    name: "release".to_owned(),
+                    scope: astrum_security::Scope::Read,
+                    days: Some(30),
+                    repositories: Some(
+                        repositories.iter().map(|name| (*name).to_owned()).collect(),
+                    ),
+                    customer: Some(customer_id.to_owned()),
+                    created_by: Some(ADMIN_USER.to_owned()),
+                },
+            )
+            .await
+            .unwrap();
+        (info.id, token)
+    }
+
     pub async fn new() -> Self {
         let test = TestDatabase::create().await;
         let data = tempfile::tempdir().unwrap();

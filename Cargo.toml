@@ -65,10 +65,14 @@ astrum-format-yum = { path = "crates/astrum-format-yum" }
 astrum-db = { path = "crates/astrum-db" }
 astrum-logging = { path = "crates/astrum-logging" }
 astrum-notify = { path = "crates/astrum-notify" }
+astrum-policy = { path = "crates/astrum-policy" }
 astrum-replication = { path = "crates/astrum-replication" }
 astrum-repo = { path = "crates/astrum-repo" }
+astrum-sbom = { path = "crates/astrum-sbom" }
+astrum-scan = { path = "crates/astrum-scan" }
 astrum-security = { path = "crates/astrum-security" }
 astrum-server = { path = "crates/astrum-server" }
+astrum-signature = { path = "crates/astrum-signature" }
 astrum-tasks = { path = "crates/astrum-tasks" }
 astrum-testkit = { path = "crates/astrum-testkit" }
 

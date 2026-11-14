@@ -64,7 +64,10 @@ async fn authenticate(
 ) -> Result<Subject, Box<Response>> {
     let security = state.security();
     if looks_like_token(token) {
-        return match security.authenticate_token(None, token).await {
+        return match security
+            .authenticate_token(None, token, astrum_api::client::current())
+            .await
+        {
             Ok(subject) => Ok(subject),
             Err(AuthError::BadCredentials | AuthError::SecondFactor(_)) => Err(refused(
                 StatusCode::UNAUTHORIZED,

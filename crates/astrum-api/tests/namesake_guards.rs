@@ -2,7 +2,7 @@ mod support;
 #[path = "support/namesake.rs"]
 mod world;
 
-use astrum_security::Scope;
+use astrum_security::{NewToken, Scope};
 use astrum_testkit::ldap::Entry;
 use axum::http::{Method, StatusCode};
 use base64::Engine;
@@ -118,7 +118,7 @@ async fn a_directory_session_cannot_delete_a_token_left_under_its_id() {
     let world = setup().await;
     let security = world.fixture.state.security();
     let (left, _) = security
-        .create_token("alice", "left", Scope::Write, None)
+        .create_token("alice", NewToken::personal("left", Scope::Write, None))
         .await
         .unwrap();
     let session = world.session("alice", ALICE_PASSWORD).await;

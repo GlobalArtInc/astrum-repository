@@ -20,7 +20,7 @@ use sea_orm::DatabaseConnection;
 use serde::Serialize;
 use tokio::sync::{Notify, Semaphore};
 
-pub use bootstrap::bootstrap;
+pub use bootstrap::{CUSTOMER_TOKEN_EXPIRY, bootstrap};
 pub use kind::{Expiry, Field, FieldType, Properties, TaskError, TaskKind};
 pub use run::Run;
 pub use schedule::Schedule;

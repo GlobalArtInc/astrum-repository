@@ -8,8 +8,9 @@ use serde::Serialize;
 use astrum_repo::RepositoryType;
 use astrum_repo::config::Repository;
 
+use crate::inventory::Inventory;
 use crate::proxy::{self, Freshness};
-use crate::store::{self, Asset, PutAsset};
+use crate::store::{self, Asset, Component, PutAsset};
 use crate::transfer::Transfer;
 use crate::{ContentError, ContentRequest, Ctx, group};
 
@@ -138,6 +139,10 @@ pub trait Format: Send + Sync + 'static {
 
     async fn get(&self, ctx: &Ctx, path: &str) -> Result<Option<Asset>, ContentError>;
 
+    async fn gate_asset(&self, _ctx: &Ctx, _asset: &Asset) -> Result<(), ContentError> {
+        Ok(())
+    }
+
     fn upload_spec(&self) -> Option<UploadSpec> {
         None
     }
@@ -203,6 +208,14 @@ pub trait Format: Send + Sync + 'static {
 
     fn protected(&self, _repository: &Repository, _asset: &Asset) -> Option<String> {
         None
+    }
+
+    async fn inventory(
+        &self,
+        _ctx: &Ctx,
+        _component: &Component,
+    ) -> Result<Option<Inventory>, ContentError> {
+        Ok(None)
     }
 }
 

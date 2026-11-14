@@ -1,11 +1,20 @@
 mod auth;
+pub mod children;
 mod error;
+mod evidence;
+mod exempt;
+mod gate;
 pub mod gc;
 pub mod import;
+mod inventory;
+mod layers;
 mod manifest;
 mod reference;
 mod routes;
+mod sbom;
+mod signed_only;
 mod storage;
+mod supply;
 pub mod transfer;
 mod upload;
 mod upstream;
@@ -14,7 +23,8 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 
 use astrum_content::format::SearchTarget;
-use astrum_content::store::{self, Asset};
+use astrum_content::inventory::Inventory;
+use astrum_content::store::{self, Asset, Component};
 use astrum_content::{
     BrowseLayout, ContentError, ContentRequest, Ctx, Format, SearchKey, Serve, View, group, serve,
 };
@@ -26,12 +36,14 @@ use axum::http::{HeaderMap, HeaderValue, Method, StatusCode, header};
 use axum::response::{IntoResponse, Response};
 use serde_json::{Value, json};
 
+pub use astrum_signature as signature;
 pub use auth::REALM;
-pub use routes::{Connector, FIRST_SUGGESTED_PORT, routes};
+pub use routes::{Connector, FIRST_SUGGESTED_PORT, routes, routes_with_sbom_limit};
 
 use crate::error::RegistryError;
 use crate::manifest::Manifest;
 use crate::reference::{Digest, Reference, Route};
+use crate::signed_only::SignedOnly;
 use crate::upstream::Upstreams;
 
 pub const ID: &str = "docker";
@@ -106,6 +118,7 @@ impl Mount {
 #[derive(Default)]
 pub struct Docker {
     upstreams: Upstreams,
+    signed_only: SignedOnly,
 }
 
 enum BlobHit {
@@ -426,14 +439,18 @@ impl Docker {
         ctx: &Ctx,
         image: &str,
         reference: &Reference,
-    ) -> Result<Option<Asset>, ContentError> {
+    ) -> Result<Option<(Ctx, Asset)>, ContentError> {
         match ctx.kind() {
-            RepositoryType::Group => Ok(group::first(ctx, |member| async move {
-                self.leaf_manifest(&member, image, reference).await
-            })
-            .await?
-            .map(|(_, asset)| asset)),
-            _ => self.leaf_manifest(ctx, image, reference).await,
+            RepositoryType::Group => {
+                group::first(ctx, |member| async move {
+                    self.leaf_manifest(&member, image, reference).await
+                })
+                .await
+            }
+            _ => Ok(self
+                .leaf_manifest(ctx, image, reference)
+                .await?
+                .map(|asset| (ctx.clone(), asset))),
         }
     }
 
@@ -492,16 +509,20 @@ impl Docker {
         let name = call.mount.name(image);
         let reference =
             Reference::parse(raw).ok_or_else(|| RegistryError::manifest_unknown(&name, raw))?;
-        let asset = self
+        let (holder, asset) = self
             .find_manifest(ctx, image, &reference)
             .await?
             .ok_or_else(|| RegistryError::manifest_unknown(&name, raw))?;
+        self.signed_only
+            .require(&self.upstreams, &holder, image, &reference, &asset)
+            .await?;
         let digest = match &reference {
             Reference::Digest(digest) => digest.to_string(),
             Reference::Tag(_) => storage::digest_of(&asset)
                 .map(|digest| digest.to_string())
                 .unwrap_or_else(|| format!("sha256:{}", asset.sha256)),
         };
+        gate::gate_manifest(&holder, &reference, &asset).await?;
         let etag = format!("\"{digest}\"");
         let mut response = Response::builder()
             .header(header::CONTENT_TYPE, storage::media_type_of(&asset))
@@ -526,6 +547,12 @@ impl Docker {
         }
         let stream = storage::stream_of(ctx, &asset).await?;
         ctx.content.note_download(asset.id);
+        ctx.content.note_token_download(
+            ctx.subject.as_ref(),
+            &asset.repository,
+            true,
+            asset.size.max(0) as u64,
+        );
         response
             .body(Body::from_stream(stream))
             .map_err(|error| ContentError::internal(error).into())
@@ -561,6 +588,12 @@ impl Docker {
             .map_err(|_| RegistryError::too_large(MANIFEST_LIMIT))?;
         let parsed = manifest::parse(&bytes, content_type.as_deref())
             .map_err(RegistryError::manifest_invalid)?;
+        if parsed.children.len() > children::LIMIT {
+            return Err(RegistryError::manifest_invalid(format!(
+                "an index may list at most {} manifests",
+                children::LIMIT
+            )));
+        }
         let digest = match &reference {
             Reference::Digest(digest) => {
                 if !digest.matches_bytes(&bytes) {
@@ -666,6 +699,10 @@ impl Docker {
             let put = storage::manifest_put(image, tag, digest, parsed, Some(tag));
             store::adopt(target, put, &written).await?;
         }
+        if manifest::is_index(&parsed.media_type) {
+            children::replace(target.db(), target.name(), digest, &parsed.children).await?;
+        }
+        inventory::requeue::after_store(target, image, parsed, tags).await;
         Ok(())
     }
 
@@ -715,6 +752,7 @@ impl Docker {
         let mut seen = HashSet::new();
         let mut known = HashSet::new();
         let mut doomed: Vec<Asset> = Vec::new();
+        let mut forgotten: Vec<String> = Vec::new();
         while let Some(current) = queue.pop() {
             if !seen.insert(current.clone()) {
                 continue;
@@ -743,8 +781,12 @@ impl Docker {
                     found.push(tagged);
                 }
             }
+            let stored = own.is_some();
             if let Some(own) = own {
                 found.push(own);
+            }
+            if stored {
+                forgotten.push(current.to_string());
             }
             doomed.extend(found.into_iter().filter(|asset| known.insert(asset.id)));
         }
@@ -757,6 +799,9 @@ impl Docker {
         let deleted = !doomed.is_empty();
         for asset in doomed {
             store::delete_asset(&ctx.content, asset).await?;
+        }
+        for digest in forgotten {
+            children::forget(ctx.db(), ctx.name(), &digest).await?;
         }
         Ok(deleted)
     }
@@ -1355,6 +1400,13 @@ impl Format for Docker {
         Ok(self.serve(ctx, request, mount).await)
     }
 
+    async fn gate_asset(&self, ctx: &Ctx, asset: &Asset) -> Result<(), ContentError> {
+        match gate::reference_of(asset) {
+            Some(reference) => gate::gate_manifest(ctx, &reference, asset).await,
+            None => Ok(()),
+        }
+    }
+
     async fn get(&self, ctx: &Ctx, path: &str) -> Result<Option<Asset>, ContentError> {
         match ctx.kind() {
             RepositoryType::Group => {
@@ -1392,6 +1444,14 @@ impl Format for Docker {
 
     fn search_keys(&self) -> &'static [SearchKey] {
         SEARCH_KEYS
+    }
+
+    async fn inventory(
+        &self,
+        ctx: &Ctx,
+        component: &Component,
+    ) -> Result<Option<Inventory>, ContentError> {
+        inventory::of(&self.upstreams, ctx, component).await
     }
 }
 

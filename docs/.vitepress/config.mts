@@ -92,6 +92,7 @@ const sidebar: DefaultTheme.SidebarItem[] = [
       { text: 'Cleanup policies', link: '/repositories/cleanup-policies' },
       { text: 'Quotas', link: '/repositories/quotas' },
       { text: 'Routing rules', link: '/repositories/routing-rules' },
+      { text: 'Release cooldown', link: '/repositories/cooldown' },
     ],
   },
   {
@@ -107,6 +108,7 @@ const sidebar: DefaultTheme.SidebarItem[] = [
     items: [
       { text: 'Web interface', link: '/use/web-interface' },
       { text: 'Connect build tools', link: '/use/clients' },
+      { text: 'Share links', link: '/use/share-links' },
       { text: 'REST API', link: '/use/rest-api' },
       { text: 'Agents over MCP', link: '/use/mcp' },
       { text: 'Interface language', link: '/use/language' },

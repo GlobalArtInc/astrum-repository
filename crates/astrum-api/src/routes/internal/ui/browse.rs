@@ -148,6 +148,7 @@ pub(super) fn content_error(error: ContentError) -> ApiError {
         ContentError::Unauthorized => ApiError::Unauthorized,
         ContentError::Forbidden => ApiError::forbidden(),
         ContentError::Protected(message) => ApiError::Conflict(message),
+        ContentError::Blocked(message) => ApiError::Forbidden(message),
         other => ApiError::internal(other),
     }
 }
@@ -659,12 +660,33 @@ async fn remove(
 
 #[cfg(test)]
 mod tests {
+    use axum::response::IntoResponse;
+
     use super::*;
 
     #[test]
     fn a_protected_refusal_is_a_conflict_and_never_a_server_error() {
         let error = content_error(ContentError::Protected("tag v1 is immutable".to_owned()));
         assert!(matches!(error, ApiError::Conflict(message) if message == "tag v1 is immutable"));
+    }
+
+    #[test]
+    fn a_refusal_by_a_policy_is_forbidden_with_its_text_not_a_server_error() {
+        let text = ContentError::blocked_by("strict", "GHSA-1: high in npm/a@1").to_string();
+        let error = content_error(ContentError::blocked_by(
+            "strict",
+            "GHSA-1: high in npm/a@1",
+        ));
+        assert!(matches!(&error, ApiError::Forbidden(message) if *message == text));
+        assert_eq!(
+            error.into_response().status(),
+            axum::http::StatusCode::FORBIDDEN
+        );
+        let failed = content_error(ContentError::Unavailable("later".to_owned()));
+        assert_eq!(
+            failed.into_response().status(),
+            axum::http::StatusCode::INTERNAL_SERVER_ERROR
+        );
     }
 
     #[test]

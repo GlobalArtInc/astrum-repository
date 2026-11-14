@@ -20,6 +20,8 @@ export interface RepositoryValues {
   strictContentTypeValidation: boolean;
   writePolicy: string;
   latestPolicy: boolean;
+  immutableTagPatterns: string;
+  immutableTagExceptions: string;
   remoteUrl: string;
   contentMaxAge: number | null;
   metadataMaxAge: number | null;
@@ -87,6 +89,7 @@ export interface RepositoryValues {
   routingRuleName: string;
   useTrustStore: boolean;
   cleanupPolicies: string[];
+  policyName: string;
   repodataDepth: number | null;
   deployPolicy: string;
   yumKeypair: string;
@@ -119,6 +122,8 @@ export const FIELDS: readonly FieldDef[] = [
   { key: 'strictContentTypeValidation', path: ['storage', 'strictContentTypeValidation'], kind: 'bool' },
   { key: 'writePolicy', path: ['storage', 'writePolicy'], kind: 'enum' },
   { key: 'latestPolicy', path: ['storage', 'latestPolicy'], kind: 'bool' },
+  { key: 'immutableTagPatterns', path: ['storage', 'immutableTags', 'patterns'], kind: 'lines' },
+  { key: 'immutableTagExceptions', path: ['storage', 'immutableTags', 'exceptions'], kind: 'lines' },
   { key: 'remoteUrl', path: ['proxy', 'remoteUrl'], kind: 'text' },
   { key: 'contentMaxAge', path: ['proxy', 'contentMaxAge'], kind: 'int' },
   { key: 'metadataMaxAge', path: ['proxy', 'metadataMaxAge'], kind: 'int' },
@@ -190,6 +195,7 @@ export const FIELDS: readonly FieldDef[] = [
   { key: 'routingRuleName', path: ['routingRuleName'], kind: 'enum' },
   { key: 'useTrustStore', path: ['httpClient', 'connection', 'useTrustStore'], kind: 'bool' },
   { key: 'cleanupPolicies', path: ['cleanup', 'policyNames'], kind: 'list' },
+  { key: 'policyName', path: ['policy', 'name'], kind: 'enum' },
   { key: 'repodataDepth', path: ['yum', 'repodataDepth'], kind: 'int' },
   { key: 'deployPolicy', path: ['yum', 'deployPolicy'], kind: 'enum' },
   { key: 'yumKeypair', path: ['yumSigning', 'keypair'], kind: 'secret' },
@@ -605,6 +611,10 @@ const SIGNING_FIELDS: Record<string, readonly [FieldKey, FieldKey]> = {
 
 export function formField(id: string, spec: Spec): FieldKey | null {
   const name = id.replace(/^PARAMETER\s+/, '').trim();
+  const immutable = /immutableTags\.(patterns|exceptions)(\[\d+\])?$/.exec(name);
+  if (immutable) {
+    return immutable[1] === 'patterns' ? 'immutableTagPatterns' : 'immutableTagExceptions';
+  }
   const last = name.split('.').pop() ?? name;
   switch (last) {
     case 'enabled':

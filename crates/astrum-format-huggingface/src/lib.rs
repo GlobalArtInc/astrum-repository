@@ -67,10 +67,13 @@ pub struct HuggingFace {
     parsed: Mutex<HashMap<String, Arc<Revision>>>,
 }
 
+const BLOCKED_CODE: &str = "BlockedByPolicy";
+
 struct Failure {
     status: StatusCode,
     code: Option<&'static str>,
     message: String,
+    policy: Option<String>,
 }
 
 impl Failure {
@@ -79,6 +82,7 @@ impl Failure {
             status,
             code,
             message: message.into(),
+            policy: None,
         }
     }
 
@@ -102,13 +106,26 @@ impl Failure {
         if let Some(code) = self.code {
             headers.insert("x-error-code", HeaderValue::from_static(code));
         }
+        if let Some(policy) = self
+            .policy
+            .as_deref()
+            .and_then(|policy| HeaderValue::from_str(policy).ok())
+        {
+            headers.insert(astrum_content::BLOCKED_BY, policy);
+        }
         response
     }
 }
 
 impl From<ContentError> for Failure {
     fn from(error: ContentError) -> Self {
-        Failure::new(error.status(), None, error.to_string())
+        let code = match &error {
+            ContentError::Blocked(_) => Some(BLOCKED_CODE),
+            _ => None,
+        };
+        let mut failure = Failure::new(error.status(), code, error.to_string());
+        failure.policy = error.blocking_policy().map(str::to_owned);
+        failure
     }
 }
 
@@ -665,5 +682,28 @@ impl Format for HuggingFace {
 
     fn keyword_attributes(&self) -> &'static [&'static [&'static str]] {
         &[&["huggingface", "revisions"]]
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_refusal_by_a_policy_keeps_its_text_and_is_not_turned_into_a_plain_forbidden() {
+        let failure = Failure::from(ContentError::blocked_by("strict", "GHSA-1: high in a@1"));
+        assert_eq!(failure.status, StatusCode::FORBIDDEN);
+        assert_eq!(failure.code, Some(BLOCKED_CODE));
+        let reply = failure.reply();
+        assert_eq!(reply.status(), StatusCode::FORBIDDEN);
+        assert_eq!(reply.headers()["x-error-code"], BLOCKED_CODE);
+        assert_eq!(reply.headers()["x-astrum-blocked-by"], "strict");
+        assert_eq!(
+            reply.headers()["x-error-message"],
+            "blocked by policy strict: GHSA-1: high in a@1"
+        );
+        let plain = Failure::from(ContentError::Forbidden);
+        assert_eq!((plain.status, plain.code), (StatusCode::FORBIDDEN, None));
+        assert!(plain.reply().headers().get("x-astrum-blocked-by").is_none());
     }
 }

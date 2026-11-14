@@ -1,4 +1,6 @@
-use crate::xml::{self, XmlError, line};
+use astrum_content::inventory::cap_license;
+
+use crate::xml::{self, Element, XmlError, line};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Pom {
@@ -7,6 +9,55 @@ pub struct Pom {
     pub version: Option<String>,
     pub packaging: String,
     pub description: Option<String>,
+    pub licenses: Vec<License>,
+    pub parent: Option<Parent>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct License {
+    pub name: Option<String>,
+    pub url: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Parent {
+    pub group_id: String,
+    pub artifact_id: String,
+    pub version: String,
+}
+
+impl Pom {
+    pub fn license_text(&self) -> Option<String> {
+        let texts: Vec<String> = self
+            .licenses
+            .iter()
+            .filter_map(|license| license.name.clone().or_else(|| license.url.clone()))
+            .collect();
+        (!texts.is_empty()).then(|| cap_license(&texts.join(" OR ")).to_owned())
+    }
+}
+
+fn licenses(root: &Element) -> Vec<License> {
+    root.child("licenses")
+        .map(|licenses| {
+            licenses
+                .children("license")
+                .map(|license| License {
+                    name: license.text_of("name"),
+                    url: license.text_of("url"),
+                })
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+fn parent_of(parent: Option<&Element>) -> Option<Parent> {
+    let parent = parent?;
+    Some(Parent {
+        group_id: parent.text_of("groupId")?,
+        artifact_id: parent.text_of("artifactId")?,
+        version: parent.text_of("version")?,
+    })
 }
 
 pub fn parse(bytes: &[u8]) -> Result<Pom, XmlError> {
@@ -30,6 +81,8 @@ pub fn parse(bytes: &[u8]) -> Result<Pom, XmlError> {
             .text_of("packaging")
             .unwrap_or_else(|| "jar".to_owned()),
         description: root.text_of("description"),
+        licenses: licenses(&root),
+        parent: parent_of(parent),
     })
 }
 
@@ -140,6 +193,42 @@ mod tests {
         assert_eq!(pom.packaging, "maven-archetype");
         assert_eq!(parse(b"<project/>").unwrap().packaging, "jar");
         assert!(parse(b"<metadata/>").is_err());
+    }
+
+    #[test]
+    fn poms_declare_their_licences() {
+        let direct = parse(
+            br#"<project><licenses><license><name>Apache License, Version 2.0</name><url>https://www.apache.org/licenses/LICENSE-2.0</url></license></licenses></project>"#,
+        )
+        .unwrap();
+        assert_eq!(
+            direct.license_text().as_deref(),
+            Some("Apache License, Version 2.0")
+        );
+        let two = parse(
+            br#"<project><licenses><license><name>MIT</name></license><license><url>https://example.org/gpl</url></license></licenses></project>"#,
+        )
+        .unwrap();
+        assert_eq!(
+            two.license_text().as_deref(),
+            Some("MIT OR https://example.org/gpl")
+        );
+        assert!(parse(b"<project/>").unwrap().license_text().is_none());
+    }
+
+    #[test]
+    fn long_licence_texts_are_cut_at_a_character_boundary() {
+        let name = "€".repeat(1000);
+        let pom = parse(
+            format!(
+                "<project><licenses><license><name>{name}</name></license></licenses></project>"
+            )
+            .as_bytes(),
+        )
+        .unwrap();
+        let text = pom.license_text().unwrap();
+        assert_eq!(text.len(), 1023);
+        assert!(text.chars().all(|c| c == '€'));
     }
 
     #[test]

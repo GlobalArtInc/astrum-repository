@@ -112,3 +112,40 @@ async fn the_internal_list_shows_usage_and_who_uses_each_store() {
         StatusCode::UNAUTHORIZED
     );
 }
+
+#[tokio::test]
+async fn the_usage_counts_the_assets_and_bytes_naming_a_store() {
+    let fixture = stores().await;
+    send(
+        &fixture,
+        Method::POST,
+        GROUP,
+        json!({"name": "pool", "members": ["one", "two"]}),
+    )
+    .await;
+    raw_hosted_in(&fixture, "pooled", "pool").await;
+    raw_hosted_in(&fixture, "single", "three").await;
+    put(&fixture, "/repository/pooled/a.txt", "1234567890").await;
+    put(&fixture, "/repository/pooled/b.txt", "123").await;
+    put(&fixture, "/repository/single/c.txt", "12345").await;
+
+    let usage = |name: &str| format!("{LIST}/{name}/usage");
+    let pool = get(&fixture, &usage("pool"), Auth::Admin).await;
+    assert_eq!(pool.status, StatusCode::OK, "{}", pool.text());
+    assert_eq!(pool.json(), json!({"assets": 2, "bytes": 13}));
+    let one = get(&fixture, &usage("one"), Auth::Admin).await.json();
+    assert_eq!(one, json!({"assets": 0, "bytes": 0}));
+    let three = get(&fixture, &usage("three"), Auth::Admin).await.json();
+    assert_eq!(three, json!({"assets": 1, "bytes": 5}));
+    let two = get(&fixture, &usage("two"), Auth::Admin).await.json();
+    assert_eq!(two, json!({"assets": 0, "bytes": 0}));
+    assert_eq!(
+        get(&fixture, &usage("missing"), Auth::Admin).await.status,
+        StatusCode::NOT_FOUND
+    );
+    user_with(&fixture, "outsider", &["as-tasks-read"]).await;
+    assert_eq!(
+        get(&fixture, &usage("one"), user("outsider")).await.status,
+        StatusCode::FORBIDDEN
+    );
+}

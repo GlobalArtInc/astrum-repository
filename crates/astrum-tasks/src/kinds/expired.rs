@@ -1,4 +1,5 @@
-use astrum_content::holds;
+use astrum_content::Content;
+use astrum_content::holds::{self, Expired};
 use async_trait::async_trait;
 use sea_orm::{ConnectionTrait, DbBackend, Statement};
 
@@ -115,24 +116,37 @@ impl Expiry for BlobHoldExpiry {
         false
     }
 
-    async fn expire(&self, content: &astrum_content::Content) -> Result<u64, TaskError> {
-        let mut released = 0;
-        loop {
-            let batch = holds::take_expired(content.db(), HOLD_BATCH).await?;
-            let taken = batch.len() as u64;
-            for expired in batch.into_iter().filter(|expired| !expired.named) {
-                let deleted = match content.blob_stores().get(&expired.store).await {
-                    Ok(store) => store.delete(expired.id).await.map(|_| ()),
-                    Err(error) => Err(error),
-                };
-                if let Err(error) = deleted {
+    async fn expire(&self, content: &Content) -> Result<u64, TaskError> {
+        Ok(drain_lapsed_holds(content).await?.0)
+    }
+}
+
+pub async fn drain_lapsed_holds(content: &Content) -> Result<(u64, u64), TaskError> {
+    let mut released = 0;
+    let mut freed = 0;
+    loop {
+        let batch = holds::take_expired(content.db(), HOLD_BATCH).await?;
+        let taken = batch.len() as u64;
+        for expired in batch.into_iter().filter(|expired| !expired.named) {
+            match delete_held(content, &expired).await {
+                Ok(bytes) => freed += bytes,
+                Err(error) => {
                     tracing::warn!(%error, store = expired.store, blob = %expired.id, "a blob whose hold ran out stays in its store until compaction collects it");
                 }
             }
-            released += taken;
-            if taken < HOLD_BATCH {
-                return Ok(released);
-            }
+        }
+        released += taken;
+        if taken < HOLD_BATCH {
+            return Ok((released, freed));
         }
     }
+}
+
+async fn delete_held(content: &Content, expired: &Expired) -> Result<u64, astrum_blob::Error> {
+    let store = content.blob_stores().get(&expired.store).await?;
+    let size = store.size(expired.id).await?;
+    Ok(match store.delete(expired.id).await? {
+        true => size.unwrap_or(0),
+        false => 0,
+    })
 }

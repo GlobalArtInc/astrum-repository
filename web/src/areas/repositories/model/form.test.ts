@@ -109,6 +109,26 @@ describe('editing a document', () => {
     expect(differences(document, saved)).toEqual(['negativeCache.timeToLive']);
   });
 
+  it('attaches a content policy by its name and detaches it with null', () => {
+    const saved = edit(rawProxy, { policyName: 'strict' });
+    expect(differences(rawProxy, saved)).toEqual(['policy']);
+    expect(getPath(saved, ['policy', 'name'])).toBe('strict');
+    expect(getPath(edit(saved, { policyName: '' }), ['policy', 'name'])).toBeNull();
+  });
+
+  it('keeps an attached policy when the form does not change it', () => {
+    const document = clone(rawProxy);
+    document.policy = { name: 'strict' };
+    expect(fromDocument(document).policyName).toBe('strict');
+    expect(getPath(edit(document, { timeToLive: 5 }), ['policy', 'name'])).toBe('strict');
+  });
+
+  it('offers a policy to every repository but a group', () => {
+    expect(sections.policy({ format: 'raw', type: 'proxy' })).toBe(true);
+    expect(sections.policy({ format: 'docker', type: 'hosted' })).toBe(true);
+    expect(sections.policy({ format: 'raw', type: 'group' })).toBe(false);
+  });
+
   it('writes the applied cleanup policies, also into a document without cleanup', () => {
     const document = clone(rawProxy);
     document.cleanup = null;
@@ -124,6 +144,33 @@ describe('editing a document', () => {
     const saved = edit(dockerHosted, { latestPolicy: false });
     expect(getPath(saved, ['storage', 'latestPolicy'])).toBe(false);
     expect(differences(dockerHosted, saved)).toEqual(['storage.latestPolicy']);
+  });
+
+  it('round-trips the immutable tag rules and changes only the edited pattern list', () => {
+    const document = clone(dockerHosted);
+    (document.storage as Record<string, unknown>).immutableTags = {
+      patterns: ['v*'],
+      exceptions: ['latest'],
+    };
+    expect(canonical(toDocument(fromDocument(document), document))).toEqual(canonical(document));
+    const saved = edit(document, { immutableTagPatterns: 'v*\nrelease-*' });
+    expect(getPath(saved, ['storage', 'immutableTags', 'patterns'])).toEqual(['v*', 'release-*']);
+    expect(differences(document, saved)).toEqual(['storage.immutableTags.patterns']);
+  });
+
+  it('leaves out the immutable tag rules of a document that has none', () => {
+    const saved = edit(dockerHosted, { latestPolicy: false });
+    expect(saved.storage).not.toHaveProperty('immutableTags');
+  });
+
+  it('offers the immutable tag rules to docker hosted repositories only', () => {
+    expect(sections.immutableTags({ format: 'docker', type: 'hosted' })).toBe(true);
+    expect(sections.immutableTags({ format: 'docker', type: 'proxy' })).toBe(false);
+    expect(sections.immutableTags({ format: 'raw', type: 'hosted' })).toBe(false);
+    const rawHosted = (reference as unknown as Record<string, RepositoryDocument>)[
+      'raw/hosted/max'
+    ] as RepositoryDocument;
+    expect(edit(rawHosted, {}).storage).not.toHaveProperty('immutableTags');
   });
 
   it('sends a new secret only when one is typed', () => {
@@ -314,6 +361,16 @@ describe('form checks', () => {
 });
 
 describe('server problems', () => {
+  it('land on the immutable tag lists they name, indexes included', () => {
+    const dockerHostedSpec: Spec = { format: 'docker', type: 'hosted' };
+    expect(formField('PARAMETER storage.immutableTags.patterns[0]', dockerHostedSpec)).toBe(
+      'immutableTagPatterns',
+    );
+    expect(formField('PARAMETER storage.immutableTags.exceptions[1]', dockerHostedSpec)).toBe(
+      'immutableTagExceptions',
+    );
+  });
+
   it('land on the fields they name', () => {
     const raw: Spec = { format: 'raw', type: 'proxy' };
     expect(formField('PARAMETER remoteUrl', raw)).toBe('remoteUrl');

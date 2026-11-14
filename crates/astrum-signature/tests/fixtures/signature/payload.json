@@ -1,0 +1,1 @@
+{"critical":{"identity":{"docker-reference":"registry.example.test/team/app"},"image":{"docker-manifest-digest":"sha256:51da4efc742c8d62972ba45d0a77ce317ce92d052b10e7ddccda19e407836294"},"type":"cosign container image signature"},"optional":null}
