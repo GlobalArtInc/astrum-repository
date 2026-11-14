@@ -59,7 +59,7 @@ const POLICY_FIELDS: [&str; 6] = [
 ];
 const REQUIRED_FIELDS: [&str; 3] = ["everyone", "administrators", "roles"];
 const RELYING_PARTY_FIELDS: [&str; 2] = ["id", "origins"];
-const NO_METHOD: &str = "turn on at least one method before requiring a second factor";
+const NO_METHOD: &str = "turn on authenticator apps (totp) before requiring a second factor: passkeys cannot be used for enrollment yet";
 const PASSKEYS_WITHOUT_ID: &str =
     "passkeys need a relying party id: set the base URL or relyingParty.id";
 

@@ -23,6 +23,10 @@ pub const FAILURE_ENROLL: &str = "SECOND_FACTOR_ENROLLMENT_REQUIRED";
 pub const FAILURE_WRONG_PASSWORD: &str = "INCORRECT_CREDENTIALS";
 const ADMINISTRATORS: &str = "astrum:*";
 
+pub const fn passkey_flow_implemented() -> bool {
+    false
+}
+
 pub async fn lock_policy(db: &impl ConnectionTrait) -> Result<(), DbErr> {
     db.execute_unprepared(&format!("SELECT pg_advisory_xact_lock({POLICY_LOCK})"))
         .await?;
@@ -166,9 +170,14 @@ impl TwoFactorPolicy {
         match (self.totp, self.passkeys) {
             (true, _) => Methods::Available,
             (false, false) => Methods::NoneEnabled,
+            (false, true) if !passkey_flow_implemented() => Methods::NoneEnabled,
             (false, true) if self.relying_party_id_known(base_url) => Methods::Available,
             (false, true) => Methods::PasskeysWithoutId,
         }
+    }
+
+    pub fn enrollable(&self) -> bool {
+        self.totp || (self.passkeys && passkey_flow_implemented())
     }
 
     fn relying_party_id_known(&self, base_url: Option<&str>) -> bool {
@@ -234,13 +243,24 @@ impl SecurityModel {
         }
         let requirement = summary.map_or(Requirement::Policy, |summary| summary.requirement);
         let deadline = || self.enroll_deadline(user.created_at, summary);
-        match requirement {
+        let gate = match requirement {
             Requirement::Exempt => Gate::Open,
             Requirement::Unreadable => Gate::Enroll,
             Requirement::Required => Self::after(now, deadline()),
             Requirement::Policy if self.policy_requires(user_id) => Self::after(now, deadline()),
             Requirement::Policy => Gate::Open,
+        };
+        if gate == Gate::Enroll
+            && requirement != Requirement::Unreadable
+            && !self.two_factor.enrollable()
+        {
+            tracing::warn!(
+                user_id,
+                "a second factor is required but the policy leaves no method to enroll; the sign-in is not gated"
+            );
+            return Gate::Open;
         }
+        gate
     }
 
     pub fn requires_second_factor(&self, requirement: Requirement, user_id: &str) -> bool {
@@ -308,5 +328,41 @@ impl SecurityModel {
             .map_or(created_at, |since| since.max(created_at));
         let grace = Duration::try_days(i64::from(self.two_factor.grace_days))?;
         start.checked_add_signed(grace)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn policy(totp: bool, passkeys: bool, id: Option<&str>) -> TwoFactorPolicy {
+        TwoFactorPolicy {
+            totp,
+            passkeys,
+            relying_party: RelyingPartyPolicy {
+                id: id.map(str::to_owned),
+                origins: Vec::new(),
+            },
+            ..TwoFactorPolicy::default()
+        }
+    }
+
+    #[test]
+    fn passkeys_do_not_count_as_a_method_before_they_can_be_enrolled() {
+        let base = Some("https://astrum.example.org");
+        assert_eq!(policy(true, true, None).methods(base), Methods::Available);
+        assert_eq!(policy(true, false, None).methods(None), Methods::Available);
+        for known in [None, Some("example.org")] {
+            assert_eq!(
+                policy(false, true, known).methods(base),
+                Methods::NoneEnabled
+            );
+        }
+        assert_eq!(
+            policy(false, false, None).methods(base),
+            Methods::NoneEnabled
+        );
+        assert!(policy(true, false, None).enrollable());
+        assert!(!policy(false, true, None).enrollable());
     }
 }

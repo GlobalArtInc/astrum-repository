@@ -743,3 +743,22 @@ async fn wrong_passwords_and_the_throttle_leave_audit_rows_without_the_password(
     assert_eq!(limited.len(), 1);
     assert_eq!(limited[0]["attributes"]["username"], "jane");
 }
+
+#[tokio::test]
+async fn passkeys_are_not_offered_while_they_cannot_be_enrolled() {
+    let fixture = world().await;
+    let login = password(&fixture, "jane", JANE, &[]).await;
+    let both = status(&fixture, &login).await;
+    assert_eq!(both["methods"], json!(["totp"]));
+
+    astrum_db::setting::put(
+        fixture.state.db().conn(),
+        astrum_security::two_factor::POLICY_KEY,
+        &json!({"totp": false, "passkeys": true}),
+    )
+    .await
+    .unwrap();
+    fixture.state.security().changed().await.unwrap();
+    let passkeys_only = status(&fixture, &login).await;
+    assert_eq!(passkeys_only["methods"], json!([]));
+}

@@ -341,3 +341,31 @@ async fn any_one_of_secret_confirmation_or_passkey_counts_as_enrolled() {
     }
     assert_eq!(world.gate("none").await, Gate::Open);
 }
+
+#[tokio::test]
+async fn a_stored_policy_with_no_method_to_enroll_gates_nobody_who_could_not_enroll() {
+    let world = world().await;
+    for user in ["jane", "pat", "ned"] {
+        world.user(user, 30, &[]).await;
+    }
+    world.sql(&totp("pat")).await;
+    world
+        .sql("INSERT INTO user_second_factor (user_id, requirement) VALUES ('ned', 'required')")
+        .await;
+    world
+        .policy(json!({"totp": false, "passkeys": true, "required": {"everyone": true}, "graceDays": 7}))
+        .await;
+    world.reload().await;
+    assert_eq!(world.gate("jane").await, Gate::Open);
+    assert_eq!(world.gate("ned").await, Gate::Open);
+    assert_eq!(world.gate("pat").await, Gate::Verify);
+
+    world
+        .policy(
+            json!({"totp": true, "passkeys": true, "required": {"everyone": true}, "graceDays": 7}),
+        )
+        .await;
+    world.reload().await;
+    assert_eq!(world.gate("jane").await, Gate::Enroll);
+    assert_eq!(world.gate("ned").await, Gate::Enroll);
+}

@@ -12,6 +12,7 @@ use support::Auth;
 use support::two_factor::{JANE, enroll, execute, number, password};
 
 const BOSS: &str = "boss-password-1";
+const NO_METHOD: &str = "turn on authenticator apps (totp) before requiring a second factor: passkeys cannot be used for enrollment yet";
 
 fn message(reply: &support::Reply) -> String {
     reply.json()[0]["message"].as_str().unwrap().to_owned()
@@ -37,10 +38,7 @@ async fn the_policy_and_the_requirement_refuse_each_others_state() {
     let refused = put_requirement(&fixture, Auth::Admin, "jane", "required").await;
     assert_eq!(refused.status, StatusCode::BAD_REQUEST);
     assert_eq!(error_ids(&refused), ["requirement"]);
-    assert_eq!(
-        message(&refused),
-        "turn on at least one method before requiring a second factor"
-    );
+    assert_eq!(message(&refused), NO_METHOD);
     for allowed in ["exempt", "policy"] {
         let reply = put_requirement(&fixture, Auth::Admin, "jane", allowed).await;
         assert_eq!(reply.status, StatusCode::NO_CONTENT, "{allowed}");
@@ -63,30 +61,31 @@ async fn the_policy_and_the_requirement_refuse_each_others_state() {
 }
 
 #[tokio::test]
-async fn a_method_counts_only_when_it_can_be_enrolled() {
+async fn passkeys_alone_do_not_satisfy_a_requirement_before_they_can_be_enrolled() {
     let fixture = people().await;
     let passkeys_only = everyone(json!({"totp": false}));
-    for base in [None, Some("http://127.0.0.1:8081")] {
+    for base in [
+        None,
+        Some("http://127.0.0.1:8081"),
+        Some("https://astrum.example.org"),
+    ] {
         if let Some(url) = base {
             set_base(&fixture, url).await;
         }
         let reply = put_policy(&fixture, passkeys_only.clone()).await;
         assert_eq!(reply.status, StatusCode::BAD_REQUEST, "{base:?}");
-        assert_eq!(error_ids(&reply), ["passkeys"], "{base:?}");
-        assert_eq!(
-            message(&reply),
-            "passkeys need a relying party id: set the base URL or relyingParty.id"
-        );
+        assert_eq!(error_ids(&reply), ["totp"], "{base:?}");
+        assert_eq!(message(&reply), NO_METHOD);
     }
-    set_base(&fixture, "https://astrum.example.org").await;
-    let accepted = put_policy(&fixture, passkeys_only.clone()).await;
+    let nobody = policy(json!({"totp": false}));
+    let accepted = put_policy(&fixture, nobody).await;
     assert_eq!(accepted.status, StatusCode::OK, "{}", accepted.text());
     let required = put_requirement(&fixture, Auth::Admin, "jane", "required").await;
-    assert_eq!(required.status, StatusCode::NO_CONTENT);
-    set_base(&fixture, "").await;
-    let refused = put_requirement(&fixture, Auth::Admin, "pat", "required").await;
-    assert_eq!(refused.status, StatusCode::BAD_REQUEST);
-    assert_eq!(error_ids(&refused), ["requirement"]);
+    assert_eq!(required.status, StatusCode::BAD_REQUEST);
+    assert_eq!(error_ids(&required), ["requirement"]);
+    assert_eq!(message(&required), NO_METHOD);
+    let totp_on = put_policy(&fixture, everyone(json!({}))).await;
+    assert_eq!(totp_on.status, StatusCode::OK, "{}", totp_on.text());
 }
 
 #[tokio::test]
