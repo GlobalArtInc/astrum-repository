@@ -45,6 +45,12 @@ describe('notification channel forms', () => {
     });
   });
 
+  it('offers the promoted event to new channels and keeps the choice of saved ones', () => {
+    expect(initialValues(null, 'en').events).toEqual(['published', 'promoted', 'updated', 'deleted']);
+    const values = { ...initialValues(saved, 'en'), events: ['promoted' as const, 'published' as const] };
+    expect(toRequest(values, saved).events).toEqual(['published', 'promoted']);
+  });
+
   it('keeps stored secrets unless they are replaced or removed', () => {
     const values = initialValues(saved, 'ru');
     expect(values.proxyPort).toBe('1080');

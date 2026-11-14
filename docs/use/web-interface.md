@@ -235,8 +235,10 @@ privileges for are shown, and **Settings** disappears from the menu when there a
 - **Capabilities**: optional features such as the base URL, the Prometheus metrics and space alerts for
   blob stores. See [capabilities](../configure/capabilities.md).
 - **Notifications**: channels in Telegram, Slack, Mattermost, Rocket.Chat, email or your own webhook that
-  hear about published, updated and deleted components, and receive the
-  [blob store space alerts](../operate/monitoring.md#blob-store-space-alerts).
+  hear about published, promoted, updated and deleted components, and receive the
+  [blob store space alerts](../operate/monitoring.md#blob-store-space-alerts). A component that arrives by
+  promotion raises one **Promoted** notification instead of Published and Updated, and a channel created
+  before promotion existed has to tick **Promoted** to hear about it.
 - **Nodes**: the nodes of the installation and their state. See [nodes](../operate/nodes.md).
 
 The **Audit Log**, at `/audit`, lists security and configuration changes and downloads, with filters by

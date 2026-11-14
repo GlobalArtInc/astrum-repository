@@ -2920,6 +2920,16 @@ async fn a_strict_path_to_a_child_a_tag_index_skipped_is_still_refused() {
     assert!(matches!(refused, Err(ContentError::NotFound(_))));
 }
 
+async fn notices(registry: &Registry, filter: &str) -> i64 {
+    rows(
+        registry,
+        &format!(
+            "SELECT count(*) AS n FROM notification_change WHERE repository = 'release' AND {filter}"
+        ),
+    )
+    .await
+}
+
 fn images(request: Value) -> Value {
     let mut body = json!({"source": "dev", "target": "release"});
     body["items"] = request;
@@ -2998,6 +3008,41 @@ async fn rest_copies_an_image_to_two_new_tags_with_its_referrer() {
         )
         .await;
     assert_eq!(rest_statuses(&again), ["unchanged"]);
+}
+
+#[tokio::test]
+async fn a_promoted_image_raises_promoted_notices_for_its_tags_only() {
+    let registry = Registry::new().await;
+    registry.enable_promotion();
+    pair(&registry).await;
+    registry
+        .fixture
+        .state
+        .db()
+        .conn()
+        .execute_unprepared("INSERT INTO notification_channel (id, name, type) VALUES (gen_random_uuid(), 'watch', 'webhook')")
+        .await
+        .unwrap();
+    registry
+        .push_image("/v2/dev/app", "1.0", b"noticed layer")
+        .await;
+    let reply = registry
+        .promote(
+            Auth::Admin,
+            images(json!([{"image": "app", "tag": "1.0", "targetTags": ["stable", "2.0"]}])),
+        )
+        .await;
+    assert_eq!(rest_statuses(&reply), ["copied"]);
+    assert_eq!(notices(&registry, "action <> 'promoted'").await, 0);
+    assert_eq!(notices(&registry, "name <> 'app'").await, 0);
+    for tag in ["stable", "2.0"] {
+        assert!(notices(&registry, &format!("version = '{tag}'")).await >= 1);
+    }
+    assert_eq!(
+        notices(&registry, "version NOT IN ('stable', '2.0')").await,
+        0,
+        "blobs and the digest manifest raise no notice of their own"
+    );
 }
 
 #[tokio::test]
