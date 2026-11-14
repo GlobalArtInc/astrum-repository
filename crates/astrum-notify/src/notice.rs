@@ -12,15 +12,18 @@ pub enum Action {
     VulnerabilityFound,
     #[serde(rename = "policy.blocked")]
     PolicyBlocked,
+    #[serde(rename = "cooldown.released")]
+    CooldownReleased,
 }
 
 impl Action {
-    pub const ALL: [Action; 5] = [
+    pub const ALL: [Action; 6] = [
         Action::Published,
         Action::Updated,
         Action::Deleted,
         Action::VulnerabilityFound,
         Action::PolicyBlocked,
+        Action::CooldownReleased,
     ];
 
     pub fn id(self) -> &'static str {
@@ -30,6 +33,7 @@ impl Action {
             Action::Deleted => "deleted",
             Action::VulnerabilityFound => "vulnerability.found",
             Action::PolicyBlocked => "policy.blocked",
+            Action::CooldownReleased => "cooldown.released",
         }
     }
 
@@ -40,6 +44,7 @@ impl Action {
             Action::Deleted => "component.deleted",
             Action::VulnerabilityFound => "vulnerability.found",
             Action::PolicyBlocked => "policy.blocked",
+            Action::CooldownReleased => "cooldown.released",
         }
     }
 
@@ -82,7 +87,7 @@ pub struct Notice {
 type Key = (String, String, String, String, String);
 
 impl Notice {
-    fn scope(&self) -> String {
+    fn scope(&self, position: usize) -> String {
         match self.action {
             Action::VulnerabilityFound => format!(
                 "{}:{}",
@@ -93,21 +98,25 @@ impl Notice {
                     .unwrap_or_default()
             ),
             Action::PolicyBlocked => self.action.id().to_owned(),
+            Action::CooldownReleased => format!("{}:{position}", self.action.id()),
             _ => String::new(),
         }
     }
 
-    fn key(&self) -> Key {
+    fn key(&self, position: usize) -> Key {
         (
             self.repository.clone(),
             self.namespace.clone(),
             self.name.clone(),
             self.version.clone(),
-            self.scope(),
+            self.scope(position),
         )
     }
 
     pub fn merge(&self, later: &Notice) -> Option<Notice> {
+        if self.action == Action::CooldownReleased || later.action == Action::CooldownReleased {
+            return None;
+        }
         let action = match self.action {
             Action::Published if later.action == Action::Deleted => return None,
             Action::Published => Action::Published,
@@ -116,6 +125,7 @@ impl Notice {
             Action::Deleted => Action::Updated,
             Action::VulnerabilityFound => Action::VulnerabilityFound,
             Action::PolicyBlocked => Action::PolicyBlocked,
+            Action::CooldownReleased => return None,
         };
         Some(Notice {
             action,
@@ -149,8 +159,8 @@ pub fn combine(changes: impl IntoIterator<Item = Notice>, capacity: usize) -> Ba
     let mut order: Vec<Key> = Vec::new();
     let mut pending: HashMap<Key, Notice> = HashMap::new();
     let mut overflow: std::collections::HashSet<Key> = Default::default();
-    for change in changes {
-        let key = change.key();
+    for (position, change) in changes.into_iter().enumerate() {
+        let key = change.key(position);
         if let Some(previous) = pending.get(&key) {
             match previous.merge(&change) {
                 Some(merged) => {
@@ -244,6 +254,8 @@ mod tests {
                 security(Action::VulnerabilityFound, Some("GHSA-2")),
                 security(Action::VulnerabilityFound, Some("GHSA-1")),
                 security(Action::PolicyBlocked, None),
+                notice("demo", Action::CooldownReleased),
+                notice("demo", Action::CooldownReleased),
                 notice("demo", Action::Updated),
             ],
             10,
@@ -255,7 +267,9 @@ mod tests {
                 Action::Published,
                 Action::VulnerabilityFound,
                 Action::VulnerabilityFound,
-                Action::PolicyBlocked
+                Action::PolicyBlocked,
+                Action::CooldownReleased,
+                Action::CooldownReleased
             ]
         );
         assert_eq!(

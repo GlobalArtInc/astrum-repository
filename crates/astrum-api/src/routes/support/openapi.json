@@ -17955,6 +17955,36 @@
         ]
       }
     },
+    "/v1/security/cooldown": {
+      "get": {
+        "operationId": "getV1SecurityCooldown",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "repository",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "allowEmptyValue": true,
+            "in": "query",
+            "name": "continuationToken",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {},
+          "401": {}
+        },
+        "summary": "List security cooldown",
+        "tags": [
+          "Security management: policies"
+        ]
+      }
+    },
     "/v1/security/exceptions": {
       "get": {
         "operationId": "getV1SecurityExceptions",

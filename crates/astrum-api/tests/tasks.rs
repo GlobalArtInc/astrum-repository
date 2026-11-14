@@ -27,6 +27,7 @@ async fn ready() -> Fixture {
     let tasks = fixture.state.tasks();
     tasks.register(Arc::new(astrum_format_docker::gc::Gc));
     tasks.add_expiry(Arc::new(astrum_format_docker::gc::UploadExpiry));
+    tasks.add_expiry(Arc::new(astrum_tasks::kinds::cooldown::CooldownExpiry));
     fixture
 }
 

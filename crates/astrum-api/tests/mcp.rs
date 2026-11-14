@@ -1385,3 +1385,27 @@ async fn licence_findings_are_listed_for_a_read_token() {
     .await;
     assert!(!refused.is_empty());
 }
+
+#[tokio::test]
+async fn release_waits_are_listed_for_agents_with_a_reading_token() {
+    let fixture = ready().await;
+    raw_hosted(&fixture, "files").await;
+    waiting(&fixture, "files", vec!["lodash".into()], -60.0, true).await;
+    let read = token(&fixture, "READ").await;
+    let listed = names(&rpc(&fixture, &read, "tools/list", json!({})).await);
+    assert!(
+        listed.contains(&"list_cooldown_waits".to_owned()),
+        "{listed:?}"
+    );
+    let waits = ok(
+        &fixture,
+        &read,
+        "list_cooldown_waits",
+        json!({"repository": "files"}),
+    )
+    .await;
+    assert_eq!(waits["items"].as_array().unwrap().len(), 1, "{waits}");
+    assert_eq!(waits["items"][0]["name"], "lodash");
+    assert_eq!(waits["items"][0]["blocked"], true);
+    assert!(waits["continuationToken"].is_null());
+}

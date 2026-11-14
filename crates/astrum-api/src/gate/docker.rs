@@ -401,6 +401,10 @@ impl PolicyGate {
                     .await;
                 Err(refusal.error)
             }
+            Ok(Judgement::Cooled(error)) => {
+                self.metrics.count(Outcome::Blocked);
+                Err(error)
+            }
             Err(error) => {
                 self.metrics.count(Outcome::Error);
                 tracing::error!(%repository, %digest, %error, "the pull was refused because its content policy could not be checked");

@@ -818,7 +818,7 @@ pub fn evaluate(input: &Input) -> Option<Verdict> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::policy::{LicenseRule, SignatureRule, VulnerabilityRule};
+    use crate::policy::{CooldownRule, LicenseRule, SignatureRule, VulnerabilityRule};
     use chrono::Duration;
     use serde_json::json;
 
@@ -833,6 +833,7 @@ mod tests {
             },
             licenses: LicenseRule::default(),
             signatures: SignatureRule::default(),
+            cooldown: CooldownRule::default(),
             revision: 3,
         }
     }

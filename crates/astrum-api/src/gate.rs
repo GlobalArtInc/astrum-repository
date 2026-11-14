@@ -3,18 +3,19 @@ use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::time::{Duration, Instant};
 
-use astrum_content::{Asset, ContentError, Ctx, Gate};
+use astrum_content::{Asset, ContentError, Cooldown, Ctx, Gate, MAX_BLOCKED_TEXT};
 use astrum_db::audit::{self, Event};
 use astrum_policy::cache::{Cache, Snapshot as Policies};
-use astrum_policy::exception::Exception;
+use astrum_policy::exception::{Exception, Rule};
 use astrum_policy::policy::{Mode, Policy, Unscanned};
 use astrum_policy::refusal;
 use astrum_policy::subject;
 use astrum_policy::verdict::{self, Input, LicenseFact, Scan, State, Target, clean};
+use astrum_repo::RepositoryType;
 use astrum_scan::inline;
 use astrum_scan::worker::ScanError;
 use async_trait::async_trait;
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, TimeDelta, Utc};
 use sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, DbErr, Statement};
 use serde_json::{Value, json};
 use tokio::sync::{OwnedSemaphorePermit, Semaphore, watch};
@@ -36,10 +37,14 @@ const NOTICE_BACKLOG: usize = 1_000;
 const NOTICE_LOG_EVERY: Duration = Duration::from_secs(10);
 const NOTICE_BUDGET: Duration = Duration::from_secs(5);
 const NOTICE_ACTION: &str = "policy.blocked";
+const WAIT_WINDOW: Duration = Duration::from_secs(3600);
+const WAIT_CAP: usize = 10_000;
+const WAIT_BUDGET: Duration = Duration::from_millis(500);
 pub const BUCKETS: [f64; 14] = [
     0.0005, 0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.0, 2.5, 5.0,
 ];
 
+const NPM: &str = "npm";
 const UNAVAILABLE: &str = "the content policy could not be checked; try again";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -258,7 +263,14 @@ struct Held {
 
 struct Read {
     policy: Option<String>,
+    proxy: bool,
     verdict: Option<Held>,
+}
+
+struct Identity {
+    namespace: String,
+    name: String,
+    version: String,
 }
 
 async fn read(
@@ -269,8 +281,8 @@ async fn read(
     let row = db
         .query_one(Statement::from_sql_and_values(
             DbBackend::Postgres,
-            "SELECT r.attributes #>> '{policy,name}' AS current, v.policy, v.policy_revision, \
-                    v.state, v.blocked, v.reasons \
+            "SELECT r.attributes #>> '{policy,name}' AS current, r.type AS kind, v.policy, \
+                    v.policy_revision, v.state, v.blocked, v.reasons \
              FROM repository r \
              LEFT JOIN policy_verdict v ON v.repository = r.name AND v.subject = $2 \
              WHERE r.name = $1",
@@ -290,10 +302,30 @@ async fn read(
         }),
         None => None,
     };
+    let kind: String = row.try_get("", "kind")?;
     Ok(Some(Read {
         policy: row.try_get("", "current")?,
+        proxy: RepositoryType::parse(&kind) == Some(RepositoryType::Proxy),
         verdict,
     }))
+}
+
+async fn identity(db: &DatabaseConnection, component_id: i64) -> Result<Option<Identity>, DbErr> {
+    let row = db
+        .query_one(Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            "SELECT namespace, name, version FROM component WHERE id = $1",
+            [component_id.into()],
+        ))
+        .await?;
+    row.map(|row| {
+        Ok(Identity {
+            namespace: row.try_get("", "namespace")?,
+            name: row.try_get("", "name")?,
+            version: row.try_get("", "version")?,
+        })
+    })
+    .transpose()
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -316,6 +348,7 @@ enum Judgement {
     Unguarded,
     Allowed(Outcome),
     Refused(Outcome, Refusal),
+    Cooled(ContentError),
 }
 
 enum Ended {
@@ -389,6 +422,8 @@ struct Scanned {
     leader: bool,
 }
 
+type Clock = Arc<dyn Fn() -> Instant + Send + Sync>;
+
 pub struct PolicyGate {
     cache: Arc<Cache>,
     metrics: Arc<Metrics>,
@@ -400,6 +435,8 @@ pub struct PolicyGate {
     notice_permits: Arc<Semaphore>,
     notice_backlog: Arc<AtomicUsize>,
     notice_logs: Arc<LogThrottle>,
+    waited: Dedupe,
+    clock: Clock,
 }
 
 impl PolicyGate {
@@ -415,7 +452,14 @@ impl PolicyGate {
             notice_permits: Arc::new(Semaphore::new(NOTICE_PERMITS)),
             notice_backlog: Arc::default(),
             notice_logs: Arc::new(LogThrottle::new(NOTICE_LOG_EVERY)),
+            waited: Dedupe::new(WAIT_WINDOW, WAIT_CAP),
+            clock: Arc::new(Instant::now),
         }
+    }
+
+    pub fn with_clock(mut self, clock: impl Fn() -> Instant + Send + Sync + 'static) -> Self {
+        self.clock = Arc::new(clock);
+        self
     }
 
     pub fn with_budget(mut self, budget: Duration) -> Self {
@@ -476,6 +520,21 @@ impl PolicyGate {
         let Ok(policy) = &stored.policy else {
             return Ok(unreadable(&name));
         };
+        if let Some(published) = asset.upstream_published_at
+            && held.proxy
+            && let Some(error) = self
+                .cooled(
+                    ctx,
+                    asset,
+                    component_id,
+                    policy,
+                    &snapshot.exceptions,
+                    published.with_timezone(&Utc),
+                )
+                .await?
+        {
+            return Ok(Judgement::Cooled(error));
+        }
         let matching = held
             .verdict
             .filter(|verdict| verdict.policy == name && verdict.revision == stored.revision);
@@ -508,6 +567,100 @@ impl PolicyGate {
                 }
             },
         }
+    }
+
+    async fn cooled(
+        &self,
+        ctx: &Ctx,
+        asset: &Asset,
+        component_id: i64,
+        policy: &Policy,
+        exceptions: &[Exception],
+        published: DateTime<Utc>,
+    ) -> Result<Option<ContentError>, Unchecked> {
+        let Some(cooldown) = cooldown_of(policy, exceptions, Utc::now()) else {
+            return Ok(None);
+        };
+        if published <= cooldown.cutoff {
+            return Ok(None);
+        }
+        let db = ctx.db();
+        let component = identity(db, component_id)
+            .await?
+            .ok_or(Unchecked::Vanished)?;
+        let block = cooldown.block;
+        let cooldown = Cooldown {
+            block: true,
+            ..cooldown
+        };
+        let display = display_name(ctx.format_id(), &component.namespace, &component.name);
+        if !cooldown.hides(
+            &display,
+            &component.namespace,
+            &component.name,
+            &component.version,
+            Some(published),
+        ) {
+            return Ok(None);
+        }
+        let available = cooldown.available_at(published);
+        self.wait(
+            db,
+            &asset.repository,
+            component_id,
+            published,
+            available,
+            block,
+        )
+        .await;
+        Ok(block.then(|| {
+            ContentError::Blocked(cooldown_text(
+                &display,
+                &component.version,
+                published,
+                available,
+            ))
+        }))
+    }
+
+    async fn wait(
+        &self,
+        db: &DatabaseConnection,
+        repository: &str,
+        component_id: i64,
+        published: DateTime<Utc>,
+        available: DateTime<Utc>,
+        blocked: bool,
+    ) {
+        if !self
+            .waited
+            .first(repository, &component_id.to_string(), (self.clock)())
+        {
+            return;
+        }
+        let upsert = db.execute(Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            "INSERT INTO cooldown_wait (repository, component_id, published_at, available_at, blocked) \
+             VALUES ($1, $2, $3, $4, $5) \
+             ON CONFLICT (repository, component_id) DO UPDATE SET \
+               refusals = cooldown_wait.refusals + 1, last_refused_at = now(), \
+               blocked = EXCLUDED.blocked, published_at = EXCLUDED.published_at, \
+               available_at = EXCLUDED.available_at",
+            [
+                repository.into(),
+                component_id.into(),
+                published.fixed_offset().into(),
+                available.fixed_offset().into(),
+                blocked.into(),
+            ],
+        ));
+        let failure = match tokio::time::timeout(WAIT_BUDGET, upsert).await {
+            Ok(Ok(_)) => return,
+            Ok(Err(error)) => error.to_string(),
+            Err(_) => format!("it was not written within {} ms", WAIT_BUDGET.as_millis()),
+        };
+        self.waited.forget(repository, &component_id.to_string());
+        tracing::warn!(%repository, component = component_id, error = %failure, "a component held back by the cooldown was not recorded in the waiting list");
     }
 
     async fn scan(&self, ctx: &Ctx, repository: &str, component_id: i64) -> Scanned {
@@ -843,6 +996,68 @@ async fn license_refusal(
     }))
 }
 
+fn lifts(exception: &Exception, policy: &str, now: DateTime<Utc>) -> bool {
+    exception.rule == Rule::Cooldown
+        && exception
+            .policy
+            .as_deref()
+            .is_none_or(|name| name == policy)
+        && exception.expires_at.is_none_or(|at| at > now)
+}
+
+fn cooldown_of(policy: &Policy, exceptions: &[Exception], now: DateTime<Utc>) -> Option<Cooldown> {
+    let rule = &policy.cooldown;
+    if rule.mode == Mode::Off {
+        return None;
+    }
+    let min_age = TimeDelta::days(i64::from(rule.min_age_days));
+    Some(Cooldown {
+        cutoff: now - min_age,
+        min_age,
+        block: rule.mode == Mode::Block,
+        exclude: rule.exclude.clone(),
+        excepted: exceptions
+            .iter()
+            .filter(|exception| lifts(exception, &policy.name, now))
+            .cloned()
+            .collect(),
+    })
+}
+
+fn display_name(format: &str, namespace: &str, name: &str) -> String {
+    match (namespace.is_empty(), format) {
+        (true, _) => name.to_owned(),
+        (false, NPM) => format!(
+            "@{}/{name}",
+            namespace.strip_prefix('@').unwrap_or(namespace)
+        ),
+        (false, _) => format!("{namespace}:{name}"),
+    }
+}
+
+fn cooldown_text(
+    name: &str,
+    version: &str,
+    published: DateTime<Utc>,
+    available: DateTime<Utc>,
+) -> String {
+    let text = format!(
+        "cooldown: {} {} was published {}; available from {}",
+        clean(name),
+        clean(version),
+        published.format("%Y-%m-%d"),
+        available.format("%Y-%m-%d"),
+    );
+    match text.chars().count() > MAX_BLOCKED_TEXT {
+        true => {
+            let mut cut: String = text.chars().take(MAX_BLOCKED_TEXT - 1).collect();
+            cut.push('\u{2026}');
+            cut
+        }
+        false => text,
+    }
+}
+
 fn unreadable(policy: &str) -> Judgement {
     Judgement::Refused(
         Outcome::Blocked,
@@ -903,6 +1118,10 @@ impl Gate for PolicyGate {
                 self.notify(ctx, asset, component_id, &refusal);
                 Err(refusal.error)
             }
+            Ok(Judgement::Cooled(error)) => {
+                self.metrics.count(Outcome::Blocked);
+                Err(error)
+            }
             Err(error) => {
                 self.metrics.count(Outcome::Error);
                 tracing::error!(repository = %asset.repository, path = %asset.path, %error, "the download was refused because its content policy could not be checked");
@@ -919,6 +1138,28 @@ impl Gate for PolicyGate {
         reference: Option<&str>,
     ) -> Result<(), ContentError> {
         self.check_image(ctx, repository, digest, reference).await
+    }
+
+    async fn cooldown(&self, ctx: &Ctx) -> Result<Option<Cooldown>, ContentError> {
+        if ctx.kind() != RepositoryType::Proxy {
+            return Ok(None);
+        }
+        let Some(name) = ctx.repository.policy_name() else {
+            return Ok(None);
+        };
+        let db = ctx.db();
+        let unavailable = |error: astrum_policy::Error| {
+            tracing::error!(repository = %ctx.name(), %error, "the cooldown could not be read because the content policies could not be read");
+            ContentError::Unavailable(UNAVAILABLE.to_owned())
+        };
+        let mut snapshot = self.cache.get(db).await.map_err(unavailable)?;
+        if !snapshot.policies.contains_key(name) {
+            snapshot = self.cache.fresh(db).await.map_err(unavailable)?;
+        }
+        let Some(Ok(policy)) = snapshot.policies.get(name).map(|stored| &stored.policy) else {
+            return Ok(None);
+        };
+        Ok(cooldown_of(policy, &snapshot.exceptions, Utc::now()))
     }
 }
 
@@ -945,6 +1186,7 @@ mod tests {
         ) {
             Judgement::Allowed(outcome) | Judgement::Refused(outcome, _) => outcome,
             Judgement::Unguarded => unreachable!("a verdict is never unguarded"),
+            Judgement::Cooled(_) => unreachable!("a verdict is never a cooldown"),
         }
     }
 
@@ -1022,6 +1264,89 @@ mod tests {
         assert!(task.await.unwrap_err().is_panic());
         assert_eq!(flights.len(), 0);
         assert_eq!(finished(follower).await, Some(Finish::Failed));
+    }
+
+    fn exception(rule: Rule, policy: Option<&str>, expires_at: Option<DateTime<Utc>>) -> Exception {
+        Exception {
+            id: uuid::Uuid::new_v4(),
+            policy: policy.map(str::to_owned),
+            rule,
+            advisory: None,
+            license: None,
+            format: None,
+            namespace: None,
+            name: Some("lib".to_owned()),
+            version: None,
+            digest: None,
+            reason: "audited".to_owned(),
+            expires_at,
+            created_by: "tester".to_owned(),
+            created_at: Utc::now(),
+        }
+    }
+
+    fn policy_with(mode: Mode, days: u32) -> Policy {
+        let mut policy: Policy = serde_json::from_value(json!({
+            "name": "p", "notes": "", "vulnerabilities": {}, "licenses": {}, "signatures": {},
+            "cooldown": {"mode": "off"}, "revision": 1
+        }))
+        .unwrap();
+        policy.cooldown.mode = mode;
+        policy.cooldown.min_age_days = days;
+        policy.cooldown.exclude = vec!["@internal/*".to_owned()];
+        policy
+    }
+
+    #[test]
+    fn a_cooldown_follows_the_mode_and_keeps_only_the_exceptions_that_apply_now() {
+        let now = Utc::now();
+        let hour = TimeDelta::hours(1);
+        let exceptions = [
+            exception(Rule::Cooldown, None, None),
+            exception(Rule::Cooldown, Some("p"), Some(now + hour)),
+            exception(Rule::Cooldown, Some("other"), None),
+            exception(Rule::Cooldown, Some("p"), Some(now - hour)),
+            exception(Rule::Vulnerability, None, None),
+        ];
+        assert!(cooldown_of(&policy_with(Mode::Off, 7), &exceptions, now).is_none());
+        let block = cooldown_of(&policy_with(Mode::Block, 7), &exceptions, now).unwrap();
+        assert!(block.block);
+        assert_eq!(block.min_age, TimeDelta::days(7));
+        assert_eq!(block.cutoff, now - TimeDelta::days(7));
+        assert_eq!(block.exclude, vec!["@internal/*".to_owned()]);
+        let kept: Vec<_> = block
+            .excepted
+            .iter()
+            .map(|exception| exception.id)
+            .collect();
+        assert_eq!(kept, vec![exceptions[0].id, exceptions[1].id]);
+        let report = cooldown_of(&policy_with(Mode::Report, 1), &[], now).unwrap();
+        assert!(!report.block);
+        assert_eq!(report.cutoff, now - TimeDelta::days(1));
+    }
+
+    #[test]
+    fn the_refusal_text_names_the_package_and_both_dates_without_control_characters() {
+        let published = "2026-11-10T23:59:59Z".parse::<DateTime<Utc>>().unwrap();
+        let available = published + TimeDelta::days(7);
+        assert_eq!(
+            cooldown_text("@globalart/ui", "1.2.0", published, available),
+            "cooldown: @globalart/ui 1.2.0 was published 2026-11-10; available from 2026-11-17"
+        );
+        let hostile = cooldown_text("a\nb\u{202E}c", "1\r.0", published, available);
+        assert!(
+            hostile.starts_with("cooldown: abc 1.0 was published"),
+            "{hostile}"
+        );
+        let long = cooldown_text(&"n".repeat(1000), &"v".repeat(1000), published, available);
+        assert_eq!(long.chars().count(), MAX_BLOCKED_TEXT);
+        assert!(long.ends_with('\u{2026}'));
+        assert_eq!(display_name("npm", "globalart", "ui"), "@globalart/ui");
+        assert_eq!(display_name("npm", "", "left-pad"), "left-pad");
+        assert_eq!(
+            display_name("maven", "org.example", "lib"),
+            "org.example:lib"
+        );
     }
 
     #[test]

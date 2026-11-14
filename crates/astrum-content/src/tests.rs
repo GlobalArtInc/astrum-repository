@@ -7,9 +7,13 @@ use astrum_security::{SecretBox, SecurityModel};
 use astrum_testkit::TestDatabase;
 use async_trait::async_trait;
 use axum::response::Response;
+use bytes::Bytes;
+use chrono::DateTime;
+use futures_util::{StreamExt, stream};
+use sea_orm::ConnectionTrait;
 use serde_json::json;
 
-use crate::store::Asset;
+use crate::store::{self, Asset, PutAsset};
 use crate::{Content, ContentError, ContentRequest, Ctx, Format, Gate};
 
 struct Refuse;
@@ -119,4 +123,47 @@ async fn a_format_has_no_inventory_unless_it_defines_one() {
     };
     let inventory = Plain.inventory(&ctx, &component).await.unwrap();
     assert!(inventory.is_none());
+}
+
+#[tokio::test]
+async fn a_published_date_is_stored_replaced_and_kept_by_a_write_without_one() {
+    let (_test, _content, dir, ctx) = setup().await;
+    astrum_blob::bootstrap(ctx.db(), dir.path()).await.unwrap();
+    ctx.db()
+        .execute_unprepared(
+            "INSERT INTO repository (name, format, type) VALUES ('releases', 'maven2', 'hosted')",
+        )
+        .await
+        .unwrap();
+    let path = "org/x/1.0/x-1.0.jar";
+    let body = || stream::iter(vec![Ok::<Bytes, std::io::Error>(Bytes::from_static(b"x"))]).boxed();
+    let first = DateTime::parse_from_rfc3339("2026-01-01T00:00:00Z").unwrap();
+    let second = DateTime::parse_from_rfc3339("2026-02-01T00:00:00Z").unwrap();
+
+    store::put(&ctx, PutAsset::cached(path).published(first), body())
+        .await
+        .unwrap();
+    let asset = store::find(ctx.db(), "releases", path)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(asset.upstream_published_at, Some(first));
+
+    store::put(&ctx, PutAsset::cached(path).published(second), body())
+        .await
+        .unwrap();
+    let asset = store::find(ctx.db(), "releases", path)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(asset.upstream_published_at, Some(second));
+
+    store::put(&ctx, PutAsset::cached(path), body())
+        .await
+        .unwrap();
+    let asset = store::find(ctx.db(), "releases", path)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(asset.upstream_published_at, Some(second));
 }

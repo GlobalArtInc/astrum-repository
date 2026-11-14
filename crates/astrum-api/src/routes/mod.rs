@@ -4,6 +4,7 @@ pub mod capabilities;
 pub mod cleanup_policies;
 pub mod components;
 pub mod content;
+pub mod cooldown;
 pub mod email;
 pub mod findings;
 pub(crate) mod html;

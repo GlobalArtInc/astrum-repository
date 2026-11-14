@@ -56,6 +56,24 @@ async fn every_migration_can_be_taken_back() {
         .collect();
     assert!(left.is_empty(), "{left:?}");
     assert_eq!(db.migrate().await.unwrap().len(), count);
+
+    let conn = db.conn();
+    let cooldown_exception = "INSERT INTO policy_exception (id, rule, name, reason, created_by) \
+         VALUES (gen_random_uuid(), 'cooldown', 'left', 'audited', 'tester')";
+    conn.execute_unprepared(cooldown_exception).await.unwrap();
+    assert_eq!(MIGRATIONS.revert(conn, 1).await.unwrap().len(), 1);
+    let left = conn
+        .query_one(Statement::from_string(
+            DbBackend::Postgres,
+            "SELECT count(*) AS n FROM policy_exception".to_owned(),
+        ))
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(left.try_get::<i64>("", "n").unwrap(), 0);
+    assert!(conn.execute_unprepared(cooldown_exception).await.is_err());
+    assert_eq!(db.migrate().await.unwrap().len(), 1);
+    conn.execute_unprepared(cooldown_exception).await.unwrap();
 }
 
 #[tokio::test]

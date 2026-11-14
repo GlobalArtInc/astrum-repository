@@ -11162,6 +11162,34 @@
     ]
    }
   },
+  "/v1/security/cooldown": {
+   "get": {
+    "tags": [
+     "Security management: policies"
+    ],
+    "parameters": [
+     {
+      "in": "query",
+      "name": "repository",
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "allowEmptyValue": true,
+      "in": "query",
+      "name": "continuationToken",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {},
+     "401": {}
+    }
+   }
+  },
   "/v1/security/exceptions": {
    "get": {
     "tags": [

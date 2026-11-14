@@ -122,6 +122,69 @@ pub struct SignatureRule {
     pub keys: Vec<String>,
 }
 
+const COOLDOWN_DEFAULT_DAYS: u32 = 7;
+const COOLDOWN_MAX_DAYS: u32 = 90;
+const COOLDOWN_MAX_EXCLUDE: usize = 100;
+const COOLDOWN_MAX_PATTERN: usize = 200;
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", try_from = "CooldownWire")]
+pub struct CooldownRule {
+    pub mode: Mode,
+    pub min_age_days: u32,
+    pub exclude: Vec<String>,
+}
+
+#[derive(Default, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields, default)]
+struct CooldownWire {
+    mode: Mode,
+    min_age_days: Option<u32>,
+    exclude: Vec<String>,
+}
+
+impl Default for CooldownRule {
+    fn default() -> Self {
+        Self {
+            mode: Mode::Off,
+            min_age_days: COOLDOWN_DEFAULT_DAYS,
+            exclude: Vec::new(),
+        }
+    }
+}
+
+impl TryFrom<CooldownWire> for CooldownRule {
+    type Error = String;
+
+    fn try_from(wire: CooldownWire) -> Result<Self, Self::Error> {
+        let min_age_days = wire.min_age_days.unwrap_or(COOLDOWN_DEFAULT_DAYS);
+        if !(1..=COOLDOWN_MAX_DAYS).contains(&min_age_days) {
+            return Err(format!(
+                "minAgeDays must be from 1 to {COOLDOWN_MAX_DAYS}, not {min_age_days}"
+            ));
+        }
+        if wire.exclude.len() > COOLDOWN_MAX_EXCLUDE {
+            return Err(format!(
+                "exclude takes at most {COOLDOWN_MAX_EXCLUDE} patterns"
+            ));
+        }
+        if wire
+            .exclude
+            .iter()
+            .any(|pattern| pattern.is_empty() || pattern.chars().count() > COOLDOWN_MAX_PATTERN)
+        {
+            return Err(format!(
+                "an exclude pattern must be from 1 to {COOLDOWN_MAX_PATTERN} characters"
+            ));
+        }
+        Ok(Self {
+            mode: wire.mode,
+            min_age_days,
+            exclude: wire.exclude,
+        })
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Policy {
@@ -130,6 +193,7 @@ pub struct Policy {
     pub vulnerabilities: VulnerabilityRule,
     pub licenses: LicenseRule,
     pub signatures: SignatureRule,
+    pub cooldown: CooldownRule,
     pub revision: i64,
 }
 
@@ -147,6 +211,7 @@ impl Policy {
             vulnerabilities: read(&row.name, row.vulnerabilities)?,
             licenses: read(&row.name, row.licenses)?,
             signatures: read(&row.name, row.signatures)?,
+            cooldown: read(&row.name, row.cooldown)?,
             name: row.name,
             notes: row.notes,
             revision: row.revision,
@@ -216,6 +281,7 @@ pub async fn create(db: &impl ConnectionTrait, policy: &Policy) -> Result<(), Er
         vulnerabilities: ActiveValue::Set(json(&policy.vulnerabilities)),
         licenses: ActiveValue::Set(json(&policy.licenses)),
         signatures: ActiveValue::Set(json(&policy.signatures)),
+        cooldown: ActiveValue::Set(json(&policy.cooldown)),
         created_at: ActiveValue::Set(now),
         updated_at: ActiveValue::Set(now),
         ..Default::default()
@@ -249,6 +315,10 @@ pub async fn update(db: &impl ConnectionTrait, policy: &Policy) -> Result<(), Er
         .col_expr(
             content_policy::Column::Signatures,
             Expr::value(json(&policy.signatures)),
+        )
+        .col_expr(
+            content_policy::Column::Cooldown,
+            Expr::value(json(&policy.cooldown)),
         )
         .col_expr(
             content_policy::Column::Revision,
@@ -372,6 +442,7 @@ mod tests {
                 mode: Mode::Block,
                 keys: Vec::new(),
             },
+            cooldown: CooldownRule::default(),
             revision: 1,
         };
         assert_eq!(policy.judged_mode(), Mode::Off);
@@ -394,5 +465,49 @@ mod tests {
         let signatures: SignatureRule =
             serde_json::from_str(r#"{"keys":["a"],"later":[]}"#).unwrap();
         assert_eq!(signatures.keys, ["a"]);
+    }
+
+    #[test]
+    fn a_cooldown_rule_round_trips_and_defaults_to_seven_days() {
+        let rule: CooldownRule = serde_json::from_str(r#"{"mode":"block"}"#).unwrap();
+        assert_eq!(
+            rule,
+            CooldownRule {
+                mode: Mode::Block,
+                min_age_days: 7,
+                exclude: Vec::new(),
+            }
+        );
+        let json = serde_json::to_value(&rule).unwrap();
+        assert_eq!(
+            json,
+            serde_json::json!({"mode": "block", "minAgeDays": 7, "exclude": []})
+        );
+        let back: CooldownRule = serde_json::from_value(json).unwrap();
+        assert_eq!(back, rule);
+    }
+
+    #[test]
+    fn a_cooldown_rule_refuses_unknown_fields_and_days_out_of_range() {
+        assert!(serde_json::from_str::<CooldownRule>(r#"{"mode":"block","days":3}"#).is_err());
+        for days in [0, 91] {
+            let body = format!(r#"{{"mode":"block","minAgeDays":{days}}}"#);
+            assert!(
+                serde_json::from_str::<CooldownRule>(&body).is_err(),
+                "{body}"
+            );
+        }
+        let body = r#"{"mode":"block","minAgeDays":90}"#;
+        assert!(serde_json::from_str::<CooldownRule>(body).is_ok());
+    }
+
+    #[test]
+    fn a_cooldown_rule_caps_its_exclude_list_and_the_length_of_its_patterns() {
+        let many = serde_json::json!({"mode": "report", "exclude": vec!["a"; 101]});
+        assert!(serde_json::from_value::<CooldownRule>(many).is_err());
+        let long = serde_json::json!({"exclude": ["a".repeat(201)]});
+        assert!(serde_json::from_value::<CooldownRule>(long).is_err());
+        let edge = serde_json::json!({"exclude": ["a".repeat(200)]});
+        assert!(serde_json::from_value::<CooldownRule>(edge).is_ok());
     }
 }

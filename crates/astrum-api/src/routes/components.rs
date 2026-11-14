@@ -154,6 +154,10 @@ pub(crate) struct Visibility {
 }
 
 impl Visibility {
+    pub(crate) fn repositories(&self) -> Vec<String> {
+        self.full.iter().cloned().collect()
+    }
+
     fn names(&self) -> Vec<String> {
         self.full
             .iter()

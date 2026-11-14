@@ -4,7 +4,9 @@ use std::time::Duration;
 
 use astrum_db::revision;
 use astrum_policy::cache::Cache;
-use astrum_policy::policy::{self, LicenseRule, Mode, Policy, SignatureRule, VulnerabilityRule};
+use astrum_policy::policy::{
+    self, CooldownRule, LicenseRule, Mode, Policy, SignatureRule, VulnerabilityRule,
+};
 use astrum_testkit::TestDatabase;
 use sea_orm::{ConnectionTrait, DbBackend, Statement, TransactionTrait};
 
@@ -18,6 +20,7 @@ fn policy_in(mode: Mode) -> Policy {
         },
         licenses: LicenseRule::default(),
         signatures: SignatureRule::default(),
+        cooldown: CooldownRule::default(),
         revision: 1,
     }
 }

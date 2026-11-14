@@ -14,6 +14,7 @@ pub enum Rule {
     Vulnerability,
     License,
     Signature,
+    Cooldown,
 }
 
 impl Rule {
@@ -22,6 +23,7 @@ impl Rule {
             Rule::Vulnerability => "vulnerability",
             Rule::License => "license",
             Rule::Signature => "signature",
+            Rule::Cooldown => "cooldown",
         }
     }
 
@@ -30,6 +32,7 @@ impl Rule {
             "vulnerability" => Some(Rule::Vulnerability),
             "license" => Some(Rule::License),
             "signature" => Some(Rule::Signature),
+            "cooldown" => Some(Rule::Cooldown),
             _ => None,
         }
     }
@@ -55,6 +58,19 @@ pub struct Exception {
 }
 
 impl Exception {
+    pub fn covers_component(&self, namespace: &str, name: &str, version: &str) -> bool {
+        self.rule == Rule::Cooldown
+            && self.name.as_deref() == Some(name)
+            && self
+                .namespace
+                .as_deref()
+                .is_none_or(|wanted| wanted == namespace)
+            && self
+                .version
+                .as_deref()
+                .is_none_or(|wanted| wanted == version)
+    }
+
     fn from_row(row: policy_exception::Model) -> Result<Self, Error> {
         let rule = Rule::parse(&row.rule).ok_or_else(|| Error::Stored {
             name: row.id.to_string(),

@@ -358,6 +358,56 @@ async fn a_licenses_block_is_created_read_back_changed_and_a_bad_id_is_refused_b
 }
 
 #[tokio::test]
+async fn a_cooldown_block_is_created_read_replaced_and_checked_by_its_field() {
+    let fixture = Fixture::new().await;
+    let created = made(
+        &fixture,
+        POLICIES,
+        json!({
+            "name": "fresh",
+            "cooldown": {"mode": "block", "minAgeDays": 3, "exclude": ["@globalart/*"]},
+        }),
+    )
+    .await;
+    let block = json!({"mode": "block", "minAgeDays": 3, "exclude": ["@globalart/*"]});
+    assert_eq!(created["cooldown"], block);
+
+    let path = format!("{POLICIES}/fresh");
+    let read = fixture.call(Method::GET, &path, Auth::Admin, None).await;
+    assert_eq!(read.json()["cooldown"], block);
+
+    let changed = admin(
+        &fixture,
+        Method::PUT,
+        &path,
+        json!({"cooldown": {"mode": "report"}}),
+    )
+    .await;
+    assert_eq!(changed.status, StatusCode::OK, "{}", changed.text());
+    let report = json!({"mode": "report", "minAgeDays": 7, "exclude": []});
+    assert_eq!(changed.json()["cooldown"], report);
+    let read = fixture.call(Method::GET, &path, Auth::Admin, None).await;
+    assert_eq!(read.json()["cooldown"], report);
+
+    let refused = admin(
+        &fixture,
+        Method::PUT,
+        &path,
+        json!({"cooldown": {"mode": "block", "minAgeDays": 91}}),
+    )
+    .await;
+    assert_eq!(refused.status, StatusCode::BAD_REQUEST);
+    assert!(refused.text().contains("minAgeDays"), "{}", refused.text());
+    bad(
+        &fixture,
+        POLICIES,
+        json!({"name": "late", "cooldown": {"minAgeDays": 0}}),
+        "minAgeDays",
+    )
+    .await;
+}
+
+#[tokio::test]
 async fn policy_input_is_checked_strictly() {
     let fixture = Fixture::new().await;
     let long_name = "n".repeat(65);
@@ -940,8 +990,8 @@ async fn an_exception_target_must_fit_its_rule() {
             "signature exception needs a policy",
         ),
         (
-            json!({"rule": "cooldown", "name": "x", "reason": "r"}),
-            "cooldown",
+            json!({"rule": "freshness", "name": "x", "reason": "r"}),
+            "unknown variant",
         ),
     ] {
         bad(&fixture, EXCEPTIONS, body, needle).await;

@@ -28,6 +28,7 @@ pub struct Model {
     pub last_verified_at: Option<DateTimeWithTimeZone>,
     pub remote_etag: Option<String>,
     pub remote_last_modified: Option<DateTimeWithTimeZone>,
+    pub upstream_published_at: Option<DateTimeWithTimeZone>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
