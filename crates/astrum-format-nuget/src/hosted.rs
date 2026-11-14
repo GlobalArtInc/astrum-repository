@@ -381,6 +381,14 @@ pub async fn admit(ctx: &Ctx, bundle: &Bundle) -> Result<(), ContentError> {
     if !valid_id(&bundle.name) {
         return Err(invalid(format!("the id {} is not valid", bundle.name)));
     }
+    if let Some(existing) = existing_name(ctx, &bundle.name).await?
+        && existing != bundle.name
+    {
+        return Err(invalid(format!(
+            "the id {} differs from {existing} only in case, which the repository already holds",
+            bundle.name
+        )));
+    }
     let version = Version::parse(&bundle.version)
         .ok_or_else(|| invalid(format!("the version {} is not valid", bundle.version)))?;
     let normalized = version.normalized();

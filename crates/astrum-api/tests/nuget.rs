@@ -1360,3 +1360,55 @@ async fn symbols_are_refused_when_their_package_is_not_in_the_target() {
         other => panic!("expected a refusal, got {other:?}"),
     }
 }
+
+#[tokio::test]
+async fn promotion_refuses_an_id_that_differs_from_the_target_only_in_case() {
+    let fixture = ready().await;
+    create(&fixture, "hosted", hosted("source", "ALLOW")).await;
+    create(&fixture, "hosted", hosted("target", "ALLOW")).await;
+    let held = push(
+        &fixture,
+        "target",
+        nupkg("Newtonsoft.Json", "13.0.1", ""),
+        Auth::Admin,
+    )
+    .await;
+    assert_eq!(held.status, StatusCode::CREATED, "{}", held.text());
+    let source = push(
+        &fixture,
+        "source",
+        nupkg("Newtonsoft.Json", "1.0.0", ""),
+        Auth::Admin,
+    )
+    .await;
+    assert_eq!(source.status, StatusCode::CREATED, "{}", source.text());
+    let format = astrum_format_nuget::Nuget::default();
+    let mut bundle = support::bundle_of(
+        &fixture,
+        &format,
+        "source",
+        "/newtonsoft.json/1.0.0/newtonsoft.json.1.0.0.nupkg",
+    )
+    .await;
+    bundle.name = "newtonsoft.json".to_owned();
+    match try_promote(&fixture, &bundle).await {
+        Err(ContentError::BadRequest(message)) => assert_eq!(
+            message,
+            "Invalid NuGet package: the id newtonsoft.json differs from Newtonsoft.Json only in case, which the repository already holds"
+        ),
+        other => panic!("expected a refusal, got {other:?}"),
+    }
+    assert!(
+        store::find(
+            fixture.state.db().conn(),
+            "target",
+            "/newtonsoft.json/1.0.0/newtonsoft.json.1.0.0.nupkg"
+        )
+        .await
+        .unwrap()
+        .is_none()
+    );
+    bundle.name = "Newtonsoft.Json".to_owned();
+    let outcome = try_promote(&fixture, &bundle).await.unwrap();
+    assert_eq!(outcome.status, Status::Copied);
+}
