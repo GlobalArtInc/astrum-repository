@@ -2,12 +2,13 @@ import { Button, Callout, Dialog, Flex, Text } from '@radix-ui/themes';
 import { TriangleAlert } from 'lucide-react';
 import { useMemo } from 'react';
 import { api, useInvalidateApi } from '../../api';
-import { useT } from '../../i18n';
+import { type Translate, useT } from '../../i18n';
 import {
   describeError,
   FormError,
   MultiSelectField,
   NumberField,
+  type Option,
   SelectField,
   StatusBadge,
   SwitchField,
@@ -26,13 +27,44 @@ import {
   useSourceRepositories,
 } from './api';
 import {
+  isReconcileMinutes,
   type Preview,
   previewFilters,
+  RECONCILE_MINUTES,
+  type ReconcileMinutes,
   type ReplicationValues,
   replicationBody,
   replicationValues,
   validateReplication,
 } from './model';
+
+const RECONCILE_LABELS: Record<ReconcileMinutes, string> = {
+  5: 'replication.reconcile.every5Minutes',
+  10: 'replication.reconcile.every10Minutes',
+  15: 'replication.reconcile.every15Minutes',
+  20: 'replication.reconcile.every20Minutes',
+  30: 'replication.reconcile.every30Minutes',
+  60: 'replication.reconcile.everyHour',
+  120: 'replication.reconcile.every2Hours',
+  180: 'replication.reconcile.every3Hours',
+  240: 'replication.reconcile.every4Hours',
+  360: 'replication.reconcile.every6Hours',
+  480: 'replication.reconcile.every8Hours',
+  720: 'replication.reconcile.every12Hours',
+  1440: 'replication.reconcile.daily',
+};
+
+function reconcileOptions(t: Translate, stored: number | null): Option[] {
+  const options: Option[] = RECONCILE_MINUTES.map((minutes) => ({
+    value: String(minutes),
+    label: t(RECONCILE_LABELS[minutes]),
+  }));
+  if (stored !== null && !isReconcileMinutes(stored)) {
+    options.push({ value: String(stored), label: t('replication.reconcile.legacy', { minutes: stored }) });
+    options.sort((left, right) => Number(left.value) - Number(right.value));
+  }
+  return options;
+}
 
 export interface ReplicationDialogProps {
   open: boolean;
@@ -219,12 +251,13 @@ function ReplicationForm({ replication, remotes, onDone }: ReplicationFormProps)
           step={1}
           {...form.field('settleSeconds')}
         />
-        <NumberField
+        <SelectField
           label={t('replication.replication.reconcile')}
           hint={t('replication.replication.reconcileHint')}
-          min={5}
-          step={1}
-          {...form.field('reconcileMinutes')}
+          options={reconcileOptions(t, form.values.reconcileMinutes)}
+          value={form.values.reconcileMinutes === null ? '' : String(form.values.reconcileMinutes)}
+          onChange={(value) => form.set('reconcileMinutes', Number(value))}
+          error={form.errors.reconcileMinutes}
         />
         <MultiSelectField
           label={t('replication.replication.channels')}

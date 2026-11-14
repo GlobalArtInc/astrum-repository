@@ -3,9 +3,11 @@ import { makeTranslate } from '../../i18n';
 import type { ComponentItem, ReplicationRemote } from './api';
 import {
   bytesFromMiB,
+  filterSubject,
   miBFromBytes,
   type Preview,
   previewFilters,
+  RECONCILE_MINUTES,
   type RemoteValues,
   type ReplicationValues,
   remoteBody,
@@ -99,16 +101,24 @@ describe('remote validation', () => {
 });
 
 describe('replication validation', () => {
-  it('checks the settle and reconcile ranges', () => {
+  it('checks the settle range', () => {
     expect(validateReplication(t, replicationInput({ settleSeconds: 3600 })).settleSeconds).toBeUndefined();
     expect(validateReplication(t, replicationInput({ settleSeconds: 3601 })).settleSeconds).toBeDefined();
     expect(validateReplication(t, replicationInput({ settleSeconds: -1 })).settleSeconds).toBeDefined();
-    expect(validateReplication(t, replicationInput({ reconcileMinutes: 4 })).reconcileMinutes).toBe(
-      'Enter a whole number of at least 5',
-    );
-    expect(
-      validateReplication(t, replicationInput({ reconcileMinutes: 5 })).reconcileMinutes,
-    ).toBeUndefined();
+  });
+
+  it('accepts only the reconcile periods the server takes', () => {
+    expect(RECONCILE_MINUTES).toHaveLength(13);
+    for (const minutes of RECONCILE_MINUTES) {
+      expect(
+        validateReplication(t, replicationInput({ reconcileMinutes: minutes })).reconcileMinutes,
+      ).toBeUndefined();
+    }
+    for (const minutes of [45, 0, 10080]) {
+      expect(validateReplication(t, replicationInput({ reconcileMinutes: minutes })).reconcileMinutes).toBe(
+        'Choose one of the listed periods',
+      );
+    }
   });
 
   it('sends blank filters as null', () => {
@@ -122,6 +132,21 @@ describe('replication validation', () => {
 function sentFlags(preview: Preview): boolean[] {
   return preview.kind === 'rows' ? preview.rows.map((row) => row.sent) : [];
 }
+
+describe('filter subject', () => {
+  it.each([
+    ['empty namespace', null, 'lib', 'lib'],
+    ['empty string namespace', '', 'lib', 'lib'],
+    ['root namespace', '/', 'top.txt', 'top.txt'],
+    ['raw namespace already in the name', '/docs', '/docs/a.txt', '/docs/a.txt'],
+    ['raw root file', '/', '/top.txt', '/top.txt'],
+    ['maven group', 'com.acme', 'lib', 'com.acme/lib'],
+    ['npm scope', 'scope', 'pkg', 'scope/pkg'],
+    ['name that only starts with the namespace text', 'ab', 'abc', 'ab/abc'],
+  ])('%s', (_, namespace, name, subject) => {
+    expect(filterSubject(namespace, name)).toBe(subject);
+  });
+});
 
 describe('filter preview', () => {
   const COMPONENTS: ComponentItem[] = [
@@ -138,6 +163,14 @@ describe('filter preview', () => {
   it('matches the name with its namespace when the component has one', () => {
     expect(sentFlags(previewFilters(COMPONENTS, '^org/.*', ''))).toEqual([false, true, false]);
     expect(sentFlags(previewFilters(COMPONENTS, 'org/lib-util', ''))).toEqual([false, true, false]);
+  });
+
+  it('matches the full path of a raw component once, without repeating its namespace', () => {
+    const RAW: ComponentItem[] = [
+      { repository: 'docs', format: 'raw', group: '/docs', name: '/docs/a.txt', version: '1' },
+    ];
+    expect(sentFlags(previewFilters(RAW, '^/docs/.*', ''))).toEqual([true]);
+    expect(sentFlags(previewFilters(RAW, '^/docs//docs/.*', ''))).toEqual([false]);
   });
 
   it('reports a pattern that does not compile, and does not let it break out of its group', () => {

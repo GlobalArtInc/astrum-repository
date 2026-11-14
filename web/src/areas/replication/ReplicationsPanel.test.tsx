@@ -163,3 +163,53 @@ describe('the replications panel', () => {
     await waitFor(() => expect(fake.calls.some((call) => call.method === 'DELETE')).toBe(true));
   });
 });
+
+describe('the reconcile period', () => {
+  it('offers the 13 server periods and selects 6 hours by default', async () => {
+    const fake = fakeServer(handlers([]));
+    vi.stubGlobal('fetch', fake.fetch);
+    renderWithApp(<ReplicationsPanel />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Add replication' }));
+    const dialog = await screen.findByRole('dialog', { name: 'New replication' });
+    const period = within(dialog).getByRole('combobox', { name: 'Reconcile every, minutes' });
+    expect(period).toHaveTextContent('Every 6 hours');
+    await userEvent.click(period);
+    expect(await screen.findAllByRole('option')).toHaveLength(13);
+  });
+
+  it('shows a legacy value as an extra option and sends the period that is chosen', async () => {
+    const fake = fakeServer({
+      ...handlers([{ ...REPLICATION, reconcileMinutes: 45 }]),
+      [`PUT ${REPLICATION_PATH}`]: () => jsonResponse({ ...REPLICATION, reconcileMinutes: 60 }),
+    });
+    vi.stubGlobal('fetch', fake.fetch);
+    renderWithApp(<ReplicationsPanel />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Edit replication Nightly' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Edit replication' });
+    const period = within(dialog).getByRole('combobox', { name: 'Reconcile every, minutes' });
+    expect(period).toHaveTextContent('45 minutes (not offered any more: pick one of the periods to save)');
+    await userEvent.click(period);
+    await userEvent.click(await screen.findByRole('option', { name: 'Every hour' }));
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(fake.calls.some((call) => call.method === 'PUT')).toBe(true));
+    expect(fake.calls.find((call) => call.method === 'PUT')?.body).toMatchObject({ reconcileMinutes: 60 });
+  });
+
+  it('shows a server field error on reconcileMinutes on the select', async () => {
+    const fake = fakeServer({
+      ...handlers([REPLICATION]),
+      [`PUT ${REPLICATION_PATH}`]: () =>
+        jsonResponse([{ id: 'reconcileMinutes', message: 'Use one of the listed periods' }], 400),
+    });
+    vi.stubGlobal('fetch', fake.fetch);
+    renderWithApp(<ReplicationsPanel />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Edit replication Nightly' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Edit replication' });
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+    expect(await within(dialog).findByText('Use one of the listed periods')).toBeInTheDocument();
+    expect(within(dialog).getByRole('combobox', { name: 'Reconcile every, minutes' })).toHaveAttribute(
+      'aria-invalid',
+      'true',
+    );
+  });
+});

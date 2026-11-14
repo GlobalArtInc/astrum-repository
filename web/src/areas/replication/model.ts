@@ -7,8 +7,11 @@ export const DEFAULT_CONCURRENCY = 2;
 export const MAX_CONCURRENCY = 16;
 export const DEFAULT_SETTLE_SECONDS = 30;
 export const MAX_SETTLE_SECONDS = 3600;
-export const DEFAULT_RECONCILE_MINUTES = 360;
-export const MIN_RECONCILE_MINUTES = 5;
+export type ReconcileMinutes = 5 | 10 | 15 | 20 | 30 | 60 | 120 | 180 | 240 | 360 | 480 | 720 | 1440;
+export const RECONCILE_MINUTES: readonly ReconcileMinutes[] = [
+  5, 10, 15, 20, 30, 60, 120, 180, 240, 360, 480, 720, 1440,
+];
+export const DEFAULT_RECONCILE_MINUTES: ReconcileMinutes = 360;
 export const PREVIEW_LIMIT = 20;
 
 const NAME_MAX = 100;
@@ -106,11 +109,12 @@ function rangeProblem(t: Translate, value: number | null, low: number, high: num
   return undefined;
 }
 
-function minimumProblem(t: Translate, value: number | null, low: number): string | undefined {
-  if (value === null || !Number.isInteger(value) || value < low) {
-    return t('replication.validation.atLeast', { min: low });
-  }
-  return undefined;
+export function isReconcileMinutes(value: number | null): value is ReconcileMinutes {
+  return RECONCILE_MINUTES.some((minutes) => minutes === value);
+}
+
+function periodProblem(t: Translate, value: number | null): string | undefined {
+  return isReconcileMinutes(value) ? undefined : t('replication.validation.period');
 }
 
 export function normalizedRemoteUrl(text: string): string {
@@ -274,7 +278,7 @@ export function validateReplication(t: Translate, values: ReplicationValues): Er
   if (settle) {
     errors.settleSeconds = settle;
   }
-  const reconcile = minimumProblem(t, values.reconcileMinutes, MIN_RECONCILE_MINUTES);
+  const reconcile = periodProblem(t, values.reconcileMinutes);
   if (reconcile) {
     errors.reconcileMinutes = reconcile;
   }
@@ -301,8 +305,12 @@ export function replicationBody(values: ReplicationValues): ReplicationBody {
   };
 }
 
-export function componentName(component: Pick<ComponentItem, 'group' | 'name'>): string {
-  return component.group ? `${component.group}/${component.name}` : component.name;
+export function filterSubject(namespace: string | null | undefined, name: string): string {
+  const group = namespace ?? '';
+  if (group === '' || group === '/' || name.startsWith(`${group}/`)) {
+    return name;
+  }
+  return `${group}/${name}`;
 }
 
 function compiles(pattern: string): boolean {
@@ -337,7 +345,7 @@ export function previewFilters(
     return { kind: 'invalid', field: 'versionFilter' };
   }
   const rows = components.slice(0, PREVIEW_LIMIT).map((component) => {
-    const name = componentName(component);
+    const name = filterSubject(component.group, component.name);
     const sent = (names?.test(name) ?? true) && (versions?.test(component.version) ?? true);
     return { key: `${name}@${component.version}`, name, version: component.version, sent };
   });
