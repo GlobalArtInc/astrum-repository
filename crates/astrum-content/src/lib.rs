@@ -2,17 +2,21 @@ mod access;
 mod downloads;
 mod error;
 pub mod format;
+mod gate;
 pub mod group;
 pub mod holds;
 mod http;
 pub mod ids;
 pub mod import;
+pub mod inventory;
 pub mod mime;
 pub mod proxy;
 mod request;
 pub mod routing;
 mod serve;
 pub mod store;
+#[cfg(test)]
+mod tests;
 pub mod transfer;
 pub mod usage;
 pub mod zip;
@@ -29,8 +33,9 @@ use sea_orm::DatabaseConnection;
 
 pub use access::{Grant, View};
 pub use downloads::DOWNLOAD_DAYS_KEPT;
-pub use error::{CHALLENGE, ContentError};
+pub use error::{BLOCKED_BY, CHALLENGE, ContentError, MAX_BLOCKED_TEXT};
 pub use format::{BrowseLayout, Format, SearchKey, UploadField, UploadForm, UploadSpec, fetch};
+pub use gate::{Gate, Open};
 pub use proxy::Freshness;
 pub use request::{ContentRequest, normalize};
 pub use serve::{Serve, serve};
@@ -51,6 +56,7 @@ struct Inner {
     secrets: SecretBox,
     outbound: astrum_outbound::Outbound,
     formats: RwLock<HashMap<&'static str, Arc<dyn Format>>>,
+    gate: RwLock<Arc<dyn Gate>>,
     proxy: proxy::ProxyState,
     routing: routing::RoutingCache,
     downloads: downloads::Downloads,
@@ -71,6 +77,7 @@ impl Content {
                 blob_stores,
                 secrets,
                 formats: RwLock::new(HashMap::new()),
+                gate: RwLock::new(Arc::new(Open)),
                 proxy: proxy::ProxyState::default(),
                 routing: routing::RoutingCache::default(),
                 downloads: downloads::Downloads::default(),
@@ -100,6 +107,22 @@ impl Content {
             .write()
             .expect("the format registry lock is never poisoned")
             .insert(format.id(), format);
+    }
+
+    pub fn register_gate(&self, gate: Arc<dyn Gate>) {
+        *self
+            .inner
+            .gate
+            .write()
+            .expect("the gate lock is never poisoned") = gate;
+    }
+
+    pub fn gate(&self) -> Arc<dyn Gate> {
+        self.inner
+            .gate
+            .read()
+            .expect("the gate lock is never poisoned")
+            .clone()
     }
 
     pub fn format(&self, id: &str) -> Option<Arc<dyn Format>> {

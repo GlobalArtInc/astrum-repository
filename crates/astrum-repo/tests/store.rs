@@ -1,4 +1,4 @@
-use astrum_db::entity::{blob_store, repository};
+use astrum_db::entity::{blob_store, content_policy, repository};
 use astrum_repo::{Repository, Request, Spec, WriteError, Writer, store};
 use astrum_testkit::TestDatabase;
 use sea_orm::{ActiveValue, DatabaseConnection, EntityTrait};
@@ -128,6 +128,117 @@ async fn deleting_a_member_takes_it_out_of_every_group() {
         .delete("releases")
         .await;
     assert!(matches!(missing, Err(WriteError::NotFound(_))));
+}
+
+async fn content_policy(db: &DatabaseConnection, name: &str) {
+    let now = chrono::Utc::now().fixed_offset();
+    content_policy::Entity::insert(content_policy::ActiveModel {
+        name: ActiveValue::Set(name.to_owned()),
+        notes: ActiveValue::Set(String::new()),
+        vulnerabilities: ActiveValue::Set(json!({"mode": "off"})),
+        licenses: ActiveValue::Set(json!({"mode": "off"})),
+        signatures: ActiveValue::Set(json!({"mode": "off"})),
+        revision: ActiveValue::Set(1),
+        created_at: ActiveValue::Set(now),
+        updated_at: ActiveValue::Set(now),
+    })
+    .exec(db)
+    .await
+    .unwrap();
+}
+
+fn with_policy(format: &str, kind: &str, mut body: Value, policy: &str) -> Repository {
+    body["policy"] = json!({"name": policy});
+    prepared(format, kind, body)
+}
+
+#[tokio::test]
+async fn a_policy_section_names_an_existing_content_policy() {
+    let (_test, db) = ready().await;
+    content_policy(db.conn(), "strict").await;
+    let releases = |policy: &str| {
+        with_policy(
+            "maven",
+            "hosted",
+            json!({
+                "name": "releases", "online": true,
+                "storage": {"blobStoreName": "default", "strictContentTypeValidation": true, "writePolicy": "ALLOW"},
+                "maven": {"versionPolicy": "RELEASE", "layoutPolicy": "STRICT"},
+            }),
+            policy,
+        )
+    };
+    let missing = Writer::begin(db.conn())
+        .await
+        .unwrap()
+        .create(releases("lenient"))
+        .await;
+    let Err(WriteError::Invalid(problems)) = missing else {
+        panic!("{missing:?}");
+    };
+    assert_eq!(problems[0].id, "PARAMETER policyName");
+    assert_eq!(
+        problems[0].message,
+        "the content policy \"lenient\" does not exist"
+    );
+    create(db.conn(), releases("strict")).await;
+    let found = store::find(db.conn(), "releases").await.unwrap().unwrap();
+    assert_eq!(
+        found.attributes.policy.and_then(|policy| policy.name),
+        Some("strict".to_owned())
+    );
+}
+
+#[tokio::test]
+async fn the_writer_lists_the_users_of_a_content_policy_and_commits_what_it_changed() {
+    let (_test, db) = ready().await;
+    content_policy(db.conn(), "strict").await;
+    content_policy(db.conn(), "idle").await;
+    create(
+        db.conn(),
+        with_policy(
+            "maven",
+            "hosted",
+            json!({
+                "name": "releases", "online": true,
+                "storage": {"blobStoreName": "default", "strictContentTypeValidation": true, "writePolicy": "ALLOW"},
+                "maven": {"versionPolicy": "RELEASE", "layoutPolicy": "STRICT"},
+            }),
+            "strict",
+        ),
+    )
+    .await;
+    let writer = Writer::begin(db.conn()).await.unwrap();
+    assert_eq!(writer.content_policy_users("strict"), ["releases"]);
+    assert!(writer.content_policy_users("idle").is_empty());
+    content_policy::Entity::delete_by_id("idle".to_owned())
+        .exec(writer.transaction())
+        .await
+        .unwrap();
+    writer.commit().await.unwrap();
+    let left = content_policy::Entity::find().all(db.conn()).await.unwrap();
+    assert_eq!(left.len(), 1);
+    assert_eq!(left[0].name, "strict");
+}
+
+#[tokio::test]
+async fn groups_have_no_policy_of_their_own() {
+    let (_test, db) = ready().await;
+    content_policy(db.conn(), "strict").await;
+    create(db.conn(), hosted("releases")).await;
+    let grouped = with_policy(
+        "maven",
+        "group",
+        json!({
+            "name": "public", "online": true,
+            "storage": {"blobStoreName": "default", "strictContentTypeValidation": true},
+            "group": {"memberNames": ["releases"]},
+        }),
+        "strict",
+    );
+    create(db.conn(), grouped).await;
+    let public = store::find(db.conn(), "public").await.unwrap().unwrap();
+    assert_eq!(public.attributes.policy, None);
 }
 
 #[tokio::test]

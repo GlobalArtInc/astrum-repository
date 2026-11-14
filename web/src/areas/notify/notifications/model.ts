@@ -7,11 +7,12 @@ export const UPDATE = 'astrum:settings:update';
 export type ChannelType = 'telegram' | 'slack' | 'webhook' | 'email';
 export type ProxyMode = 'global' | 'none' | 'custom';
 export type ProxyType = 'http' | 'socks5';
-export type EventId = 'published' | 'updated' | 'deleted';
+export type EventId = 'published' | 'updated' | 'deleted' | 'vulnerability.found' | 'policy.blocked';
 export type Language = 'ru' | 'en';
 
+export const DEFAULT_EVENTS: EventId[] = ['published', 'updated', 'deleted'];
 export const TYPES: ChannelType[] = ['telegram', 'slack', 'webhook', 'email'];
-export const EVENTS: EventId[] = ['published', 'updated', 'deleted'];
+export const EVENTS: EventId[] = ['published', 'updated', 'deleted', 'vulnerability.found', 'policy.blocked'];
 
 export const TYPE_LABELS: Record<ChannelType, string> = {
   telegram: 'notify.notifications.types.telegram',
@@ -24,12 +25,16 @@ export const EVENT_LABELS: Record<EventId, string> = {
   published: 'notify.notifications.eventNames.published',
   updated: 'notify.notifications.eventNames.updated',
   deleted: 'notify.notifications.eventNames.deleted',
+  'vulnerability.found': 'notify.notifications.eventNames.vulnerabilityFound',
+  'policy.blocked': 'notify.notifications.eventNames.policyBlocked',
 };
 
 export const EVENT_HELP: Record<EventId, string> = {
   published: 'notify.notifications.eventHelp.published',
   updated: 'notify.notifications.eventHelp.updated',
   deleted: 'notify.notifications.eventHelp.deleted',
+  'vulnerability.found': 'notify.notifications.eventHelp.vulnerabilityFound',
+  'policy.blocked': 'notify.notifications.eventHelp.policyBlocked',
 };
 
 export const CONNECTION_HELP: Record<ProxyMode, string> = {
@@ -110,7 +115,7 @@ export function initialValues(channel: Channel | null, language: Language): Chan
     proxyUsername: channel?.proxyUsername ?? '',
     proxyPassword: '',
     removeProxyPassword: false,
-    events: channel?.events ?? [...EVENTS],
+    events: channel?.events ?? [...DEFAULT_EVENTS],
     repositories: channel?.repositories ?? [],
     language: channel?.language ?? language,
   };

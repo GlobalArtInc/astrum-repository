@@ -1863,3 +1863,104 @@ async fn publishing_over_the_quota_answers_413_and_stores_nothing() {
         .unwrap();
     assert_eq!(usage.bytes, 0);
 }
+
+#[tokio::test]
+async fn files_inside_a_blocked_extension_are_refused_and_a_group_does_not_fall_through() {
+    use sea_orm::ConnectionTrait;
+    let fixture = ready().await;
+    let policy = fixture
+        .call(
+            Method::POST,
+            "/service/rest/v1/security/policies",
+            Auth::Admin,
+            Some(
+                json!({"name": "strict", "vulnerabilities": {"mode": "block", "severity": "high"}}),
+            ),
+        )
+        .await;
+    assert_eq!(policy.status, StatusCode::CREATED, "{}", policy.text());
+    let mut guarded = hosted("vsx-a", "ALLOW_ONCE");
+    guarded["policy"] = json!({"name": "strict"});
+    create(&fixture, "hosted", guarded).await;
+    create(&fixture, "hosted", hosted("vsx-b", "ALLOW_ONCE")).await;
+    create(
+        &fixture,
+        "group",
+        json!({
+            "name": "vsx-all",
+            "online": true,
+            "storage": {"blobStoreName": "default", "strictContentTypeValidation": true},
+            "group": {"memberNames": ["vsx-a", "vsx-b"]},
+        }),
+    )
+    .await;
+    let bytes = package("hello", "1.0.0", None);
+    for repository in ["vsx-a", "vsx-b"] {
+        let done = publish(&fixture, repository, Auth::Admin, &bytes).await;
+        assert_eq!(done.status, StatusCode::CREATED, "{}", done.text());
+    }
+    let entries = |repository: &str| {
+        [
+            format!("/repository/{repository}/api/acme/hello/1.0.0/file/README.md"),
+            format!("/repository/{repository}/vscode/unpkg/acme/hello/1.0.0/extension/README.md"),
+            format!("/repository/{repository}/api/acme/hello/1.0.0/file/acme.hello-1.0.0.vsix"),
+        ]
+    };
+    for repository in ["vsx-a", "vsx-b", "vsx-all"] {
+        for path in entries(repository) {
+            let reply = get(&fixture, &path, Auth::Admin).await;
+            assert_eq!(reply.status, StatusCode::OK, "{path}: {}", reply.text());
+        }
+    }
+
+    let id: i64 = fixture
+        .state
+        .db()
+        .conn()
+        .query_one(sea_orm::Statement::from_string(
+            sea_orm::DbBackend::Postgres,
+            "SELECT id FROM component WHERE repository = 'vsx-a'".to_owned(),
+        ))
+        .await
+        .unwrap()
+        .unwrap()
+        .try_get("", "id")
+        .unwrap();
+    fixture
+        .state
+        .db()
+        .conn()
+        .execute_unprepared(&format!(
+            "INSERT INTO policy_verdict (repository, subject, policy, component_id, blocked, state, \
+               reasons, policy_revision, max_severity, high) \
+             SELECT 'vsx-a', 'c:{id}', 'strict', {id}, true, 'block', \
+               '[{{\"kind\":\"vulnerability\",\"advisory\":\"GHSA-1\",\"aliases\":[],\"severity\":\"high\",\"malicious\":false,\"package\":\"npm/x@1\",\"fixed\":\"2\",\"blocking\":true}}]'::jsonb, \
+               revision, 'high', 1 FROM content_policy WHERE name = 'strict' \
+             ON CONFLICT (repository, subject) DO UPDATE SET blocked = true, state = 'block', \
+               reasons = EXCLUDED.reasons, policy_revision = EXCLUDED.policy_revision"
+        ))
+        .await
+        .unwrap();
+
+    for repository in ["vsx-a", "vsx-all"] {
+        for path in entries(repository) {
+            let reply = get(&fixture, &path, Auth::Admin).await;
+            assert_eq!(
+                reply.status,
+                StatusCode::FORBIDDEN,
+                "{path}: {}",
+                reply.text()
+            );
+            assert_eq!(reply.headers["x-astrum-blocked-by"], "strict", "{path}");
+            assert!(
+                reply.text().contains("blocked by policy strict: GHSA-1"),
+                "{path}: {}",
+                reply.text()
+            );
+        }
+    }
+    for path in entries("vsx-b") {
+        let reply = get(&fixture, &path, Auth::Admin).await;
+        assert_eq!(reply.status, StatusCode::OK, "{path}: {}", reply.text());
+    }
+}

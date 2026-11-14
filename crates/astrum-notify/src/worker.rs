@@ -8,7 +8,7 @@ use uuid::Uuid;
 
 use crate::channel::Channel;
 use crate::messages::{self, Links};
-use crate::notice::{self, Action, Notice};
+use crate::notice::{self, Action, Detail, Notice};
 use crate::payload::{Envelope, Message};
 use crate::transport::Transport;
 use crate::{Notifier, store};
@@ -63,6 +63,7 @@ struct ChangeRow {
     action: String,
     component_id: Option<i64>,
     initiator: Option<String>,
+    detail: Option<serde_json::Value>,
 }
 
 #[derive(FromQueryResult)]
@@ -151,7 +152,15 @@ impl Notifier {
             .filter(|channel| channel.enabled);
         if let Some(channel) = channel {
             let changes = rows.into_iter().filter_map(|row| {
+                let detail = match row.detail.map(serde_json::from_value::<Detail>).transpose() {
+                    Ok(detail) => detail,
+                    Err(error) => {
+                        tracing::warn!(channel = %channel.name, %error, "a notification change has details that cannot be read, so it is dropped");
+                        return None;
+                    }
+                };
                 Some(Notice {
+                    detail,
                     action: Action::parse(&row.action)?,
                     repository: row.repository,
                     repository_type: row.repository_type,

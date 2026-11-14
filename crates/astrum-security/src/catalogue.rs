@@ -235,6 +235,60 @@ const APPLICATION: &[Application] = &[
         "Every action on metrics",
     ),
     (
+        "as-policies-all",
+        "policies",
+        &[Action::All],
+        "Every action on content policies, trusted keys and advisory data",
+    ),
+    (
+        "as-policies-create",
+        "policies",
+        &[Action::Add, Action::Read],
+        "Create content policies and trusted keys",
+    ),
+    (
+        "as-policies-delete",
+        "policies",
+        &[Action::Delete, Action::Read],
+        "Delete content policies and trusted keys",
+    ),
+    (
+        "as-policies-read",
+        "policies",
+        &[Action::Read],
+        "Read content policies, trusted keys and advisory data",
+    ),
+    (
+        "as-policies-update",
+        "policies",
+        &[Action::Edit, Action::Read],
+        "Change content policies and import advisory data",
+    ),
+    (
+        "as-policyexceptions-all",
+        "policyexceptions",
+        &[Action::All],
+        "Every action on policy exceptions",
+    ),
+    (
+        "as-policyexceptions-create",
+        "policyexceptions",
+        &[Action::Add, Action::Read],
+        "Create policy exceptions",
+    ),
+    (
+        "as-policyexceptions-delete",
+        "policyexceptions",
+        &[Action::Delete, Action::Read],
+        "Delete policy exceptions",
+    ),
+    (
+        "as-policyexceptions-read",
+        "policyexceptions",
+        &[Action::Read],
+        "Read policy exceptions",
+    ),
+    (
         "as-privileges-all",
         "privileges",
         &[Action::All],
@@ -598,6 +652,9 @@ mod tests {
 
     use super::*;
 
+    const ASTRUM_ONLY: [&str; 2] = ["as-policies-", "as-policyexceptions-"];
+    const ASTRUM_ONLY_COUNT: usize = 9;
+
     #[test]
     fn the_catalogue_has_the_names_existing_installations_use() {
         let formats = ["maven2", "npm"];
@@ -624,7 +681,7 @@ mod tests {
             !ids.contains("as-healthcheck-read"),
             "the old server names it in the anonymous role but does not list it"
         );
-        assert_eq!(privileges.len(), 1 + 76 + 12 + 12);
+        assert_eq!(privileges.len(), 1 + 76 + ASTRUM_ONLY_COUNT + 12 + 12);
         assert!(
             privileges
                 .iter()
@@ -700,6 +757,11 @@ mod tests {
         };
         let ours: Vec<serde_json::Value> = builtin_privileges(formats)
             .iter()
+            .filter(|privilege| {
+                !ASTRUM_ONLY
+                    .iter()
+                    .any(|prefix| privilege.id.starts_with(prefix))
+            })
             .map(|privilege| {
                 let mut value = privilege.kind.properties();
                 let map = value.as_object_mut().unwrap();
@@ -719,6 +781,42 @@ mod tests {
         for (actual, expected) in actual.iter().zip(&expected) {
             assert_eq!(actual, expected);
         }
+    }
+
+    #[test]
+    fn the_policy_privileges_grant_the_permissions_the_routes_check() {
+        let privileges = builtin_privileges(["raw"]);
+        let granted = |id: &str| {
+            privileges
+                .iter()
+                .find(|privilege| privilege.id == id)
+                .and_then(|privilege| privilege.permission())
+                .map(|permission| permission.to_string())
+        };
+        for (id, permission) in [
+            ("as-policies-all", "astrum:policies:*"),
+            ("as-policies-read", "astrum:policies:read"),
+            ("as-policies-create", "astrum:policies:create,read"),
+            ("as-policies-update", "astrum:policies:read,update"),
+            ("as-policies-delete", "astrum:policies:delete,read"),
+            ("as-policyexceptions-all", "astrum:policyexceptions:*"),
+            ("as-policyexceptions-read", "astrum:policyexceptions:read"),
+            (
+                "as-policyexceptions-create",
+                "astrum:policyexceptions:create,read",
+            ),
+            (
+                "as-policyexceptions-delete",
+                "astrum:policyexceptions:delete,read",
+            ),
+        ] {
+            assert_eq!(granted(id).as_deref(), Some(permission), "{id}");
+        }
+        let count = privileges
+            .iter()
+            .filter(|privilege| ASTRUM_ONLY.iter().any(|p| privilege.id.starts_with(p)))
+            .count();
+        assert_eq!(count, ASTRUM_ONLY_COUNT);
     }
 
     #[test]

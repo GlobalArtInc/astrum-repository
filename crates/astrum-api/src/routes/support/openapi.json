@@ -6936,6 +6936,173 @@
         ]
       }
     },
+    "/v1/components/{id}/security": {
+      "get": {
+        "operationId": "getV1ComponentsIdSecurity",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "license": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "policy": {
+                      "nullable": true,
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "revision": {
+                          "format": "int64",
+                          "nullable": true,
+                          "type": "integer"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "scan": {
+                      "properties": {
+                        "packages": {
+                          "format": "int64",
+                          "nullable": true,
+                          "type": "integer"
+                        },
+                        "scannedAt": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "state": {
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "truncated": {
+                      "type": "boolean"
+                    },
+                    "verdict": {
+                      "nullable": true,
+                      "properties": {
+                        "blocked": {
+                          "type": "boolean"
+                        },
+                        "computedAt": {
+                          "type": "string"
+                        },
+                        "counts": {
+                          "properties": {
+                            "critical": {
+                              "format": "int64",
+                              "type": "integer"
+                            },
+                            "high": {
+                              "format": "int64",
+                              "type": "integer"
+                            },
+                            "low": {
+                              "format": "int64",
+                              "type": "integer"
+                            },
+                            "medium": {
+                              "format": "int64",
+                              "type": "integer"
+                            },
+                            "unknown": {
+                              "format": "int64",
+                              "type": "integer"
+                            }
+                          },
+                          "type": "object"
+                        },
+                        "maxSeverity": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "policy": {
+                          "type": "string"
+                        },
+                        "reasons": {
+                          "items": {
+                            "type": "object"
+                          },
+                          "type": "array"
+                        },
+                        "revision": {
+                          "format": "int64",
+                          "type": "integer"
+                        },
+                        "state": {
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "vulnerabilities": {
+                      "items": {
+                        "properties": {
+                          "aliases": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": "array"
+                          },
+                          "excepted": {
+                            "type": "boolean"
+                          },
+                          "fixed": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "malicious": {
+                            "type": "boolean"
+                          },
+                          "score": {
+                            "format": "double",
+                            "nullable": true,
+                            "type": "number"
+                          },
+                          "severity": {
+                            "type": "string"
+                          },
+                          "summary": {
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {},
+          "404": {}
+        },
+        "summary": "List components security",
+        "tags": [
+          "components"
+        ]
+      }
+    },
     "/v1/email": {
       "delete": {
         "operationId": "deleteV1Email",
@@ -17400,6 +17567,216 @@
         ]
       }
     },
+    "/v1/security/advisories/feeds": {
+      "get": {
+        "operationId": "getV1SecurityAdvisoriesFeeds",
+        "responses": {
+          "200": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "List security advisories feeds",
+        "tags": [
+          "Security management: advisories"
+        ]
+      }
+    },
+    "/v1/security/advisories/import": {
+      "post": {
+        "operationId": "postV1SecurityAdvisoriesImport",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "ecosystem",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "force",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/zip": {
+              "schema": {
+                "format": "binary",
+                "type": "string"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {},
+          "400": {},
+          "401": {},
+          "403": {},
+          "409": {},
+          "413": {}
+        },
+        "summary": "Create security advisories import",
+        "tags": [
+          "Security management: advisories"
+        ]
+      }
+    },
+    "/v1/security/advisories/{id}": {
+      "get": {
+        "operationId": "getV1SecurityAdvisoriesId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "affected": {
+                      "items": {
+                        "properties": {
+                          "ecosystem": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "ranges": {
+                            "items": {
+                              "type": "object"
+                            },
+                            "type": "array"
+                          },
+                          "versions": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": "array"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "aliases": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "componentCount": {
+                      "format": "int64",
+                      "type": "integer"
+                    },
+                    "components": {
+                      "items": {
+                        "properties": {
+                          "blocked": {
+                            "type": "boolean"
+                          },
+                          "componentId": {
+                            "type": "string"
+                          },
+                          "excepted": {
+                            "type": "boolean"
+                          },
+                          "fixed": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "format": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "repository": {
+                            "type": "string"
+                          },
+                          "version": {
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "componentsTruncated": {
+                      "type": "boolean"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "malicious": {
+                      "type": "boolean"
+                    },
+                    "modified": {
+                      "type": "string"
+                    },
+                    "published": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "references": {
+                      "items": {
+                        "properties": {
+                          "type": {
+                            "type": "string"
+                          },
+                          "url": {
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "score": {
+                      "format": "double",
+                      "nullable": true,
+                      "type": "number"
+                    },
+                    "severity": {
+                      "type": "string"
+                    },
+                    "summary": {
+                      "type": "string"
+                    },
+                    "truncated": {
+                      "type": "boolean"
+                    },
+                    "withdrawn": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {},
+          "403": {},
+          "404": {}
+        },
+        "summary": "Get security advisories",
+        "tags": [
+          "Security management: findings"
+        ]
+      }
+    },
     "/v1/security/anonymous": {
       "get": {
         "operationId": "getV1SecurityAnonymous",
@@ -17575,6 +17952,381 @@
         "summary": "Update security content selectors",
         "tags": [
           "Content selectors"
+        ]
+      }
+    },
+    "/v1/security/exceptions": {
+      "get": {
+        "operationId": "getV1SecurityExceptions",
+        "responses": {
+          "200": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "List security exceptions",
+        "tags": [
+          "Security management: exceptions"
+        ]
+      },
+      "post": {
+        "operationId": "postV1SecurityExceptions",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {},
+          "400": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "Create security exceptions",
+        "tags": [
+          "Security management: exceptions"
+        ]
+      }
+    },
+    "/v1/security/exceptions/{id}": {
+      "delete": {
+        "operationId": "deleteV1SecurityExceptionsId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {},
+          "401": {},
+          "403": {},
+          "404": {}
+        },
+        "summary": "Delete security exceptions",
+        "tags": [
+          "Security management: exceptions"
+        ]
+      }
+    },
+    "/v1/security/findings": {
+      "get": {
+        "operationId": "getV1SecurityFindings",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "repository",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "severity",
+            "schema": {
+              "enum": [
+                "critical",
+                "high",
+                "medium",
+                "low",
+                "unknown"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "advisory",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "blocked",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "continuationToken",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int32",
+              "maximum": 200,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "continuationToken": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "items": {
+                      "items": {
+                        "properties": {
+                          "advisory": {
+                            "type": "string"
+                          },
+                          "blocked": {
+                            "type": "boolean"
+                          },
+                          "componentId": {
+                            "type": "string"
+                          },
+                          "excepted": {
+                            "type": "boolean"
+                          },
+                          "fixed": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "format": {
+                            "type": "string"
+                          },
+                          "malicious": {
+                            "type": "boolean"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "namespace": {
+                            "type": "string"
+                          },
+                          "repository": {
+                            "type": "string"
+                          },
+                          "score": {
+                            "format": "double",
+                            "nullable": true,
+                            "type": "number"
+                          },
+                          "severity": {
+                            "type": "string"
+                          },
+                          "version": {
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {},
+          "401": {}
+        },
+        "summary": "List security findings",
+        "tags": [
+          "Security management: findings"
+        ]
+      }
+    },
+    "/v1/security/keys": {
+      "get": {
+        "operationId": "getV1SecurityKeys",
+        "responses": {
+          "200": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "List security keys",
+        "tags": [
+          "Security management: keys"
+        ]
+      },
+      "post": {
+        "operationId": "postV1SecurityKeys",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {},
+          "400": {},
+          "401": {},
+          "403": {},
+          "409": {}
+        },
+        "summary": "Create security keys",
+        "tags": [
+          "Security management: keys"
+        ]
+      }
+    },
+    "/v1/security/keys/{name}": {
+      "delete": {
+        "operationId": "deleteV1SecurityKeysName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {},
+          "401": {},
+          "403": {},
+          "404": {},
+          "409": {}
+        },
+        "summary": "Delete security keys",
+        "tags": [
+          "Security management: keys"
+        ]
+      }
+    },
+    "/v1/security/policies": {
+      "get": {
+        "operationId": "getV1SecurityPolicies",
+        "responses": {
+          "200": {},
+          "401": {},
+          "403": {}
+        },
+        "summary": "List security policies",
+        "tags": [
+          "Security management: policies"
+        ]
+      },
+      "post": {
+        "operationId": "postV1SecurityPolicies",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {},
+          "400": {},
+          "401": {},
+          "403": {},
+          "409": {}
+        },
+        "summary": "Create security policies",
+        "tags": [
+          "Security management: policies"
+        ]
+      }
+    },
+    "/v1/security/policies/{name}": {
+      "delete": {
+        "operationId": "deleteV1SecurityPoliciesName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {},
+          "401": {},
+          "403": {},
+          "404": {},
+          "409": {}
+        },
+        "summary": "Delete security policies",
+        "tags": [
+          "Security management: policies"
+        ]
+      },
+      "get": {
+        "operationId": "getV1SecurityPoliciesName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {},
+          "401": {},
+          "403": {},
+          "404": {}
+        },
+        "summary": "Get security policies",
+        "tags": [
+          "Security management: policies"
+        ]
+      },
+      "put": {
+        "operationId": "updateV1SecurityPoliciesName",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {},
+          "400": {},
+          "401": {},
+          "403": {},
+          "404": {}
+        },
+        "summary": "Update security policies",
+        "tags": [
+          "Security management: policies"
         ]
       }
     },
@@ -18371,6 +19123,42 @@
         ]
       }
     },
+    "/v1/security/scan": {
+      "post": {
+        "operationId": "postV1SecurityScan",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "componentId": {
+                    "type": "string"
+                  },
+                  "repository": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "repository"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {},
+          "400": {},
+          "401": {},
+          "403": {},
+          "404": {}
+        },
+        "summary": "Create security scan",
+        "tags": [
+          "Security management: scan"
+        ]
+      }
+    },
     "/v1/security/ssrf-protection": {
       "get": {
         "operationId": "getV1SecuritySsrfProtection",
@@ -18421,6 +19209,121 @@
         "summary": "Update security SSRF protection",
         "tags": [
           "Security Management: SSRF Protection"
+        ]
+      }
+    },
+    "/v1/security/summary": {
+      "get": {
+        "operationId": "getV1SecuritySummary",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "generatedAt": {
+                      "type": "string"
+                    },
+                    "repositories": {
+                      "items": {
+                        "properties": {
+                          "blocked": {
+                            "format": "int64",
+                            "type": "integer"
+                          },
+                          "componentsScanned": {
+                            "format": "int64",
+                            "type": "integer"
+                          },
+                          "componentsVulnerable": {
+                            "format": "int64",
+                            "type": "integer"
+                          },
+                          "critical": {
+                            "format": "int64",
+                            "type": "integer"
+                          },
+                          "format": {
+                            "type": "string"
+                          },
+                          "high": {
+                            "format": "int64",
+                            "type": "integer"
+                          },
+                          "low": {
+                            "format": "int64",
+                            "type": "integer"
+                          },
+                          "medium": {
+                            "format": "int64",
+                            "type": "integer"
+                          },
+                          "repository": {
+                            "type": "string"
+                          },
+                          "truncated": {
+                            "type": "boolean"
+                          },
+                          "unknown": {
+                            "format": "int64",
+                            "type": "integer"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "totals": {
+                      "properties": {
+                        "blocked": {
+                          "format": "int64",
+                          "type": "integer"
+                        },
+                        "componentsScanned": {
+                          "format": "int64",
+                          "type": "integer"
+                        },
+                        "componentsVulnerable": {
+                          "format": "int64",
+                          "type": "integer"
+                        },
+                        "critical": {
+                          "format": "int64",
+                          "type": "integer"
+                        },
+                        "high": {
+                          "format": "int64",
+                          "type": "integer"
+                        },
+                        "low": {
+                          "format": "int64",
+                          "type": "integer"
+                        },
+                        "medium": {
+                          "format": "int64",
+                          "type": "integer"
+                        },
+                        "truncated": {
+                          "type": "boolean"
+                        },
+                        "unknown": {
+                          "format": "int64",
+                          "type": "integer"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {}
+        },
+        "summary": "List security summary",
+        "tags": [
+          "Security management: findings"
         ]
       }
     },
@@ -19009,6 +19912,21 @@
       "name": "Security management"
     },
     {
+      "name": "Security management: advisories"
+    },
+    {
+      "name": "Security management: exceptions"
+    },
+    {
+      "name": "Security management: findings"
+    },
+    {
+      "name": "Security management: keys"
+    },
+    {
+      "name": "Security management: policies"
+    },
+    {
       "name": "Security management: privileges"
     },
     {
@@ -19016,6 +19934,9 @@
     },
     {
       "name": "Security management: roles"
+    },
+    {
+      "name": "Security management: scan"
     },
     {
       "name": "Security management: users"

@@ -14,7 +14,8 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex, Weak};
 
 use astrum_content::format::{SearchKey, SearchTarget};
-use astrum_content::store::PutAsset;
+use astrum_content::inventory::{Inventory, PackageRef};
+use astrum_content::store::{Component, PutAsset};
 use astrum_content::{
     Asset, BrowseLayout, ContentError, ContentRequest, Ctx, Format, Freshness, Serve, UploadForm,
     UploadSpec, View, serve,
@@ -217,10 +218,48 @@ fn whoami(ctx: &Ctx) -> Result<Response, ContentError> {
     }
 }
 
+pub(crate) fn package_inventory(namespace: &str, name: &str, version: &str) -> Option<Inventory> {
+    if name.is_empty() || version.is_empty() {
+        return None;
+    }
+    let full = match namespace {
+        "" => name.to_owned(),
+        scope => format!("@{scope}/{name}"),
+    };
+    let package = Name::parse(&full)?;
+    let purl = match &package.scope {
+        Some(scope) => format!("pkg:npm/%40{scope}/{}@{version}", package.bare),
+        None => format!("pkg:npm/{}@{version}", package.bare),
+    };
+    Some(Inventory {
+        key: purl.clone(),
+        packages: vec![PackageRef {
+            ecosystem: "npm".to_owned(),
+            name: package.to_string(),
+            version: version.to_owned(),
+            purl,
+        }],
+        license: None,
+        complete: true,
+    })
+}
+
 #[async_trait]
 impl Format for Npm {
     fn id(&self) -> &'static str {
         ID
+    }
+
+    async fn inventory(
+        &self,
+        _ctx: &Ctx,
+        component: &Component,
+    ) -> Result<Option<Inventory>, ContentError> {
+        Ok(package_inventory(
+            &component.namespace,
+            &component.name,
+            &component.version,
+        ))
     }
 
     async fn handle(&self, ctx: Ctx, request: ContentRequest) -> Result<Response, ContentError> {
@@ -268,5 +307,27 @@ impl Format for Npm {
 
     fn search_keys(&self) -> &'static [SearchKey] {
         SEARCH_KEYS
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn hosted_and_proxy_packages_name_themselves_by_name_and_version() {
+        let hosted = package_inventory("", "left-pad", "1.3.0").unwrap();
+        assert_eq!(hosted.key, "pkg:npm/left-pad@1.3.0");
+        assert_eq!(hosted.packages[0].name, "left-pad");
+        let proxy = package_inventory("", "express", "4.19.2").unwrap();
+        assert_eq!(proxy.key, "pkg:npm/express@4.19.2");
+        assert!(package_inventory("", "left-pad", "").is_none());
+    }
+
+    #[test]
+    fn scoped_packages_keep_the_scope_in_name_and_purl() {
+        let found = package_inventory("babel", "core", "7.24.0").unwrap();
+        assert_eq!(found.key, "pkg:npm/%40babel/core@7.24.0");
+        assert_eq!(found.packages[0].name, "@babel/core");
     }
 }

@@ -72,6 +72,7 @@ database pool are those of the node that served the scrape, the rest is the same
 | `astrum_data_directory_size_bytes`, `astrum_data_directory_free_bytes` | gauge | | The volume of the data directory |
 | `astrum_database_connections` | gauge | `state` | Connections to PostgreSQL, `idle` or `used` |
 | `astrum_notification_deliveries_pending` | gauge | | Notifications waiting to be sent or sent again |
+| `astrum_policy_gate_decisions_total` | counter | `result` | Download checks of repositories with a content policy on this node; `notice_failed` counts a refusal whose notification could not be written, besides its decision, and the refusal itself is not affected |
 | `astrum_scheduler_last_tick_timestamp_seconds` | gauge | | When the scheduler of the node last looked for due tasks |
 | `astrum_task_running` | gauge | `task`, `type` | 1 while a task runs or waits to run |
 | `astrum_task_last_run_success`, `astrum_task_last_run_timestamp_seconds` | gauge | `task`, `type` | Outcome and end of the last finished run |
@@ -156,6 +157,13 @@ Two routes read the repository rows:
   maps each repository the caller may browse to the `bytes` of its days, oldest first, for the last `days`
   days that have a row. `days` is from 1 to 730, default 30; other values get 400 as above. A repository the
   caller may not browse has no key, and anonymous callers get 401.
+
+## Vulnerability data alert
+
+When the task **Security - Synchronize vulnerability data** ends and the data of an ecosystem is older
+than its **Stale after days**, or was never synced, it sends one message a day for as long as that lasts
+to the notification channels that listen to **Vulnerability found**. A webhook receives the event
+`advisories.stale` with the message in `text`; `repository` and `component` are `null`.
 
 ## What to watch
 

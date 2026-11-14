@@ -16,12 +16,14 @@ pub mod version;
 mod xml;
 
 use astrum_content::format::{SearchKey, SearchTarget};
+use astrum_content::inventory::{Inventory, PackageRef};
 use astrum_content::store::{self};
 use astrum_content::{
-    Asset, BrowseLayout, ContentError, ContentRequest, Ctx, Format, Serve, UploadField, UploadForm,
-    UploadSpec, View, serve,
+    Asset, BrowseLayout, Component, ContentError, ContentRequest, Ctx, Format, Serve, UploadField,
+    UploadForm, UploadSpec, View, serve,
 };
 use astrum_repo::RepositoryType;
+use astrum_scan::osv::normalise_name;
 use async_trait::async_trait;
 use axum::http::Method;
 use axum::response::Response;
@@ -33,6 +35,7 @@ use crate::remote::{Cache, Mode};
 use crate::route::{FileKind, Route, file_kind, query_pairs};
 use crate::search::Query;
 use crate::urls::Urls;
+use crate::version::Version;
 
 pub const ID: &str = "nuget";
 pub const PACKAGE_KIND: &str = "package";
@@ -371,10 +374,38 @@ impl Nuget {
     }
 }
 
+fn package_inventory(name: &str, version: &str) -> Option<Inventory> {
+    if name.is_empty() {
+        return None;
+    }
+    let name = normalise_name("NuGet", name);
+    let version = Version::parse(version)?.lower();
+    let purl = format!("pkg:nuget/{name}@{version}");
+    Some(Inventory {
+        key: purl.clone(),
+        packages: vec![PackageRef {
+            ecosystem: "NuGet".to_owned(),
+            name,
+            version,
+            purl,
+        }],
+        license: None,
+        complete: true,
+    })
+}
+
 #[async_trait]
 impl Format for Nuget {
     fn id(&self) -> &'static str {
         ID
+    }
+
+    async fn inventory(
+        &self,
+        _ctx: &Ctx,
+        component: &Component,
+    ) -> Result<Option<Inventory>, ContentError> {
+        Ok(package_inventory(&component.name, &component.version))
     }
 
     async fn handle(&self, ctx: Ctx, request: ContentRequest) -> Result<Response, ContentError> {
@@ -444,5 +475,32 @@ impl Format for Nuget {
 impl Nuget {
     pub fn forget(&self, repository: &str) {
         self.cache.forget(repository);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn hosted_and_proxy_packages_share_one_key_by_lower_case_id_and_normalised_version() {
+        let hosted = package_inventory("Newtonsoft.Json", "13.0.3").unwrap();
+        assert_eq!(hosted.key, "pkg:nuget/newtonsoft.json@13.0.3");
+        assert_eq!(hosted.packages[0].ecosystem, "NuGet");
+        assert_eq!(hosted.packages[0].name, "newtonsoft.json");
+        let proxy = package_inventory("newtonsoft.json", "13.0.3.0").unwrap();
+        assert_eq!(proxy.key, hosted.key);
+        assert_eq!(proxy.packages[0].name, hosted.packages[0].name);
+        assert!(package_inventory("newtonsoft.json", "latest").is_none());
+        assert!(package_inventory("newtonsoft.json", "").is_none());
+    }
+
+    #[test]
+    fn prerelease_label_case_does_not_split_hosted_and_proxy_keys() {
+        let hosted = package_inventory("Contoso.Core", "1.0.0-Beta").unwrap();
+        let proxy = package_inventory("contoso.core", "1.0.0-beta").unwrap();
+        assert_eq!(hosted.key, "pkg:nuget/contoso.core@1.0.0-beta");
+        assert_eq!(proxy.key, hosted.key);
+        assert_eq!(hosted.packages[0].version, "1.0.0-beta");
     }
 }

@@ -4,6 +4,7 @@ pub mod client;
 pub mod domains;
 pub mod error;
 pub mod forecast;
+pub mod gate;
 pub mod github;
 pub mod ip_allow;
 pub mod json;
@@ -17,6 +18,7 @@ pub mod second_factor;
 pub mod space;
 
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, OnceLock};
 
 use astrum_blob::BlobStores;
@@ -65,6 +67,13 @@ struct Inner {
     repository_changes: tokio::sync::Notify,
     limits: limits::Limiter,
     metrics: metrics::Registry,
+    scan_metrics: Arc<astrum_scan::worker::Metrics>,
+    matcher_metrics: Arc<astrum_scan::matcher::Metrics>,
+    verdict_metrics: Arc<astrum_scan::verdict::Metrics>,
+    policy_cache: Arc<astrum_policy::cache::Cache>,
+    gate_metrics: Arc<gate::Metrics>,
+    selector_row_cap: AtomicUsize,
+    examine_cap: AtomicUsize,
     stars: github::Stars,
     ip_allow_denials: ip_allow::Denials,
 }
@@ -77,6 +86,11 @@ impl AppState {
             secrets.clone(),
         ));
         let content = Content::new(db.conn().clone(), blob_stores.clone(), secrets.clone());
+        let policy_cache: Arc<astrum_policy::cache::Cache> = Arc::default();
+        let gate_metrics: Arc<gate::Metrics> = Arc::default();
+        content.register_gate(Arc::new(
+            gate::PolicyGate::new(policy_cache.clone(), gate_metrics.clone()).sized_for(db.conn()),
+        ));
         let security = security
             .with_secrets(secrets.clone())
             .with_trust_store(Arc::new(content.outbound().clone()));
@@ -107,6 +121,13 @@ impl AppState {
                 repository_changes: tokio::sync::Notify::new(),
                 limits: limits::Limiter::default(),
                 metrics: metrics::Registry::default(),
+                scan_metrics: Arc::default(),
+                matcher_metrics: Arc::default(),
+                verdict_metrics: Arc::default(),
+                policy_cache,
+                gate_metrics,
+                selector_row_cap: AtomicUsize::new(routes::findings::SELECTOR_ROW_CAP),
+                examine_cap: AtomicUsize::new(routes::findings::EXAMINE_CAP),
                 stars: github::Stars::default(),
                 ip_allow_denials: ip_allow::Denials::default(),
             }),
@@ -228,6 +249,42 @@ impl AppState {
         &self.inner.ip_allow_denials
     }
 
+    pub fn scan_metrics(&self) -> &Arc<astrum_scan::worker::Metrics> {
+        &self.inner.scan_metrics
+    }
+
+    pub fn matcher_metrics(&self) -> &Arc<astrum_scan::matcher::Metrics> {
+        &self.inner.matcher_metrics
+    }
+
+    pub fn verdict_metrics(&self) -> &Arc<astrum_scan::verdict::Metrics> {
+        &self.inner.verdict_metrics
+    }
+
+    pub fn selector_row_cap(&self) -> usize {
+        self.inner.selector_row_cap.load(Ordering::Relaxed)
+    }
+
+    pub fn examine_cap(&self) -> usize {
+        self.inner.examine_cap.load(Ordering::Relaxed)
+    }
+
+    pub fn set_examine_cap(&self, cap: usize) {
+        self.inner.examine_cap.store(cap, Ordering::Relaxed);
+    }
+
+    pub fn set_selector_row_cap(&self, cap: usize) {
+        self.inner.selector_row_cap.store(cap, Ordering::Relaxed);
+    }
+
+    pub fn policy_cache(&self) -> &Arc<astrum_policy::cache::Cache> {
+        &self.inner.policy_cache
+    }
+
+    pub fn gate_metrics(&self) -> &Arc<gate::Metrics> {
+        &self.inner.gate_metrics
+    }
+
     pub async fn audit(&self, caller: &Caller, event: Event) {
         let initiator = match auth::client_address() {
             Some(address) => format!("{}/{address}", caller.initiator()),
@@ -307,6 +364,10 @@ fn endpoints(extra: Router<AppState>) -> Router<AppState> {
         .merge(routes::components::routes())
         .merge(routes::tasks::routes())
         .merge(routes::cleanup_policies::routes())
+        .merge(routes::advisories::routes())
+        .merge(routes::policies::routes())
+        .merge(routes::scan::routes())
+        .merge(routes::findings::routes())
         .merge(routes::support::routes())
         .merge(routes::capabilities::routes())
         .merge(routes::routing_rules::routes())

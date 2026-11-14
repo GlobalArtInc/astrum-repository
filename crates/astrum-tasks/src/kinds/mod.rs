@@ -1,7 +1,9 @@
+pub mod advisories;
 pub mod compact;
 pub mod expired;
 pub mod purge_unused;
 pub mod reconcile;
+pub mod scan;
 pub mod usage_snapshot;
 
 use std::sync::Arc;

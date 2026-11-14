@@ -3,6 +3,9 @@ use axum::http::{HeaderValue, StatusCode, header};
 use axum::response::{IntoResponse, Response};
 
 pub const CHALLENGE: &str = "Basic realm=\"Astrum Repository\"";
+pub const BLOCKED_BY: &str = "x-astrum-blocked-by";
+pub const MAX_BLOCKED_TEXT: usize = 512;
+const BLOCKED_PREFIX: &str = "blocked by policy ";
 
 #[derive(Debug, thiserror::Error)]
 pub enum ContentError {
@@ -26,6 +29,8 @@ pub enum ContentError {
         limit_bytes: i64,
         used_bytes: i64,
     },
+    #[error("{0}")]
+    Blocked(String),
     #[error("the range is outside a blob of {0} bytes")]
     RangeNotSatisfiable(u64),
     #[error("a precondition of the request does not hold")]
@@ -47,11 +52,43 @@ impl ContentError {
         ContentError::Internal(error.into())
     }
 
+    pub fn blocked_by(policy: &str, details: &str) -> Self {
+        let text = format!("{BLOCKED_PREFIX}{policy}: {details}");
+        let text = match text.chars().count() > MAX_BLOCKED_TEXT {
+            true => {
+                let mut cut: String = text.chars().take(MAX_BLOCKED_TEXT - 1).collect();
+                cut.push('\u{2026}');
+                cut
+            }
+            false => text,
+        };
+        ContentError::Blocked(text)
+    }
+
+    pub fn blocking_policy(&self) -> Option<&str> {
+        match self {
+            ContentError::Blocked(text) => text
+                .strip_prefix(BLOCKED_PREFIX)
+                .and_then(|rest| rest.split_once(": "))
+                .map(|(policy, _)| policy)
+                .filter(|policy| !policy.is_empty()),
+            _ => None,
+        }
+    }
+
+    pub fn mark(&self, response: &mut Response) {
+        if let Some(policy) = self.blocking_policy()
+            && let Ok(value) = HeaderValue::from_str(policy)
+        {
+            response.headers_mut().insert(BLOCKED_BY, value);
+        }
+    }
+
     pub fn status(&self) -> StatusCode {
         match self {
             ContentError::NotFound(_) => StatusCode::NOT_FOUND,
             ContentError::Unauthorized => StatusCode::UNAUTHORIZED,
-            ContentError::Forbidden => StatusCode::FORBIDDEN,
+            ContentError::Forbidden | ContentError::Blocked(_) => StatusCode::FORBIDDEN,
             ContentError::MethodNotAllowed { .. } => StatusCode::METHOD_NOT_ALLOWED,
             ContentError::BadRequest(_) => StatusCode::BAD_REQUEST,
             ContentError::Conflict(_) => StatusCode::CONFLICT,
@@ -98,6 +135,7 @@ impl IntoResponse for ContentError {
             .header(header::CONTENT_TYPE, "text/plain;charset=utf-8")
             .body(Body::from(message))
             .unwrap_or_else(|_| status.into_response());
+        self.mark(&mut response);
         let headers = response.headers_mut();
         match self {
             ContentError::Unauthorized => {
@@ -117,5 +155,51 @@ impl IntoResponse for ContentError {
             _ => {}
         }
         response
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn blocked_answers_forbidden_with_its_reason() {
+        let reason = "blocked by policy strict: critical findings";
+        let error = ContentError::Blocked(reason.to_owned());
+        assert_eq!(error.status(), StatusCode::FORBIDDEN);
+        assert_eq!(error.to_string(), reason);
+        assert_eq!(error.into_response().status(), StatusCode::FORBIDDEN);
+    }
+
+    #[test]
+    fn a_refusal_by_a_policy_names_it_in_a_header_and_other_refusals_do_not() {
+        let error = ContentError::blocked_by("strict", "GHSA-1: high in npm/lib@1: fixed");
+        assert_eq!(error.blocking_policy(), Some("strict"));
+        assert_eq!(
+            error.to_string(),
+            "blocked by policy strict: GHSA-1: high in npm/lib@1: fixed"
+        );
+        let response = error.into_response();
+        assert_eq!(response.status(), StatusCode::FORBIDDEN);
+        assert_eq!(response.headers()[BLOCKED_BY], "strict");
+        let long = ContentError::blocked_by("strict", &"x".repeat(2000));
+        assert_eq!(long.to_string().chars().count(), MAX_BLOCKED_TEXT);
+        assert!(long.to_string().ends_with('\u{2026}'));
+        assert_eq!(long.blocking_policy(), Some("strict"));
+        let exact = ContentError::blocked_by(
+            "p",
+            &"y".repeat(MAX_BLOCKED_TEXT - "blocked by policy p: ".len()),
+        );
+        assert_eq!(exact.to_string().chars().count(), MAX_BLOCKED_TEXT);
+        assert!(!exact.to_string().ends_with('\u{2026}'));
+        for other in [
+            ContentError::Blocked("refused".to_owned()),
+            ContentError::Blocked("blocked by policy ".to_owned()),
+            ContentError::Blocked("blocked by policy : nothing".to_owned()),
+            ContentError::Forbidden,
+        ] {
+            assert_eq!(other.blocking_policy(), None, "{other}");
+            assert!(other.into_response().headers().get(BLOCKED_BY).is_none());
+        }
     }
 }

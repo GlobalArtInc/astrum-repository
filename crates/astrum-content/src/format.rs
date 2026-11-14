@@ -7,8 +7,9 @@ use serde::Serialize;
 
 use astrum_repo::RepositoryType;
 
+use crate::inventory::Inventory;
 use crate::proxy::{self, Freshness};
-use crate::store::{self, Asset, PutAsset};
+use crate::store::{self, Asset, Component, PutAsset};
 use crate::transfer::Transfer;
 use crate::{ContentError, ContentRequest, Ctx, group};
 
@@ -162,6 +163,14 @@ pub trait Format: Send + Sync + 'static {
 
     fn transfer(&self) -> Option<&dyn Transfer> {
         None
+    }
+
+    async fn inventory(
+        &self,
+        _ctx: &Ctx,
+        _component: &Component,
+    ) -> Result<Option<Inventory>, ContentError> {
+        Ok(None)
     }
 }
 

@@ -10,7 +10,8 @@ mod xml;
 
 use astrum_content::format::SearchTarget;
 use astrum_content::import::{Described, Imported, Plan};
-use astrum_content::store::{self, ComponentKey, PutAsset};
+use astrum_content::inventory::{Inventory, PackageRef};
+use astrum_content::store::{self, Component, ComponentKey, PutAsset};
 use astrum_content::transfer::{Bundle, GenericTransfer, Transfer};
 use astrum_content::{
     Asset, ContentError, ContentRequest, Ctx, Format, Freshness, SearchKey, Serve, UploadForm,
@@ -102,6 +103,26 @@ pub(crate) fn component_key(coordinates: &Coordinates) -> ComponentKey {
             "baseVersion": coordinates.base_version,
         }}),
     }
+}
+
+pub(crate) fn package_inventory(namespace: &str, name: &str, version: &str) -> Option<Inventory> {
+    if namespace.is_empty() || name.is_empty() || version.is_empty() {
+        return None;
+    }
+    let base = version::base_version(version);
+    let version = base.strip_suffix("-SNAPSHOT").unwrap_or(&base);
+    let purl = format!("pkg:maven/{namespace}/{name}@{version}");
+    Some(Inventory {
+        key: purl.clone(),
+        packages: vec![PackageRef {
+            ecosystem: "Maven".to_owned(),
+            name: format!("{namespace}:{name}"),
+            version: version.to_owned(),
+            purl,
+        }],
+        license: None,
+        complete: true,
+    })
 }
 
 pub(crate) fn describe(parsed: &MavenPath, put: PutAsset) -> PutAsset {
@@ -483,6 +504,18 @@ impl Format for Maven {
         ID
     }
 
+    async fn inventory(
+        &self,
+        _ctx: &Ctx,
+        component: &Component,
+    ) -> Result<Option<Inventory>, ContentError> {
+        Ok(package_inventory(
+            &component.namespace,
+            &component.name,
+            &component.version,
+        ))
+    }
+
     async fn handle(&self, ctx: Ctx, request: ContentRequest) -> Result<Response, ContentError> {
         let kind = ctx.kind();
         match request.method {
@@ -537,5 +570,46 @@ impl Format for Maven {
 
     fn transfer(&self) -> Option<&dyn Transfer> {
         Some(&TRANSFER)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn package(name: &str, version: &str, purl: &str) -> PackageRef {
+        PackageRef {
+            ecosystem: "Maven".to_owned(),
+            name: name.to_owned(),
+            version: version.to_owned(),
+            purl: purl.to_owned(),
+        }
+    }
+
+    #[test]
+    fn hosted_and_proxy_releases_name_group_artifact_and_version() {
+        let hosted = package_inventory("org.example", "lib", "1.2.3").unwrap();
+        assert_eq!(hosted.key, "pkg:maven/org.example/lib@1.2.3");
+        assert_eq!(
+            hosted.packages,
+            [package(
+                "org.example:lib",
+                "1.2.3",
+                "pkg:maven/org.example/lib@1.2.3"
+            )]
+        );
+        let proxy = package_inventory("com.acme", "tool", "2.0").unwrap();
+        assert_eq!(proxy.key, "pkg:maven/com.acme/tool@2.0");
+        assert!(proxy.license.is_none() && proxy.complete);
+        assert!(package_inventory("org.example", "lib", "").is_none());
+    }
+
+    #[test]
+    fn snapshots_use_their_base_version() {
+        for version in ["1.0-SNAPSHOT", "1.0-20260101.120000-1"] {
+            let found = package_inventory("org.example", "lib", version).unwrap();
+            assert_eq!(found.key, "pkg:maven/org.example/lib@1.0");
+            assert_eq!(found.packages[0].version, "1.0");
+        }
     }
 }

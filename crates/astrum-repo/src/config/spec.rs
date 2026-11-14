@@ -52,6 +52,7 @@ impl Spec {
         match section {
             Section::Storage => Some(Required),
             Section::Cleanup => when(kind != Group, Nullable),
+            Section::Policy => when(kind != Group, Omitted),
             Section::Component => when(kind == Hosted, Defaulted),
             Section::Proxy | Section::NegativeCache | Section::HttpClient => {
                 when(kind == Proxy, Required)

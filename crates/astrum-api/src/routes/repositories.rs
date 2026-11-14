@@ -26,6 +26,7 @@ pub const REPOSITORY_SETTINGS: &str = "/service/rest/v1/repositorySettings";
 pub const AUDIT_DOMAIN: &str = "repository";
 pub const HISTORY_DEFAULT_DAYS: i64 = 90;
 pub const HISTORY_MAX_DAYS: i64 = 730;
+const POLICY_ATTACHED: &str = "policy";
 
 pub fn routes() -> Router<AppState> {
     Router::new()
@@ -334,6 +335,9 @@ async fn update(
     check_remote(&state, &repository, Some(&existing)).await?;
     let updated = writer.update(&existing.name, repository).await?;
     state.content().forget_repository(&updated.name);
+    if updated.policy_name().is_some() && updated.policy_name() != existing.policy_name() {
+        super::scan::enqueue_detached(&state, &updated.name, POLICY_ATTACHED);
+    }
     changed(&state, &caller, "updated", &updated).await
 }
 
