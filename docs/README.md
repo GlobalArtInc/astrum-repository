@@ -35,6 +35,9 @@ The same pages are published as a site at https://astrum.globalart.dev.
 - [Repositories](repositories/overview.md)
 - [Cleanup policies](repositories/cleanup-policies.md)
 - [Routing rules](repositories/routing-rules.md)
+- [Licences](repositories/licenses.md): the licence rule of a policy, and the licence report
+- [Image signatures](repositories/image-signatures.md): refusing images that no trusted key has signed
+- [SBOMs](repositories/sbom.md): the packages of an image, read from its SBOM
 - [Formats](formats/README.md): one page per format with the settings of its clients
 
 ## Use
