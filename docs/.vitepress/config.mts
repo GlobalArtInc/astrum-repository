@@ -86,6 +86,9 @@ const sidebar: DefaultTheme.SidebarItem[] = [
       { text: 'Content policies', link: '/repositories/policies' },
       { text: 'Vulnerability scanning', link: '/repositories/security-scanning' },
       { text: 'Routing rules', link: '/repositories/routing-rules' },
+      { text: 'Licences', link: '/repositories/licenses' },
+      { text: 'Image signatures', link: '/repositories/image-signatures' },
+      { text: 'SBOMs', link: '/repositories/sbom' },
     ],
   },
   {
