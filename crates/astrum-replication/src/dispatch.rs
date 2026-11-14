@@ -8,9 +8,10 @@ use sea_orm::sqlx::pool::PoolConnection;
 use sea_orm::sqlx::{self, Postgres};
 use tokio::sync::{OnceCell, Semaphore};
 use tokio::task::{JoinHandle, JoinSet};
-use tokio_util::sync::CancellationToken;
+pub use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
+use crate::gate::Gated;
 use crate::queue::{self, RemoteRow};
 
 pub const LOCK_KEY: i64 = i64::from_be_bytes(*b"astrrepl");
@@ -32,6 +33,8 @@ pub struct Settings {
     pub discover: Duration,
     pub fresh: Duration,
     pub grace: Duration,
+    pub keepalive: Duration,
+    pub idle_max: Duration,
     pub batch: usize,
     pub rounds: usize,
     pub max_remotes: i64,
@@ -48,6 +51,8 @@ impl Default for Settings {
             discover: Duration::from_secs(30),
             fresh: Duration::from_secs(1),
             grace: Duration::from_secs(10),
+            keepalive: Duration::from_secs(120),
+            idle_max: Duration::from_secs(30),
             batch: 20,
             rounds: 10,
             max_remotes: 256,
@@ -167,6 +172,10 @@ impl Dispatcher {
         &self.inner.content
     }
 
+    pub(crate) fn db(&self) -> Gated<'_> {
+        Gated::new(self.inner.content.db(), &self.inner.gate)
+    }
+
     pub(crate) fn settings(&self) -> &Settings {
         &self.inner.settings
     }
@@ -178,13 +187,17 @@ impl Dispatcher {
     pub async fn instance(&self) -> Result<Uuid, DbErr> {
         self.inner
             .own
-            .get_or_try_init(|| queue::own_instance(self.content().db()))
+            .get_or_try_init(|| async { queue::own_instance(&self.db()).await })
             .await
             .copied()
     }
 
     pub fn spawn(self) -> JoinHandle<()> {
-        tokio::spawn(self.serve(CancellationToken::new()))
+        self.spawn_until(CancellationToken::new())
+    }
+
+    pub fn spawn_until(self, stop: CancellationToken) -> JoinHandle<()> {
+        tokio::spawn(self.serve(stop))
     }
 
     pub async fn serve(self, stop: CancellationToken) {
@@ -230,7 +243,7 @@ impl Dispatcher {
     }
 
     pub async fn run_once(&self) -> Result<Pass, DbErr> {
-        let db = self.content().db();
+        let db = &self.db();
         let mut pass = Pass {
             expired: queue::requeue_expired(db).await?,
             ..Pass::default()
@@ -271,10 +284,10 @@ impl Dispatcher {
             });
         }
         let mut pass = Pass::default();
-        while let Some(joined) = pool.join_next().await {
+        while let Some(joined) = pool.join_next_with_id().await {
             match joined {
-                Ok(part) => pass.merge(part),
-                Err(error) => tracing::error!(%error, "a replication worker ended abnormally"),
+                Ok((_, part)) => pass.merge(part),
+                Err(error) => self.crashed(&target, error).await,
             }
         }
         pass

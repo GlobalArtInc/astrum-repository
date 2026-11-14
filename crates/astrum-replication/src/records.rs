@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use sea_orm::prelude::DateTimeWithTimeZone;
-use sea_orm::{ConnectionTrait, DatabaseConnection, DbErr, FromQueryResult, Value};
+use sea_orm::{ConnectionTrait, DbErr, FromQueryResult, Value};
 use uuid::Uuid;
 
 use crate::queue::{Item, statement};
@@ -30,7 +30,7 @@ const SUSPEND: &str = "UPDATE replication_remote SET \
      failures = CASE WHEN suspended_until > now() THEN failures ELSE failures + 1 END, \
      suspended_until = greatest(coalesce(suspended_until, now()), \
          now() + make_interval(secs => $2::double precision)), \
-     last_error = $3 WHERE id = $1";
+     last_error = $3 WHERE id = $1 AND updated_at = $4";
 
 const REMOTE_OK: &str = "UPDATE replication_remote \
      SET failures = 0, suspended_until = NULL, last_error = NULL \
@@ -99,14 +99,14 @@ pub struct Sent {
     pub origin: String,
 }
 
-pub async fn remotes_due(db: &DatabaseConnection, limit: i64) -> Result<Vec<RemoteRow>, DbErr> {
+pub async fn remotes_due(db: &impl ConnectionTrait, limit: i64) -> Result<Vec<RemoteRow>, DbErr> {
     let sql = format!("SELECT {REMOTE_COLUMNS} {REMOTES_DUE}");
     RemoteRow::find_by_statement(statement(&sql, vec![limit.into()]))
         .all(db)
         .await
 }
 
-pub async fn remote(db: &DatabaseConnection, id: Uuid) -> Result<Option<RemoteRow>, DbErr> {
+pub async fn remote(db: &impl ConnectionTrait, id: Uuid) -> Result<Option<RemoteRow>, DbErr> {
     let sql = format!("SELECT {REMOTE_COLUMNS} {REMOTE}");
     RemoteRow::find_by_statement(statement(&sql, vec![id.into()]))
         .one(db)
@@ -114,31 +114,33 @@ pub async fn remote(db: &DatabaseConnection, id: Uuid) -> Result<Option<RemoteRo
 }
 
 pub async fn suspend(
-    db: &DatabaseConnection,
-    remote: Uuid,
+    db: &impl ConnectionTrait,
+    remote: &RemoteRow,
     delay: Duration,
     error: &str,
-) -> Result<(), DbErr> {
-    db.execute(statement(
-        SUSPEND,
-        vec![
-            remote.into(),
-            delay.as_secs_f64().into(),
-            error.to_owned().into(),
-        ],
-    ))
-    .await?;
-    Ok(())
+) -> Result<bool, DbErr> {
+    let suspended = db
+        .execute(statement(
+            SUSPEND,
+            vec![
+                remote.id.into(),
+                delay.as_secs_f64().into(),
+                error.to_owned().into(),
+                remote.updated_at.into(),
+            ],
+        ))
+        .await?;
+    Ok(suspended.rows_affected() == 1)
 }
 
-pub async fn remote_ok(db: &DatabaseConnection, remote: Uuid) -> Result<(), DbErr> {
+pub async fn remote_ok(db: &impl ConnectionTrait, remote: Uuid) -> Result<(), DbErr> {
     db.execute(statement(REMOTE_OK, vec![remote.into()]))
         .await?;
     Ok(())
 }
 
 pub async fn replication(
-    db: &DatabaseConnection,
+    db: &impl ConnectionTrait,
     id: Uuid,
 ) -> Result<Option<ReplicationRow>, DbErr> {
     ReplicationRow::find_by_statement(statement(REPLICATION, vec![id.into()]))
@@ -146,13 +148,17 @@ pub async fn replication(
         .await
 }
 
-pub async fn succeeded(db: &DatabaseConnection, replication: Uuid) -> Result<(), DbErr> {
+pub async fn succeeded(db: &impl ConnectionTrait, replication: Uuid) -> Result<(), DbErr> {
     db.execute(statement(SUCCEEDED, vec![replication.into()]))
         .await?;
     Ok(())
 }
 
-pub async fn failed(db: &DatabaseConnection, replication: Uuid, error: &str) -> Result<(), DbErr> {
+pub async fn failed(
+    db: &impl ConnectionTrait,
+    replication: Uuid,
+    error: &str,
+) -> Result<(), DbErr> {
     db.execute(statement(
         FAILED,
         vec![replication.into(), error.to_owned().into()],
@@ -162,7 +168,7 @@ pub async fn failed(db: &DatabaseConnection, replication: Uuid, error: &str) -> 
 }
 
 pub async fn learned(
-    db: &DatabaseConnection,
+    db: &impl ConnectionTrait,
     remote: &RemoteRow,
     instance: Uuid,
     version: &str,
@@ -189,14 +195,14 @@ fn key(item: &Item) -> Vec<Value> {
     ]
 }
 
-pub async fn sent(db: &DatabaseConnection, item: &Item) -> Result<Option<Sent>, DbErr> {
+pub async fn sent(db: &impl ConnectionTrait, item: &Item) -> Result<Option<Sent>, DbErr> {
     Sent::find_by_statement(statement(SENT, key(item)))
         .one(db)
         .await
 }
 
 pub async fn record_sent(
-    db: &DatabaseConnection,
+    db: &impl ConnectionTrait,
     item: &Item,
     fingerprint: &str,
     origin: &str,
@@ -208,12 +214,12 @@ pub async fn record_sent(
     Ok(())
 }
 
-pub async fn forget_sent(db: &DatabaseConnection, item: &Item) -> Result<(), DbErr> {
+pub async fn forget_sent(db: &impl ConnectionTrait, item: &Item) -> Result<(), DbErr> {
     db.execute(statement(FORGET_SENT, key(item))).await?;
     Ok(())
 }
 
-pub async fn own_instance(db: &DatabaseConnection) -> Result<Uuid, DbErr> {
+pub async fn own_instance(db: &impl ConnectionTrait) -> Result<Uuid, DbErr> {
     db.execute(statement(
         RECORD_INSTANCE,
         vec![INSTANCE_KEY.into(), Uuid::new_v4().to_string().into()],

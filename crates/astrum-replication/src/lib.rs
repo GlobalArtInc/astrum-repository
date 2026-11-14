@@ -3,6 +3,7 @@ pub mod dispatch;
 pub mod error;
 pub mod filter;
 mod fleet;
+mod gate;
 pub mod limit;
 pub mod protocol;
 pub mod queue;

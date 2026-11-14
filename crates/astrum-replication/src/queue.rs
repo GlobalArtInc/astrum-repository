@@ -1,8 +1,6 @@
 use std::time::Duration;
 
-use sea_orm::{
-    ConnectionTrait, DatabaseConnection, DbBackend, DbErr, FromQueryResult, Statement, Value,
-};
+use sea_orm::{ConnectionTrait, DbBackend, DbErr, FromQueryResult, Statement, Value};
 use uuid::Uuid;
 
 use crate::error::{BACKOFF_BASE, BACKOFF_CAP};
@@ -103,7 +101,7 @@ pub struct Failed {
     pub attempts: i32,
 }
 
-pub async fn requeue_expired(db: &DatabaseConnection) -> Result<u64, DbErr> {
+pub async fn requeue_expired(db: &impl ConnectionTrait) -> Result<u64, DbErr> {
     let values = vec![
         MAX_ATTEMPTS.into(),
         BACKOFF_BASE.as_secs_f64().into(),
@@ -116,7 +114,7 @@ pub async fn requeue_expired(db: &DatabaseConnection) -> Result<u64, DbErr> {
 }
 
 pub async fn lease(
-    db: &DatabaseConnection,
+    db: &impl ConnectionTrait,
     remote: Uuid,
     lease: Duration,
     limit: i64,
@@ -130,7 +128,7 @@ pub async fn lease(
 }
 
 pub async fn lease_share(
-    db: &DatabaseConnection,
+    db: &impl ConnectionTrait,
     remote: Uuid,
     lease: Duration,
     limit: i64,
@@ -149,12 +147,12 @@ pub async fn lease_share(
     self::lease(db, remote, lease, share).await
 }
 
-pub async fn renew(db: &DatabaseConnection, id: i64, lease: Duration) -> Result<bool, DbErr> {
+pub async fn renew(db: &impl ConnectionTrait, id: i64, lease: Duration) -> Result<bool, DbErr> {
     Ok(renew_many(db, &[id], lease).await? == 1)
 }
 
 pub async fn renew_many(
-    db: &DatabaseConnection,
+    db: &impl ConnectionTrait,
     ids: &[i64],
     lease: Duration,
 ) -> Result<u64, DbErr> {
@@ -167,7 +165,7 @@ pub async fn renew_many(
     Ok(renewed.rows_affected())
 }
 
-pub async fn finish(db: &DatabaseConnection, item: &Item) -> Result<Finished, DbErr> {
+pub async fn finish(db: &impl ConnectionTrait, item: &Item) -> Result<Finished, DbErr> {
     let deleted = db
         .execute(statement(
             FINISH,
@@ -184,11 +182,11 @@ pub async fn finish(db: &DatabaseConnection, item: &Item) -> Result<Finished, Db
     })
 }
 
-pub async fn release(db: &DatabaseConnection, id: i64) -> Result<(), DbErr> {
+pub async fn release(db: &impl ConnectionTrait, id: i64) -> Result<(), DbErr> {
     release_many(db, &[id]).await
 }
 
-pub async fn release_many(db: &DatabaseConnection, ids: &[i64]) -> Result<(), DbErr> {
+pub async fn release_many(db: &impl ConnectionTrait, ids: &[i64]) -> Result<(), DbErr> {
     if ids.is_empty() {
         return Ok(());
     }
@@ -197,7 +195,7 @@ pub async fn release_many(db: &DatabaseConnection, ids: &[i64]) -> Result<(), Db
     Ok(())
 }
 
-pub async fn defer(db: &DatabaseConnection, id: i64, delay: Duration) -> Result<(), DbErr> {
+pub async fn defer(db: &impl ConnectionTrait, id: i64, delay: Duration) -> Result<(), DbErr> {
     db.execute(statement(
         DEFER,
         vec![id.into(), delay.as_secs_f64().into()],
@@ -207,7 +205,7 @@ pub async fn defer(db: &DatabaseConnection, id: i64, delay: Duration) -> Result<
 }
 
 pub async fn fail(
-    db: &DatabaseConnection,
+    db: &impl ConnectionTrait,
     item: &Item,
     permanent: bool,
     delay: Duration,

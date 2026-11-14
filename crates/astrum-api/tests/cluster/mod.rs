@@ -249,12 +249,19 @@ impl Node {
 }
 
 pub async fn connect(from: &Node, to: &Node) -> String {
-    let body = json!({
+    connect_with(from, to, json!({})).await
+}
+
+pub async fn connect_with(from: &Node, to: &Node, extra: Value) -> String {
+    let mut body = json!({
         "name": format!("remote-{}", Uuid::new_v4().simple()),
         "url": format!("http://{}", to.address),
         "token": to.token,
         "allowPrivateNetwork": true,
     });
+    for (key, value) in extra.as_object().unwrap() {
+        body[key] = value.clone();
+    }
     let made = from
         .fixture
         .call(Method::POST, REMOTES, Auth::Admin, Some(body))

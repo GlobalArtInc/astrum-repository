@@ -11,6 +11,7 @@ astrum-content.workspace = true
 astrum-db.workspace = true
 astrum-outbound.workspace = true
 astrum-security.workspace = true
+async-trait.workspace = true
 bytes.workspace = true
 futures-util.workspace = true
 httpdate.workspace = true

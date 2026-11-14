@@ -49,8 +49,8 @@ mod tests {
         assert_eq!(subject("/docs", "/docs/a.txt"), "/docs/a.txt");
         assert_eq!(subject("/", "/top.txt"), "/top.txt");
         assert_eq!(subject("com.acme", "lib"), "com.acme/lib");
-        assert_eq!(subject("@scope", "pkg"), "@scope/pkg");
-        assert_eq!(subject("@scope", "@scope/pkg"), "@scope/pkg");
+        assert_eq!(subject("acme", "ui"), "acme/ui");
+        assert_eq!(subject("acme", "acme-ui"), "acme/acme-ui");
         assert_eq!(subject("", "app"), "app");
         assert_eq!(subject("/docs", "/docsx/a.txt"), "/docs//docsx/a.txt");
     }

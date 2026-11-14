@@ -46,31 +46,38 @@ pub(crate) enum Phase {
 #[derive(Debug)]
 pub(crate) enum Failure {
     Down(Error),
+    Stuck(Error),
     Remote(Error),
     Local(String),
     Rejected(String),
 }
 
 fn unreachable_for(phase: Phase, error: &Error) -> bool {
+    if phase == Phase::Handshake {
+        return true;
+    }
     match error {
         Error::Retryable { status: None, .. } => true,
         Error::Retryable {
             status: Some(408 | 429),
             ..
         } => true,
-        Error::Retryable { .. } => matches!(phase, Phase::Handshake | Phase::Negotiate),
-        Error::Permanent {
-            status: 401 | 403, ..
-        } => true,
+        Error::Retryable { .. } => phase == Phase::Negotiate,
+        Error::Permanent { status: 401, .. } => true,
+        Error::Refused(_) => true,
         _ => false,
     }
 }
 
 impl Failure {
     pub(crate) fn blame(phase: Phase, error: Error) -> Self {
-        match unreachable_for(phase, &error) {
-            true => Failure::Down(error),
-            false => Failure::Remote(error),
+        if !unreachable_for(phase, &error) {
+            return Failure::Remote(error);
+        }
+        let silent = matches!(error, Error::Retryable { status: None, .. });
+        match silent && matches!(phase, Phase::Upload | Phase::Commit | Phase::Retract) {
+            true => Failure::Stuck(error),
+            false => Failure::Down(error),
         }
     }
 
@@ -83,14 +90,18 @@ impl Failure {
 
     pub(crate) fn retry_after(&self) -> Option<Duration> {
         match self {
-            Failure::Remote(error) | Failure::Down(error) => error.retry_after(),
+            Failure::Remote(error) | Failure::Down(error) | Failure::Stuck(error) => {
+                error.retry_after()
+            }
             _ => None,
         }
     }
 
     pub(crate) fn text(&self) -> String {
         match self {
-            Failure::Remote(error) | Failure::Down(error) => clean(&error.to_string()),
+            Failure::Remote(error) | Failure::Down(error) | Failure::Stuck(error) => {
+                clean(&error.to_string())
+            }
             Failure::Local(text) | Failure::Rejected(text) => clean(text),
         }
     }
@@ -137,7 +148,7 @@ fn digests_of(bundle: &Bundle) -> Vec<String> {
 
 impl Dispatcher {
     pub(crate) async fn transfer(&self, target: &Target, item: &Item) -> Result<Done, Failure> {
-        let db = self.content().db();
+        let db = &self.db();
         let Some(replication) = queue::replication(db, item.replication_id).await? else {
             return Ok(Done::Dropped(DISABLED));
         };
@@ -169,7 +180,11 @@ impl Dispatcher {
         }
     }
 
-    async fn remote_instance(&self, target: &Target, client: &Client) -> Result<Uuid, Failure> {
+    pub(crate) async fn remote_instance(
+        &self,
+        target: &Target,
+        client: &Client,
+    ) -> Result<Uuid, Failure> {
         let learned = target
             .learned
             .get_or_try_init(|| async {
@@ -181,13 +196,8 @@ impl Dispatcher {
                     Failure::Local("the remote reported an instance id that is no UUID".to_owned())
                 })?;
                 if target.remote.remote_instance_id != Some(instance) {
-                    queue::learned(
-                        self.content().db(),
-                        &target.remote,
-                        instance,
-                        &capabilities.version,
-                    )
-                    .await?;
+                    queue::learned(&self.db(), &target.remote, instance, &capabilities.version)
+                        .await?;
                 }
                 Ok::<Uuid, Failure>(instance)
             })
@@ -195,7 +205,7 @@ impl Dispatcher {
         Ok(*learned)
     }
 
-    async fn context(&self, repository: &str) -> Result<Ctx, Failure> {
+    pub(crate) async fn context(&self, repository: &str) -> Result<Ctx, Failure> {
         let found = self
             .content()
             .repository(repository)
@@ -262,7 +272,7 @@ impl Dispatcher {
             )));
         }
         if replication.propagate_deletes {
-            queue::record_sent(self.content().db(), item, &fingerprint(&bundle), &origin).await?;
+            queue::record_sent(&self.db(), item, &fingerprint(&bundle), &origin).await?;
         }
         Ok(Done::Sent)
     }
@@ -281,10 +291,7 @@ impl Dispatcher {
         {
             return Ok(Round::Paused(pause));
         }
-        if !target
-            .fresh(self.content().db(), self.settings().fresh)
-            .await?
-        {
+        if !target.fresh(&self.db(), self.settings().fresh).await? {
             return Ok(Round::Paused(Pause::Stale));
         }
         let committed = target
@@ -303,7 +310,7 @@ impl Dispatcher {
         found: &Component,
         bundle: &Bundle,
     ) -> Result<Option<Pause>, Failure> {
-        let db = self.content().db();
+        let db = &self.db();
         let client = target.client()?;
         let digests = digests_of(bundle);
         let mut lacking: HashSet<String> = HashSet::new();
@@ -354,7 +361,7 @@ impl Dispatcher {
         item: &Item,
         remote: Uuid,
     ) -> Result<Done, Failure> {
-        let db = self.content().db();
+        let db = &self.db();
         if !replication.propagate_deletes {
             queue::forget_sent(db, item).await?;
             return Ok(Done::Dropped(KEPT));
@@ -413,30 +420,65 @@ mod tests {
     }
 
     #[test]
-    fn only_what_is_not_the_fault_of_the_item_marks_the_remote_down() {
+    fn the_handshake_and_the_address_are_the_remotes_and_most_else_is_the_items() {
         use Phase::*;
-        let down = |phase, error| matches!(Failure::blame(phase, error), Failure::Down(_));
-        for phase in [Handshake, Negotiate, Upload, Commit, Retract] {
+        let down = |phase, error| {
+            matches!(
+                Failure::blame(phase, error),
+                Failure::Down(_) | Failure::Stuck(_)
+            )
+        };
+        for error in [
+            retryable(None),
+            retryable(Some(503)),
+            permanent(401),
+            permanent(403),
+            permanent(404),
+            permanent(405),
+            permanent(409),
+            Error::Refused("redirected".to_owned()),
+        ] {
+            assert!(down(Handshake, error), "handshake");
+        }
+        for phase in [Negotiate, Upload, Commit, Retract] {
             assert!(down(phase, retryable(None)), "{phase:?}");
             assert!(down(phase, retryable(Some(429))), "{phase:?}");
+            assert!(down(phase, retryable(Some(408))), "{phase:?}");
             assert!(down(phase, permanent(401)), "{phase:?}");
-            assert!(down(phase, permanent(403)), "{phase:?}");
-            assert!(!down(phase, permanent(409)), "{phase:?}");
-            assert!(!down(phase, permanent(422)), "{phase:?}");
             assert!(
-                !down(phase, Error::Refused("blocked".to_owned())),
+                down(phase, Error::Refused("blocked".to_owned())),
                 "{phase:?}"
             );
+            assert!(!down(phase, permanent(403)), "{phase:?}");
+            assert!(!down(phase, permanent(404)), "{phase:?}");
+            assert!(!down(phase, permanent(409)), "{phase:?}");
+            assert!(!down(phase, permanent(422)), "{phase:?}");
             assert!(
                 !down(phase, Error::BlobsMissing(vec!["a".repeat(64)])),
                 "{phase:?}"
             );
         }
-        for phase in [Handshake, Negotiate] {
-            assert!(down(phase, retryable(Some(503))), "{phase:?}");
-        }
+        assert!(down(Negotiate, retryable(Some(503))));
         for phase in [Upload, Commit, Retract] {
             assert!(!down(phase, retryable(Some(503))), "{phase:?}");
+        }
+    }
+
+    #[test]
+    fn only_silence_in_the_phases_that_carry_the_item_counts_against_the_item() {
+        use Phase::*;
+        let stuck = |phase, error| matches!(Failure::blame(phase, error), Failure::Stuck(_));
+        for phase in [Upload, Commit, Retract] {
+            assert!(stuck(phase, retryable(None)), "{phase:?}");
+            assert!(!stuck(phase, retryable(Some(429))), "{phase:?}");
+            assert!(!stuck(phase, permanent(401)), "{phase:?}");
+            assert!(
+                !stuck(phase, Error::Refused("blocked".to_owned())),
+                "{phase:?}"
+            );
+        }
+        for phase in [Handshake, Negotiate] {
+            assert!(!stuck(phase, retryable(None)), "{phase:?}");
         }
     }
 
@@ -449,6 +491,7 @@ mod tests {
             Failure::Remote(Error::Refused("blocked".to_owned())),
             Failure::Remote(retryable(Some(503))),
             Failure::Down(permanent(401)),
+            Failure::Stuck(retryable(None)),
             Failure::Local("disk".to_owned()),
         ] {
             assert!(!temporary.permanent());

@@ -1513,6 +1513,7 @@ dependencies = [
  "astrum-db",
  "astrum-outbound",
  "astrum-security",
+ "async-trait",
  "axum",
  "bytes",
  "futures-util",

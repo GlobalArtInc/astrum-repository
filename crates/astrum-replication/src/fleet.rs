@@ -83,7 +83,7 @@ impl Dispatcher {
     }
 
     async fn discover(&self, fleet: &mut Fleet, stop: &CancellationToken) -> Result<(), DbErr> {
-        let db = self.content().db();
+        let db = &self.db();
         queue::requeue_expired(db).await?;
         fleet.reap();
         for remote in queue::remotes_due(db, self.settings().max_remotes).await? {
@@ -98,7 +98,7 @@ impl Dispatcher {
     }
 
     async fn keep(self, remote: Uuid, stop: CancellationToken) {
-        let db = self.content().db();
+        let db = &self.db();
         while !stop.is_cancelled() {
             let row = match queue::remote(db, remote).await {
                 Ok(Some(row)) => row,
@@ -120,17 +120,47 @@ impl Dispatcher {
             for _ in 0..workers {
                 pool.spawn(self.clone().loiter(target.clone(), stop.clone()));
             }
-            while pool.join_next().await.is_some() {}
+            while let Some(joined) = pool.join_next_with_id().await {
+                if let Err(error) = joined {
+                    self.crashed(&target, error).await;
+                }
+            }
             self.nap(&stop, self.settings().tick).await;
         }
     }
 
     async fn loiter(self, target: Arc<Target>, stop: CancellationToken) {
+        let settings = self.settings();
+        let mut rest = settings.tick;
         while !stop.is_cancelled() && !target.halted() {
             let pass = self.drain(&target, &stop).await;
-            if pass.leased == 0 {
-                self.nap(&stop, self.settings().tick).await;
+            if pass.leased > 0 {
+                rest = settings.tick;
+                continue;
             }
+            self.nap(&stop, rest).await;
+            rest = grow(rest, settings.idle_max);
         }
+    }
+}
+
+fn grow(rest: Duration, ceiling: Duration) -> Duration {
+    (rest * 2).min(ceiling)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn an_idle_worker_waits_longer_each_time_up_to_the_ceiling() {
+        let ceiling = Duration::from_secs(30);
+        let mut rest = Duration::from_secs(5);
+        let mut seen = Vec::new();
+        for _ in 0..5 {
+            seen.push(rest.as_secs());
+            rest = grow(rest, ceiling);
+        }
+        assert_eq!(seen, [5, 10, 20, 30, 30]);
     }
 }

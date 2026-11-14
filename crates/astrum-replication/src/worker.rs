@@ -4,6 +4,8 @@ use std::time::Duration;
 use astrum_db::setting;
 use astrum_security::ssrf::{Guard, SSRF_KEY, SsrfProtection};
 use sea_orm::DbErr;
+use tokio::sync::OnceCell;
+use tokio::task::JoinError;
 use tokio_util::sync::CancellationToken;
 
 use crate::dispatch::{Dispatcher, Pass};
@@ -22,10 +24,10 @@ impl Dispatcher {
             .client_for(&remote)
             .await
             .map_err(|failure| failure.text());
-        Target::new(remote, client)
+        Target::new(remote, client, OnceCell::new())
     }
 
-    async fn client_for(&self, remote: &RemoteRow) -> Result<Client, Failure> {
+    pub(crate) async fn client_for(&self, remote: &RemoteRow) -> Result<Client, Failure> {
         let content = self.content();
         let token = content.secrets().open(&remote.token).map_err(|_| {
             Failure::Local(
@@ -37,7 +39,7 @@ impl Dispatcher {
             .snapshot()
             .await
             .map_err(|error| Failure::Local(error.to_string()))?;
-        let ssrf: SsrfProtection = setting::get(content.db(), SSRF_KEY)
+        let ssrf: SsrfProtection = setting::get(&self.db(), SSRF_KEY)
             .await
             .map_err(|error| Failure::Local(error.to_string()))?
             .unwrap_or_default();
@@ -60,17 +62,18 @@ impl Dispatcher {
 
     pub(crate) async fn drain(&self, target: &Target, stop: &CancellationToken) -> Pass {
         let mut pass = Pass::default();
-        let permit = tokio::select! {
-            () = stop.cancelled() => return pass,
-            permit = self.inner.gate.acquire() => permit,
-        };
-        let Ok(_permit) = permit else {
-            return pass;
-        };
         if let Err(error) = self.batch(target, stop, &mut pass).await {
             tracing::warn!(%error, "a replication worker stopped on a database error");
         }
         pass
+    }
+
+    pub(crate) async fn crashed(&self, target: &Target, error: JoinError) {
+        tracing::warn!(%error, "a replication worker ended abnormally; its leased items are released");
+        let ids = target.reclaim(error.id());
+        if let Err(release) = queue::release_many(&self.db(), &ids).await {
+            tracing::warn!(error = %release, "the items of a crashed replication worker were not released");
+        }
     }
 
     async fn batch(
@@ -79,9 +82,14 @@ impl Dispatcher {
         stop: &CancellationToken,
         pass: &mut Pass,
     ) -> Result<(), DbErr> {
-        let db = self.content().db();
+        let db = &self.db();
         let settings = self.settings();
         if stop.is_cancelled() || !target.fresh(db, settings.fresh).await? {
+            return Ok(());
+        }
+        if let Err(reason) = &target.client {
+            self.pause(target, &Error::Refused(reason.clone()), pass)
+                .await?;
             return Ok(());
         }
         let workers = i64::try_from(Self::workers_of(&target.remote)).unwrap_or(1);
@@ -89,6 +97,7 @@ impl Dispatcher {
         let leased =
             queue::lease_share(db, target.remote.id, settings.lease, batch, workers).await?;
         pass.leased += u32::try_from(leased.len()).unwrap_or(u32::MAX);
+        let _held = target.hold(leased.iter().map(|item| item.id).collect());
         let mut rest: VecDeque<Item> = leased.into();
         while let Some(item) = rest.pop_front() {
             let waiting: Vec<i64> = rest.iter().map(|waiting| waiting.id).collect();
@@ -96,12 +105,7 @@ impl Dispatcher {
                 return self.give_back(&item, &waiting, pass).await;
             }
             queue::renew_many(db, &waiting, settings.lease).await?;
-            let verdict = tokio::select! {
-                biased;
-                () = stop.cancelled() => None,
-                verdict = self.transfer(target, &item) => Some(verdict),
-            };
-            let Some(verdict) = verdict else {
+            let Some(verdict) = self.attend(target, &item, &waiting, stop).await? else {
                 return self.give_back(&item, &waiting, pass).await;
             };
             match verdict {
@@ -116,7 +120,20 @@ impl Dispatcher {
                 }
                 Ok(done) => self.complete(target, &item, done, pass).await?,
                 Err(Failure::Down(error)) => {
-                    self.suspend(target, &item, &error, pass).await?;
+                    let pause = self.pause(target, &error, pass).await?;
+                    match pause.applied {
+                        true => {
+                            queue::defer(db, item.id, pause.delay).await?;
+                            queue::failed(db, item.replication_id, &pause.text).await?;
+                        }
+                        false => queue::release(db, item.id).await?,
+                    }
+                    queue::release_many(db, &waiting).await?;
+                    return Ok(());
+                }
+                Err(Failure::Stuck(error)) => {
+                    self.pause(target, &error, pass).await?;
+                    self.abandon(&item, Failure::Stuck(error), pass).await?;
                     queue::release_many(db, &waiting).await?;
                     return Ok(());
                 }
@@ -126,10 +143,39 @@ impl Dispatcher {
         Ok(())
     }
 
+    async fn attend(
+        &self,
+        target: &Target,
+        item: &Item,
+        waiting: &[i64],
+        stop: &CancellationToken,
+    ) -> Result<Option<Result<Done, Failure>>, DbErr> {
+        let db = &self.db();
+        let settings = self.settings();
+        let mut ids = vec![item.id];
+        ids.extend_from_slice(waiting);
+        let transfer = self.transfer(target, item);
+        tokio::pin!(transfer);
+        let mut timer = tokio::time::interval_at(
+            tokio::time::Instant::now() + settings.keepalive,
+            settings.keepalive,
+        );
+        loop {
+            tokio::select! {
+                biased;
+                () = stop.cancelled() => return Ok(None),
+                verdict = &mut transfer => return Ok(Some(verdict)),
+                _ = timer.tick() => {
+                    queue::renew_many(db, &ids, settings.lease).await?;
+                }
+            }
+        }
+    }
+
     async fn give_back(&self, item: &Item, waiting: &[i64], pass: &mut Pass) -> Result<(), DbErr> {
         let mut ids = vec![item.id];
         ids.extend_from_slice(waiting);
-        queue::release_many(self.content().db(), &ids).await?;
+        queue::release_many(&self.db(), &ids).await?;
         pass.released += u32::try_from(ids.len()).unwrap_or(u32::MAX);
         Ok(())
     }
@@ -141,7 +187,7 @@ impl Dispatcher {
         done: Done,
         pass: &mut Pass,
     ) -> Result<(), DbErr> {
-        let db = self.content().db();
+        let db = &self.db();
         match done {
             Done::Sent | Done::Deleted => {
                 pass.sent += 1;
@@ -160,36 +206,22 @@ impl Dispatcher {
         Ok(())
     }
 
-    async fn suspend(
-        &self,
-        target: &Target,
-        item: &Item,
-        error: &Error,
-        pass: &mut Pass,
-    ) -> Result<(), DbErr> {
-        let db = self.content().db();
-        let refused = error.status().filter(|status| matches!(status, 401 | 403));
-        let failures = u32::try_from(target.remote.failures).unwrap_or(0);
-        let (delay, text) = match refused {
-            Some(status) => (
-                TOKEN_PAUSE,
-                format!("the remote refused the token (status {status}); enter a valid token"),
-            ),
-            None => (
-                backoff(failures).max(error.retry_after().unwrap_or_default()),
-                clean(&error.to_string()),
-            ),
-        };
-        queue::defer(db, item.id, delay).await?;
-        queue::suspend(db, target.remote.id, delay, &text).await?;
-        queue::failed(db, item.replication_id, &text).await?;
+    async fn pause(&self, target: &Target, error: &Error, pass: &mut Pass) -> Result<Pause, DbErr> {
+        let (delay, text) = pause_for(target, error);
+        let applied = queue::suspend(&self.db(), &target.remote, delay, &text).await?;
         target.halt();
-        pass.suspended += 1;
-        Ok(())
+        if applied {
+            pass.suspended += 1;
+        }
+        Ok(Pause {
+            delay,
+            text,
+            applied,
+        })
     }
 
     async fn abandon(&self, item: &Item, failure: Failure, pass: &mut Pass) -> Result<(), DbErr> {
-        let db = self.content().db();
+        let db = &self.db();
         let attempts = u32::try_from(item.attempts).unwrap_or(0);
         let delay = failure
             .retry_after()
@@ -209,4 +241,26 @@ impl Dispatcher {
         }
         Ok(())
     }
+}
+
+struct Pause {
+    delay: Duration,
+    text: String,
+    applied: bool,
+}
+
+fn pause_for(target: &Target, error: &Error) -> (Duration, String) {
+    if let Some(status @ (401 | 403)) = error.status() {
+        return (
+            TOKEN_PAUSE,
+            format!(
+                "the remote refused the token (status {status}); enter a valid token that may receive replication"
+            ),
+        );
+    }
+    let failures = u32::try_from(target.remote.failures).unwrap_or(0);
+    (
+        backoff(failures).max(error.retry_after().unwrap_or_default()),
+        clean(&error.to_string()),
+    )
 }
