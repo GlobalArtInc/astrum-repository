@@ -102,6 +102,16 @@ async fn authenticate(
                 .insert(header::RETRY_AFTER, HeaderValue::from(seconds));
             Err(response)
         }
+        Err(PasswordRefusal::Busy) => {
+            let mut response = refused(
+                StatusCode::TOO_MANY_REQUESTS,
+                astrum_api::error::CONCURRENT_MESSAGE,
+            );
+            response
+                .headers_mut()
+                .insert(header::RETRY_AFTER, HeaderValue::from(1u64));
+            Err(response)
+        }
         Err(PasswordRefusal::Internal(error)) => {
             Err(Box::new(ContentError::internal(error).into_response()))
         }

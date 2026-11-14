@@ -4,6 +4,7 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use astrum_api::STATUS;
+use astrum_security::sessions::{CONCURRENT_ALLOWED, FAILURES_ALLOWED, GUESSES_BEFORE_BLOCK};
 use axum::body::Body;
 use axum::extract::ConnectInfo;
 use axum::http::{Method, Request, StatusCode, header};
@@ -129,22 +130,113 @@ async fn tokens_of_a_blocked_pair_still_work() {
     assert_eq!(as_password.status, StatusCode::OK);
 }
 
+async fn parallel(fixture: &Arc<Fixture>, password: &str, count: usize) -> Vec<Reply> {
+    let tasks: Vec<_> = (0..count)
+        .map(|_| {
+            let fixture = Arc::clone(fixture);
+            let password = password.to_owned();
+            tokio::spawn(async move { status_as(&fixture, "admin", &password, &FIRST).await })
+        })
+        .collect();
+    let mut replies = Vec::with_capacity(count);
+    for task in tasks {
+        replies.push(task.await.unwrap());
+    }
+    replies
+}
+
+fn count(replies: &[Reply], status: StatusCode) -> usize {
+    replies
+        .iter()
+        .filter(|reply| reply.status == status)
+        .count()
+}
+
+fn is_busy(reply: &Reply) -> bool {
+    reply.status == StatusCode::TOO_MANY_REQUESTS
+        && reply.json()["message"] == "too many concurrent sign-ins"
+        && reply.headers.contains_key(header::RETRY_AFTER)
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn parallel_wrong_passwords_are_bounded_by_the_allowance_plus_the_concurrency_cap() {
+    let fixture = Arc::new(behind_gateway().await);
+    let replies = parallel(&fixture, "wrong", 100).await;
+    let refused = count(&replies, StatusCode::UNAUTHORIZED);
+    assert_eq!(
+        refused + count(&replies, StatusCode::TOO_MANY_REQUESTS),
+        100
+    );
+    assert!(refused >= FAILURES_ALLOWED as usize, "{refused}");
+    assert!(refused <= GUESSES_BEFORE_BLOCK as usize, "{refused}");
+    assert_eq!(GUESSES_BEFORE_BLOCK, 73);
+    let right = status_as(&fixture, "admin", &fixture.admin_password, &FIRST).await;
+    assert_eq!(right.status, StatusCode::TOO_MANY_REQUESTS);
+    assert!(!is_busy(&right));
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn parallel_legitimate_requests_of_one_user_all_succeed() {
+    let fixture = Arc::new(behind_gateway().await);
+    for size in [20, 60] {
+        let replies = parallel(&fixture, &fixture.admin_password, size).await;
+        assert_eq!(count(&replies, StatusCode::OK), size);
+    }
+    for _ in 0..FAILURES_ALLOWED {
+        let reply = status_as(&fixture, "admin", "wrong", &FIRST).await;
+        assert_eq!(reply.status, StatusCode::UNAUTHORIZED);
+    }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn only_requests_above_the_cap_are_refused_when_seventy_run_at_once() {
+    let fixture = Arc::new(behind_gateway().await);
+    let replies = parallel(&fixture, &fixture.admin_password, 70).await;
+    let ok = count(&replies, StatusCode::OK);
+    let busy = replies.iter().filter(|reply| is_busy(reply)).count();
+    assert_eq!(ok + busy, 70);
+    assert!(ok >= CONCURRENT_ALLOWED as usize);
+}
+
 #[tokio::test]
-async fn parallel_wrong_passwords_cannot_exceed_the_allowance() {
+async fn requests_above_the_cap_are_refused_and_do_not_count_as_failures() {
     let fixture = behind_gateway().await;
-    let replies = futures_util::future::join_all(
-        (0..30).map(|_| status_as(&fixture, "admin", "wrong", &FIRST)),
-    )
-    .await;
-    let refused = replies
-        .iter()
-        .filter(|reply| reply.status == StatusCode::UNAUTHORIZED)
-        .count();
-    let paused = replies
-        .iter()
-        .filter(|reply| reply.status == StatusCode::TOO_MANY_REQUESTS)
-        .count();
-    assert_eq!((refused, paused), (10, 20));
+    let address = Some(FIRST[0].1.parse().unwrap());
+    let security = fixture.state.security();
+    let mut held = Vec::new();
+    for _ in 0..CONCURRENT_ALLOWED - 1 {
+        held.push(security.basic_begin("admin", address).unwrap());
+    }
+    let within = status_as(&fixture, "admin", &fixture.admin_password, &FIRST).await;
+    assert_eq!(within.status, StatusCode::OK);
+    held.push(security.basic_begin("admin", address).unwrap());
+    for _ in 0..FAILURES_ALLOWED * 2 {
+        let above = status_as(&fixture, "admin", "wrong", &FIRST).await;
+        assert!(is_busy(&above));
+    }
+    let other = status_as(&fixture, "admin", &fixture.admin_password, &SECOND).await;
+    assert_eq!(other.status, StatusCode::OK);
+    drop(held);
+    for _ in 0..FAILURES_ALLOWED {
+        let reply = status_as(&fixture, "admin", "wrong", &FIRST).await;
+        assert_eq!(reply.status, StatusCode::UNAUTHORIZED);
+    }
+    let blocked = status_as(&fixture, "admin", "wrong", &FIRST).await;
+    assert_eq!(blocked.status, StatusCode::TOO_MANY_REQUESTS);
+    assert!(!is_busy(&blocked));
+}
+
+#[tokio::test]
+async fn sequential_requests_never_leak_a_slot() {
+    let fixture = behind_gateway().await;
+    for _ in 0..(CONCURRENT_ALLOWED + 6) {
+        let reply = status_as(&fixture, "admin", &fixture.admin_password, &FIRST).await;
+        assert_eq!(reply.status, StatusCode::OK);
+    }
+    for round in 0..FAILURES_ALLOWED {
+        let reply = status_as(&fixture, "admin", "wrong", &FIRST).await;
+        assert_eq!(reply.status, StatusCode::UNAUTHORIZED, "{round}");
+    }
 }
 
 #[tokio::test]

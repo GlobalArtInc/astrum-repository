@@ -9,13 +9,14 @@ use base64::engine::general_purpose::STANDARD;
 use astrum_security::api_keys;
 use astrum_security::format_tokens::looks_like_format_token;
 use astrum_security::oauth::looks_like_access_token;
+use astrum_security::sessions::BasicDenied;
 use astrum_security::tokens::looks_like_token;
 use astrum_security::{AuthError, Gate, Subject};
 use axum::http::Method;
 use subtle::ConstantTimeEq;
 
 use crate::AppState;
-use crate::error::ApiError;
+use crate::error::{ApiError, CONCURRENT_MESSAGE};
 use crate::routes::internal::session;
 
 pub const UI_HEADER: &str = "x-astrum-ui";
@@ -110,6 +111,9 @@ pub async fn authenticate(
         Err(ApiError::TooManyAttempts(seconds)) if is_registry(request.uri().path()) => {
             return registry_throttled(seconds);
         }
+        Err(ApiError::TooManyConcurrent) if is_registry(request.uri().path()) => {
+            return registry_busy();
+        }
         Err(error) => return without_challenge(error.into_response(), from_ui),
     };
     if let Some(client) = client {
@@ -164,6 +168,7 @@ async fn resolve(
                     Err(PasswordRefusal::Throttled(seconds)) => {
                         return Err(ApiError::TooManyAttempts(seconds));
                     }
+                    Err(PasswordRefusal::Busy) => return Err(ApiError::TooManyConcurrent),
                     Err(PasswordRefusal::Internal(error)) => Err(AuthError::Internal(error)),
                 };
                 (user, result)
@@ -267,6 +272,7 @@ fn restricted_allows(method: &Method, path: &str) -> bool {
 pub enum PasswordRefusal {
     Wrong(Option<Gate>),
     Throttled(u64),
+    Busy,
     Internal(astrum_security::Error),
 }
 
@@ -280,31 +286,36 @@ pub async fn check_password(
     let security = state.security();
     let address = crate::client::current();
     let by_key = nuget_key_allowed && api_keys::looks_like_api_key(password);
-    if let Err(wait) = security.basic_attempt(user, address) {
-        if by_key {
-            match security
-                .authenticate_api_key_as(api_keys::NUGET, user, password)
-                .await
-            {
-                Ok(subject) => return Ok(subject),
-                Err(AuthError::Internal(error)) => return Err(PasswordRefusal::Internal(error)),
-                Err(AuthError::SecondFactor(_)) | Err(AuthError::BadCredentials) => {}
+    let slot = match security.basic_begin(user, address) {
+        Ok(slot) => slot,
+        Err(denied) => {
+            if by_key {
+                match security
+                    .authenticate_api_key_as(api_keys::NUGET, user, password)
+                    .await
+                {
+                    Ok(subject) => return Ok(subject),
+                    Err(AuthError::Internal(error)) => {
+                        return Err(PasswordRefusal::Internal(error));
+                    }
+                    Err(AuthError::SecondFactor(_)) | Err(AuthError::BadCredentials) => {}
+                }
             }
+            return Err(match denied {
+                BasicDenied::Blocked(wait) => {
+                    PasswordRefusal::Throttled(wait.as_secs_f64().ceil().max(1.0) as u64)
+                }
+                BasicDenied::Busy => PasswordRefusal::Busy,
+            });
         }
-        return Err(PasswordRefusal::Throttled(
-            wait.as_secs_f64().ceil().max(1.0) as u64,
-        ));
-    }
+    };
     let mut refused_gate = None;
     match security.authenticate(user, password).await {
         Ok(subject) => {
-            security.basic_succeeded(user, address);
+            slot.succeeded();
             return Ok(subject);
         }
-        Err(AuthError::Internal(error)) => {
-            security.basic_refunded(user, address);
-            return Err(PasswordRefusal::Internal(error));
-        }
+        Err(AuthError::Internal(error)) => return Err(PasswordRefusal::Internal(error)),
         Err(AuthError::SecondFactor(pending)) => refused_gate = Some(pending.gate),
         Err(AuthError::BadCredentials) => {}
     }
@@ -313,18 +324,12 @@ pub async fn check_password(
             .authenticate_api_key_as(api_keys::NUGET, user, password)
             .await
         {
-            Ok(subject) => {
-                security.basic_refunded(user, address);
-                return Ok(subject);
-            }
-            Err(AuthError::Internal(error)) => {
-                security.basic_refunded(user, address);
-                return Err(PasswordRefusal::Internal(error));
-            }
+            Ok(subject) => return Ok(subject),
+            Err(AuthError::Internal(error)) => return Err(PasswordRefusal::Internal(error)),
             Err(AuthError::SecondFactor(_)) | Err(AuthError::BadCredentials) => {}
         }
     }
-    if security.basic_failed(user, address) && security.model().users.contains_key(user) {
+    if slot.failed() && security.model().users.contains_key(user) {
         session::audit_rate_limited(state, user, address, method).await;
     }
     Err(PasswordRefusal::Wrong(refused_gate))
@@ -345,11 +350,11 @@ fn is_registry(path: &str) -> bool {
     path == "/v2" || path.starts_with("/v2/")
 }
 
-pub fn registry_throttled(seconds: u64) -> Response {
+fn registry_refusal(message: &str, seconds: u64) -> Response {
     let body = serde_json::json!({
         "errors": [{
             "code": "TOOMANYREQUESTS",
-            "message": "too many failed sign-ins; wait a few minutes",
+            "message": message,
         }]
     });
     let mut response = (
@@ -362,6 +367,14 @@ pub fn registry_throttled(seconds: u64) -> Response {
         .headers_mut()
         .insert(header::RETRY_AFTER, axum::http::HeaderValue::from(seconds));
     response
+}
+
+pub fn registry_throttled(seconds: u64) -> Response {
+    registry_refusal("too many failed sign-ins; wait a few minutes", seconds)
+}
+
+pub fn registry_busy() -> Response {
+    registry_refusal(CONCURRENT_MESSAGE, 1)
 }
 
 fn audit_path(path: &str) -> String {

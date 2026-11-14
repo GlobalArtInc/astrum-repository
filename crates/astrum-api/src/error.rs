@@ -5,6 +5,7 @@ use serde::Serialize;
 use serde_json::json;
 
 pub const ENROLLMENT_REQUIRED: &str = "two-factor-enrollment-required";
+pub const CONCURRENT_MESSAGE: &str = "too many concurrent sign-ins";
 pub const CHALLENGE: &str = "Basic realm=\"Astrum Repository\"";
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
@@ -29,6 +30,8 @@ pub enum ApiError {
     Forbidden(String),
     #[error("too many failed sign-ins; wait a few minutes")]
     TooManyAttempts(u64),
+    #[error("too many concurrent sign-ins")]
+    TooManyConcurrent,
     #[error("this session may only set up a second factor")]
     EnrollmentRequired,
     #[error("the request body must be {0}")]
@@ -127,6 +130,17 @@ impl IntoResponse for ApiError {
                 response
                     .headers_mut()
                     .insert(header::RETRY_AFTER, HeaderValue::from(seconds));
+                response
+            }
+            ApiError::TooManyConcurrent => {
+                let mut response = (
+                    StatusCode::TOO_MANY_REQUESTS,
+                    message_body(CONCURRENT_MESSAGE),
+                )
+                    .into_response();
+                response
+                    .headers_mut()
+                    .insert(header::RETRY_AFTER, HeaderValue::from(1u64));
                 response
             }
             ApiError::UnsupportedMediaType(expected) => (

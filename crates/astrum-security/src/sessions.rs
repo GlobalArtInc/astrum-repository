@@ -18,7 +18,9 @@ use crate::{Error, Security};
 
 pub const TIMEOUT_KEY: &str = "security.sessionTimeoutMinutes";
 const TOUCH_EVERY: Duration = Duration::seconds(60);
-const FAILURES_ALLOWED: u32 = 10;
+pub const FAILURES_ALLOWED: u32 = 10;
+pub const CONCURRENT_ALLOWED: u32 = 64;
+pub const GUESSES_BEFORE_BLOCK: u32 = FAILURES_ALLOWED + CONCURRENT_ALLOWED - 1;
 const FAILURE_WINDOW: StdDuration = StdDuration::from_secs(300);
 const KEPT_ENTRIES: usize = 10_000;
 const HARD_CAP: usize = 50_000;
@@ -40,7 +42,8 @@ pub fn throttle_address(address: Option<IpAddr>) -> String {
 }
 
 struct Attempts {
-    count: u32,
+    failures: u32,
+    in_flight: u32,
     since: Instant,
     reported: bool,
 }
@@ -54,6 +57,18 @@ pub(crate) struct BasicFailures {
     state: Mutex<BasicState>,
     window: StdDuration,
     cap: usize,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BasicDenied {
+    Blocked(StdDuration),
+    Busy,
+}
+
+#[must_use = "a slot must be settled with failed or succeeded, or dropped to release it"]
+pub struct BasicSlot<'a> {
+    owner: &'a BasicFailures,
+    key: Option<(String, String)>,
 }
 
 impl Default for BasicFailures {
@@ -90,53 +105,68 @@ impl BasicFailures {
         self.state.lock().unwrap_or_else(PoisonError::into_inner)
     }
 
-    pub(crate) fn attempt(&self, user_id: &str, address: &str) -> Result<(), StdDuration> {
+    fn expire(found: &mut Attempts, window: StdDuration) {
+        if found.failures > 0 && found.since.elapsed() >= window {
+            found.failures = 0;
+            found.reported = false;
+        }
+    }
+
+    pub(crate) fn begin(&self, user_id: &str, address: &str) -> Result<BasicSlot<'_>, BasicDenied> {
         let key = Self::key(user_id, address);
         let mut state = self.state();
         let window = self.window;
         if state.entries.len() > KEPT_ENTRIES && state.last_prune.elapsed() >= PRUNE_EVERY {
             state
                 .entries
-                .retain(|_, found| found.since.elapsed() < window);
+                .retain(|_, found| found.in_flight > 0 || found.since.elapsed() < window);
             state.last_prune = Instant::now();
         }
         if let Some(found) = state.entries.get_mut(&key) {
-            let elapsed = found.since.elapsed();
-            if elapsed >= window {
-                *found = Attempts {
-                    count: 1,
-                    since: Instant::now(),
-                    reported: false,
-                };
-                return Ok(());
+            Self::expire(found, window);
+            if found.failures >= FAILURES_ALLOWED {
+                return Err(BasicDenied::Blocked(
+                    window.saturating_sub(found.since.elapsed()),
+                ));
             }
-            if found.count >= FAILURES_ALLOWED {
-                return Err(window - elapsed);
+            if found.in_flight >= CONCURRENT_ALLOWED {
+                return Err(BasicDenied::Busy);
             }
-            found.count += 1;
-            return Ok(());
+            found.in_flight += 1;
+            return Ok(BasicSlot {
+                owner: self,
+                key: Some(key),
+            });
         }
         if state.entries.len() >= self.cap {
             self.make_room(&mut state);
         }
         if state.entries.len() < self.cap {
             state.entries.insert(
-                key,
+                key.clone(),
                 Attempts {
-                    count: 1,
+                    failures: 0,
+                    in_flight: 1,
                     since: Instant::now(),
                     reported: false,
                 },
             );
+            return Ok(BasicSlot {
+                owner: self,
+                key: Some(key),
+            });
         }
-        Ok(())
+        Ok(BasicSlot {
+            owner: self,
+            key: None,
+        })
     }
 
     fn make_room(&self, state: &mut BasicState) {
         let window = self.window;
         state
             .entries
-            .retain(|_, found| found.since.elapsed() < window);
+            .retain(|_, found| found.in_flight > 0 || found.since.elapsed() < window);
         state.last_prune = Instant::now();
         if state.entries.len() < self.cap {
             return;
@@ -144,52 +174,75 @@ impl BasicFailures {
         let lowest = state
             .entries
             .values()
-            .filter(|found| found.count < FAILURES_ALLOWED)
-            .map(|found| found.count)
+            .filter(|found| found.in_flight == 0 && found.failures < FAILURES_ALLOWED)
+            .map(|found| found.failures)
             .min();
         if let Some(lowest) = lowest {
-            state
-                .entries
-                .retain(|_, found| found.count >= FAILURES_ALLOWED || found.count > lowest);
+            state.entries.retain(|_, found| {
+                found.in_flight > 0 || found.failures >= FAILURES_ALLOWED || found.failures > lowest
+            });
         }
     }
 
-    pub(crate) fn blocked(&self, user_id: &str, address: &str) -> Option<StdDuration> {
-        let key = Self::key(user_id, address);
-        let state = self.state();
-        let found = state.entries.get(&key)?;
-        let elapsed = found.since.elapsed();
-        (found.count >= FAILURES_ALLOWED && elapsed < self.window).then(|| self.window - elapsed)
-    }
-
-    pub(crate) fn failed(&self, user_id: &str, address: &str) -> bool {
-        let key = Self::key(user_id, address);
+    fn release(&self, key: &(String, String), outcome: Outcome) -> bool {
         let mut state = self.state();
-        let Some(found) = state.entries.get_mut(&key) else {
+        let window = self.window;
+        let Some(found) = state.entries.get_mut(key) else {
             return false;
         };
-        let blocked = found.count >= FAILURES_ALLOWED && found.since.elapsed() < self.window;
-        let first = blocked && !found.reported;
-        if first {
-            found.reported = true;
+        found.in_flight = found.in_flight.saturating_sub(1);
+        let mut first = false;
+        match outcome {
+            Outcome::Failed => {
+                Self::expire(found, window);
+                if found.failures == 0 {
+                    found.since = Instant::now();
+                }
+                found.failures += 1;
+                first = found.failures >= FAILURES_ALLOWED && !found.reported;
+                if first {
+                    found.reported = true;
+                }
+            }
+            Outcome::Succeeded => {
+                found.failures = 0;
+                found.reported = false;
+            }
+            Outcome::Released => {}
+        }
+        if found.failures == 0 && found.in_flight == 0 {
+            state.entries.remove(key);
         }
         first
     }
+}
 
-    pub(crate) fn refund(&self, user_id: &str, address: &str) {
-        let key = Self::key(user_id, address);
-        let mut state = self.state();
-        if let Some(found) = state.entries.get_mut(&key) {
-            found.count = found.count.saturating_sub(1);
-            if found.count == 0 {
-                state.entries.remove(&key);
-            }
+enum Outcome {
+    Failed,
+    Succeeded,
+    Released,
+}
+
+impl BasicSlot<'_> {
+    pub fn failed(mut self) -> bool {
+        match self.key.take() {
+            Some(key) => self.owner.release(&key, Outcome::Failed),
+            None => false,
         }
     }
 
-    pub(crate) fn succeeded(&self, user_id: &str, address: &str) {
-        let key = Self::key(user_id, address);
-        self.state().entries.remove(&key);
+    pub fn succeeded(mut self) {
+        if let Some(key) = self.key.take() {
+            self.owner.release(&key, Outcome::Succeeded);
+        }
+    }
+}
+
+impl Drop for BasicSlot<'_> {
+    fn drop(&mut self) {
+        if let Some(key) = self.key.take() {
+            self.owner.release(&key, Outcome::Released);
+        }
     }
 }
 
@@ -442,29 +495,13 @@ impl Security {
             .remove(user_id);
     }
 
-    pub fn basic_attempt(&self, user_id: &str, address: Option<IpAddr>) -> Result<(), StdDuration> {
+    pub fn basic_begin(
+        &self,
+        user_id: &str,
+        address: Option<IpAddr>,
+    ) -> Result<BasicSlot<'_>, BasicDenied> {
         self.basic_failures
-            .attempt(user_id, &throttle_address(address))
-    }
-
-    pub fn basic_blocked(&self, user_id: &str, address: Option<IpAddr>) -> Option<StdDuration> {
-        self.basic_failures
-            .blocked(user_id, &throttle_address(address))
-    }
-
-    pub fn basic_failed(&self, user_id: &str, address: Option<IpAddr>) -> bool {
-        self.basic_failures
-            .failed(user_id, &throttle_address(address))
-    }
-
-    pub fn basic_refunded(&self, user_id: &str, address: Option<IpAddr>) {
-        self.basic_failures
-            .refund(user_id, &throttle_address(address));
-    }
-
-    pub fn basic_succeeded(&self, user_id: &str, address: Option<IpAddr>) {
-        self.basic_failures
-            .succeeded(user_id, &throttle_address(address));
+            .begin(user_id, &throttle_address(address))
     }
 }
 
@@ -472,70 +509,155 @@ impl Security {
 mod tests {
     use super::*;
 
-    #[test]
-    fn basic_attempts_are_counted_per_user_and_address() {
-        let failures = BasicFailures::default();
-        for _ in 0..FAILURES_ALLOWED - 1 {
-            failures.attempt("Admin", "203.0.113.1").unwrap();
+    fn fail(failures: &BasicFailures, user: &str, address: &str) -> bool {
+        failures.begin(user, address).unwrap().failed()
+    }
+
+    fn blocked(failures: &BasicFailures, user: &str, address: &str) -> Option<StdDuration> {
+        match failures.begin(user, address) {
+            Err(BasicDenied::Blocked(wait)) => Some(wait),
+            _ => None,
         }
-        assert!(failures.blocked("admin", "203.0.113.1").is_none());
-        failures.attempt(" admin ", "203.0.113.1").unwrap();
-        let wait = failures.blocked("ADMIN", "203.0.113.1").unwrap();
-        assert!(wait > StdDuration::ZERO && wait <= FAILURE_WINDOW);
-        assert!(failures.attempt("admin", "203.0.113.1").unwrap_err() <= wait);
-        assert!(failures.attempt("admin", "203.0.113.2").is_ok());
-        assert!(failures.attempt("other", "203.0.113.1").is_ok());
-        failures.succeeded("admin", "203.0.113.1");
-        assert!(failures.attempt("admin", "203.0.113.1").is_ok());
     }
 
     #[test]
-    fn a_block_is_reported_once_and_a_refund_gives_the_attempt_back() {
+    fn failures_are_counted_per_user_and_address() {
         let failures = BasicFailures::default();
-        for _ in 0..FAILURES_ALLOWED {
-            failures.attempt("ci", "a").unwrap();
+        for _ in 0..FAILURES_ALLOWED - 1 {
+            fail(&failures, "Admin", "203.0.113.1");
         }
-        assert!(failures.failed("ci", "a"));
-        assert!(!failures.failed("ci", "a"));
-        failures.refund("ci", "a");
-        assert!(failures.blocked("ci", "a").is_none());
-        assert!(!failures.failed("ci", "a"));
-        failures.attempt("ci", "a").unwrap();
-        assert!(failures.blocked("ci", "a").is_some());
+        assert!(blocked(&failures, "admin", "203.0.113.1").is_none());
+        fail(&failures, " admin ", "203.0.113.1");
+        let wait = blocked(&failures, "ADMIN", "203.0.113.1").unwrap();
+        assert!(wait > StdDuration::ZERO && wait <= FAILURE_WINDOW);
+        assert!(blocked(&failures, "admin", "203.0.113.2").is_none());
+        assert!(blocked(&failures, "other", "203.0.113.1").is_none());
+        failures.begin("admin", "203.0.113.2").unwrap().succeeded();
+        assert!(failures.begin("admin", "203.0.113.1").is_err());
+    }
+
+    #[test]
+    fn a_success_clears_the_failures() {
+        let failures = BasicFailures::default();
+        for _ in 0..FAILURES_ALLOWED - 1 {
+            fail(&failures, "ci", "a");
+        }
+        failures.begin("ci", "a").unwrap().succeeded();
+        for _ in 0..FAILURES_ALLOWED - 1 {
+            fail(&failures, "ci", "a");
+        }
+        assert!(failures.begin("ci", "a").is_ok());
+        assert_eq!(failures.state().entries.len(), 1);
+    }
+
+    #[test]
+    fn a_block_is_reported_once() {
+        let failures = BasicFailures::default();
+        for _ in 0..FAILURES_ALLOWED - 1 {
+            assert!(!fail(&failures, "ci", "a"));
+        }
+        assert!(fail(&failures, "ci", "a"));
+        assert!(blocked(&failures, "ci", "a").is_some());
+        assert!(blocked(&failures, "ci", "a").is_some());
+    }
+
+    #[test]
+    fn a_slot_is_released_on_every_exit_and_leaves_no_entry() {
+        let failures = BasicFailures::default();
+        let held: Vec<BasicSlot<'_>> = (0..CONCURRENT_ALLOWED)
+            .map(|_| failures.begin("ci", "a").unwrap())
+            .collect();
+        assert_eq!(failures.begin("ci", "a").err(), Some(BasicDenied::Busy));
+        let mut held = held.into_iter();
+        held.next().unwrap().failed();
+        assert!(failures.begin("ci", "a").is_ok());
+        held.next().unwrap().succeeded();
+        drop(held.next());
+        let panicked = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let _slot = failures.begin("ci", "b").unwrap();
+            panic!("a verification panics");
+        }));
+        assert!(panicked.is_err());
+        assert!(failures.begin("ci", "b").is_ok());
+        drop(held);
+        assert_eq!(failures.state().entries.len(), 0);
+    }
+
+    #[test]
+    fn busy_requests_do_not_count_as_failures() {
+        let failures = BasicFailures::default();
+        let held: Vec<BasicSlot<'_>> = (0..CONCURRENT_ALLOWED)
+            .map(|_| failures.begin("ci", "a").unwrap())
+            .collect();
+        for _ in 0..FAILURES_ALLOWED * 3 {
+            assert_eq!(failures.begin("ci", "a").err(), Some(BasicDenied::Busy));
+        }
+        drop(held);
+        assert!(failures.begin("ci", "a").is_ok());
+        assert_eq!(failures.state().entries.len(), 0);
+    }
+
+    #[test]
+    fn parallel_guesses_stop_at_the_documented_bound() {
+        let failures = BasicFailures::default();
+        let mut running: Vec<BasicSlot<'_>> = Vec::new();
+        let mut started = 0u32;
+        while let Ok(slot) = failures.begin("ci", "a") {
+            running.push(slot);
+            started += 1;
+        }
+        assert_eq!(started, CONCURRENT_ALLOWED);
+        while let Some(slot) = running.pop() {
+            slot.failed();
+            match failures.begin("ci", "a") {
+                Ok(slot) => {
+                    running.push(slot);
+                    started += 1;
+                }
+                Err(denied) => assert!(matches!(denied, BasicDenied::Blocked(_))),
+            }
+        }
+        assert_eq!(started, GUESSES_BEFORE_BLOCK);
+        assert_eq!(GUESSES_BEFORE_BLOCK, 73);
+        assert!(matches!(
+            failures.begin("ci", "a").err(),
+            Some(BasicDenied::Blocked(_))
+        ));
     }
 
     #[test]
     fn the_window_ends() {
         let failures = BasicFailures::with_limits(StdDuration::from_millis(100), HARD_CAP);
         for _ in 0..FAILURES_ALLOWED {
-            failures.attempt("ci", "a").unwrap();
+            fail(&failures, "ci", "a");
         }
-        assert!(failures.attempt("ci", "a").is_err());
+        assert!(blocked(&failures, "ci", "a").is_some());
         std::thread::sleep(StdDuration::from_millis(150));
-        assert!(failures.blocked("ci", "a").is_none());
-        assert!(failures.attempt("ci", "a").is_ok());
+        assert!(failures.begin("ci", "a").is_ok());
     }
 
     #[test]
     fn the_map_stays_within_its_cap_and_new_keys_fail_open() {
         let failures = BasicFailures::with_limits(FAILURE_WINDOW, 3);
         for user in ["a", "b", "c"] {
-            failures.attempt(user, "x").unwrap();
+            fail(&failures, user, "x");
         }
-        failures.attempt("d", "x").unwrap();
+        fail(&failures, "d", "x");
         assert!(failures.state().entries.len() <= 3);
         for user in ["a", "b", "c"] {
             for _ in 0..FAILURES_ALLOWED {
-                let _ = failures.attempt(user, "x");
+                if let Ok(slot) = failures.begin(user, "x") {
+                    slot.failed();
+                }
             }
         }
         for user in ["a", "b", "c"] {
-            assert!(failures.blocked(user, "x").is_some(), "{user}");
+            assert!(blocked(&failures, user, "x").is_some(), "{user}");
         }
         for _ in 0..FAILURES_ALLOWED * 2 {
-            assert!(failures.attempt("new", "x").is_ok());
+            assert!(!fail(&failures, "new", "x"));
         }
-        assert!(failures.blocked("new", "x").is_none());
+        assert!(blocked(&failures, "new", "x").is_none());
         assert_eq!(failures.state().entries.len(), 3);
     }
 
@@ -553,15 +675,9 @@ mod tests {
         assert_eq!(throttle_address(None), "unknown");
         let failures = BasicFailures::default();
         for _ in 0..FAILURES_ALLOWED {
-            failures
-                .attempt("ci", &key("2001:db8:1:2:aaaa::1"))
-                .unwrap();
+            fail(&failures, "ci", &key("2001:db8:1:2:aaaa::1"));
         }
-        assert!(
-            failures
-                .attempt("ci", &key("2001:db8:1:2:bbbb::2"))
-                .is_err()
-        );
+        assert!(blocked(&failures, "ci", &key("2001:db8:1:2:bbbb::2")).is_some());
     }
 
     #[test]

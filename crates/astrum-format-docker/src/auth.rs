@@ -223,6 +223,7 @@ pub async fn oauth(
             oauth_error(StatusCode::UNAUTHORIZED, "invalid_grant")
         }
         Err(PasswordRefusal::Throttled(seconds)) => astrum_api::auth::registry_throttled(seconds),
+        Err(PasswordRefusal::Busy) => astrum_api::auth::registry_busy(),
         Err(PasswordRefusal::Internal(error)) => {
             RegistryError::from(astrum_content::ContentError::internal(error)).into_response()
         }
