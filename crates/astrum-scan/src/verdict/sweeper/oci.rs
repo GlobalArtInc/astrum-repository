@@ -37,7 +37,7 @@ pub(super) async fn mark_stale(db: &DatabaseConnection, chunk: i64) -> Result<u6
          queued AS (\
            INSERT INTO policy_dirty (repository, subject) \
            SELECT p.repository, p.subject FROM page p JOIN live l ON l.name = p.repository \
-           ORDER BY p.repository, p.subject ON CONFLICT (repository, subject) DO NOTHING \
+           ORDER BY p.subject, p.repository ON CONFLICT (repository, subject) DO NOTHING \
            RETURNING 1) \
          SELECT count(*) AS n, (SELECT count(*) FROM queued) AS changed, \
            (array_agg(repository ORDER BY repository DESC, subject DESC))[1] AS last_repository, \
@@ -47,7 +47,12 @@ pub(super) async fn mark_stale(db: &DatabaseConnection, chunk: i64) -> Result<u6
     sweep_pages(db, chunk, &sql).await
 }
 
-pub(super) async fn drop_orphans(db: &DatabaseConnection, chunk: i64) -> Result<u64, DbErr> {
+pub(super) const ORPHAN_PAGE: i64 = 5000;
+
+pub(super) async fn drop_orphans(
+    db: &DatabaseConnection,
+    after: &(String, String),
+) -> Result<((String, String), u64), DbErr> {
     let sql = format!(
         "WITH page AS (\
            SELECT repository, subject FROM policy_verdict \
@@ -59,23 +64,42 @@ pub(super) async fn drop_orphans(db: &DatabaseConnection, chunk: i64) -> Result<
              WHERE a.repository = p.repository AND a.format = 'docker' \
                AND a.kind IN ('manifest', 'tag') \
                AND a.attributes #>> '{{docker,digest}}' = substr(p.subject, {skip}))), \
+         locked AS (\
+           SELECT v.repository, v.subject FROM policy_verdict v \
+           JOIN gone g ON g.repository = v.repository AND g.subject = v.subject \
+           ORDER BY v.repository, v.subject FOR UPDATE OF v), \
          deleted AS (\
-           DELETE FROM policy_verdict v USING gone g \
-           WHERE v.repository = g.repository AND v.subject = g.subject RETURNING 1) \
+           DELETE FROM policy_verdict v USING locked l \
+           WHERE v.repository = l.repository AND v.subject = l.subject RETURNING 1) \
          SELECT count(*) AS n, (SELECT count(*) FROM deleted) AS changed, \
            (array_agg(repository ORDER BY repository DESC, subject DESC))[1] AS last_repository, \
            (array_agg(subject ORDER BY repository DESC, subject DESC))[1] AS last_subject \
          FROM page",
         skip = IMAGE_PREFIX.len() + 1,
     );
-    let removed = sweep_pages(db, chunk, &sql).await?;
+    let (found, removed, last_repository, last_subject) = page(
+        db.query_one(Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            sql,
+            [
+                after.0.clone().into(),
+                after.1.clone().into(),
+                ORPHAN_PAGE.into(),
+            ],
+        ))
+        .await?,
+    )?;
     if removed > 0 {
         tracing::debug!(
             removed,
             "verdicts of images that no manifest or tag holds any more were removed"
         );
     }
-    Ok(removed)
+    let next = match (found < ORPHAN_PAGE, last_repository, last_subject) {
+        (false, Some(repository), Some(subject)) => (repository, subject),
+        _ => (String::new(), String::new()),
+    };
+    Ok((next, removed as u64))
 }
 
 async fn sweep_pages(db: &DatabaseConnection, chunk: i64, sql: &str) -> Result<u64, DbErr> {

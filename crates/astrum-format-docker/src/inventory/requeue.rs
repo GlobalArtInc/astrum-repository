@@ -77,7 +77,7 @@ async fn queue(
                 repository = ctx.name(),
                 image,
                 limit = LIMIT,
-                "more tags hold the image of a stored SBOM than are queued for a new scan; the rest wait for the next sweep"
+                "more tags hold the image of a stored SBOM than are queued for a new scan; the rest wait for a new push, the scan task of the repository or a rescan over REST"
             );
         }
         for batch in ids.chunks(BATCH) {

@@ -1,5 +1,7 @@
 use astrum_db::revision;
 use astrum_policy::subject::COMPONENT_PREFIX;
+use std::time::Instant;
+
 use chrono::{DateTime, Utc};
 use sea_orm::{
     ConnectionTrait, DatabaseConnection, DbBackend, DbErr, QueryResult, Statement, TransactionTrait,
@@ -15,6 +17,8 @@ const SWEEP_LOCK: &str = "SELECT pg_try_advisory_xact_lock(hashtext('policy.swee
 pub struct State {
     revision: Option<i64>,
     expired_until: Option<DateTime<Utc>>,
+    orphans_at: Option<Instant>,
+    orphans_after: (String, String),
 }
 
 pub async fn sweep(
@@ -46,7 +50,14 @@ pub async fn sweep(
     let mut marked = 0u64;
     let from = state.expired_until.unwrap_or(DateTime::<Utc>::UNIX_EPOCH);
     marked += mark_expired(db, config.chunk, from, now).await?;
-    oci::drop_orphans(db, config.chunk).await?;
+    if state
+        .orphans_at
+        .is_none_or(|at| at.elapsed() >= config.orphan_every)
+    {
+        let (next, _) = oci::drop_orphans(db, &state.orphans_after).await?;
+        state.orphans_after = next;
+        state.orphans_at = Some(Instant::now());
+    }
     state.expired_until = Some(now);
     if state.revision != Some(current) {
         marked += mark_stale(db, config.chunk).await?;

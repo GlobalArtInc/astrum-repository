@@ -272,3 +272,71 @@ async fn the_sweeper_marks_images_without_a_verdict_or_with_a_stale_one_by_their
         "c:1,oci:sha256:aa,oci:sha256:dd"
     );
 }
+
+#[tokio::test]
+async fn deleting_a_tag_marks_its_image_so_an_exception_for_the_tag_stops_unblocking_it() {
+    let s = setup().await;
+    inventory(&s, "one", "sha256:aa", true, true).await;
+    tag(&s, "one", 1, "app", "1.0", "sha256:aa").await;
+    exception(&s, "name", "app").await;
+    let states = "SELECT string_agg(subject || '/' || state, ',' ORDER BY subject) AS n \
+                  FROM policy_verdict";
+    assert_eq!(text(&s, states).await, "c:1/pass,oci:sha256:aa/pass");
+
+    execute(&s, "DELETE FROM component WHERE id = 1").await;
+    judge(&s).await;
+
+    assert_eq!(text(&s, states).await, "oci:sha256:aa/block");
+}
+
+#[tokio::test]
+async fn the_orphan_pass_takes_five_thousand_images_at_a_time_and_leaves_components_alone() {
+    let s = setup().await;
+    execute(
+        &s,
+        "INSERT INTO policy_verdict (repository, subject, policy, blocked, state, policy_revision) \
+           SELECT 'one', 'oci:sha256:' || lpad(g::text, 64, '0'), 'base', false, 'pass', 1 \
+           FROM generate_series(1, 12000) g; \
+         INSERT INTO policy_verdict (repository, subject, policy, blocked, state, policy_revision) \
+           VALUES ('one', 'c:1', 'base', false, 'pass', 1), ('one', 'c:2', 'base', false, 'pass', 1)",
+    )
+    .await;
+    let config = Config {
+        orphan_every: Duration::ZERO,
+        ..config()
+    };
+    let mut state = SweepState::default();
+    let count = "SELECT count(*) FILTER (WHERE subject LIKE 'oci:%') || '/' || \
+                        count(*) FILTER (WHERE subject LIKE 'c:%') AS n FROM policy_verdict";
+    let mut seen = Vec::new();
+    for _ in 0..3 {
+        verdict::sweep(s.db.conn(), &config, &mut state)
+            .await
+            .unwrap();
+        seen.push(text(&s, count).await);
+    }
+    assert_eq!(seen, ["7000/2", "2000/2", "0/2"]);
+}
+
+#[tokio::test]
+async fn the_orphan_pass_runs_at_most_once_in_its_interval() {
+    let s = setup().await;
+    let mut state = SweepState::default();
+    let config = config();
+    verdict::sweep(s.db.conn(), &config, &mut state)
+        .await
+        .unwrap();
+    execute(
+        &s,
+        "INSERT INTO policy_verdict (repository, subject, policy, blocked, state, policy_revision) \
+           VALUES ('one', 'oci:sha256:aa', 'base', false, 'pass', 1)",
+    )
+    .await;
+    verdict::sweep(s.db.conn(), &config, &mut state)
+        .await
+        .unwrap();
+    assert_eq!(
+        subjects(&s, "policy_verdict", "oci:%").await,
+        "oci:sha256:aa"
+    );
+}

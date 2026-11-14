@@ -101,7 +101,7 @@ async fn fan_out_package(
          queued AS (\
            INSERT INTO policy_dirty (repository, subject) \
            SELECT repository, '{COMPONENT_PREFIX}' || component_id FROM page \
-           ON CONFLICT (repository, subject) DO NOTHING) \
+           ORDER BY component_id ON CONFLICT (repository, subject) DO NOTHING) \
          SELECT count(*) AS n, COALESCE(max(component_id), $2) AS last FROM page"
     );
     let mut subjects = oci::fan_out(db, chunk, marked.package_id).await?;
