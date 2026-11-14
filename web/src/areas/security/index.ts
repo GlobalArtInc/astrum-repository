@@ -65,6 +65,11 @@ export const securityArea: Area = {
     },
     { path: 'admin/security/realms', load: () => import('./realms/RealmsPage'), need: SETTINGS_READ },
     { path: 'admin/security/ssrf-protection', load: () => import('./ssrf/SsrfPage'), need: ADMINISTRATOR },
+    {
+      path: 'admin/security/licenses',
+      load: () => import('./licenses/LicensesPage'),
+      need: ADMINISTRATOR,
+    },
   ],
   settings: [
     {
@@ -91,6 +96,11 @@ export const securityArea: Area = {
       id: 'realms',
       to: '/admin/security/realms',
       need: SETTINGS_READ,
+    },
+    {
+      id: 'licenses',
+      to: '/admin/security/licenses',
+      need: ADMINISTRATOR,
     },
   ],
 };

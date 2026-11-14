@@ -18024,6 +18024,189 @@
         ]
       }
     },
+    "/v1/security/licenses": {
+      "get": {
+        "operationId": "getV1SecurityLicenses",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "repository",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "license",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "state",
+            "schema": {
+              "enum": [
+                "spdx",
+                "mapped",
+                "unknown",
+                "none"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "format",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "continuationToken",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "continuationToken": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "items": {
+                      "items": {
+                        "properties": {
+                          "declared": {
+                            "type": "string"
+                          },
+                          "expression": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "format": {
+                            "type": "string"
+                          },
+                          "ids": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": "array"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "namespace": {
+                            "type": "string"
+                          },
+                          "repository": {
+                            "type": "string"
+                          },
+                          "state": {
+                            "enum": [
+                              "spdx",
+                              "mapped",
+                              "unknown",
+                              "none"
+                            ],
+                            "type": "string"
+                          },
+                          "verdict": {
+                            "enum": [
+                              "pass",
+                              "blocked",
+                              "reported",
+                              "unjudged"
+                            ],
+                            "type": "string"
+                          },
+                          "version": {
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {},
+          "401": {}
+        },
+        "summary": "List security licenses",
+        "tags": [
+          "Security management: licences"
+        ]
+      }
+    },
+    "/v1/security/licenses/export.csv": {
+      "get": {
+        "operationId": "getV1SecurityLicensesExport.csv",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "repository",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "license",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "state",
+            "schema": {
+              "enum": [
+                "spdx",
+                "mapped",
+                "unknown",
+                "none"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "format",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {},
+          "401": {}
+        },
+        "summary": "List security licenses export.csv",
+        "tags": [
+          "Security management: licences"
+        ]
+      }
+    },
     "/v1/security/policies": {
       "get": {
         "operationId": "getV1SecurityPolicies",
@@ -19735,6 +19918,9 @@
     },
     {
       "name": "Security management: keys"
+    },
+    {
+      "name": "Security management: licences"
     },
     {
       "name": "Security management: policies"

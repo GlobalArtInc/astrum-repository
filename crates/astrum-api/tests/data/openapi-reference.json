@@ -11095,6 +11095,185 @@
     ]
    }
   },
+  "/v1/security/licenses": {
+   "get": {
+    "parameters": [
+     {
+      "in": "query",
+      "name": "repository",
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "license",
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "state",
+      "schema": {
+       "type": "string",
+       "enum": [
+        "spdx",
+        "mapped",
+        "unknown",
+        "none"
+       ]
+      }
+     },
+     {
+      "in": "query",
+      "name": "format",
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "continuationToken",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "items": {
+           "type": "array",
+           "items": {
+            "type": "object",
+            "properties": {
+             "repository": {
+              "type": "string"
+             },
+             "format": {
+              "type": "string"
+             },
+             "namespace": {
+              "type": "string"
+             },
+             "name": {
+              "type": "string"
+             },
+             "version": {
+              "type": "string"
+             },
+             "declared": {
+              "type": "string"
+             },
+             "expression": {
+              "type": "string",
+              "nullable": true
+             },
+             "ids": {
+              "type": "array",
+              "items": {
+               "type": "string"
+              }
+             },
+             "state": {
+              "type": "string",
+              "enum": [
+               "spdx",
+               "mapped",
+               "unknown",
+               "none"
+              ]
+             },
+             "verdict": {
+              "type": "string",
+              "enum": [
+               "pass",
+               "blocked",
+               "reported",
+               "unjudged"
+              ]
+             }
+            }
+           }
+          },
+          "continuationToken": {
+           "type": "string",
+           "nullable": true
+          }
+         }
+        }
+       }
+      }
+     },
+     "400": {},
+     "401": {}
+    },
+    "tags": [
+     "Security management: licences"
+    ]
+   }
+  },
+  "/v1/security/licenses/export.csv": {
+   "get": {
+    "parameters": [
+     {
+      "in": "query",
+      "name": "repository",
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "license",
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "state",
+      "schema": {
+       "type": "string",
+       "enum": [
+        "spdx",
+        "mapped",
+        "unknown",
+        "none"
+       ]
+      }
+     },
+     {
+      "in": "query",
+      "name": "format",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "text/csv": {
+        "schema": {
+         "type": "string"
+        }
+       }
+      }
+     },
+     "400": {},
+     "401": {}
+    },
+    "tags": [
+     "Security management: licences"
+    ]
+   }
+  },
   "/v1/security/jwt": {
    "put": {
     "responses": {

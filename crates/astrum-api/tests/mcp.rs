@@ -3,7 +3,7 @@ mod ui_support;
 
 use astrum_db::entity::audit_event;
 use axum::http::{Method, StatusCode, header};
-use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
+use sea_orm::{ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter};
 use serde_json::{Value, json};
 use support::{Auth, Fixture, Reply};
 use ui_support::*;
@@ -755,4 +755,54 @@ async fn prompts_guide_the_usual_jobs() {
     )
     .await;
     assert_eq!(missing["error"]["code"], -32602);
+}
+
+#[tokio::test]
+async fn licence_findings_are_listed_for_a_read_token() {
+    let fixture = ready().await;
+    raw_hosted(&fixture, "files").await;
+    put(
+        &fixture,
+        "/repository/files/docs/readme.txt",
+        "hello from astrum\n",
+    )
+    .await;
+    fixture
+        .state
+        .db()
+        .conn()
+        .execute_unprepared(
+            "INSERT INTO component_license (component_id, declared, source, expression, ids, state) \
+             SELECT id, 'MIT', 'npm.packument', 'MIT', ARRAY['MIT'], 'spdx' FROM component \
+             WHERE repository = 'files'",
+        )
+        .await
+        .unwrap();
+    let read = token(&fixture, "READ").await;
+    let listed = names(&rpc(&fixture, &read, "tools/list", json!({})).await);
+    assert!(
+        listed.contains(&"list_license_findings".to_owned()),
+        "{listed:?}"
+    );
+    let found = ok(
+        &fixture,
+        &read,
+        "list_license_findings",
+        json!({"repository": "files", "license": "MIT"}),
+    )
+    .await;
+    let items = found["items"].as_array().unwrap();
+    assert_eq!(items.len(), 1, "{found}");
+    assert_eq!(items[0]["repository"], "files");
+    assert_eq!(items[0]["ids"], json!(["MIT"]));
+    assert_eq!(items[0]["state"], "spdx");
+    assert_eq!(items[0]["verdict"], "unjudged");
+    let refused = failed(
+        &fixture,
+        &read,
+        "list_license_findings",
+        json!({"state": "bogus"}),
+    )
+    .await;
+    assert!(!refused.is_empty());
 }

@@ -20,6 +20,7 @@ import {
   Network,
   Puzzle,
   Route,
+  Scale,
   ScrollText,
   ShieldCheck,
   SlidersHorizontal,
@@ -176,6 +177,15 @@ export const CATALOG: CatalogTile[] = [
     FileKey,
     'settings.tile.sslCertificates',
     'settings.tile.sslCertificatesText',
+  ),
+  tile(
+    'licenses',
+    'security',
+    90,
+    '/admin/security/licenses',
+    Scale,
+    'settings.tile.licenses',
+    'settings.tile.licensesText',
   ),
   tile(
     'system-information',
