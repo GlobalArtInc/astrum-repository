@@ -329,16 +329,23 @@ async fn a_user_whose_passkeys_all_stopped_working_is_told_to_ask_an_administrat
 }
 
 #[tokio::test]
-async fn the_options_calls_share_the_failure_budget_of_the_sign_in() {
+async fn options_calls_are_not_failures_but_refused_assertions_are() {
     let fixture = passkey_world().await;
     let login = password(&fixture, "jane", JANE, &[]).await;
     add(&fixture, &login, &key(1), "Laptop").await;
     let handle = start(&fixture, "jane", JANE).await;
-    for _ in 0..10 {
+    for _ in 0..11 {
         let options = options_for(&fixture, &handle).await;
         assert_eq!(options.status, StatusCode::OK, "{}", options.text());
     }
-    let blocked = options_for(&fixture, &handle).await;
+    for _ in 0..2 {
+        let (handle, options) = challenge(&fixture, "jane", JANE).await;
+        let stranger = key(9).assert(&options["publicKey"], 1);
+        for _ in 0..5 {
+            submit(&fixture, &handle, &options["ceremony"], stranger.clone()).await;
+        }
+    }
+    let blocked = password(&fixture, "jane", JANE, &[]).await;
     assert_eq!(blocked.status, StatusCode::TOO_MANY_REQUESTS);
 }
 

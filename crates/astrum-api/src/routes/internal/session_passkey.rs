@@ -185,7 +185,6 @@ async fn options(State(state): State<AppState>, headers: HeaderMap) -> Result<Re
             "too many failed sign-ins; wait a few minutes",
         ));
     }
-    security.sign_in_failed(&ceremony.user_id);
     let rp = resolve_relying_party(&state)?;
     let pending = security
         .begin_passkey_sign_in(
