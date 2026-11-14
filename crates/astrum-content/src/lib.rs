@@ -17,6 +17,7 @@ mod serve;
 pub mod store;
 #[cfg(test)]
 mod tests;
+pub mod tiering;
 pub mod transfer;
 pub mod usage;
 pub mod zip;

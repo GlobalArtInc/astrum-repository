@@ -325,6 +325,14 @@ async fn prepare(
         &choices,
         &mut problems,
     );
+    let stores = state
+        .tasks()
+        .content()
+        .blob_stores()
+        .configs()
+        .await
+        .map_err(ApiError::internal)?;
+    kind.check(&properties, &stores, &mut problems);
     problems.finish().map_err(self::problems)?;
     Ok(NewTask {
         kind: kind.id().to_owned(),

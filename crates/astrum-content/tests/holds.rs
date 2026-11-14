@@ -196,6 +196,57 @@ async fn expired_holds_are_taken_a_batch_at_a_time() {
     assert_eq!(count(conn, "SELECT count(*) AS n FROM blob_hold").await, 0);
 }
 
+async fn reasons(conn: &impl ConnectionTrait) -> Vec<(Uuid, String)> {
+    conn.query_all(Statement::from_string(
+        DbBackend::Postgres,
+        "SELECT blob_id, reason FROM blob_hold ORDER BY reason",
+    ))
+    .await
+    .unwrap()
+    .iter()
+    .map(|row| {
+        (
+            row.try_get::<Uuid>("", "blob_id").unwrap(),
+            row.try_get::<String>("", "reason").unwrap(),
+        )
+    })
+    .collect()
+}
+
+#[tokio::test]
+async fn a_hold_keeps_its_reason_and_the_sweep_drains_every_kind() {
+    let test = TestDatabase::create().await;
+    let db = test.migrated().await;
+    let conn = db.conn();
+    let (plain, tiering, retired) = (BlobId::new(), BlobId::new(), BlobId::new());
+    let hour = Duration::from_secs(3600);
+    holds::hold(conn, "files", plain, hour).await.unwrap();
+    holds::hold_for(conn, "files", tiering, hour, holds::TIERING)
+        .await
+        .unwrap();
+    holds::hold_for(conn, "files", retired, hour, holds::RETIRED)
+        .await
+        .unwrap();
+    assert_eq!(
+        reasons(conn).await,
+        vec![
+            (retired.uuid(), "retired".to_owned()),
+            (tiering.uuid(), "tiering".to_owned()),
+            (plain.uuid(), "transfer".to_owned()),
+        ]
+    );
+    let error = holds::hold_for(conn, "files", retired, hour, holds::TIERING)
+        .await
+        .unwrap_err();
+    assert!(matches!(error, HoldError::Exists { .. }), "{error}");
+
+    conn.execute_unprepared("UPDATE blob_hold SET held_until = now() - interval '1 minute'")
+        .await
+        .unwrap();
+    assert_eq!(holds::take_expired(conn, 10).await.unwrap().len(), 3);
+    assert!(reasons(conn).await.is_empty());
+}
+
 async fn until(mut done: impl AsyncFnMut() -> bool) {
     let deadline = Instant::now() + Duration::from_secs(20);
     while !done().await {

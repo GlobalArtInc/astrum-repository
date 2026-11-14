@@ -13,6 +13,8 @@ use uuid::Uuid;
 use crate::ContentError;
 
 pub const TRANSFER: &str = "transfer";
+pub const TIERING: &str = "tiering";
+pub const RETIRED: &str = "retired";
 
 const HOLD: &str = "INSERT INTO blob_hold (blob_store, blob_id, reason, held_until) \
      VALUES ($1, $2, $3, now() + make_interval(secs => $4)) \
@@ -21,6 +23,11 @@ const HOLD: &str = "INSERT INTO blob_hold (blob_store, blob_id, reason, held_unt
 const EXTEND: &str = "UPDATE blob_hold \
      SET held_until = GREATEST(held_until, now() + make_interval(secs => $3)) \
      WHERE blob_store = $1 AND blob_id = $2 AND held_until > now()";
+
+const HOLD_AT_LEAST: &str = "INSERT INTO blob_hold (blob_store, blob_id, reason, held_until) \
+     VALUES ($1, $2, $3, now() + make_interval(secs => $4)) \
+     ON CONFLICT (blob_store, blob_id) DO UPDATE \
+     SET held_until = GREATEST(blob_hold.held_until, EXCLUDED.held_until)";
 
 const RELEASE: &str = "DELETE FROM blob_hold WHERE blob_store = $1 AND blob_id = $2";
 
@@ -75,6 +82,16 @@ pub async fn hold(
     id: BlobId,
     ttl: Duration,
 ) -> Result<(), HoldError> {
+    hold_for(db, store, id, ttl, TRANSFER).await
+}
+
+pub async fn hold_for(
+    db: &impl ConnectionTrait,
+    store: &str,
+    id: BlobId,
+    ttl: Duration,
+    reason: &str,
+) -> Result<(), HoldError> {
     let inserted = db
         .execute(Statement::from_sql_and_values(
             DbBackend::Postgres,
@@ -82,7 +99,7 @@ pub async fn hold(
             [
                 store.into(),
                 id.uuid().into(),
-                TRANSFER.into(),
+                reason.into(),
                 ttl.as_secs_f64().into(),
             ],
         ))
@@ -110,6 +127,27 @@ pub async fn extend(
         ))
         .await?;
     Ok(extended.rows_affected() > 0)
+}
+
+pub async fn hold_at_least(
+    db: &impl ConnectionTrait,
+    store: &str,
+    id: BlobId,
+    ttl: Duration,
+    reason: &str,
+) -> Result<(), ContentError> {
+    db.execute(Statement::from_sql_and_values(
+        DbBackend::Postgres,
+        HOLD_AT_LEAST,
+        [
+            store.into(),
+            id.uuid().into(),
+            reason.into(),
+            ttl.as_secs_f64().into(),
+        ],
+    ))
+    .await?;
+    Ok(())
 }
 
 pub async fn release(
