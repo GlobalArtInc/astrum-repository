@@ -18,6 +18,7 @@ pub(crate) static TRANSFER: GenericTransfer = GenericTransfer {
     admit: Some(admit_bundle),
     replaceable: None,
     carried: &[ID],
+    bundle_skip: None,
 };
 
 fn describe_imported(file: &Imported) -> BoxFuture<'_, Result<Option<Described>, String>> {

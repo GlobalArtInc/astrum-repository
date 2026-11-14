@@ -977,7 +977,7 @@ async fn providers_are_promoted_with_their_checksums_and_signature() {
     let format = astrum_format_terraform::Terraform::default();
     let path = format!("{DEMO}/2.0.0/{}", demo_file("2.0.0", "linux"));
     let bundle = support::bundle_of(&fixture, &format, "tf-source", &path).await;
-    assert_eq!(bundle.assets.len(), 3);
+    assert_eq!(bundle.assets.len(), 2);
     let outcome = support::receive(&fixture, &format, "tf-source", "tf-target", &bundle).await;
     assert_eq!(outcome.status, Status::Copied);
     assert!(outcome.warnings.is_empty(), "{:?}", outcome.warnings);
@@ -1149,4 +1149,35 @@ async fn promotion_and_upload_of_two_versions_keep_their_checksums() {
         .await;
         assert_eq!(signature.status, StatusCode::OK, "{}", signature.text());
     }
+}
+
+#[tokio::test]
+async fn a_provider_bundle_leaves_out_the_files_the_sender_generates() {
+    let fixture = repositories().await;
+    create(&fixture, "hosted", hosted("tf-signed", "allow_once")).await;
+    sign(&fixture, "tf-signed").await;
+    release(&fixture, "tf-source", "2.0.0", "linux").await;
+    release(&fixture, "tf-signed", "2.0.0", "linux").await;
+    let signature = get(
+        &fixture,
+        &format!("/repository/tf-signed{DEMO}/2.0.0/terraform-provider-demo_2.0.0_SHA256SUMS.sig"),
+        Auth::Admin,
+    )
+    .await;
+    assert_eq!(signature.status, StatusCode::OK, "{}", signature.text());
+
+    let format = astrum_format_terraform::Terraform::default();
+    let path = format!("{DEMO}/2.0.0/{}", demo_file("2.0.0", "linux"));
+    let digests = |bundle: &Bundle| -> Vec<(String, String, u64)> {
+        bundle
+            .assets
+            .iter()
+            .map(|asset| (asset.path.clone(), asset.sha256.clone(), asset.size))
+            .collect()
+    };
+    let plain = support::bundle_of(&fixture, &format, "tf-source", &path).await;
+    let signed = support::bundle_of(&fixture, &format, "tf-signed", &path).await;
+    assert_eq!(plain.assets.len(), 1);
+    assert_eq!(plain.assets[0].path, path);
+    assert_eq!(digests(&plain), digests(&signed));
 }

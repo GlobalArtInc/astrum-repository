@@ -324,6 +324,7 @@ fn transfer_with(
         admit: Some(admit_bundle),
         replaceable: None,
         carried: &[],
+        bundle_skip: None,
     }
     .after_with(move |ctx, promoted| {
         hosted::schedule_promoted(&keys, &pending, ctx, promoted);

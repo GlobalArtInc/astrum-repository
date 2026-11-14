@@ -389,6 +389,7 @@ pub fn transfer_of(describe: DescribeFn) -> GenericTransfer {
         admit: None,
         replaceable: None,
         carried: &[],
+        bundle_skip: None,
     }
 }
 

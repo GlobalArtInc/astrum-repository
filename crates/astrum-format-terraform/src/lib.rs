@@ -396,11 +396,16 @@ fn transfer_with(locks: Locks) -> GenericTransfer {
         admit: Some(admit_bundle),
         replaceable: None,
         carried: &[],
+        bundle_skip: Some(generated_by_the_server),
     }
     .after_with(move |ctx, promoted| {
         let locks = locks.clone();
         Box::pin(async move { refresh(&locks, ctx, promoted).await })
     })
+}
+
+fn generated_by_the_server(asset: &astrum_content::Asset) -> bool {
+    asset.attributes[ID]["generated"].as_bool().unwrap_or(false)
 }
 
 fn describe_imported(file: &Imported) -> BoxFuture<'_, Result<Option<Described>, String>> {

@@ -71,6 +71,7 @@ fn with_hook(hook: astrum_content::transfer::ReplaceFn) -> GenericTransfer {
     GenericTransfer {
         replaceable: Some(hook),
         carried: &[],
+        bundle_skip: None,
         ..transfer()
     }
 }

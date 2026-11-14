@@ -11,7 +11,9 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
 use crate::import::{Body, Described, Imported, ImportedComponent, Plan};
-use crate::store::{self, Component, ComponentIdentity, ComponentKey, Intent, Planned, PutAsset};
+use crate::store::{
+    self, Asset, Component, ComponentIdentity, ComponentKey, Intent, Planned, PutAsset,
+};
 use crate::{Content, ContentError, Ctx, holds, mime, normalize};
 
 pub const MAX_ASSETS: usize = 10_000;
@@ -251,6 +253,7 @@ pub type AfterHook = Arc<
     dyn for<'a> Fn(&'a Ctx, &'a Promoted) -> BoxFuture<'a, Result<(), ContentError>> + Send + Sync,
 >;
 pub type ReplaceFn = for<'a> fn(&'a Ctx, &'a str, &'a BundleAsset) -> bool;
+pub type SkipFn = fn(&Asset) -> bool;
 pub type AdmitFn = for<'a> fn(&'a Ctx, &'a Bundle) -> BoxFuture<'a, Result<(), ContentError>>;
 
 pub struct GenericTransfer {
@@ -260,6 +263,7 @@ pub struct GenericTransfer {
     pub admit: Option<AdmitFn>,
     pub replaceable: Option<ReplaceFn>,
     pub carried: &'static [&'static str],
+    pub bundle_skip: Option<SkipFn>,
 }
 
 impl GenericTransfer {
@@ -965,6 +969,7 @@ impl Transfer for GenericTransfer {
             version: component.version.clone(),
             assets: assets
                 .into_iter()
+                .filter(|asset| !self.bundle_skip.is_some_and(|skip| skip(asset)))
                 .map(|asset| BundleAsset {
                     path: asset.path,
                     kind: asset.kind,
