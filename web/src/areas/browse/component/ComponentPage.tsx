@@ -16,6 +16,7 @@ import {
   useDocumentTitle,
   useToast,
 } from '../../../ui';
+import { ImageSupplyChain } from '../docker/SupplyChain';
 import { componentKey, fromProxy, parseComponentKey } from '../links';
 import {
   REPOSITORIES_PATH,
@@ -213,18 +214,23 @@ function Overview({
     componentSnippets({ format, group, name, version: entry.version, repository, baseUrl: state.baseUrl })
       .length > 0;
   return (
-    <div className={styles.overview} data-single={!hasSnippets}>
-      {hasSnippets && (
-        <Dependencies
-          format={format}
-          group={group}
-          name={name}
-          version={entry.version}
-          repository={repository}
-        />
+    <>
+      <div className={styles.overview} data-single={!hasSnippets}>
+        {hasSnippets && (
+          <Dependencies
+            format={format}
+            group={group}
+            name={name}
+            version={entry.version}
+            repository={repository}
+          />
+        )}
+        <Facts format={format} group={group} name={name} entry={entry} />
+      </div>
+      {format === 'docker' && repository !== '' && entry.version !== '' && (
+        <ImageSupplyChain repository={repository} image={name} reference={entry.version} />
       )}
-      <Facts format={format} group={group} name={name} entry={entry} />
-    </div>
+    </>
   );
 }
 
