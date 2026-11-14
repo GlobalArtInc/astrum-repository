@@ -15,7 +15,7 @@ use sea_orm::{
     ActiveValue, ColumnTrait, ConnectionTrait, DatabaseTransaction, DbBackend, EntityTrait,
     PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, Statement, TransactionTrait,
 };
-use serde_json::Value;
+use serde_json::{Map, Value};
 use uuid::Uuid;
 
 use crate::mime;
@@ -898,6 +898,68 @@ struct Executed {
     outcome: Outcome,
     committed: bool,
     unused: Vec<(String, Uuid)>,
+    refreshed: Vec<ComponentIdentity>,
+}
+
+struct Drift {
+    id: i64,
+    identity: ComponentIdentity,
+    attributes: Value,
+}
+
+fn carried_of(key: &ComponentKey, carried: &[&str]) -> Map<String, Value> {
+    carried
+        .iter()
+        .filter_map(|name| {
+            key.attributes
+                .get(*name)
+                .filter(|value| !value.is_null())
+                .map(|value| ((*name).to_owned(), value.clone()))
+        })
+        .collect()
+}
+
+fn merged_attributes(
+    stored: &Value,
+    wanted: &Map<String, Value>,
+) -> Result<Option<Value>, ContentError> {
+    let mut merged = match stored {
+        Value::Null => Map::new(),
+        Value::Object(members) => members.clone(),
+        _ => {
+            return Err(ContentError::internal(anyhow::anyhow!(
+                "the stored component attributes are not an object"
+            )));
+        }
+    };
+    let mut changed = false;
+    for (name, value) in wanted {
+        if merged.get(name) != Some(value) {
+            merged.insert(name.clone(), value.clone());
+            changed = true;
+        }
+    }
+    Ok(changed.then_some(Value::Object(merged)))
+}
+
+fn check_attribute_write<'a>(
+    repository: &str,
+    identity: &ComponentIdentity,
+    mut puts: impl Iterator<Item = &'a PutAsset>,
+) -> Result<(), ContentError> {
+    let denied = puts.any(|put| {
+        put.write_policy == Some(WritePolicy::Deny)
+            && put
+                .component
+                .as_ref()
+                .is_some_and(|found| identity_of(found) == *identity)
+    });
+    match denied {
+        true => Err(ContentError::BadRequest(format!(
+            "the repository {repository} is read-only"
+        ))),
+        false => Ok(()),
+    }
 }
 
 fn check_write(
@@ -1054,7 +1116,7 @@ async fn find_component(
         .await?)
 }
 
-type ComponentIdentity = (String, String, String);
+pub type ComponentIdentity = (String, String, String);
 
 fn component_keys<'a>(
     puts: impl Iterator<Item = &'a PutAsset>,
@@ -1094,6 +1156,16 @@ pub async fn preview_many_with(
     conflict: Conflict,
     replaceable: Option<Replaceable<'_>>,
 ) -> Result<Outcome, ContentError> {
+    preview_many_carrying(ctx, planned, conflict, replaceable, &[]).await
+}
+
+pub async fn preview_many_carrying(
+    ctx: &Ctx,
+    planned: &[Planned],
+    conflict: Conflict,
+    replaceable: Option<Replaceable<'_>>,
+    carried: &[&str],
+) -> Result<Outcome, ContentError> {
     let repository = ctx.name();
     let paths: Vec<String> = planned.iter().map(|item| item.put.path.clone()).collect();
     let existing = existing_assets(ctx.db(), repository, &paths).await?;
@@ -1105,7 +1177,7 @@ pub async fn preview_many_with(
             sha256: &item.sha256,
         })
         .collect();
-    let decision = decide(
+    let mut decision = decide(
         repository,
         &candidates,
         &existing,
@@ -1114,10 +1186,24 @@ pub async fn preview_many_with(
         replaceable.map(|allowed| allowed as &dyn Fn(&str) -> bool),
     )?;
     let mut component_ids = Vec::new();
+    let mut drifted = false;
     for key in component_keys(planned.iter().map(|item| &item.put))? {
         if let Some(found) = find_component(ctx.db(), repository, &key).await? {
             component_ids.push(found.id);
+            if decision.status == Status::Unchanged
+                && merged_attributes(&found.attributes, &carried_of(&key, carried))?.is_some()
+            {
+                check_attribute_write(
+                    repository,
+                    &identity_of(&key),
+                    planned.iter().map(|item| &item.put),
+                )?;
+                drifted = true;
+            }
         }
+    }
+    if drifted {
+        decision.status = Status::Copied;
     }
     Ok(decision.outcome(component_ids))
 }
@@ -1168,6 +1254,19 @@ pub async fn record_many_with(
     action: &str,
     replaceable: Option<Replaceable<'_>>,
 ) -> Result<Outcome, ContentError> {
+    record_many_carrying(ctx, items, conflict, action, replaceable, &[])
+        .await
+        .map(|(outcome, _)| outcome)
+}
+
+pub async fn record_many_carrying(
+    ctx: &Ctx,
+    items: Vec<(PutAsset, Written)>,
+    conflict: Conflict,
+    action: &str,
+    replaceable: Option<Replaceable<'_>>,
+    carried: &[&str],
+) -> Result<(Outcome, Vec<ComponentIdentity>), ContentError> {
     let blobs: Vec<(String, Uuid)> = items
         .iter()
         .map(|(_, written)| (written.store.clone(), written.id.uuid()))
@@ -1186,23 +1285,30 @@ pub async fn record_many_with(
             return Err(error.into());
         }
     };
-    let executed = write_many(ctx, &txn, &items, &keys, conflict, action, replaceable).await;
+    let rules = Rules {
+        conflict,
+        action,
+        replaceable,
+        carried,
+    };
+    let executed = write_many(ctx, &txn, &items, &keys, rules).await;
     match executed {
         Ok(Executed {
             outcome,
             committed: true,
             unused,
+            refreshed,
         }) => match txn.commit().await {
             Ok(()) => {
                 abandon(&ctx.content, unused, false).await;
-                Ok(outcome)
+                Ok((outcome, refreshed))
             }
             Err(error) => Err(error.into()),
         },
         Ok(Executed { outcome, .. }) => {
             rolled_back(txn).await;
             abandon(&ctx.content, blobs, true).await;
-            Ok(outcome)
+            Ok((outcome, Vec::new()))
         }
         Err(error) => {
             rolled_back(txn).await;
@@ -1230,15 +1336,26 @@ fn changed_meanwhile(repository: &str) -> ContentError {
     ))
 }
 
+struct Rules<'a> {
+    conflict: Conflict,
+    action: &'a str,
+    replaceable: Option<Replaceable<'a>>,
+    carried: &'a [&'a str],
+}
+
 async fn write_many(
     ctx: &Ctx,
     txn: &impl ConnectionTrait,
     items: &[(PutAsset, Written)],
     keys: &[ComponentKey],
-    conflict: Conflict,
-    action: &str,
-    replaceable: Option<Replaceable<'_>>,
+    rules: Rules<'_>,
 ) -> Result<Executed, ContentError> {
+    let Rules {
+        conflict,
+        action,
+        replaceable,
+        carried,
+    } = rules;
     let repository = ctx.name();
     if !lock_repository(txn, repository).await? {
         return Err(missing_repository(repository));
@@ -1340,7 +1457,21 @@ async fn write_many(
         false,
         replaceable.map(|allowed| allowed as &dyn Fn(&str) -> bool),
     )?;
-    if !decision.writes {
+    let mut written_keys: HashSet<ComponentIdentity> = HashSet::new();
+    for (index, (put, _)) in items.iter().enumerate() {
+        if matches!(
+            decision.assets[index].status,
+            AssetStatus::New | AssetStatus::Replaced
+        ) && let Some(found) = put.component.as_ref()
+        {
+            written_keys.insert(identity_of(found));
+        }
+    }
+    let drift = match matches!(decision.status, Status::Copied | Status::Unchanged) {
+        true => drifting(txn, repository, items, &resolved, &written_keys, carried).await?,
+        false => Vec::new(),
+    };
+    if !decision.writes && drift.is_empty() {
         let ids: Vec<i64> = match keys.is_empty() {
             true => existing
                 .values()
@@ -1358,17 +1489,8 @@ async fn write_many(
             outcome: decision.outcome(ids),
             committed: false,
             unused: Vec::new(),
+            refreshed: Vec::new(),
         });
-    }
-    let mut written_keys: HashSet<ComponentIdentity> = HashSet::new();
-    for (index, (put, _)) in items.iter().enumerate() {
-        if matches!(
-            decision.assets[index].status,
-            AssetStatus::New | AssetStatus::Replaced
-        ) && let Some(found) = put.component.as_ref()
-        {
-            written_keys.insert(identity_of(found));
-        }
     }
     for found in resolved
         .iter()
@@ -1378,6 +1500,17 @@ async fn write_many(
             return Err(changed_meanwhile(repository));
         }
         upsert_component(txn, repository, ctx.format_id(), found.key, now).await?;
+    }
+    for found in &drift {
+        component::Entity::update_many()
+            .col_expr(
+                component::Column::Attributes,
+                Expr::value(found.attributes.clone()),
+            )
+            .col_expr(component::Column::UpdatedAt, Expr::value(now))
+            .filter(component::Column::Id.eq(found.id))
+            .exec(txn)
+            .await?;
     }
     let mut order: Vec<usize> = (0..items.len()).collect();
     order.sort_by(|a, b| items[*a].0.path.cmp(&items[*b].0.path));
@@ -1437,12 +1570,67 @@ async fn write_many(
     for old in left_components {
         drop_empty_component(txn, old).await?;
     }
-    let outcome = decision.outcome(ids);
+    let status = match drift.is_empty() {
+        true => decision.status,
+        false => Status::Copied,
+    };
+    let mut outcome = decision.outcome(ids);
+    outcome.status = status;
     Ok(Executed {
         outcome,
         committed: true,
         unused,
+        refreshed: drift.into_iter().map(|found| found.identity).collect(),
     })
+}
+
+async fn drifting(
+    txn: &impl ConnectionTrait,
+    repository: &str,
+    items: &[(PutAsset, Written)],
+    resolved: &[Resolved<'_>],
+    written: &HashSet<ComponentIdentity>,
+    carried: &[&str],
+) -> Result<Vec<Drift>, ContentError> {
+    if carried.is_empty() {
+        return Ok(Vec::new());
+    }
+    let untouched: Vec<&Resolved<'_>> = resolved
+        .iter()
+        .filter(|found| !found.created && !written.contains(&identity_of(found.key)))
+        .filter(|found| found.id.is_some())
+        .collect();
+    let ids: Vec<i64> = untouched.iter().filter_map(|found| found.id).collect();
+    if ids.is_empty() {
+        return Ok(Vec::new());
+    }
+    let rows = component::Entity::find()
+        .filter(component::Column::Id.is_in(ids))
+        .all(txn)
+        .await?;
+    let mut drift = Vec::new();
+    for found in untouched {
+        let Some(id) = found.id else { continue };
+        let wanted = carried_of(found.key, carried);
+        if wanted.is_empty() {
+            continue;
+        }
+        let row = rows
+            .iter()
+            .find(|row| row.id == id)
+            .ok_or_else(|| changed_meanwhile(repository))?;
+        let Some(attributes) = merged_attributes(&row.attributes, &wanted)? else {
+            continue;
+        };
+        let identity = identity_of(found.key);
+        check_attribute_write(repository, &identity, items.iter().map(|(put, _)| put))?;
+        drift.push(Drift {
+            id,
+            identity,
+            attributes,
+        });
+    }
+    Ok(drift)
 }
 
 pub(crate) async fn abandon(content: &Content, blobs: Vec<(String, Uuid)>, release: bool) {

@@ -22,6 +22,7 @@ use async_trait::async_trait;
 use axum::response::Response;
 use futures_util::future::BoxFuture;
 use sea_orm::{ConnectionTrait, DbBackend, Statement};
+use serde_json::{Value, json};
 
 pub struct World {
     pub _test: TestDatabase,
@@ -149,13 +150,42 @@ pub async fn seed(ctx: &Ctx, path: &str, body: &'static [u8]) {
     .unwrap();
 }
 
+pub async fn seed_in(ctx: &Ctx, path: &str, body: &'static [u8], attributes: Value) {
+    store::put(
+        ctx,
+        PutAsset {
+            write_policy: Some(WritePolicy::Allow),
+            ..PutAsset::hosted(ctx, path).component(ComponentKey {
+                attributes,
+                ..key()
+            })
+        },
+        content_of(body),
+    )
+    .await
+    .unwrap();
+}
+
+pub async fn component_attributes(ctx: &Ctx) -> Value {
+    let any = store::under(ctx.db(), ctx.name(), "/", 1).await.unwrap();
+    store::component_by_id(ctx.db(), any[0].component_id.unwrap())
+        .await
+        .unwrap()
+        .unwrap()
+        .attributes
+}
+
 pub async fn bundle_of(ctx: &Ctx) -> Bundle {
+    bundle_with(ctx, &transfer()).await
+}
+
+pub async fn bundle_with(ctx: &Ctx, transfer: &GenericTransfer) -> Bundle {
     let any = store::under(ctx.db(), ctx.name(), "/", 1).await.unwrap();
     let component = store::component_by_id(ctx.db(), any[0].component_id.unwrap())
         .await
         .unwrap()
         .unwrap();
-    transfer().bundle(ctx, &component).await.unwrap()
+    transfer.bundle(ctx, &component).await.unwrap()
 }
 
 pub fn plan(_: RepositoryType, path: &str, _: &str) -> Plan {
@@ -209,6 +239,21 @@ pub fn describe_companion(file: &Imported) -> BoxFuture<'_, Result<Option<Descri
     })
 }
 
+pub fn describe_marking(file: &Imported) -> BoxFuture<'_, Result<Option<Described>, String>> {
+    Box::pin(async move {
+        let mut put = file.put(file.path.clone());
+        put.component = file.component.as_ref().map(|found| ComponentKey {
+            attributes: json!({"first": file.path}),
+            ..found.key()
+        });
+        let described = Described::source(put);
+        Ok(Some(match file.path.ends_with(".snupkg") {
+            true => described.keeping_component(),
+            false => described,
+        }))
+    })
+}
+
 pub fn describe_unchecked(file: &Imported) -> BoxFuture<'_, Result<Option<Described>, String>> {
     Box::pin(async move {
         let mut put = file.put(file.path.clone());
@@ -234,9 +279,17 @@ pub struct Recording {
 
 impl Recording {
     pub fn new(describe: DescribeFn, failure: Option<&'static str>) -> Self {
+        Self::around(transfer_of(describe), failure)
+    }
+
+    pub fn declaring(keys: &'static [&'static str]) -> Self {
+        Self::around(declaring(keys), None)
+    }
+
+    fn around(transfer: GenericTransfer, failure: Option<&'static str>) -> Self {
         let seen = Arc::new(Mutex::new(Vec::new()));
         let state = seen.clone();
-        let transfer = transfer_of(describe).after_with(move |_, promoted| {
+        let transfer = transfer.after_with(move |_, promoted| {
             let state = state.clone();
             Box::pin(async move {
                 state.lock().unwrap().push(promoted.clone());
@@ -299,6 +352,14 @@ pub fn transfer_of(describe: DescribeFn) -> GenericTransfer {
         after: None,
         admit: None,
         replaceable: None,
+        carried: &[],
+    }
+}
+
+pub fn declaring(keys: &'static [&'static str]) -> GenericTransfer {
+    GenericTransfer {
+        carried: keys,
+        ..transfer()
     }
 }
 
@@ -318,6 +379,23 @@ pub async fn run(
     transfer()
         .receive(target, bundle, &LocalSource::new(source.clone()), terms)
         .await
+}
+
+pub async fn run_with(
+    format: &dyn Format,
+    source: &Ctx,
+    target: &Ctx,
+    bundle: &Bundle,
+    dry_run: bool,
+) -> Outcome {
+    let mut terms = Terms::new(Conflict::Fail, PROMOTED);
+    terms.dry_run = dry_run;
+    format
+        .transfer()
+        .unwrap()
+        .receive(target, bundle, &LocalSource::new(source.clone()), terms)
+        .await
+        .unwrap()
 }
 
 pub async fn number(world: &World, sql: &str) -> i64 {

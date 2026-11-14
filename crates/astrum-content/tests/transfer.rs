@@ -9,6 +9,7 @@ use astrum_content::transfer::{
 use astrum_content::{ContentError, holds};
 use astrum_repo::config::WritePolicy;
 use sea_orm::{ConnectionTrait, DbBackend, Statement, TransactionTrait};
+use serde_json::{Value, json};
 
 mod support;
 use support::*;
@@ -489,4 +490,174 @@ async fn the_description_may_switch_the_content_check_off_but_never_loosen_the_p
         .await
         .unwrap_err();
     assert!(matches!(error, ContentError::Conflict(_)), "{error}");
+}
+
+fn nested(containers: usize) -> Value {
+    let mut value = json!(1);
+    for _ in 0..containers {
+        value = json!({"k": value});
+    }
+    value
+}
+
+#[tokio::test]
+async fn declared_attributes_travel_in_the_bundle_and_nothing_else_does() {
+    let world = world().await;
+    let dev = repository(&world, "dev", "default", WritePolicy::Allow).await;
+    let target = repository(&world, "target", "default", WritePolicy::Allow).await;
+    let attributes = json!({"note": {"a": [1, 2]}, "quota": 5, "replication": {"origin": "x"}});
+    seed_in(&dev, "/g/a.txt", b"alpha", attributes).await;
+    let sender = declaring(&["note", "replication"]);
+    let bundle = bundle_with(&dev, &sender).await;
+    assert_eq!(bundle.meta, json!({"note": {"a": [1, 2]}}));
+
+    let mut forged = bundle.clone();
+    forged.meta = json!({"note": {"a": 1}, "quota": 9, "replication": {"origin": "evil"}});
+    let receiver = Recording::declaring(&["note"]);
+    receive_with(&receiver, &dev, &target, &forged, Conflict::Fail)
+        .await
+        .unwrap();
+    assert_eq!(
+        component_attributes(&target).await,
+        json!({"note": {"a": 1}})
+    );
+
+    let plain = repository(&world, "plain", "default", WritePolicy::Allow).await;
+    run(&dev, &plain, &forged, Conflict::Fail, false)
+        .await
+        .unwrap();
+    assert_eq!(component_attributes(&plain).await, json!({}));
+}
+
+#[tokio::test]
+async fn meta_that_is_too_large_too_deep_or_misshapen_is_refused_before_anything_is_recorded() {
+    let world = world().await;
+    let dev = repository(&world, "dev", "default", WritePolicy::Allow).await;
+    let target = repository(&world, "target", "default", WritePolicy::Allow).await;
+    seed(&dev, "/g/a.txt", b"alpha").await;
+    let bundle = bundle_of(&dev).await;
+    let receiver = Recording::declaring(&["note"]);
+    let refused = [
+        json!({"note": "x".repeat(70_000)}),
+        json!({"note": nested(8)}),
+        json!({"note": [1]}),
+        json!([1]),
+    ];
+    for meta in refused {
+        let mut crafted = bundle.clone();
+        crafted.meta = meta;
+        let error = receive_with(&receiver, &dev, &target, &crafted, Conflict::Fail)
+            .await
+            .unwrap_err();
+        assert!(matches!(error, ContentError::BadRequest(_)), "{error}");
+    }
+    assert_eq!(target_rows(&world, "target").await, (0, 0));
+
+    let mut edge = bundle.clone();
+    edge.meta = json!({"note": nested(7)});
+    receive_with(&receiver, &dev, &target, &edge, Conflict::Fail)
+        .await
+        .unwrap();
+}
+
+#[tokio::test]
+async fn a_changed_attribute_is_applied_in_place_without_writing_a_blob() {
+    let world = world().await;
+    let dev = repository(&world, "dev", "default", WritePolicy::Allow).await;
+    seed_in(&dev, "/g/a.txt", b"alpha", json!({"note": {"v": 2}})).await;
+    let bundle = bundle_with(&dev, &declaring(&["note"])).await;
+
+    for (name, policy) in [
+        ("open", WritePolicy::Allow),
+        ("once", WritePolicy::AllowOnce),
+    ] {
+        let target = repository(&world, name, "default", policy).await;
+        seed_in(
+            &target,
+            "/g/a.txt",
+            b"alpha",
+            json!({"note": {"v": 1}, "kept": true}),
+        )
+        .await;
+        let before = blobs_in(&world, "default").await;
+        let receiver = Recording::declaring(&["note"]);
+
+        let preview = run_with(&receiver, &dev, &target, &bundle, true).await;
+        assert_eq!(preview.status, Status::Copied);
+        assert_eq!(component_attributes(&target).await["note"], json!({"v": 1}));
+        assert!(receiver.calls().is_empty());
+
+        let outcome = receive_with(&receiver, &dev, &target, &bundle, Conflict::Fail)
+            .await
+            .unwrap();
+        assert_eq!(outcome.status, Status::Copied);
+        assert!(
+            outcome
+                .assets
+                .iter()
+                .all(|a| a.status == AssetStatus::Unchanged)
+        );
+        assert_eq!(outcome.bytes_copied, 0);
+        assert_eq!(
+            component_attributes(&target).await,
+            json!({"note": {"v": 2}, "kept": true})
+        );
+        assert_eq!(blobs_in(&world, "default").await, before);
+        let calls = receiver.calls();
+        assert_eq!(calls.len(), 1);
+        assert_eq!(calls[0].components.len(), 1);
+        assert!(calls[0].components[0].paths.is_empty());
+
+        let again = receive_with(&receiver, &dev, &target, &bundle, Conflict::Fail)
+            .await
+            .unwrap();
+        assert_eq!(again.status, Status::Unchanged);
+        assert_eq!(receiver.calls().len(), 1);
+        assert_eq!(hold_rows(&world).await, 0);
+    }
+}
+
+#[tokio::test]
+async fn a_read_only_target_refuses_an_attribute_only_change() {
+    let world = world().await;
+    let dev = repository(&world, "dev", "default", WritePolicy::Allow).await;
+    let target = repository(&world, "locked", "default", WritePolicy::Deny).await;
+    seed_in(&dev, "/g/a.txt", b"alpha", json!({"note": {"v": 2}})).await;
+    seed_in(&target, "/g/a.txt", b"alpha", json!({"note": {"v": 1}})).await;
+    let bundle = bundle_with(&dev, &declaring(&["note"])).await;
+    let receiver = Recording::declaring(&["note"]);
+
+    let error = receive_with(&receiver, &dev, &target, &bundle, Conflict::Fail)
+        .await
+        .unwrap_err();
+    assert!(matches!(error, ContentError::BadRequest(_)), "{error}");
+    assert_eq!(component_attributes(&target).await["note"], json!({"v": 1}));
+    assert!(receiver.calls().is_empty());
+    assert_eq!(hold_rows(&world).await, 0);
+}
+
+#[tokio::test]
+async fn the_component_takes_its_attributes_from_the_primary_asset_whatever_the_bundle_order() {
+    let world = world().await;
+    let dev = repository(&world, "dev", "default", WritePolicy::Allow).await;
+    let target = repository(&world, "target", "default", WritePolicy::Allow).await;
+    seed(&dev, "/g/lib.1.nupkg", b"package").await;
+    seed(&dev, "/g/lib.1.snupkg", b"symbols").await;
+    let mut bundle = bundle_of(&dev).await;
+    bundle.assets.sort_by(|a, b| b.path.cmp(&a.path));
+    assert_eq!(bundle.assets[0].path, "/g/lib.1.snupkg");
+
+    transfer_of(describe_marking)
+        .receive(
+            &target,
+            &bundle,
+            &LocalSource::new(dev.clone()),
+            terms(Conflict::Fail),
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        component_attributes(&target).await,
+        json!({"first": "/g/lib.1.nupkg"})
+    );
 }

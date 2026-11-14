@@ -70,6 +70,7 @@ fn counting(_: &Ctx, _: &str, _: &BundleAsset) -> bool {
 fn with_hook(hook: astrum_content::transfer::ReplaceFn) -> GenericTransfer {
     GenericTransfer {
         replaceable: Some(hook),
+        carried: &[],
         ..transfer()
     }
 }

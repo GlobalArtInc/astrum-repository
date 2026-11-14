@@ -8,10 +8,10 @@ use astrum_repo::config::WritePolicy;
 use async_trait::async_trait;
 use futures_util::future::BoxFuture;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde_json::{Map, Value};
 
 use crate::import::{Body, Described, Imported, ImportedComponent, Plan};
-use crate::store::{self, Component, ComponentKey, Planned, PutAsset};
+use crate::store::{self, Component, ComponentIdentity, ComponentKey, Planned, PutAsset};
 use crate::{Content, ContentError, Ctx, holds, mime, normalize};
 
 pub const MAX_ASSETS: usize = 10_000;
@@ -19,6 +19,9 @@ pub const MAX_COMPONENTS: usize = 100;
 pub const PROMOTED: &str = "promoted";
 const HOLD_TTL: Duration = Duration::from_secs(30 * 60);
 const MAX_TEXT: usize = 4096;
+const MAX_META_BYTES: usize = 64 * 1024;
+const MAX_META_DEPTH: usize = 8;
+const RESERVED_ATTRIBUTES: &[&str] = &["replication"];
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -256,6 +259,7 @@ pub struct GenericTransfer {
     pub after: Option<AfterHook>,
     pub admit: Option<AdmitFn>,
     pub replaceable: Option<ReplaceFn>,
+    pub carried: &'static [&'static str],
 }
 
 impl GenericTransfer {
@@ -352,7 +356,7 @@ fn stricter(target: Option<WritePolicy>, described: Option<WritePolicy>) -> Opti
 
 type Placed = (String, Option<ComponentKey>);
 
-fn promoted(placed: &[Placed], outcome: &Outcome) -> Promoted {
+fn promoted(placed: &[Placed], outcome: &Outcome, refreshed: &[ComponentIdentity]) -> Promoted {
     let written: HashSet<&str> = outcome
         .assets
         .iter()
@@ -383,7 +387,32 @@ fn promoted(placed: &[Placed], outcome: &Outcome) -> Promoted {
             }),
         }
     }
+    for (namespace, name, version) in refreshed {
+        let listed = promoted.components.iter().any(|found| {
+            found.namespace == *namespace && found.name == *name && found.version == *version
+        });
+        if !listed {
+            promoted.components.push(PromotedComponent {
+                namespace: namespace.clone(),
+                name: name.clone(),
+                version: version.clone(),
+                paths: Vec::new(),
+            });
+        }
+    }
     promoted
+}
+
+fn within_depth(value: &Value, level: usize) -> bool {
+    match value {
+        Value::Object(members) => {
+            level <= MAX_META_DEPTH && members.values().all(|inner| within_depth(inner, level + 1))
+        }
+        Value::Array(items) => {
+            level <= MAX_META_DEPTH && items.iter().all(|inner| within_depth(inner, level + 1))
+        }
+        _ => true,
+    }
 }
 
 fn text(field: &str, value: &str) -> Result<(), ContentError> {
@@ -493,17 +522,72 @@ fn verify(written: &Written, asset: &BundleAsset) -> Result<(), ContentError> {
     Ok(())
 }
 
-fn hint(bundle: &Bundle) -> ComponentKey {
+fn hint(bundle: &Bundle, carried: &Map<String, Value>) -> ComponentKey {
     ComponentKey {
         namespace: bundle.namespace.clone(),
         name: bundle.name.clone(),
         version: bundle.version.clone(),
         kind: String::new(),
-        attributes: Value::Object(Default::default()),
+        attributes: Value::Object(carried.clone()),
     }
 }
 
+struct Incoming<'a> {
+    bundle: &'a Bundle,
+    carried: &'a Map<String, Value>,
+}
+
+type Transferred<'a> = (Vec<(PutAsset, Written)>, HashMap<String, &'a BundleAsset>);
+
 impl GenericTransfer {
+    fn declared(&self) -> Vec<&'static str> {
+        self.carried
+            .iter()
+            .copied()
+            .filter(|name| !RESERVED_ATTRIBUTES.contains(name))
+            .collect()
+    }
+
+    fn carried_meta(&self, bundle: &Bundle) -> Result<Map<String, Value>, ContentError> {
+        let members = match &bundle.meta {
+            Value::Null => return Ok(Map::new()),
+            Value::Object(members) => members,
+            _ => {
+                return Err(ContentError::BadRequest(
+                    "the bundle meta is not an object".to_owned(),
+                ));
+            }
+        };
+        let size = serde_json::to_vec(&bundle.meta)
+            .map_err(ContentError::internal)?
+            .len();
+        if size > MAX_META_BYTES {
+            return Err(ContentError::BadRequest(format!(
+                "the bundle meta is larger than {MAX_META_BYTES} bytes"
+            )));
+        }
+        if !within_depth(&bundle.meta, 1) {
+            return Err(ContentError::BadRequest(format!(
+                "the bundle meta is nested deeper than {MAX_META_DEPTH} levels"
+            )));
+        }
+        let mut carried = Map::new();
+        for name in self.declared() {
+            match members.get(name) {
+                None | Some(Value::Null) => {}
+                Some(Value::Array(_)) => {
+                    return Err(ContentError::BadRequest(format!(
+                        "the bundle meta {name} is neither an object nor a scalar"
+                    )));
+                }
+                Some(value) => {
+                    carried.insert(name.to_owned(), value.clone());
+                }
+            }
+        }
+        Ok(carried)
+    }
+
     fn wanted<'a>(
         &self,
         target: &Ctx,
@@ -532,8 +616,9 @@ impl GenericTransfer {
         bundle: &Bundle,
         wanted: &[&BundleAsset],
         terms: Terms,
+        carried: &Map<String, Value>,
     ) -> Result<Outcome, ContentError> {
-        let key = hint(bundle);
+        let key = hint(bundle, carried);
         let planned: Vec<Planned> = wanted
             .iter()
             .map(|asset| Planned {
@@ -551,7 +636,14 @@ impl GenericTransfer {
             .map(|asset| (asset.path.clone(), *asset))
             .collect();
         let allowed = self.allowance(target, origins);
-        store::preview_many_with(target, &planned, terms.conflict, Some(&allowed)).await
+        store::preview_many_carrying(
+            target,
+            &planned,
+            terms.conflict,
+            Some(&allowed),
+            &self.declared(),
+        )
+        .await
     }
 
     fn allowance<'a>(
@@ -572,13 +664,16 @@ impl GenericTransfer {
     async fn stage<'a>(
         &self,
         target: &Ctx,
-        bundle: &Bundle,
+        incoming: &Incoming<'_>,
         blobs: &dyn BlobSource,
         sink: &Sink,
         wanted: &[&'a BundleAsset],
         staged: &mut Staged<'_>,
-    ) -> Result<(Vec<(PutAsset, Written)>, HashMap<String, &'a BundleAsset>), ContentError> {
+    ) -> Result<Transferred<'a>, ContentError> {
+        let bundle = incoming.bundle;
+        let carried = incoming.carried;
         let mut items: Vec<(PutAsset, Written)> = Vec::new();
+        let mut keeping: Vec<bool> = Vec::new();
         let mut origins: HashMap<String, &'a BundleAsset> = HashMap::new();
         let mut components: HashSet<(String, String, String)> = HashSet::new();
         for asset in wanted {
@@ -597,6 +692,10 @@ impl GenericTransfer {
                     namespace: bundle.namespace.clone(),
                     name: bundle.name.clone(),
                     version: bundle.version.clone(),
+                    attributes: match carried.is_empty() {
+                        true => Value::Null,
+                        false => Value::Object(carried.clone()),
+                    },
                     ..Default::default()
                 }),
                 store: sink.store.clone(),
@@ -612,7 +711,10 @@ impl GenericTransfer {
                 continue;
             };
             let Described {
-                put, body, extra, ..
+                put,
+                body,
+                extra,
+                keep_component,
             } = described;
             let (primary, sample) = match body {
                 Body::Source => {
@@ -632,6 +734,7 @@ impl GenericTransfer {
             Self::count_component(&mut components, &item.0)?;
             origins.insert(item.0.path.clone(), *asset);
             items.push(item);
+            keeping.push(keep_component);
             for (put, bytes) in extra {
                 staged.check()?;
                 let fresh = Self::write_bytes(sink, staged, &bytes).await?;
@@ -639,10 +742,45 @@ impl GenericTransfer {
                 Self::count_component(&mut components, &item.0)?;
                 origins.insert(item.0.path.clone(), *asset);
                 items.push(item);
+                keeping.push(keep_component);
             }
         }
         staged.check()?;
+        Self::primary_first(&mut items, &keeping);
         Ok((items, origins))
+    }
+
+    fn primary_first(items: &mut [(PutAsset, Written)], keeping: &[bool]) {
+        let mut primaries: HashMap<ComponentIdentity, ComponentKey> = HashMap::new();
+        for pass in [false, true] {
+            for ((put, _), keep) in items.iter().zip(keeping) {
+                if *keep != pass {
+                    continue;
+                }
+                if let Some(found) = put.component.as_ref() {
+                    primaries
+                        .entry((
+                            found.namespace.clone(),
+                            found.name.clone(),
+                            found.version.clone(),
+                        ))
+                        .or_insert_with(|| found.clone());
+                }
+            }
+        }
+        for (put, _) in items.iter_mut() {
+            let Some(found) = put.component.as_ref() else {
+                continue;
+            };
+            let identity = (
+                found.namespace.clone(),
+                found.name.clone(),
+                found.version.clone(),
+            );
+            if let Some(primary) = primaries.get(&identity) {
+                put.component = Some(primary.clone());
+            }
+        }
     }
 
     fn count_component(
@@ -705,6 +843,17 @@ impl Transfer for GenericTransfer {
             )));
         }
         let assets = store::assets_of(source.db(), component.id).await?;
+        let meta: Map<String, Value> = self
+            .declared()
+            .into_iter()
+            .filter_map(|name| {
+                component
+                    .attributes
+                    .get(name)
+                    .filter(|value| !value.is_null())
+                    .map(|value| (name.to_owned(), value.clone()))
+            })
+            .collect();
         Ok(Bundle {
             format: source.format_id().to_owned(),
             namespace: component.namespace.clone(),
@@ -724,7 +873,7 @@ impl Transfer for GenericTransfer {
                     attributes: asset.attributes,
                 })
                 .collect(),
-            meta: Value::Object(Default::default()),
+            meta: Value::Object(meta),
             origin: None,
         })
     }
@@ -737,6 +886,7 @@ impl Transfer for GenericTransfer {
         terms: Terms,
     ) -> Result<Outcome, ContentError> {
         let wanted = self.wanted(target, bundle)?;
+        let carried = self.carried_meta(bundle)?;
         if wanted.is_empty() {
             return Ok(Outcome::nothing());
         }
@@ -744,12 +894,16 @@ impl Transfer for GenericTransfer {
             admit(target, bundle).await?;
         }
         if terms.dry_run {
-            return self.preview(target, bundle, &wanted, terms).await;
+            return self.preview(target, bundle, &wanted, terms, &carried).await;
         }
         let sink = Sink::of(target).await?;
+        let incoming = Incoming {
+            bundle,
+            carried: &carried,
+        };
         let mut staged = Staged::new(&target.content);
         let (items, origins) = match self
-            .stage(target, bundle, blobs, &sink, &wanted, &mut staged)
+            .stage(target, &incoming, blobs, &sink, &wanted, &mut staged)
             .await
         {
             Ok(done) => done,
@@ -766,13 +920,19 @@ impl Transfer for GenericTransfer {
             .iter()
             .map(|(put, _)| (put.path.clone(), put.component.clone()))
             .collect();
-        let mut outcome =
-            store::record_many_with(target, items, terms.conflict, terms.action, Some(&allowed))
-                .await?;
+        let (mut outcome, refreshed) = store::record_many_carrying(
+            target,
+            items,
+            terms.conflict,
+            terms.action,
+            Some(&allowed),
+            &self.declared(),
+        )
+        .await?;
         if outcome.status == Status::Copied
             && let Some(after) = &self.after
         {
-            let promoted = promoted(&placed, &outcome);
+            let promoted = promoted(&placed, &outcome, &refreshed);
             if let Err(error) = after(target, &promoted).await {
                 tracing::warn!(%error, repository = target.name(), "derived data of a transferred component was not refreshed");
                 outcome
