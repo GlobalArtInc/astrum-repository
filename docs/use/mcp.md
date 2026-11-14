@@ -74,27 +74,39 @@ counted per client address.
 | `list_versions` | Every version of a component, newest first, and the latest release | a token |
 | `read_text_asset` | Reads a text file such as a `pom.xml` or `Chart.yaml`, up to 256 KiB; refuses binary files | a token |
 | `list_docker_tags` | Tags of an image, newest first, with the reference to pull | a token |
-| `list_blob_stores` | Blob stores with blobs, space used and free, quota state, repositories and groups | `astrum:blobstores:read` |
+| `list_blob_stores` | Blob stores with blobs, space used and free, quota state, fill forecast, repositories and groups | `astrum:blobstores:read` |
 | `list_tasks`, `get_task` | Tasks with state, last and next run | `astrum:tasks:read` |
 | `run_task`, `stop_task` | Starts or stops a task | `astrum:tasks:start`, `astrum:tasks:stop` |
 | `create_remote_blob_store` | Adds a [remote blob store](../configure/blob-stores.md#remote-blob-stores) | `astrum:blobstores:create` |
 | `convert_blob_store_to_group` | Turns a store into a group of the same name | `astrum:blobstores:create` and `update` |
 | `update_group_blob_store` | Sets the members or the fill policy of a group | `astrum:blobstores:update` |
 | `set_repository_online` | Takes a repository offline or back online | edit rights on the repository |
+| `get_repository_usage` | Assets and bytes of a repository, its quota and the percent of the limit | a token |
+| `set_repository_quota` | Sets the quota (`limitBytes`, `warnPercent`, `enforce`), or removes it with `limitBytes` null; the same checks as the repository settings | edit rights on the repository, a token with write access |
 | `request_upload` | Gives a one-time `PUT` address for a file; the agent then sends the file with `curl` ([Upload a package](#upload-a-package)) | the right to add to some repository |
 | `upload_component` | Uploads a file of up to 64 KiB given inline as base64 | the right to add to some repository |
 | `list_users`, `list_roles`, `list_privileges` | Users with their roles; roles with their privileges and the roles they include; privileges, filtered by repository, format or name | `astrum:users:read`, `astrum:roles:read`, `astrum:privileges:read` |
+| `get_two_factor_status` | Takes `userId`. Whether the user has a second factor (an authenticator app or passkeys), how many recovery codes are left, the requirement that applies and whether sign-in is locked | `astrum:users:read` |
+| `get_two_factor_policy` | No arguments. The methods that are on, who must have a second factor, the grace period in days and when the requirement was last widened | `astrum:*`; not offered to Read tokens |
+| `get_ip_allow_list` | The management, content and agents allow lists, the address the server sees for you and the trusted proxies; read only, the lists are changed in the web interface | `astrum:*`; not offered to Read tokens |
 | `create_role`, `update_role` | Creates a role, or adds and takes away its privileges and included roles; built-in roles stay as they are | `astrum:roles:create`, `astrum:roles:update` |
 | `set_user_roles` | Gives roles to a user or takes them away, keeping the other details of the user | `astrum:users:update`, and the right to grant the roles |
+| `list_customers` | Customers that receive read-only tokens, with their token count, nearest token expiry, last access, and downloads and bytes of the last 30 days | `astrum:customers:read` |
+| `get_customer_usage` | Downloads and bytes of one customer per day and repository, with totals; `days` from 1 to 730, 30 when omitted | `astrum:customers:read` |
+| `revoke_customer_tokens` | Deletes every token of a customer at once; the customer and its usage history stay, and it cannot be undone | `astrum:customers:delete` |
+| `list_cooldown_waits` | Versions that proxy repositories held back for the release cooldown and that someone asked for, with the date each one becomes available; only repositories you can browse | a token |
+| `list_license_findings` | The licence of each component you can see: declared text, SPDX expression and ids, state, and the verdict of its repository's policy; filter by repository, licence id, state or format | a token |
+| `create_policy_exception` | Lets a component, advisory, licence or image digest through a content policy, for a reason and optionally until `expiresAt`; the grant is audited | `astrum:policyexceptions:create` |
 
 The tools that change the server are only offered to Write tokens, and every tool is only listed when the
 user holds the rights it needs; the server checks those rights again on every call. The only tools that
-add components are the two upload tools; nothing deletes components, repositories, blob stores or users,
-and nothing touches security settings.
+add components are the two upload tools; nothing deletes components, repositories, blob stores or users
+(`revoke_customer_tokens` deletes tokens only), and nothing changes the sign-in or second-factor settings
+or the IP allow lists.
 
 The server also offers two prompts: `diagnose_space`, which walks the agent through finding where the
-space went and what to do about it, and `find_artifact`, which finds a package and how to use its latest
-version.
+space went, how soon each blob store fills and what to do about it, and `find_artifact`, which finds a
+package and how to use its latest version.
 
 ## Upload a package
 
