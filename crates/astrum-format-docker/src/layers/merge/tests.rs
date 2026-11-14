@@ -222,3 +222,63 @@ fn a_hundred_and_twenty_eight_layers_fold_one_at_a_time_and_the_merged_list_has_
 fn merge_all(layer: LayerFacts, limits: &Limits) -> Merged {
     merge(std::iter::once(layer), limits)
 }
+
+#[test]
+fn many_whiteouts_over_many_status_files_cost_linear_time() {
+    let wide = Limits {
+        merged_budget: usize::MAX / 4,
+        ..limits()
+    };
+    let files: Vec<StatusFile> = (0..450_000)
+        .map(|index| StatusFile {
+            path: format!("var/lib/dpkg/status.d/f{index}"),
+            packages: Vec::new(),
+        })
+        .collect();
+    let started = std::time::Instant::now();
+    let mut merge = Merge::new(&wide);
+    merge.apply(LayerFacts {
+        os_release: os("etc/os-release", "debian", "12"),
+        dpkg_status_d: files,
+        ..LayerFacts::default()
+    });
+    merge.apply(LayerFacts {
+        removed: (0..4096)
+            .map(|index| format!("var/lib/dpkg/status.d/f{}", index * 100))
+            .collect(),
+        ..LayerFacts::default()
+    });
+    assert_eq!(merge.status_d.len(), 450_000 - 4096);
+    merge.apply(LayerFacts {
+        opaque: vec!["var/lib/dpkg/status.d".to_owned()],
+        ..LayerFacts::default()
+    });
+    assert!(merge.status_d.is_empty());
+    assert!(started.elapsed() < std::time::Duration::from_secs(60));
+}
+
+#[test]
+fn the_package_cap_stops_the_list_and_the_budget_counts_each_package_overhead() {
+    let packages: Vec<DpkgPackage> = (0..100_000)
+        .map(|index| deb(&format!("p{index}"), "1", None))
+        .collect();
+    let layer = LayerFacts {
+        os_release: os("etc/os-release", "debian", "12"),
+        dpkg: Some(packages),
+        ..LayerFacts::default()
+    };
+    let capped = Limits {
+        max_packages: 3,
+        ..limits()
+    };
+    let merged = merge(vec![layer.clone()], &capped);
+    assert_eq!(merged.packages.len(), 3);
+    assert!(!merged.complete);
+    let tight = Limits {
+        merged_budget: 5 * (PACKAGE_OVERHEAD + 120),
+        ..limits()
+    };
+    let merged = merge(vec![layer], &tight);
+    assert!((1..=6).contains(&merged.packages.len()));
+    assert!(!merged.complete);
+}

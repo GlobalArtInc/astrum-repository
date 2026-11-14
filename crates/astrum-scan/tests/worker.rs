@@ -514,3 +514,89 @@ async fn a_scan_that_times_out_is_stopped_before_its_outcome_is_written() {
     assert_eq!(scalar(&s, &due(slow)).await, 0);
     assert_eq!(scalar(&s, "SELECT count(*) AS n FROM scan_queue").await, 1);
 }
+
+async fn component_of(s: &Setup, format: &str, name: &str) -> i64 {
+    s.db.conn()
+        .query_one(Statement::from_string(
+            DbBackend::Postgres,
+            format!(
+                "INSERT INTO component (repository, format, name, version) \
+                 VALUES ('releases', '{format}', '{name}', '1') RETURNING id"
+            ),
+        ))
+        .await
+        .unwrap()
+        .unwrap()
+        .try_get("", "id")
+        .unwrap()
+}
+
+async fn scanned_with(s: &Setup, id: i64, state: &str, extractor: Option<i32>) {
+    let inventory = match extractor {
+        Some(extractor) => {
+            let row =
+                s.db.conn()
+                    .query_one(Statement::from_string(
+                        DbBackend::Postgres,
+                        format!(
+                            "INSERT INTO sca_inventory (key, source, extractor) \
+                         VALUES ('k{id}', 'sbom', {extractor}) RETURNING id"
+                        ),
+                    ))
+                    .await
+                    .unwrap()
+                    .unwrap();
+            row.try_get::<i64>("", "id").unwrap().to_string()
+        }
+        None => "NULL".to_owned(),
+    };
+    s.db.conn()
+        .execute_unprepared(&format!(
+            "INSERT INTO component_scan (component_id, repository, state, inventory_id) \
+             VALUES ({id}, 'releases', '{state}', {inventory})"
+        ))
+        .await
+        .unwrap();
+}
+
+#[tokio::test]
+async fn images_scanned_before_the_layers_were_read_are_picked_again_and_other_formats_are_not() {
+    let s = setup().await;
+    let unsupported_image = component_of(&s, "docker", "bare").await;
+    scanned_with(&s, unsupported_image, "unsupported", None).await;
+    let old_image = component_of(&s, "docker", "old").await;
+    scanned_with(&s, old_image, "scanned", Some(worker::EXTRACTOR - 1)).await;
+    let current_image = component_of(&s, "docker", "current").await;
+    scanned_with(&s, current_image, "scanned", Some(worker::EXTRACTOR)).await;
+    let unsupported_package = component_of(&s, "maven2", "plain").await;
+    scanned_with(&s, unsupported_package, "unsupported", None).await;
+    s.db.conn()
+        .execute_unprepared("DELETE FROM scan_queue")
+        .await
+        .unwrap();
+    let never = || false;
+    let picked = queue::enqueue_repository(
+        s.db.conn(),
+        "releases",
+        "test",
+        Selection::Unscanned,
+        10,
+        &never,
+    )
+    .await
+    .unwrap();
+    assert_eq!((picked.components, picked.queued), (2, 2));
+    let queued =
+        s.db.conn()
+            .query_all(Statement::from_string(
+                DbBackend::Postgres,
+                "SELECT component_id FROM scan_queue ORDER BY component_id".to_owned(),
+            ))
+            .await
+            .unwrap();
+    let ids: Vec<i64> = queued
+        .iter()
+        .map(|row| row.try_get("", "component_id").unwrap())
+        .collect();
+    assert_eq!(ids, vec![unsupported_image, old_image]);
+}

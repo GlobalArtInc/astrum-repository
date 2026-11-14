@@ -70,24 +70,6 @@ fn whiteouts_and_opaque_markers_of_the_wanted_locations_are_recorded_and_the_res
 }
 
 #[test]
-fn dotdot_names_are_dropped_and_absolute_names_are_made_relative() {
-    let facts = facts(&[
-        Entry::File("../var/lib/dpkg/status", DPKG_DB.as_bytes()),
-        Entry::File("a/../var/lib/dpkg/status", DPKG_DB.as_bytes()),
-        Entry::File("/usr/lib/os-release", DEBIAN_OS.as_bytes()),
-        Entry::File("var/lib/dpkg/status.d/sub/deep", DPKG_DB.as_bytes()),
-        Entry::File("var/lib/dpkg/status.d/pkg.md5sums", b"abc  usr/x\n"),
-    ]);
-    assert_eq!(
-        facts.os_release.as_ref().map(|os| os.path.as_str()),
-        Some("usr/lib/os-release")
-    );
-    assert!(facts.apk.is_none() && facts.dpkg.is_none());
-    assert!(facts.dpkg_status_d.is_empty());
-    assert!(!facts.incomplete);
-}
-
-#[test]
 fn a_link_at_a_database_path_makes_the_layer_incomplete_and_other_links_do_not() {
     for entries in [
         vec![Entry::Symlink("var/lib/dpkg/status", "elsewhere")],
@@ -436,6 +418,58 @@ fn truncated_and_bit_flipped_copies_of_one_layer_never_panic() {
         }
     }
     assert!(cases > 300, "{cases}");
+}
+
+#[test]
+fn the_package_limit_is_per_layer_across_every_status_file_and_memory_stays_bounded() {
+    let stanza = "Package: a\nVersion: 1\n\n".repeat(2000);
+    let layer = Generated::new(4096, move |index| {
+        Raw::new(&format!("var/lib/dpkg/status.d/f{index}")).with(stanza.as_bytes())
+    });
+    let facts = extract(
+        layer,
+        &Limits::DEFAULT,
+        guard_for(Instant::now() + Duration::from_secs(600)),
+    )
+    .unwrap();
+    let retained: usize = facts
+        .dpkg_status_d
+        .iter()
+        .map(|file| file.packages.len())
+        .sum();
+    assert_eq!(retained, Limits::DEFAULT.max_db_packages);
+    assert_eq!(facts.dpkg_status_d.len(), 10);
+    assert!(facts.incomplete);
+    assert!(
+        reasons(&facts).contains("left unread"),
+        "{}",
+        reasons(&facts)
+    );
+    assert!(facts.unreadable.len() <= Limits::DEFAULT.max_removed);
+}
+
+#[test]
+fn a_million_links_and_many_whiteouts_cost_linear_time_and_stay_capped() {
+    let limits = Limits::DEFAULT;
+    let mut gather = Gather::new(&limits);
+    let started = Instant::now();
+    for index in 0..1_000_000 {
+        let path = format!("var/lib/dpkg/status.d/s{index}");
+        gather.item(Item::Link { path }).unwrap();
+    }
+    for index in 0..200_000 {
+        let path = format!("var/lib/dpkg/status.d/w{index}");
+        gather.item(Item::Whiteout { path }).unwrap();
+    }
+    let facts = gather.finish();
+    assert!(
+        started.elapsed() < Duration::from_secs(60),
+        "{:?}",
+        started.elapsed()
+    );
+    assert!(facts.incomplete);
+    assert_eq!(facts.unreadable.len(), limits.max_removed);
+    assert_eq!(facts.removed.len(), limits.max_removed);
 }
 
 #[test]

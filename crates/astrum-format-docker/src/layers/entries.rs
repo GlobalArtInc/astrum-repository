@@ -1,15 +1,32 @@
 use std::io::{self, Read};
 
-use tar::{EntryType, Header, PaxExtensions};
+use tar::{Header, PaxExtensions};
 
 use super::limits::Limits;
 
 const BLOCK: usize = 512;
-const EXTENDED_FLAG: usize = 504;
+const OLD_EXTENDED: usize = 482;
+const EXTENDED: usize = 504;
 const OPAQUE: &str = ".wh..wh..opq";
 const WHITEOUT: &str = ".wh.";
 const RESERVED: &str = ".wh..wh.";
 const SPARSE: &str = "GNU.sparse.";
+const SPARSE_NAME: &str = "GNU.sparse.name";
+
+const REGULAR: u8 = b'0';
+const REGULAR_OLD: u8 = 0;
+const LINK: u8 = b'1';
+const SYMLINK: u8 = b'2';
+const DIRECTORY: u8 = b'5';
+const GNU_SPARSE: u8 = b'S';
+const LONG_NAME: u8 = b'L';
+const LONG_LINK: u8 = b'K';
+const PAX_LOCAL: u8 = b'x';
+const PAX_GLOBAL: u8 = b'g';
+const CONTINUOUS: u8 = b'7';
+const CHAR: u8 = b'3';
+const BLOCK_DEVICE: u8 = b'4';
+const FIFO: u8 = b'6';
 
 pub enum Item<'a> {
     File {
@@ -17,14 +34,17 @@ pub enum Item<'a> {
         size: u64,
         body: &'a mut dyn Read,
     },
+    Link {
+        path: String,
+    },
+    Node {
+        path: String,
+    },
     Whiteout {
         path: String,
     },
     Opaque {
         dir: String,
-    },
-    Link {
-        path: String,
     },
     Sparse {
         path: String,
@@ -36,14 +56,21 @@ pub enum Stop {
     Entries,
     Malformed,
     Metadata,
+    Pax,
+}
+
+#[derive(Default)]
+struct Pax {
+    path: Option<Vec<u8>>,
+    size: Option<u64>,
+    sparse: bool,
+    sparse_name: Option<Vec<u8>>,
 }
 
 #[derive(Default)]
 struct Pending {
     long: Option<Vec<u8>>,
-    pax_path: Option<Vec<u8>>,
-    pax_size: Option<u64>,
-    sparse: bool,
+    pax: Pax,
 }
 
 enum Block {
@@ -86,19 +113,41 @@ fn padding(size: u64) -> u64 {
     (BLOCK as u64 - size % BLOCK as u64) % BLOCK as u64
 }
 
-fn checksum(block: &[u8; BLOCK], header: &Header) -> io::Result<()> {
-    let sum = block[..148]
-        .iter()
-        .chain(&block[156..])
-        .map(|byte| u32::from(*byte))
-        .sum::<u32>()
-        + 8 * 32;
-    match header.cksum()? == sum {
+fn until_nul(bytes: &[u8]) -> &[u8] {
+    bytes.split(|byte| *byte == 0).next().unwrap_or_default()
+}
+
+fn checksum(block: &[u8; BLOCK]) -> io::Result<()> {
+    let (mut unsigned, mut signed) = (0i64, 0i64);
+    for (index, byte) in block.iter().enumerate() {
+        let byte = if (148..156).contains(&index) {
+            b' '
+        } else {
+            *byte
+        };
+        unsigned += i64::from(byte);
+        signed += i64::from(byte as i8);
+    }
+    let stored = i64::from(Header::from_byte_slice(block).cksum()?);
+    match stored == unsigned || stored == signed {
         true => Ok(()),
         false => Err(io::Error::new(
             io::ErrorKind::InvalidData,
             "archive header checksum mismatch",
         )),
+    }
+}
+
+fn header_name(block: &[u8; BLOCK]) -> Vec<u8> {
+    let name = until_nul(&block[..100]);
+    let prefix = match &block[257..263] == b"ustar\0" {
+        true if &block[508..512] == b"tar\0" => until_nul(&block[345..345 + 131]),
+        true => until_nul(&block[345..345 + 155]),
+        false => &[],
+    };
+    match prefix.is_empty() {
+        true => name.to_vec(),
+        false => [prefix, b"/", name].concat(),
     }
 }
 
@@ -115,29 +164,32 @@ fn read_meta(reader: &mut impl Read, size: u64, cap: u64) -> io::Result<Option<V
     Ok(Some(bytes))
 }
 
-fn read_pax(bytes: &[u8], pending: &mut Pending) {
-    for record in PaxExtensions::new(bytes).flatten() {
-        let Ok(key) = record.key() else {
-            continue;
-        };
+fn parse_pax(bytes: &[u8]) -> Option<Pax> {
+    let mut pax = Pax::default();
+    for record in PaxExtensions::new(bytes) {
+        let record = record.ok()?;
+        let key = record.key().ok()?;
+        let value = record.value_bytes();
         match key {
-            "path" => pending.pax_path = Some(record.value_bytes().to_vec()),
+            "path" => pax.path = (!value.is_empty()).then(|| value.to_vec()),
             "size" => {
-                pending.pax_size = Some(
-                    record
-                        .value()
-                        .ok()
-                        .and_then(|value| value.parse().ok())
-                        .unwrap_or(u64::MAX),
-                )
+                pax.size = match value.is_empty() {
+                    true => None,
+                    false => Some(std::str::from_utf8(value).ok()?.parse().ok()?),
+                }
             }
-            other if other.starts_with(SPARSE) => pending.sparse = true,
+            SPARSE_NAME => {
+                pax.sparse = true;
+                pax.sparse_name = (!value.is_empty()).then(|| value.to_vec());
+            }
+            other if other.starts_with(SPARSE) => pax.sparse = true,
             _ => {}
         }
     }
+    Some(pax)
 }
 
-pub fn normalise(raw: &[u8], max: usize) -> Option<String> {
+pub fn clean(raw: &[u8], max: usize) -> Option<String> {
     if raw.len() > max {
         return None;
     }
@@ -145,68 +197,23 @@ pub fn normalise(raw: &[u8], max: usize) -> Option<String> {
     if text.contains('\0') {
         return None;
     }
-    let mut parts = Vec::new();
+    let mut parts: Vec<&str> = Vec::new();
     for part in text.split('/') {
         match part {
             "" | "." => {}
-            ".." => return None,
+            ".." => {
+                parts.pop();
+            }
             other => parts.push(other),
         }
     }
     (!parts.is_empty()).then(|| parts.join("/"))
 }
 
-fn classify(path: String, size: u64, body: &mut dyn Read) -> Item<'_> {
-    let (dir, base) = path.rsplit_once('/').unwrap_or(("", path.as_str()));
-    if base == OPAQUE {
-        return Item::Opaque {
-            dir: dir.to_owned(),
-        };
-    }
-    if let Some(target) = base.strip_prefix(WHITEOUT)
-        && !base.starts_with(RESERVED)
-        && !target.is_empty()
-    {
-        let removed = match dir.is_empty() {
-            true => target.to_owned(),
-            false => format!("{dir}/{target}"),
-        };
-        return Item::Whiteout { path: removed };
-    }
-    Item::File { path, size, body }
-}
-
-struct Fields {
-    kind: EntryType,
-    plain_zero: bool,
-    size: u64,
-    name: Vec<u8>,
-    recognised: bool,
-    extended: bool,
-}
-
-fn fields(block: &[u8; BLOCK]) -> io::Result<Fields> {
-    let header = Header::from_byte_slice(block);
-    checksum(block, header)?;
-    Ok(Fields {
-        kind: header.entry_type(),
-        plain_zero: block[156] == 0,
-        size: header.entry_size()?,
-        name: header.path_bytes().into_owned(),
-        recognised: header.as_gnu().is_some() || header.as_ustar().is_some(),
-        extended: header.as_gnu().is_some_and(|gnu| gnu.is_extended()),
-    })
-}
-
-fn header_only(kind: EntryType) -> bool {
+fn header_only(flag: u8) -> bool {
     matches!(
-        kind,
-        EntryType::Link
-            | EntryType::Symlink
-            | EntryType::Char
-            | EntryType::Block
-            | EntryType::Directory
-            | EntryType::Fifo
+        flag,
+        LINK | SYMLINK | CHAR | BLOCK_DEVICE | DIRECTORY | FIFO
     )
 }
 
@@ -216,11 +223,62 @@ fn skip_extensions(reader: &mut impl Read, limit: u64) -> io::Result<Option<Stop
         if matches!(read_block(reader, &mut block)?, Block::End) {
             return Err(io::ErrorKind::UnexpectedEof.into());
         }
-        if block[EXTENDED_FLAG] != 1 {
+        if block[EXTENDED] == 0 {
             return Ok(None);
         }
     }
     Ok(Some(Stop::Entries))
+}
+
+enum Marker {
+    Opaque(String),
+    Whiteout(String),
+}
+
+fn marker(path: &str) -> Option<Marker> {
+    let (dir, base) = path.rsplit_once('/').unwrap_or(("", path));
+    if base == OPAQUE {
+        return Some(Marker::Opaque(dir.to_owned()));
+    }
+    let target = base.strip_prefix(WHITEOUT)?;
+    if base.starts_with(RESERVED) || target.is_empty() {
+        return None;
+    }
+    Some(Marker::Whiteout(match dir.is_empty() {
+        true => target.to_owned(),
+        false => format!("{dir}/{target}"),
+    }))
+}
+
+struct Fields {
+    flag: u8,
+    size: u64,
+    name: Vec<u8>,
+    old_extended: bool,
+}
+
+fn fields(block: &[u8; BLOCK]) -> io::Result<Fields> {
+    checksum(block)?;
+    Ok(Fields {
+        flag: block[156],
+        size: Header::from_byte_slice(block).entry_size()?,
+        name: header_name(block),
+        old_extended: block[OLD_EXTENDED] > 0,
+    })
+}
+
+fn resolved_name(entry: &Fields, current: &Pending) -> Vec<u8> {
+    let mut name = entry.name.clone();
+    if let Some(path) = &current.pax.path {
+        name = path.clone();
+    }
+    if let Some(long) = &current.long {
+        let cut = until_nul(long);
+        if !cut.is_empty() {
+            name = cut.to_vec();
+        }
+    }
+    name
 }
 
 pub fn walk<R: Read>(
@@ -247,65 +305,97 @@ pub fn walk<R: Read>(
             return Ok(Some(Stop::Entries));
         }
         let entry = fields(&block)?;
-        if entry.recognised && entry.kind.is_gnu_longname() {
-            match read_meta(&mut reader, entry.size, limits.max_meta)? {
-                Some(bytes) => pending.long = Some(bytes),
-                None => return Ok(Some(Stop::Metadata)),
+        match entry.flag {
+            LONG_NAME => {
+                match read_meta(&mut reader, entry.size, limits.max_meta)? {
+                    Some(bytes) => pending.long = Some(bytes),
+                    None => return Ok(Some(Stop::Metadata)),
+                }
+                continue;
             }
-            continue;
-        }
-        if entry.recognised && entry.kind.is_pax_local_extensions() {
-            match read_meta(&mut reader, entry.size, limits.max_meta)? {
-                Some(bytes) => read_pax(&bytes, &mut pending),
-                None => return Ok(Some(Stop::Metadata)),
+            PAX_LOCAL => {
+                let Some(bytes) = read_meta(&mut reader, entry.size, limits.max_meta)? else {
+                    return Ok(Some(Stop::Metadata));
+                };
+                let Some(pax) = parse_pax(&bytes) else {
+                    return Ok(Some(Stop::Pax));
+                };
+                pending.pax = pax;
+                continue;
             }
-            continue;
-        }
-        if entry.recognised
-            && (entry.kind.is_gnu_longlink() || entry.kind.is_pax_global_extensions())
-        {
-            skip(&mut reader, entry.size)?;
-            skip(&mut reader, padding(entry.size))?;
-            continue;
+            PAX_GLOBAL => {
+                skip(&mut reader, entry.size)?;
+                skip(&mut reader, padding(entry.size))?;
+                pending = Pending::default();
+                continue;
+            }
+            LONG_LINK => {
+                skip(&mut reader, entry.size)?;
+                skip(&mut reader, padding(entry.size))?;
+                continue;
+            }
+            _ => {}
         }
         let current = std::mem::take(&mut pending);
-        let named = match (&current.long, &current.pax_path) {
-            (Some(long), _) => long.strip_suffix(&[0]).unwrap_or(long).to_vec(),
-            (None, Some(path)) => path.clone(),
-            (None, None) => entry.name.clone(),
+        let named = resolved_name(&entry, &current);
+        let path = clean(&named, limits.max_name);
+        let directory =
+            entry.flag == DIRECTORY || (entry.flag == REGULAR_OLD && named.ends_with(b"/"));
+        let only = header_only(entry.flag) || directory;
+        let size = match only {
+            true => 0,
+            false => current.pax.size.unwrap_or(entry.size),
         };
-        let path = normalise(&named, limits.max_name);
-        if header_only(entry.kind) {
-            if let Some(path) = path
-                && matches!(entry.kind, EntryType::Link | EntryType::Symlink)
-            {
-                each(Item::Link { path })?;
-            }
-            continue;
-        }
-        let size = current.pax_size.unwrap_or(entry.size);
-        if entry.kind == EntryType::GNUSparse
-            && entry.extended
+        if entry.flag == GNU_SPARSE
+            && entry.old_extended
             && let Some(stop) = skip_extensions(&mut reader, limits.max_entries)?
         {
             return Ok(Some(stop));
         }
-        let sparse = entry.kind == EntryType::GNUSparse || current.sparse;
-        let directory = entry.plain_zero && named.ends_with(b"/");
-        let regular = matches!(entry.kind, EntryType::Regular | EntryType::Continuous);
-        match path {
-            Some(path) if sparse => each(Item::Sparse { path })?,
-            Some(path) if regular && !directory => {
+        let sparse = entry.flag == GNU_SPARSE || current.pax.sparse;
+        let kind = path.as_deref().and_then(marker);
+        match (path, kind) {
+            (Some(_), Some(Marker::Opaque(dir))) => each(Item::Opaque { dir })?,
+            (Some(_), Some(Marker::Whiteout(path))) => each(Item::Whiteout { path })?,
+            (Some(path), None) if sparse => {
+                each(Item::Sparse { path })?;
+                let renamed = current
+                    .pax
+                    .sparse_name
+                    .as_deref()
+                    .and_then(|name| clean(name, limits.max_name));
+                if let Some(path) = renamed {
+                    each(Item::Sparse { path })?;
+                }
+            }
+            (Some(_), None) if directory => {}
+            (Some(path), None) if matches!(entry.flag, LINK | SYMLINK) => {
+                each(Item::Link { path })?
+            }
+            (Some(path), None) if matches!(entry.flag, CHAR | BLOCK_DEVICE | FIFO) => {
+                each(Item::Node { path })?
+            }
+            (Some(path), None) if matches!(entry.flag, REGULAR | REGULAR_OLD | CONTINUOUS) => {
                 let mut body = reader.by_ref().take(size);
-                each(classify(path, size, &mut body))?;
+                each(Item::File {
+                    path,
+                    size,
+                    body: &mut body,
+                })?;
                 let rest = body.limit();
                 skip(&mut reader, rest)?;
                 skip(&mut reader, padding(size))?;
                 continue;
             }
-            _ => {}
+            (Some(path), None) => each(Item::Node { path })?,
+            (None, _) => {}
         }
-        skip(&mut reader, size)?;
-        skip(&mut reader, padding(size))?;
+        if !only {
+            skip(&mut reader, size)?;
+            skip(&mut reader, padding(size))?;
+        }
     }
 }
+
+#[cfg(test)]
+mod tests;

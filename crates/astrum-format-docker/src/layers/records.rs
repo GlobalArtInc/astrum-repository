@@ -1,4 +1,5 @@
 pub const FIELD_LIMIT: usize = 1024;
+pub const PACKAGE_OVERHEAD: usize = 200;
 
 pub struct Budget {
     left: usize,
@@ -7,6 +8,10 @@ pub struct Budget {
 impl Budget {
     pub fn new(total: usize) -> Self {
         Budget { left: total }
+    }
+
+    pub fn left(&self) -> usize {
+        self.left
     }
 
     pub fn take(&mut self, bytes: usize) -> bool {

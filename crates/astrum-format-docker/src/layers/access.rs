@@ -20,6 +20,7 @@ use crate::upstream::Upstreams;
 use super::cache;
 use super::facts::{self, Failure, LayerFacts};
 use super::limits::Limits;
+use super::merge::{Merge, Merged};
 use super::stream::Guard;
 
 static SLOT: LazyLock<Arc<Semaphore>> = LazyLock::new(|| Arc::new(Semaphore::new(1)));
@@ -118,6 +119,36 @@ fn unavailable(key: &str, reason: impl Into<String>) -> LayerFacts {
     let reason = reason.into();
     tracing::warn!(layer = %key, %reason, "a layer could not be read and the inventory is incomplete");
     LayerFacts::unavailable(reason)
+}
+
+pub async fn fold(merge: Merge, facts: LayerFacts) -> Result<Merge, ContentError> {
+    let permit = SLOT
+        .clone()
+        .acquire_owned()
+        .await
+        .map_err(ContentError::internal)?;
+    tokio::task::spawn_blocking(move || {
+        let _permit = permit;
+        let mut merge = merge;
+        merge.apply(facts);
+        merge
+    })
+    .await
+    .map_err(ContentError::internal)
+}
+
+pub async fn conclude(merge: Merge) -> Result<Merged, ContentError> {
+    let permit = SLOT
+        .clone()
+        .acquire_owned()
+        .await
+        .map_err(ContentError::internal)?;
+    tokio::task::spawn_blocking(move || {
+        let _permit = permit;
+        merge.finish()
+    })
+    .await
+    .map_err(ContentError::internal)
 }
 
 pub async fn facts_of(

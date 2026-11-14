@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::limits::Limits;
-use super::records::{self, Budget, Parsed, Truncation};
+use super::records::{self, Budget, PACKAGE_OVERHEAD, Parsed, Truncation};
 
 const GONE: [&str; 2] = ["not-installed", "config-files"];
 
@@ -22,7 +21,8 @@ pub struct DpkgPackage {
 
 impl DpkgPackage {
     pub fn cost(&self) -> usize {
-        self.name.len()
+        PACKAGE_OVERHEAD
+            + self.name.len()
             + self.version.len()
             + self.source.as_ref().map_or(0, String::len)
             + self.source_version.as_ref().map_or(0, String::len)
@@ -97,7 +97,7 @@ fn build(record: Record) -> Option<DpkgPackage> {
 fn finish(
     record: &mut Record,
     parsed: &mut Parsed<DpkgPackage>,
-    limits: &Limits,
+    room: usize,
     budget: &mut Budget,
     database: Database,
 ) {
@@ -117,7 +117,7 @@ fn finish(
         parsed.malformed += 1;
         return;
     };
-    if parsed.packages.len() >= limits.max_db_packages {
+    if parsed.packages.len() >= room {
         parsed.truncated = Some(Truncation::Count);
         return;
     }
@@ -130,7 +130,7 @@ fn finish(
 
 pub fn parse(
     bytes: &[u8],
-    limits: &Limits,
+    room: usize,
     budget: &mut Budget,
     database: Database,
 ) -> Parsed<DpkgPackage> {
@@ -138,7 +138,7 @@ pub fn parse(
     let mut record = Record::default();
     for line in records::lines(bytes) {
         if line.trim_ascii().is_empty() {
-            finish(&mut record, &mut parsed, limits, budget, database);
+            finish(&mut record, &mut parsed, room, budget, database);
             continue;
         }
         if parsed.truncated.is_some() {
@@ -168,7 +168,7 @@ pub fn parse(
             record.status = Some(status);
         }
     }
-    finish(&mut record, &mut parsed, limits, budget, database);
+    finish(&mut record, &mut parsed, room, budget, database);
     parsed
 }
 

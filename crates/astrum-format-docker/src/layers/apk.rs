@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::limits::Limits;
-use super::records::{self, Budget, Parsed, Truncation};
+use super::records::{self, Budget, PACKAGE_OVERHEAD, Parsed, Truncation};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ApkPackage {
@@ -13,7 +12,8 @@ pub struct ApkPackage {
 
 impl ApkPackage {
     pub fn cost(&self) -> usize {
-        self.name.len()
+        PACKAGE_OVERHEAD
+            + self.name.len()
             + self.version.len()
             + self.origin.as_ref().map_or(0, String::len)
             + self.arch.as_ref().map_or(0, String::len)
@@ -42,12 +42,7 @@ fn build(record: Record) -> Option<ApkPackage> {
     })
 }
 
-fn finish(
-    record: &mut Record,
-    parsed: &mut Parsed<ApkPackage>,
-    limits: &Limits,
-    budget: &mut Budget,
-) {
+fn finish(record: &mut Record, parsed: &mut Parsed<ApkPackage>, room: usize, budget: &mut Budget) {
     let finished = std::mem::take(record);
     if !finished.seen {
         return;
@@ -56,7 +51,7 @@ fn finish(
         parsed.malformed += 1;
         return;
     };
-    if parsed.packages.len() >= limits.max_db_packages {
+    if parsed.packages.len() >= room {
         parsed.truncated = Some(Truncation::Count);
         return;
     }
@@ -67,12 +62,12 @@ fn finish(
     parsed.packages.push(package);
 }
 
-pub fn parse(bytes: &[u8], limits: &Limits, budget: &mut Budget) -> Parsed<ApkPackage> {
+pub fn parse(bytes: &[u8], room: usize, budget: &mut Budget) -> Parsed<ApkPackage> {
     let mut parsed = Parsed::default();
     let mut record = Record::default();
     for line in records::lines(bytes) {
         if line.trim_ascii().is_empty() {
-            finish(&mut record, &mut parsed, limits, budget);
+            finish(&mut record, &mut parsed, room, budget);
             continue;
         }
         if parsed.truncated.is_some() {
@@ -91,7 +86,7 @@ pub fn parse(bytes: &[u8], limits: &Limits, budget: &mut Budget) -> Parsed<ApkPa
             _ => {}
         }
     }
-    finish(&mut record, &mut parsed, limits, budget);
+    finish(&mut record, &mut parsed, room, budget);
     parsed
 }
 

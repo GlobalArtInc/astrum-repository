@@ -1,8 +1,13 @@
 use super::*;
+use crate::layers::limits::Limits;
 
 fn parsed(bytes: &[u8]) -> Parsed<ApkPackage> {
     let limits = Limits::DEFAULT;
-    parse(bytes, &limits, &mut Budget::new(limits.facts_budget))
+    parse(
+        bytes,
+        limits.max_db_packages,
+        &mut Budget::new(limits.facts_budget),
+    )
 }
 
 #[test]
@@ -49,10 +54,9 @@ fn a_database_over_the_package_count_keeps_the_limit_and_says_so() {
 #[test]
 fn the_byte_budget_stops_retaining_packages() {
     let text = "P:aaaa\nV:1\n\nP:bbbb\nV:1\n\nP:cccc\nV:1\n\n";
-    let mut budget = Budget::new(12);
-    let parsed = parse(text.as_bytes(), &Limits::DEFAULT, &mut budget);
+    let mut budget = Budget::new(2 * (records::PACKAGE_OVERHEAD + 5) + 10);
+    let parsed = parse(text.as_bytes(), 100, &mut budget);
     assert_eq!(parsed.packages.len(), 2);
     assert_eq!(parsed.truncated, Some(Truncation::Budget));
-    let kept: usize = parsed.packages.iter().map(ApkPackage::cost).sum();
-    assert!(kept <= 12);
+    assert_eq!(parsed.packages[0].cost(), records::PACKAGE_OVERHEAD + 5);
 }

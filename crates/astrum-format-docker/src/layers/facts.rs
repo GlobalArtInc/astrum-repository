@@ -1,3 +1,4 @@
+use std::collections::{HashMap, HashSet};
 use std::io::{self, Read};
 
 use serde::{Deserialize, Serialize};
@@ -8,7 +9,7 @@ use super::dpkg::{self, Database, DpkgPackage};
 use super::entries::{self, Item, Stop};
 use super::limits::Limits;
 use super::paths::{self, APK_DB, DPKG_STATUS, ETC_OS_RELEASE, STATUS_D_PREFIX, USR_OS_RELEASE};
-use super::records::{Budget, Parsed, Truncation};
+use super::records::{Budget, PACKAGE_OVERHEAD, Parsed, Truncation};
 use super::stream::{self, Cut, Guard, Watch};
 
 const MAX_REASONS: usize = 16;
@@ -21,7 +22,9 @@ pub struct StatusFile {
 
 impl StatusFile {
     pub fn cost(&self) -> usize {
-        self.path.len() + self.packages.iter().map(DpkgPackage::cost).sum::<usize>()
+        self.path.len()
+            + PACKAGE_OVERHEAD
+            + self.packages.iter().map(DpkgPackage::cost).sum::<usize>()
     }
 }
 
@@ -103,8 +106,14 @@ struct Gather<'a> {
     facts: LayerFacts,
     limits: &'a Limits,
     budget: Budget,
+    retained: usize,
     etc: Option<OsRelease>,
     usr: Option<OsRelease>,
+    unreadable_seen: HashSet<String>,
+    removed_seen: HashSet<String>,
+    opaque_seen: HashSet<String>,
+    files_seen: HashSet<String>,
+    status_index: HashMap<String, usize>,
 }
 
 impl<'a> Gather<'a> {
@@ -113,22 +122,45 @@ impl<'a> Gather<'a> {
             facts: LayerFacts::default(),
             limits,
             budget: Budget::new(limits.facts_budget),
+            retained: 0,
             etc: None,
             usr: None,
+            unreadable_seen: HashSet::new(),
+            removed_seen: HashSet::new(),
+            opaque_seen: HashSet::new(),
+            files_seen: HashSet::new(),
+            status_index: HashMap::new(),
         }
     }
 
+    fn over_budget(&mut self) {
+        self.facts.note(format!(
+            "more than {} bytes of package data in one layer",
+            self.limits.facts_budget
+        ));
+    }
+
+    fn exhausted(&self) -> bool {
+        self.retained >= self.limits.max_db_packages || self.budget.left() < PACKAGE_OVERHEAD
+    }
+
     fn unreadable(&mut self, path: &str, kind: Wanted) {
-        if !kind.database() || self.facts.unreadable.iter().any(|known| known == path) {
+        if !kind.database() || self.unreadable_seen.contains(path) {
             return;
         }
-        match self.budget.take(path.len()) {
-            true => self.facts.unreadable.push(path.to_owned()),
-            false => self.facts.note(format!(
-                "more than {} bytes of package data in one layer",
-                self.limits.facts_budget
-            )),
+        if self.unreadable_seen.len() >= self.limits.max_removed {
+            self.facts.note(format!(
+                "more than {} unreadable package databases",
+                self.limits.max_removed
+            ));
+            return;
         }
+        if !self.budget.take(path.len()) {
+            self.over_budget();
+            return;
+        }
+        self.unreadable_seen.insert(path.to_owned());
+        self.facts.unreadable.push(path.to_owned());
     }
 
     fn read(&mut self, path: &str, size: u64, body: &mut dyn Read) -> io::Result<Option<Vec<u8>>> {
@@ -158,29 +190,34 @@ impl<'a> Gather<'a> {
         }
         match parsed.truncated {
             Some(Truncation::Count) => self.facts.note(format!(
-                "{path} lists more than {} packages",
+                "a layer lists more than {} packages",
                 self.limits.max_db_packages
             )),
-            Some(Truncation::Budget) => self.facts.note(format!(
-                "{path} holds more than {} bytes of package data",
-                self.limits.facts_budget
-            )),
+            Some(Truncation::Budget) => self.over_budget(),
             None => {}
         }
+        self.retained += parsed.packages.len();
         parsed.packages
+    }
+
+    fn room(&self) -> usize {
+        self.limits.max_db_packages.saturating_sub(self.retained)
     }
 
     fn file(&mut self, path: &str, size: u64, body: &mut dyn Read) -> io::Result<()> {
         let Some(kind) = wanted(path) else {
             return Ok(());
         };
-        let known = self
-            .facts
-            .dpkg_status_d
-            .iter()
-            .any(|file| file.path == path);
+        if kind.database() && self.exhausted() {
+            self.facts.note(format!(
+                "package data beyond {} packages or {} bytes in one layer was left unread",
+                self.limits.max_db_packages, self.limits.facts_budget
+            ));
+            self.unreadable(path, kind);
+            return Ok(());
+        }
         if kind == Wanted::StatusD
-            && !known
+            && !self.status_index.contains_key(path)
             && self.facts.dpkg_status_d.len() >= self.limits.max_status_files
         {
             self.facts.note(format!(
@@ -188,6 +225,7 @@ impl<'a> Gather<'a> {
                 self.limits.max_status_files,
                 paths::STATUS_D
             ));
+            self.unreadable(path, kind);
             return Ok(());
         }
         let Some(bytes) = self.read(path, size, body)? else {
@@ -203,15 +241,15 @@ impl<'a> Gather<'a> {
                 }
             }
             Wanted::Apk => {
-                let parsed = apk::parse(&bytes, self.limits, &mut self.budget);
+                let parsed = apk::parse(&bytes, self.room(), &mut self.budget);
                 self.facts.apk = Some(self.account(path, parsed));
             }
             Wanted::Dpkg => {
-                let parsed = dpkg::parse(&bytes, self.limits, &mut self.budget, Database::Status);
+                let parsed = dpkg::parse(&bytes, self.room(), &mut self.budget, Database::Status);
                 self.facts.dpkg = Some(self.account(path, parsed));
             }
             Wanted::StatusD => {
-                let parsed = dpkg::parse(&bytes, self.limits, &mut self.budget, Database::Part);
+                let parsed = dpkg::parse(&bytes, self.room(), &mut self.budget, Database::Part);
                 let packages = self.account(path, parsed);
                 self.put_status(path, packages);
             }
@@ -220,26 +258,22 @@ impl<'a> Gather<'a> {
     }
 
     fn put_status(&mut self, path: &str, packages: Vec<DpkgPackage>) {
+        if !self.budget.take(path.len() + PACKAGE_OVERHEAD) {
+            self.over_budget();
+            self.unreadable(path, Wanted::StatusD);
+            return;
+        }
         let file = StatusFile {
             path: path.to_owned(),
             packages,
         };
-        if !self.budget.take(path.len()) {
-            self.facts.note(format!(
-                "more than {} bytes of package data in one layer",
-                self.limits.facts_budget
-            ));
-            self.unreadable(path, Wanted::StatusD);
-            return;
-        }
-        match self
-            .facts
-            .dpkg_status_d
-            .iter_mut()
-            .find(|existing| existing.path == path)
-        {
-            Some(existing) => *existing = file,
-            None => self.facts.dpkg_status_d.push(file),
+        match self.status_index.get(path) {
+            Some(position) => self.facts.dpkg_status_d[*position] = file,
+            None => {
+                self.status_index
+                    .insert(path.to_owned(), self.facts.dpkg_status_d.len());
+                self.facts.dpkg_status_d.push(file);
+            }
         }
     }
 
@@ -254,12 +288,58 @@ impl<'a> Gather<'a> {
         self.unreadable(path, kind);
     }
 
+    fn conflict(&mut self, path: &str) {
+        self.facts.note(format!(
+            "a whiteout and an entry for {path} are in the same layer"
+        ));
+        if let Some(kind) = wanted(path) {
+            self.unreadable(path, kind);
+        }
+    }
+
+    fn entry(&mut self, path: &str, regular: bool) {
+        if regular && paths::removal_matters(path) {
+            if self.removed_seen.contains(path) {
+                self.conflict(path);
+            }
+            if !self.files_seen.contains(path) {
+                match self.budget.take(path.len() + PACKAGE_OVERHEAD) {
+                    true => {
+                        self.files_seen.insert(path.to_owned());
+                    }
+                    false => self.over_budget(),
+                }
+            }
+        }
+        if paths::is_ancestor(path) {
+            self.facts
+                .note(format!("{path} is not a directory in this layer"));
+            self.keep(path.to_owned(), true);
+        }
+    }
+
     fn item(&mut self, item: Item<'_>) -> io::Result<()> {
         match item {
-            Item::File { path, size, body } => self.file(&path, size, body)?,
+            Item::File { path, size, body } => {
+                self.entry(&path, true);
+                self.file(&path, size, body)?;
+            }
+            Item::Link { path } => {
+                self.entry(&path, false);
+                self.special(&path, "link");
+            }
+            Item::Node { path } => self.entry(&path, false),
+            Item::Sparse { path } => {
+                self.entry(&path, false);
+                self.special(&path, "sparse");
+            }
             Item::Whiteout { path } => {
                 if paths::removal_matters(&path) {
-                    self.keep(path, true);
+                    let seen = self.files_seen.contains(&path);
+                    self.keep(path.clone(), true);
+                    if seen {
+                        self.conflict(&path);
+                    }
                 }
             }
             Item::Opaque { dir } => {
@@ -267,27 +347,26 @@ impl<'a> Gather<'a> {
                     self.keep(dir, false);
                 }
             }
-            Item::Link { path } => self.special(&path, "link"),
-            Item::Sparse { path } => self.special(&path, "sparse"),
         }
         Ok(())
     }
 
     fn keep(&mut self, path: String, removed: bool) {
-        let list = match removed {
-            true => &mut self.facts.removed,
-            false => &mut self.facts.opaque,
+        let (list, seen) = match removed {
+            true => (&mut self.facts.removed, &mut self.removed_seen),
+            false => (&mut self.facts.opaque, &mut self.opaque_seen),
         };
-        if list.contains(&path) {
+        if seen.contains(&path) {
             return;
         }
-        if list.len() >= self.limits.max_removed || !self.budget.take(path.len()) {
+        if seen.len() >= self.limits.max_removed || !self.budget.take(path.len()) {
             self.facts.note(format!(
                 "more than {} whiteouts of package databases",
                 self.limits.max_removed
             ));
             return;
         }
+        seen.insert(path.clone());
         list.push(path);
     }
 
@@ -327,6 +406,7 @@ fn stop_reason(stop: Stop, limits: &Limits) -> String {
             "a long name or pax block is larger than {} bytes",
             limits.max_meta
         ),
+        Stop::Pax => "a pax header could not be parsed".to_owned(),
     }
 }
 

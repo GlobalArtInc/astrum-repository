@@ -14,7 +14,7 @@ use tokio::task::JoinHandle;
 pub use metrics::{BUCKETS, Metrics, Snapshot};
 pub use store::{Claim, claim_component, queue_component};
 
-pub const EXTRACTOR: i32 = 1;
+pub const EXTRACTOR: i32 = 2;
 pub const WORKERS_KEY: &str = "scan.workers";
 pub const DEFAULT_WORKERS: usize = 2;
 pub const MAX_WORKERS: usize = 8;

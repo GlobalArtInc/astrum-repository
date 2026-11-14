@@ -13,6 +13,19 @@ const LOCATIONS: [&str; 5] = [
     STATUS_D,
 ];
 
+const ANCESTORS: [&str; 6] = [
+    "var",
+    "var/lib",
+    "var/lib/dpkg",
+    STATUS_D,
+    "lib/apk",
+    "lib/apk/db",
+];
+
+pub fn is_ancestor(path: &str) -> bool {
+    ANCESTORS.contains(&path)
+}
+
 pub fn covers(removed: &str, path: &str) -> bool {
     path == removed
         || path

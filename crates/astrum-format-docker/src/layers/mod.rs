@@ -25,7 +25,7 @@ use crate::upstream::Upstreams;
 use self::limits::Limits;
 use self::merge::Merge;
 
-pub const EXTRACTOR: i32 = 2;
+pub const EXTRACTOR: i32 = 3;
 const SLACK: Duration = Duration::from_secs(30);
 const MAX_LAYERS: usize = 128;
 
@@ -61,9 +61,9 @@ async fn collect(
     let mut merge = Merge::new(&limits);
     for layer in layers {
         let facts = access::facts_of(ctx, upstreams, image, layer, limits, deadline).await?;
-        merge.apply(facts);
+        merge = access::fold(merge, facts).await?;
     }
-    let merged = merge.finish();
+    let merged = access::conclude(merge).await?;
     Ok(Contribution {
         packages: merged.packages,
         complete: merged.complete,

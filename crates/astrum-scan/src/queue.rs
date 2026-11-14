@@ -66,6 +66,7 @@ fn chunk_sql(selection: Selection) -> String {
                 "AND NOT EXISTS (SELECT 1 FROM component_scan s \
              LEFT JOIN sca_inventory i ON i.id = s.inventory_id \
              WHERE s.component_id = c.id AND s.state NOT IN ('failed', 'incomplete') \
+             AND NOT (s.state = 'unsupported' AND c.format = 'docker') \
              AND (i.id IS NULL OR i.extractor >= {EXTRACTOR}))"
             ),
             "ON CONFLICT (component_id) DO NOTHING".to_owned(),

@@ -147,3 +147,160 @@ pub fn alpine_layer() -> Vec<u8> {
         Entry::File("lib/apk/db/installed", APK_DB.as_bytes()),
     ])
 }
+
+pub struct Raw<'a> {
+    name: &'a [u8],
+    prefix: &'a [u8],
+    flag: u8,
+    size: u64,
+    magic: &'a [u8],
+    version: &'a [u8],
+    link: &'a [u8],
+    signed: bool,
+    extended: u8,
+}
+
+impl<'a> Raw<'a> {
+    pub fn new(name: &'a str) -> Self {
+        Raw {
+            name: name.as_bytes(),
+            prefix: b"",
+            flag: b'0',
+            size: 0,
+            magic: b"ustar\0",
+            version: b"00",
+            link: b"",
+            signed: false,
+            extended: 0,
+        }
+    }
+
+    pub fn bytes(mut self, name: &'a [u8]) -> Self {
+        self.name = name;
+        self
+    }
+
+    pub fn prefix(mut self, prefix: &'a [u8]) -> Self {
+        self.prefix = prefix;
+        self
+    }
+
+    pub fn flag(mut self, flag: u8) -> Self {
+        self.flag = flag;
+        self
+    }
+
+    pub fn magic(mut self, magic: &'a [u8], version: &'a [u8]) -> Self {
+        self.magic = magic;
+        self.version = version;
+        self
+    }
+
+    pub fn link(mut self, link: &'a str) -> Self {
+        self.link = link.as_bytes();
+        self
+    }
+
+    pub fn signed(mut self) -> Self {
+        self.signed = true;
+        self
+    }
+
+    pub fn extended(mut self, flag: u8) -> Self {
+        self.extended = flag;
+        self
+    }
+
+    pub fn build(&self) -> Vec<u8> {
+        self.build_sized(self.size)
+    }
+
+    fn build_sized(&self, size: u64) -> Vec<u8> {
+        let mut block = vec![0u8; 512];
+        block[..self.name.len()].copy_from_slice(self.name);
+        block[100..107].copy_from_slice(b"0000644");
+        block[108..115].copy_from_slice(b"0000000");
+        block[116..123].copy_from_slice(b"0000000");
+        block[124..135].copy_from_slice(format!("{size:011o}").as_bytes());
+        block[136..147].copy_from_slice(b"00000000000");
+        block[148..156].copy_from_slice(b"        ");
+        block[156] = self.flag;
+        block[157..157 + self.link.len()].copy_from_slice(self.link);
+        block[257..257 + self.magic.len()].copy_from_slice(self.magic);
+        block[263..263 + self.version.len()].copy_from_slice(self.version);
+        block[345..345 + self.prefix.len()].copy_from_slice(self.prefix);
+        block[482] = self.extended;
+        let unsigned: i64 = block.iter().map(|byte| i64::from(*byte)).sum();
+        let signed: i64 = block.iter().map(|byte| i64::from(*byte as i8)).sum();
+        let sum = if self.signed { signed } else { unsigned };
+        block[148..156].copy_from_slice(format!("{sum:06o}\0 ").as_bytes());
+        block
+    }
+
+    pub fn with(&self, data: &[u8]) -> Vec<u8> {
+        let mut block = self.build_sized(data.len() as u64);
+        block.extend_from_slice(data);
+        pad(&mut block, data.len());
+        block
+    }
+}
+
+pub fn pax_record(key: &str, value: &str) -> Vec<u8> {
+    let base = key.len() + value.len() + 3;
+    let mut length = base + base.to_string().len();
+    while length != base + length.to_string().len() {
+        length = base + length.to_string().len();
+    }
+    format!("{length} {key}={value}\n").into_bytes()
+}
+
+pub fn pax(records: &[(&str, &str)]) -> Vec<u8> {
+    let data: Vec<u8> = records
+        .iter()
+        .flat_map(|(key, value)| pax_record(key, value))
+        .collect();
+    Raw::new("pax").flag(b'x').with(&data)
+}
+
+pub struct Generated {
+    entries: u64,
+    make: Box<dyn Fn(u64) -> Vec<u8>>,
+    next: u64,
+    chunk: Vec<u8>,
+    at: usize,
+    ended: bool,
+}
+
+impl Generated {
+    pub fn new(entries: u64, make: impl Fn(u64) -> Vec<u8> + 'static) -> Self {
+        Generated {
+            entries,
+            make: Box::new(make),
+            next: 0,
+            chunk: Vec::new(),
+            at: 0,
+            ended: false,
+        }
+    }
+}
+
+impl Read for Generated {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        if self.at >= self.chunk.len() {
+            if self.next < self.entries {
+                self.chunk = (self.make)(self.next);
+                self.next += 1;
+            } else if !self.ended {
+                self.chunk = END.to_vec();
+                self.ended = true;
+            } else {
+                return Ok(0);
+            }
+            self.at = 0;
+        }
+        let taken = buf.len().min(self.chunk.len() - self.at);
+        buf[..taken].copy_from_slice(&self.chunk[self.at..self.at + taken]);
+        self.at += taken;
+        Ok(taken)
+    }
+}

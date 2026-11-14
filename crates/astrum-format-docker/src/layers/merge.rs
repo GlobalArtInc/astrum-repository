@@ -9,6 +9,7 @@ use super::dpkg::DpkgPackage;
 use super::facts::{LayerFacts, StatusFile};
 use super::limits::Limits;
 use super::paths::{self, APK_DB, DPKG_STATUS, STATUS_D_PREFIX};
+use super::records::PACKAGE_OVERHEAD;
 
 const MAX_REASONS: usize = 16;
 const COMPONENT: &AsciiSet = &NON_ALPHANUMERIC
@@ -70,21 +71,25 @@ impl Merge {
         }
     }
 
-    fn drop_status(&mut self, hidden: impl Fn(&str) -> bool) {
-        let paths: Vec<String> = self
-            .status_d
-            .keys()
-            .filter(|path| hidden(path))
-            .cloned()
-            .collect();
-        for path in paths {
+    fn drop_below(&mut self, dir: &str) {
+        let keys: Vec<String> = match dir.is_empty() {
+            true => self.status_d.keys().cloned().collect(),
+            false => self
+                .status_d
+                .range(format!("{dir}/")..format!("{dir}0"))
+                .map(|(path, _)| path.clone())
+                .collect(),
+        };
+        for path in keys {
             self.forget_status(&path);
         }
     }
 
     fn forget_status(&mut self, path: &str) {
         if let Some(packages) = self.status_d.remove(path) {
-            let cost = path.len() + packages.iter().map(DpkgPackage::cost).sum::<usize>();
+            let cost = path.len()
+                + PACKAGE_OVERHEAD
+                + packages.iter().map(DpkgPackage::cost).sum::<usize>();
             self.status_bytes = self.status_bytes.saturating_sub(cost);
         }
     }
@@ -98,7 +103,8 @@ impl Merge {
         if paths::covers(removed, DPKG_STATUS) {
             self.dpkg = Db::Absent;
         }
-        self.drop_status(|path| paths::covers(removed, path));
+        self.forget_status(removed);
+        self.drop_below(removed);
     }
 
     fn hide_below(&mut self, dir: &str) {
@@ -110,7 +116,7 @@ impl Merge {
         if paths::hides_below(dir, DPKG_STATUS) {
             self.dpkg = Db::Absent;
         }
-        self.drop_status(|path| paths::hides_below(dir, path));
+        self.drop_below(dir);
     }
 
     fn unreadable(&mut self, path: &str) {
@@ -185,35 +191,69 @@ impl Merge {
             }
             return self.merged(Vec::new());
         };
-        let (found, skipped) = refs(&self, &distro);
-        if skipped {
-            self.note("packages of another package manager were skipped".to_owned());
-        }
+        let skipped = self.skipped(&distro);
         let mut seen = HashSet::new();
         let mut packages = Vec::new();
         let mut bytes = 0usize;
-        for package in found {
+        let mut capped = false;
+        for package in self.refs(&distro) {
             let identity = (package.name.clone(), package.version.clone());
-            if !seen.insert(identity) {
+            if seen.contains(&identity) {
                 continue;
             }
-            let cost = package.ecosystem.len()
+            let cost = PACKAGE_OVERHEAD
+                + package.ecosystem.len()
                 + package.name.len()
                 + package.version.len()
                 + package.purl.len();
             if packages.len() >= self.limits.max_packages
                 || bytes + cost > self.limits.merged_budget
             {
-                self.note(format!(
-                    "the image lists more than {} distinct packages or {} bytes of them",
-                    self.limits.max_packages, self.limits.merged_budget
-                ));
+                capped = true;
                 break;
             }
+            seen.insert(identity);
             bytes += cost;
             packages.push(package);
         }
+        if skipped {
+            self.note("packages of another package manager were skipped".to_owned());
+        }
+        if capped {
+            self.note(format!(
+                "the image lists more than {} distinct packages or {} bytes of them",
+                self.limits.max_packages, self.limits.merged_budget
+            ));
+        }
         self.merged(packages)
+    }
+
+    fn skipped(&self, distro: &Distro) -> bool {
+        match distro.family {
+            Family::Apk => {
+                !self.dpkg.listed().is_empty()
+                    || self.status_d.values().any(|packages| !packages.is_empty())
+            }
+            Family::Dpkg => !self.apk.listed().is_empty(),
+        }
+    }
+
+    fn refs<'a>(&'a self, distro: &'a Distro) -> Box<dyn Iterator<Item = PackageRef> + 'a> {
+        match distro.family {
+            Family::Apk => Box::new(
+                self.apk
+                    .listed()
+                    .iter()
+                    .map(move |package| apk_ref(distro, package)),
+            ),
+            Family::Dpkg => Box::new(
+                self.dpkg
+                    .listed()
+                    .iter()
+                    .chain(self.status_d.values().flat_map(|packages| packages.iter()))
+                    .map(move |package| deb_ref(distro, package)),
+            ),
+        }
     }
 
     fn merged(self, packages: Vec<PackageRef>) -> Merged {
@@ -320,33 +360,6 @@ fn deb_ref(distro: &Distro, package: &DpkgPackage) -> PackageRef {
             distro,
             upstream.as_deref(),
         ),
-    }
-}
-
-fn refs(merge: &Merge, distro: &Distro) -> (Vec<PackageRef>, bool) {
-    match distro.family {
-        Family::Apk => {
-            let skipped = !merge.dpkg.listed().is_empty()
-                || merge.status_d.values().any(|packages| !packages.is_empty());
-            let packages = merge
-                .apk
-                .listed()
-                .iter()
-                .map(|package| apk_ref(distro, package))
-                .collect();
-            (packages, skipped)
-        }
-        Family::Dpkg => {
-            let skipped = !merge.apk.listed().is_empty();
-            let packages = merge
-                .dpkg
-                .listed()
-                .iter()
-                .chain(merge.status_d.values().flat_map(|packages| packages.iter()))
-                .map(|package| deb_ref(distro, package))
-                .collect();
-            (packages, skipped)
-        }
     }
 }
 

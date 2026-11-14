@@ -1,10 +1,11 @@
 use super::*;
+use crate::layers::limits::Limits;
 
 fn parsed(bytes: &[u8], database: Database) -> Parsed<DpkgPackage> {
     let limits = Limits::DEFAULT;
     parse(
         bytes,
-        &limits,
+        limits.max_db_packages,
         &mut Budget::new(limits.facts_budget),
         database,
     )
