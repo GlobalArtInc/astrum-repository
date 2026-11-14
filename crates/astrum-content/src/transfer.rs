@@ -8,6 +8,7 @@ use async_trait::async_trait;
 use futures_util::future::BoxFuture;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use sha2::{Digest, Sha256};
 
 use crate::import::{Body, Described, Imported, ImportedComponent, Plan};
 use crate::store::{self, Component, ComponentKey, Planned, PutAsset};
@@ -16,6 +17,10 @@ use crate::{Content, ContentError, Ctx, holds, mime, normalize};
 pub const MAX_ASSETS: usize = 10_000;
 pub const MAX_COMPONENTS: usize = 100;
 pub const PROMOTED: &str = "promoted";
+pub const REPLICATED: &str = "replicated";
+pub const REPLICATION_ATTRIBUTE: &str = "replication";
+pub const REPLICATION_VIA: &str = "replication";
+const FINGERPRINT_VERSION: &str = "astrum-component-fingerprint-1";
 const HOLD_TTL: Duration = Duration::from_secs(30 * 60);
 const MAX_TEXT: usize = 4096;
 
@@ -126,6 +131,103 @@ pub struct Bundle {
     pub meta: Value,
     #[serde(default)]
     pub origin: Option<String>,
+}
+
+fn field(hasher: &mut Sha256, value: &str) {
+    hasher.update((value.len() as u64).to_be_bytes());
+    hasher.update(value.as_bytes());
+}
+
+fn canonical(hasher: &mut Sha256, value: &Value) {
+    match value {
+        Value::Null => hasher.update(b"n"),
+        Value::Bool(flag) => hasher.update(if *flag { b"t" } else { b"f" }),
+        Value::Number(number) => {
+            hasher.update(b"d");
+            field(hasher, &number.to_string());
+        }
+        Value::String(text) => {
+            hasher.update(b"s");
+            field(hasher, text);
+        }
+        Value::Array(items) => {
+            hasher.update(b"[");
+            hasher.update((items.len() as u64).to_be_bytes());
+            for item in items {
+                canonical(hasher, item);
+            }
+        }
+        Value::Object(members) => {
+            hasher.update(b"{");
+            hasher.update((members.len() as u64).to_be_bytes());
+            let mut keys: Vec<&String> = members.keys().collect();
+            keys.sort();
+            for key in keys {
+                field(hasher, key);
+                canonical(hasher, &members[key]);
+            }
+        }
+    }
+}
+
+pub fn fingerprint(bundle: &Bundle) -> String {
+    let mut hasher = Sha256::new();
+    field(&mut hasher, FINGERPRINT_VERSION);
+    for part in [
+        &bundle.format,
+        &bundle.namespace,
+        &bundle.name,
+        &bundle.version,
+    ] {
+        field(&mut hasher, part);
+    }
+    let mut assets: Vec<&BundleAsset> = bundle.assets.iter().collect();
+    assets.sort_by(|a, b| a.path.cmp(&b.path));
+    hasher.update((assets.len() as u64).to_be_bytes());
+    for asset in assets {
+        field(&mut hasher, &asset.path);
+        field(&mut hasher, &asset.sha256.to_ascii_lowercase());
+        hasher.update(asset.size.to_be_bytes());
+    }
+    match &bundle.meta {
+        Value::Object(members) => {
+            let kept: serde_json::Map<String, Value> = members
+                .iter()
+                .filter(|(key, _)| key.as_str() != REPLICATION_ATTRIBUTE)
+                .map(|(key, value)| (key.clone(), value.clone()))
+                .collect();
+            canonical(&mut hasher, &Value::Object(kept));
+        }
+        other => canonical(&mut hasher, other),
+    }
+    hex::encode(hasher.finalize())
+}
+
+pub fn origin_of(attributes: &Value) -> Option<&str> {
+    attributes
+        .get(REPLICATION_ATTRIBUTE)?
+        .get("origin")?
+        .as_str()
+}
+
+fn mark(put: &mut PutAsset, origin: Option<&str>) -> Result<(), ContentError> {
+    let (Some(origin), Some(component)) = (origin, put.component.as_mut()) else {
+        return Ok(());
+    };
+    if component.attributes.is_null() {
+        component.attributes = Value::Object(Default::default());
+    }
+    let Value::Object(attributes) = &mut component.attributes else {
+        return Err(ContentError::internal(anyhow::anyhow!(
+            "the component attributes of {} are not an object",
+            put.path
+        )));
+    };
+    attributes.insert(
+        REPLICATION_ATTRIBUTE.to_owned(),
+        serde_json::json!({"origin": origin, "via": REPLICATION_VIA}),
+    );
+    Ok(())
 }
 
 #[derive(Clone)]
@@ -545,14 +647,16 @@ impl GenericTransfer {
                     (fresh, bytes)
                 }
             };
-            let item = Self::finish(target, put, primary, &sample)?;
+            let mut item = Self::finish(target, put, primary, &sample)?;
+            mark(&mut item.0, bundle.origin.as_deref())?;
             Self::count_component(&mut components, &item.0)?;
             origins.insert(item.0.path.clone(), *asset);
             items.push(item);
             for (put, bytes) in extra {
                 staged.check()?;
                 let fresh = Self::write_bytes(sink, staged, &bytes).await?;
-                let item = Self::finish(target, put, fresh, &bytes)?;
+                let mut item = Self::finish(target, put, fresh, &bytes)?;
+                mark(&mut item.0, bundle.origin.as_deref())?;
                 Self::count_component(&mut components, &item.0)?;
                 origins.insert(item.0.path.clone(), *asset);
                 items.push(item);
@@ -689,5 +793,73 @@ impl Transfer for GenericTransfer {
             tracing::warn!(%error, repository = target.name(), "derived data of a transferred component was not refreshed");
         }
         Ok(outcome)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    use super::*;
+
+    fn asset(path: &str, sha256: &str, size: u64) -> BundleAsset {
+        BundleAsset {
+            path: path.to_owned(),
+            kind: "asset".to_owned(),
+            content_type: "text/plain".to_owned(),
+            size,
+            sha1: String::new(),
+            sha256: sha256.to_owned(),
+            sha512: String::new(),
+            md5: String::new(),
+            attributes: json!({"seen": 1}),
+        }
+    }
+
+    fn bundle() -> Bundle {
+        Bundle {
+            format: "raw".to_owned(),
+            namespace: "/d".to_owned(),
+            name: "/d/a".to_owned(),
+            version: String::new(),
+            assets: vec![
+                asset("/d/a", &"a".repeat(64), 3),
+                asset("/d/b", &"b".repeat(64), 4),
+            ],
+            meta: json!({}),
+            origin: None,
+        }
+    }
+
+    #[test]
+    fn a_fingerprint_follows_the_content_and_nothing_else() {
+        let base = fingerprint(&bundle());
+        assert_eq!(base.len(), 64);
+
+        let mut same = bundle();
+        same.assets.reverse();
+        same.assets[0].sha256 = "B".repeat(64);
+        same.assets[1].attributes = json!({"seen": 2});
+        same.assets[1].content_type = "other/type".to_owned();
+        same.origin = Some("someone".to_owned());
+        same.meta = json!({"replication": {"origin": "x"}});
+        assert_eq!(fingerprint(&same), base);
+
+        let changes: [fn(&mut Bundle); 6] = [
+            |b| b.namespace = "/e".to_owned(),
+            |b| b.name = "/d/c".to_owned(),
+            |b| b.version = "1".to_owned(),
+            |b| b.assets[0].sha256 = "c".repeat(64),
+            |b| b.assets[1].size = 5,
+            |b| b.meta = json!({"tags": ["latest"]}),
+        ];
+        for change in changes {
+            let mut other = bundle();
+            change(&mut other);
+            assert_ne!(fingerprint(&other), base);
+        }
+        let mut fewer = bundle();
+        fewer.assets.pop();
+        assert_ne!(fingerprint(&fewer), base);
     }
 }

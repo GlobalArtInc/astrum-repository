@@ -21,9 +21,9 @@ use uuid::Uuid;
 use crate::error::{self, ERROR_BODY_LIMIT, Error, parse_retry_after};
 use crate::limit::Limiter;
 use crate::protocol::{
-    BLOB, CAPABILITIES, COMPONENTS, Capabilities, INVENTORY, INVENTORY_COMPARE, InventoryCompare,
-    InventoryKey, InventoryPage, MAX_MISSING, MISSING, MissingReply, MissingRequest, PROTOCOL,
-    Tombstone, valid_sha256,
+    BLOB, CAPABILITIES, COMPONENTS, Capabilities, INSTANCE_HEADER, INVENTORY, INVENTORY_COMPARE,
+    InventoryCompare, InventoryCompareReply, InventoryKey, InventoryPage, MAX_MISSING, MISSING,
+    MissingReply, MissingRequest, PROTOCOL, Tombstone, valid_sha256,
 };
 use astrum_content::transfer::{Bundle, Outcome};
 
@@ -59,6 +59,7 @@ pub struct Client {
     authorization: HeaderValue,
     limiter: Option<Limiter>,
     max_concurrency: usize,
+    instance: Option<HeaderValue>,
 }
 
 impl std::fmt::Debug for Client {
@@ -231,7 +232,18 @@ impl Client {
             authorization,
             limiter: remote.max_bytes_per_second.and_then(Limiter::new),
             max_concurrency: remote.max_concurrency,
+            instance: None,
         })
+    }
+
+    pub fn with_instance(mut self, instance_id: &str) -> Result<Self, Error> {
+        let id = Uuid::parse_str(instance_id)
+            .map_err(|_| refused("the instance id of this server is not a UUID"))?;
+        self.instance =
+            Some(HeaderValue::from_str(&id.to_string()).map_err(|_| {
+                refused("the instance id of this server cannot be sent in a header")
+            })?);
+        Ok(self)
     }
 
     pub fn max_concurrency(&self) -> usize {
@@ -253,6 +265,10 @@ impl Client {
     }
 
     async fn send(&self, request: RequestBuilder) -> Result<Response, Error> {
+        let request = match &self.instance {
+            Some(instance) => request.header(INSTANCE_HEADER, instance.clone()),
+            None => request,
+        };
         let response = request
             .header(AUTHORIZATION, self.authorization.clone())
             .send()
@@ -419,7 +435,7 @@ impl Client {
         &self,
         repository: &str,
         items: &[InventoryKey],
-    ) -> Result<InventoryCompare, Error> {
+    ) -> Result<InventoryCompareReply, Error> {
         let url = self.url(&repository_path(INVENTORY_COMPARE, repository)?);
         let request = json_request(
             self.http.post(url),

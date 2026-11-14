@@ -3,7 +3,7 @@ mod support;
 use std::time::{Duration, Instant};
 
 use astrum_content::transfer::{Bundle, BundleAsset, Outcome};
-use astrum_replication::protocol::{BLOBS_MISSING, InventoryCompare, InventoryKey, Tombstone};
+use astrum_replication::protocol::{BLOBS_MISSING, InventoryCompareReply, InventoryKey, Tombstone};
 use astrum_replication::{Client, Error, Remote};
 use astrum_security::ssrf::Guard;
 use bytes::Bytes;
@@ -75,7 +75,12 @@ async fn every_route_is_called_with_the_token_and_the_agreed_shape() {
         fingerprint: "f".to_owned(),
     }];
     let differing = client.inventory_compare("a b/c", &items).await.unwrap();
-    assert_eq!(differing, InventoryCompare { items });
+    assert_eq!(
+        differing,
+        InventoryCompareReply {
+            differing: vec!["app/1".to_owned()]
+        }
+    );
     let page = client.inventory("a b/c", Some("app/0"), 50).await.unwrap();
     assert_eq!(page.next.as_deref(), Some("app/1"));
 

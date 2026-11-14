@@ -123,7 +123,10 @@ async fn serve(State(receiver): State<Receiver>, request: Request<Body>) -> Resp
         "PUT" if path.contains("/blobs/") => StatusCode::CREATED.into_response(),
         "POST" if path.ends_with("/components") => json_reply(StatusCode::OK, outcome()),
         "DELETE" if path.ends_with("/components") => StatusCode::NO_CONTENT.into_response(),
-        "POST" if path.ends_with("/inventory/compare") => json_reply(StatusCode::OK, request),
+        "POST" if path.ends_with("/inventory/compare") => json_reply(
+            StatusCode::OK,
+            json!({"differing": request["items"].as_array().map(|items| items.iter().map(|item| item["key"].clone()).collect::<Vec<_>>())}),
+        ),
         "GET" if path.ends_with("/inventory") => json_reply(
             StatusCode::OK,
             json!({"items": [{"key": "app/1", "fingerprint": "f", "origin": null}], "next": "app/1"}),
