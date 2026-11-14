@@ -40,6 +40,17 @@ const DUE_COUNT: &str = "SELECT count(*) AS n FROM ( \
      WHERE r.remote_id = $1 AND r.enabled AND i.state = 'pending' AND i.not_before <= now() \
      LIMIT $2) due";
 
+const ENQUEUE: &str = "INSERT INTO replication_item (replication_id, namespace, name, version, reason, not_before) \
+     SELECT r.id, k.namespace, k.name, k.version, 'reconcile', now() \
+     FROM replication r \
+     CROSS JOIN unnest($2::text[], $3::text[], $4::text[]) AS k(namespace, name, version) \
+     WHERE r.id = $1 AND r.enabled \
+     ON CONFLICT (replication_id, namespace, name, version) DO UPDATE SET \
+         generation = replication_item.generation + 1 \
+     WHERE replication_item.state = 'leased'";
+
+const RECONCILED: &str = "UPDATE replication SET last_reconcile_at = now() WHERE id = $1";
+
 const RENEW: &str = "UPDATE replication_item \
      SET leased_until = now() + make_interval(secs => $2::double precision) \
      WHERE id = ANY($1::bigint[]) AND state = 'leased'";
@@ -224,4 +235,35 @@ pub async fn fail(
     ))
     .one(db)
     .await
+}
+
+pub async fn enqueue(
+    db: &impl ConnectionTrait,
+    replication: Uuid,
+    keys: &[(String, String, String)],
+) -> Result<u64, DbErr> {
+    if keys.is_empty() {
+        return Ok(0);
+    }
+    let column = |pick: fn(&(String, String, String)) -> &String| -> Vec<String> {
+        keys.iter().map(|key| pick(key).clone()).collect()
+    };
+    Ok(db
+        .execute(statement(
+            ENQUEUE,
+            vec![
+                replication.into(),
+                column(|key| &key.0).into(),
+                column(|key| &key.1).into(),
+                column(|key| &key.2).into(),
+            ],
+        ))
+        .await?
+        .rows_affected())
+}
+
+pub async fn reconciled(db: &impl ConnectionTrait, replication: Uuid) -> Result<(), DbErr> {
+    db.execute(statement(RECONCILED, vec![replication.into()]))
+        .await?;
+    Ok(())
 }

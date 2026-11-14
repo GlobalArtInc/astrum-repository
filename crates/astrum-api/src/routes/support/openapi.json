@@ -5539,8 +5539,23 @@
           },
           "reconcileMinutes": {
             "default": 360,
+            "description": "Minutes between two reconciles of the replication with its remote; one of the listed values",
+            "enum": [
+              5,
+              10,
+              15,
+              20,
+              30,
+              60,
+              120,
+              180,
+              240,
+              360,
+              480,
+              720,
+              1440
+            ],
             "format": "int32",
-            "minimum": 5,
             "type": "integer"
           },
           "remoteId": {

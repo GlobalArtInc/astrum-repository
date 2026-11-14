@@ -66,6 +66,7 @@ struct Plan {
     commits: usize,
     uploads: usize,
     tombstones: usize,
+    compares: usize,
 }
 
 struct Gate {
@@ -135,6 +136,10 @@ impl Force {
 
     pub fn tombstones(&self) -> usize {
         self.plan.lock().unwrap().tombstones
+    }
+
+    pub fn compares(&self) -> usize {
+        self.plan.lock().unwrap().compares
     }
 }
 
@@ -212,6 +217,9 @@ pub(super) async fn forced(State(force): State<Force>, request: Request, next: N
                 }
                 if method == Method::PUT && path.contains("/blobs/") {
                     plan.uploads += 1;
+                }
+                if method == Method::POST && path.ends_with("/inventory/compare") {
+                    plan.compares += 1;
                 }
                 if method == Method::DELETE && path.ends_with("/components") {
                     plan.tombstones += 1;

@@ -63,6 +63,7 @@ pub fn register_tasks(tasks: &Tasks) {
         astrum_format_pacman::task::RebuildMetadata::default(),
     ));
     tasks.register(Arc::new(astrum_format_r::task::RebuildMetadata::default()));
+    tasks.register(Arc::new(astrum_replication::reconcile::Reconcile));
     tasks.register(Arc::new(astrum_format_yum::task::RebuildMetadata::default()));
 }
 

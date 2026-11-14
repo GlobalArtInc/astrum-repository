@@ -1,5 +1,6 @@
 use astrum_db::audit::Event;
 use astrum_db::setting;
+use astrum_replication::lifecycle::{self, Snapshot};
 use astrum_security::Subject;
 use astrum_security::ssrf::{SSRF_KEY, SsrfProtection, refused_remote_destination};
 use axum::Router;
@@ -8,7 +9,7 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::routing::get;
 use sea_orm::prelude::DateTimeWithTimeZone;
-use sea_orm::{DbBackend, DbErr, FromQueryResult, SqlErr, Statement, Value};
+use sea_orm::{DbBackend, DbErr, FromQueryResult, SqlErr, Statement, TransactionTrait, Value};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use uuid::Uuid;
@@ -26,10 +27,8 @@ pub(super) const DOMAIN: &str = "replication";
 
 const DEFAULT_CONCURRENCY: i64 = 2;
 const DEFAULT_SETTLE_SECONDS: i64 = 30;
-const DEFAULT_RECONCILE_MINUTES: i64 = 360;
 const MAX_CONCURRENCY: i64 = 16;
 const MAX_SETTLE_SECONDS: i64 = 3600;
-const MIN_RECONCILE_MINUTES: i64 = 5;
 
 const REMOTE_COLUMNS: &str = "id, name, url, true AS has_token, use_trust_store, \
      allow_private_network, max_concurrency, max_bytes_per_second, remote_instance_id, \
@@ -642,14 +641,9 @@ async fn replication_input(
         0,
         MAX_SETTLE_SECONDS,
     );
-    let reconcile_minutes = ranged(
-        &mut validation,
-        "reconcileMinutes",
-        body.reconcile_minutes,
-        DEFAULT_RECONCILE_MINUTES,
-        MIN_RECONCILE_MINUTES,
-        i32::MAX as i64,
-    );
+    let reconcile_minutes = validate::reconcile_minutes(body.reconcile_minutes)
+        .map_err(|error| validation.add("reconcileMinutes", error))
+        .unwrap_or(lifecycle::DEFAULT_MINUTES);
     let mut channels: Vec<Uuid> = Vec::new();
     for raw in body.alert_channels.unwrap_or_default() {
         match Uuid::parse_str(raw.trim()) {
@@ -783,6 +777,15 @@ fn replication_values(id: Uuid, input: &ReplicationInput) -> Vec<Value> {
     ]
 }
 
+fn snapshot(model: &ReplicationModel) -> Snapshot {
+    Snapshot {
+        id: model.id,
+        name: model.name.clone(),
+        enabled: model.enabled,
+        reconcile_minutes: model.reconcile_minutes,
+    }
+}
+
 fn replication_audit(model: &ReplicationModel) -> serde_json::Value {
     json!({
         "id": model.id,
@@ -815,9 +818,10 @@ async fn create_replication(
          reconcile_minutes, alert_channels) \
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING {REPLICATION_COLUMNS}"
     );
+    let txn = state.db().conn().begin().await?;
     let inserted =
         ReplicationModel::find_by_statement(statement(&sql, replication_values(id, &input)))
-            .one(state.db().conn())
+            .one(&txn)
             .await;
     let created = match inserted {
         Ok(Some(created)) => created,
@@ -828,6 +832,9 @@ async fn create_replication(
         }
         Err(error) => return replication_conflict(&error),
     };
+    lifecycle::created(&txn, &snapshot(&created), &caller.initiator()).await?;
+    txn.commit().await?;
+    state.tasks().wake();
     state
         .audit(
             &caller,
@@ -888,15 +895,22 @@ async fn update_replication(
          propagate_deletes = $9, settle_seconds = $10, reconcile_minutes = $11, \
          alert_channels = $12, updated_at = now() WHERE id = $1 RETURNING {REPLICATION_COLUMNS}"
     );
+    let txn = state.db().conn().begin().await?;
+    let before = Snapshot::locked(&txn, id)
+        .await?
+        .ok_or_else(|| missing("replication", id))?;
     let updated =
         ReplicationModel::find_by_statement(statement(&sql, replication_values(id, &input)))
-            .one(state.db().conn())
+            .one(&txn)
             .await;
     let updated = match updated {
         Ok(Some(updated)) => updated,
         Ok(None) => return Err(missing("replication", id)),
         Err(error) => return replication_conflict(&error),
     };
+    lifecycle::updated(&txn, &before, &snapshot(&updated), &caller.initiator()).await?;
+    txn.commit().await?;
+    state.tasks().wake();
     state
         .audit(
             &caller,
@@ -915,13 +929,19 @@ async fn remove_replication(
     let subject = caller.require(DELETE)?;
     let id = parse_id(&id, "replication")?;
     require_current_source(&state, subject, id).await?;
+    let txn = state.db().conn().begin().await?;
+    let stopped = lifecycle::removed(&txn, id).await?;
     let deleted = Named::find_by_statement(statement(
         "DELETE FROM replication WHERE id = $1 RETURNING name",
         vec![id.into()],
     ))
-    .one(state.db().conn())
+    .one(&txn)
     .await?
     .ok_or_else(|| missing("replication", id))?;
+    txn.commit().await?;
+    if let Some(run) = stopped {
+        state.tasks().signal_stop(run);
+    }
     state
         .audit(
             &caller,

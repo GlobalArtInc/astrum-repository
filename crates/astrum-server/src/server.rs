@@ -39,6 +39,15 @@ impl Server {
         state.security().ldap().set_cache_ttl(config.ldap_cache_ttl);
         crate::formats::register(state.content());
         crate::formats::register_tasks(state.tasks());
+        let backfilled = astrum_replication::lifecycle::backfill(state.db().conn())
+            .await
+            .context("the reconcile tasks of the replications could not be checked")?;
+        if backfilled > 0 {
+            tracing::info!(
+                count = backfilled,
+                "created the reconcile tasks of existing replications"
+            );
+        }
         let listener = TcpListener::bind(config.listen)
             .await
             .with_context(|| format!("cannot listen on {}", config.listen))?;

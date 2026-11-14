@@ -1,5 +1,6 @@
 use std::net::IpAddr;
 
+use astrum_replication::lifecycle::{ALLOWED_MINUTES, DEFAULT_MINUTES};
 use astrum_security::ssrf::cleartext_permitted;
 use regex::Regex;
 use url::{Host, Url};
@@ -21,6 +22,22 @@ pub fn name(value: Option<&str>) -> Result<String, String> {
         return Err("must not contain control characters".to_owned());
     }
     Ok(value.to_owned())
+}
+
+pub fn reconcile_minutes(value: Option<i64>) -> Result<i32, String> {
+    let value = value.unwrap_or(i64::from(DEFAULT_MINUTES));
+    match ALLOWED_MINUTES
+        .iter()
+        .find(|allowed| i64::from(**allowed) == value)
+    {
+        Some(allowed) => Ok(*allowed),
+        None => Err(format!(
+            "must be one of {} (minutes)",
+            ALLOWED_MINUTES
+                .map(|allowed| allowed.to_string())
+                .join(", ")
+        )),
+    }
 }
 
 pub fn token(value: &str) -> Result<(), String> {
@@ -123,6 +140,18 @@ pub fn filter(pattern: &str) -> Result<Regex, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_reconcile_period_is_one_of_the_values_the_schedule_expresses_exactly() {
+        assert_eq!(reconcile_minutes(None), Ok(360));
+        for allowed in ALLOWED_MINUTES {
+            assert_eq!(reconcile_minutes(Some(i64::from(allowed))), Ok(allowed));
+        }
+        for refused in [-5, 0, 4, 7, 45, 361, 1441, i64::MAX] {
+            let message = reconcile_minutes(Some(refused)).unwrap_err();
+            assert!(message.contains("5, 10, 15, 20, 30, 60"), "{message}");
+        }
+    }
 
     #[test]
     fn a_remote_repository_cannot_carry_a_reserved_name() {

@@ -206,7 +206,12 @@ impl Dispatcher {
         Ok(())
     }
 
-    async fn pause(&self, target: &Target, error: &Error, pass: &mut Pass) -> Result<Pause, DbErr> {
+    pub(crate) async fn pause(
+        &self,
+        target: &Target,
+        error: &Error,
+        pass: &mut Pass,
+    ) -> Result<Pause, DbErr> {
         let (delay, text) = pause_for(target, error);
         let applied = queue::suspend(&self.db(), &target.remote, delay, &text).await?;
         target.halt();
@@ -243,7 +248,7 @@ impl Dispatcher {
     }
 }
 
-struct Pause {
+pub(crate) struct Pause {
     delay: Duration,
     text: String,
     applied: bool,
