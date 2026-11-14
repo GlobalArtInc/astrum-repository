@@ -87,8 +87,9 @@ async fn anonymous_access_can_be_switched_on() {
 async fn format_tokens_work_while_their_realm_is_active() {
     let fixture = Fixture::new().await;
     let security = fixture.state.security();
+    let admin = security.model().local_subject("admin", "NpmToken").unwrap();
     let token = security
-        .issue_format_token("NpmToken", "admin", None)
+        .issue_format_token("NpmToken", &admin, None)
         .await
         .unwrap();
     assert!(token.starts_with("NpmToken."));

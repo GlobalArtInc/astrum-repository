@@ -11,12 +11,10 @@ use serde::Deserialize;
 use serde_json::{Value, json};
 
 use super::INTERNAL;
-use super::session::{
-    CODE_WRONG, SIGN_IN_COOKIE, SIGN_IN_LIFETIME, Step, TWO_FACTOR_DOMAIN, expired, refused,
-    store_error, subject_of,
-};
+use super::session::{CODE_WRONG, SIGN_IN_COOKIE, SIGN_IN_LIFETIME, expired, refused, store_error};
 use super::ui::two_factor_passkeys::resolve_relying_party;
 use crate::auth::{client_address, cookie};
+use crate::second_factor::{DOMAIN as TWO_FACTOR_DOMAIN, Step, subject_of};
 use crate::{ApiError, AppState, Caller};
 
 const CEREMONY_MAX_BYTES: usize = 128;

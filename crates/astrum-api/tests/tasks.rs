@@ -1044,10 +1044,13 @@ async fn expired_sessions_tokens_and_uploads_are_deleted() {
          ('new', 'admin', 'AstrumAuthenticatingRealm', 's', 'c', now(), now(), '', '')",
     )
     .await;
-    fixture
-        .state
-        .security()
-        .issue_format_token("DockerToken", "admin", Some(chrono::Duration::seconds(-5)))
+    let security = fixture.state.security();
+    let admin = security
+        .model()
+        .local_subject("admin", "DockerToken")
+        .unwrap();
+    security
+        .issue_format_token("DockerToken", &admin, Some(chrono::Duration::seconds(-5)))
         .await
         .unwrap();
     execute(

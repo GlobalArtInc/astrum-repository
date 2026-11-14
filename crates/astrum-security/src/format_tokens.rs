@@ -2,6 +2,7 @@ use astrum_db::entity::format_token;
 use chrono::{Duration, Utc};
 use sea_orm::{ActiveValue, ColumnTrait, EntityTrait, QueryFilter};
 
+use crate::catalogue::DEFAULT_SOURCE;
 use crate::subject::Subject;
 use crate::tokens::hash;
 use crate::{AuthError, Error, Security, password};
@@ -26,15 +27,18 @@ impl Security {
     pub async fn issue_format_token(
         &self,
         realm: &str,
-        user_id: &str,
+        subject: &Subject,
         lifetime: Option<Duration>,
     ) -> Result<String, Error> {
+        if subject.anonymous || subject.source != DEFAULT_SOURCE {
+            return Err(Error::NotLocal);
+        }
         let token = format!("{realm}.{}", password::random(RANDOM_LENGTH));
         let now = Utc::now().fixed_offset();
         format_token::Entity::insert(format_token::ActiveModel {
             token_hash: ActiveValue::Set(hash(&token)),
             realm: ActiveValue::Set(realm.to_owned()),
-            user_id: ActiveValue::Set(user_id.to_owned()),
+            user_id: ActiveValue::Set(subject.user_id.clone()),
             created_at: ActiveValue::Set(now),
             expires_at: ActiveValue::Set(lifetime.map(|lifetime| now + lifetime)),
             last_used_at: ActiveValue::Set(None),

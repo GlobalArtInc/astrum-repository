@@ -6,6 +6,7 @@ use astrum_security::ssrf::{SSRF_KEY, SsrfProtection};
 use axum::body::Body;
 use axum::http::{Method, StatusCode};
 use serde_json::{Value, json};
+use support::two_factor::number;
 use support::{Auth, Fixture, Reply};
 
 const RECIPE: &str = "/v2/conans/hello/1.0.0/_/_";
@@ -554,4 +555,41 @@ async fn conan_search_keys_find_assets_by_revision() {
         .await
         .json();
     assert_eq!(by_revision["items"].as_array().unwrap().len(), 1);
+}
+
+#[tokio::test]
+async fn a_directory_account_gets_no_conan_token() {
+    let fixture = ready().await;
+    create(&fixture, "hosted", hosted("conan")).await;
+    let realms = fixture
+        .call(
+            Method::PUT,
+            "/service/rest/v1/security/realms/active",
+            Auth::Admin,
+            Some(json!(["AstrumAuthenticatingRealm", "ConanToken"])),
+        )
+        .await;
+    assert_eq!(realms.status, StatusCode::NO_CONTENT);
+    let _directory = fixture.directory().await;
+    fixture.add_user("bob", "bob-local-password-1", &[]).await;
+    for (user, password) in [("bob", "bob-secret"), ("alice", "alice-secret")] {
+        let reply = call(
+            &fixture,
+            Method::GET,
+            "/repository/conan/v2/users/authenticate",
+            Auth::Basic(user, password),
+            Vec::new(),
+            &[],
+        )
+        .await;
+        assert_eq!(reply.status, StatusCode::FORBIDDEN, "{}", reply.text());
+        assert_eq!(
+            reply.text(),
+            "this account signs in through a directory; use an access token instead"
+        );
+    }
+    assert_eq!(
+        number(&fixture, "SELECT count(*) FROM format_token").await,
+        0
+    );
 }

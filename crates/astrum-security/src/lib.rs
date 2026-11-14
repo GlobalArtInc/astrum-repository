@@ -64,6 +64,8 @@ pub enum Error {
         "the stored IP allow list is invalid: {0}; stop the server and run `astrum ip-allow reset` to clear it"
     )]
     IpAllow(String),
+    #[error("only a signed-in user of the local realm can hold a format token")]
+    NotLocal,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]

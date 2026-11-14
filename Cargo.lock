@@ -704,6 +704,7 @@ dependencies = [
  "astrum-content",
  "astrum-db",
  "astrum-repo",
+ "astrum-security",
  "async-trait",
  "axum",
  "chrono",

@@ -9,13 +9,14 @@ use astrum_api::{AppState, router};
 use astrum_security::SecretBox;
 use astrum_security::catalogue::ADMIN_USER;
 use astrum_testkit::TestDatabase;
+use astrum_testkit::ldap::{BASE, LdapTestServer, SYSTEM_DN, SYSTEM_PASSWORD};
 use axum::body::Body;
 use axum::extract::ConnectInfo;
 use axum::http::{HeaderMap, Method, Request, StatusCode, header};
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
 use http_body_util::BodyExt;
-use serde_json::Value;
+use serde_json::{Value, json};
 use tempfile::TempDir;
 use tower::ServiceExt;
 
@@ -78,6 +79,39 @@ impl Fixture {
         .await
         .unwrap();
         self.state.security().changed().await.unwrap();
+    }
+
+    pub async fn directory(&self) -> LdapTestServer {
+        let server = LdapTestServer::start().await;
+        let created = self
+            .call(
+                Method::POST,
+                "/service/rest/v1/security/ldap",
+                Auth::Admin,
+                Some(json!({
+                    "name": "corp",
+                    "protocol": "ldap",
+                    "host": "127.0.0.1",
+                    "port": server.port,
+                    "searchBase": BASE,
+                    "authScheme": "SIMPLE",
+                    "authUsername": SYSTEM_DN,
+                    "authPassword": SYSTEM_PASSWORD,
+                    "connectionTimeoutSeconds": 5,
+                    "userBaseDn": "ou=people",
+                    "userSubtree": true,
+                    "userObjectClass": "inetOrgPerson",
+                    "userIdAttribute": "uid",
+                    "userRealNameAttribute": "cn",
+                    "userEmailAddressAttribute": "mail",
+                    "ldapGroupsAsRoles": true,
+                    "groupType": "dynamic",
+                    "userMemberOfAttribute": "memberOf"
+                })),
+            )
+            .await;
+        assert_eq!(created.status, StatusCode::CREATED, "{}", created.text());
+        server
     }
 
     pub async fn new() -> Self {

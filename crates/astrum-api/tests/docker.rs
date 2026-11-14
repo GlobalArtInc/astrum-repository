@@ -12,6 +12,7 @@ use base64::engine::general_purpose::STANDARD;
 use http_body_util::BodyExt;
 use serde_json::{Value, json};
 use sha2::{Digest as _, Sha256, Sha512};
+use support::two_factor::number;
 use support::{Auth, Fixture, Reply};
 use tower::ServiceExt;
 
@@ -1274,13 +1275,15 @@ async fn abandoned_uploads_and_expired_tokens_are_swept() {
     ))
     .await
     .unwrap();
-    registry
-        .fixture
-        .state
-        .security()
+    let security = registry.fixture.state.security();
+    let admin = security
+        .model()
+        .local_subject("admin", astrum_format_docker::REALM)
+        .unwrap();
+    security
         .issue_format_token(
             astrum_format_docker::REALM,
-            "admin",
+            &admin,
             Some(chrono::Duration::seconds(-5)),
         )
         .await
@@ -1405,4 +1408,46 @@ async fn tags_show_the_size_of_their_image() {
         )
         .await;
     assert_ne!(blob.status, StatusCode::INTERNAL_SERVER_ERROR);
+}
+
+#[tokio::test]
+async fn a_directory_account_gets_no_docker_token() {
+    let registry = Registry::new().await;
+    registry.activate_token_realm().await;
+    let _directory = registry.fixture.directory().await;
+    registry
+        .fixture
+        .add_user("bob", "bob-local-password-1", &[])
+        .await;
+    let by_basic = registry
+        .send(
+            Method::GET,
+            "/v2/token?scope=x",
+            Some(&basic("bob", "bob-secret")),
+            &[],
+            Vec::new(),
+        )
+        .await;
+    let by_grant = registry
+        .send(
+            Method::POST,
+            "/v2/token",
+            None,
+            &[("content-type", "application/x-www-form-urlencoded")],
+            b"grant_type=password&username=alice&password=alice-secret".to_vec(),
+        )
+        .await;
+    for reply in [by_basic, by_grant] {
+        assert_eq!(reply.status, StatusCode::FORBIDDEN, "{}", reply.text());
+        let error = &reply.json()["errors"][0];
+        assert_eq!(error["code"], "DENIED");
+        assert_eq!(
+            error["message"],
+            "this account signs in through a directory; use an access token instead"
+        );
+    }
+    assert_eq!(
+        number(&registry.fixture, "SELECT count(*) FROM format_token").await,
+        0
+    );
 }

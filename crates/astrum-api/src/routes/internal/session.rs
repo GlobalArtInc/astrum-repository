@@ -4,7 +4,7 @@ use astrum_db::audit::Event;
 use astrum_security::catalogue::DEFAULT_SOURCE;
 use astrum_security::sessions::{KEY_ADDRESS_LENGTH, KEY_USER_LENGTH};
 use astrum_security::two_factor::store::{
-    CEREMONY_ATTEMPTS, CeremonyKind, NewCeremony, RecoveryOutcome, StoreError, Verification,
+    CEREMONY_ATTEMPTS, CeremonyKind, NewCeremony, StoreError,
 };
 use astrum_security::{AuthError, Gate, Pending, Subject};
 use axum::Router;
@@ -19,6 +19,7 @@ use serde_json::{Value, json};
 use super::session_passkey::{self, PASSKEY};
 use super::{INTERNAL, is_https};
 use crate::auth::{CSRF_COOKIE, RestrictedSession, SESSION_COOKIE, client_address, cookie};
+use crate::second_factor::{self, Method, Step, subject_of};
 use crate::{ApiError, AppState, Caller, Json};
 
 const COOKIE_AGE: u64 = 400 * 24 * 60 * 60;
@@ -27,10 +28,8 @@ pub(super) const SIGN_IN_COOKIE: &str = "astrum_signin";
 pub(super) const SIGN_IN_LIFETIME: Duration = Duration::minutes(5);
 const SIGN_IN_EXPIRED: &str = "sign-in-expired";
 pub(super) const CODE_WRONG: &str = "second-factor-invalid";
-const CODE_MAX_BYTES: usize = 64;
 const TOTP: &str = "totp";
 const RECOVERY: &str = "recovery";
-pub(super) const TWO_FACTOR_DOMAIN: &str = "security.twofactor";
 
 pub fn routes() -> Router<AppState> {
     Router::new()
@@ -128,13 +127,6 @@ async fn refuse_password(
     ))
 }
 
-pub(super) fn subject_of(state: &AppState, pending: &Pending) -> Option<Subject> {
-    state
-        .security()
-        .model()
-        .local_subject(&pending.user_id, &pending.realm)
-}
-
 async fn open_restricted(
     state: &AppState,
     user: &str,
@@ -154,7 +146,7 @@ async fn open_restricted(
     state
         .audit(
             &Caller(Some(subject.clone())),
-            Event::new(TWO_FACTOR_DOMAIN, "restricted.signin", &subject.user_id)
+            Event::new(second_factor::DOMAIN, "restricted.signin", &subject.user_id)
                 .with(json!({"userId": subject.user_id})),
         )
         .await;
@@ -247,24 +239,15 @@ fn wrong_code() -> Response {
         .into_response()
 }
 
-pub(super) enum Step {
-    Accepted {
-        left: Option<u32>,
-        offset: Option<i8>,
-    },
-    Wrong,
-    Locked(u64),
-}
-
 async fn second_factor(
     State(state): State<AppState>,
     headers: HeaderMap,
     Json(body): Json<SecondStep>,
 ) -> Result<Response, ApiError> {
     let method = match body.method.as_str() {
-        TOTP => TOTP,
-        RECOVERY => RECOVERY,
-        PASSKEY => PASSKEY,
+        TOTP => Method::Totp,
+        RECOVERY => Method::Recovery,
+        PASSKEY => Method::Passkey,
         _ => {
             return Err(ApiError::invalid(
                 "method",
@@ -272,10 +255,10 @@ async fn second_factor(
             ));
         }
     };
-    if body.code.len() > CODE_MAX_BYTES {
+    if body.code.len() > second_factor::CODE_MAX_BYTES {
         return Err(ApiError::invalid("code", "the code is too long"));
     }
-    if method == PASSKEY {
+    if method == Method::Passkey {
         body.passkey.validate()?;
     }
     let Some(handle) = cookie(&headers, SIGN_IN_COOKIE).filter(|handle| !handle.is_empty()) else {
@@ -299,22 +282,10 @@ async fn second_factor(
             "too many failed sign-ins; wait a few minutes",
         ));
     }
-    let step = if method == TOTP {
-        check_totp(&state, &user, &body.code).await?
-    } else if method == PASSKEY {
+    let step = if method == Method::Passkey {
         body.passkey.check(&state, &user, handle).await?
     } else {
-        match security
-            .consume_recovery_code(&user, &body.code)
-            .await
-            .map_err(store_error)?
-        {
-            RecoveryOutcome::Accepted { left } => Step::Accepted {
-                left: Some(left),
-                offset: None,
-            },
-            RecoveryOutcome::Rejected => Step::Wrong,
-        }
+        second_factor::check(&state, &user, method, &body.code).await?
     };
     match step {
         Step::Accepted { left, offset } => {
@@ -331,18 +302,12 @@ async fn second_factor(
             }
             security.sign_in_succeeded(&user);
             if let Some(left) = left {
-                state
-                    .audit(
-                        &Caller(Some(subject.clone())),
-                        Event::new(TWO_FACTOR_DOMAIN, "recovery.used", &user)
-                            .with(json!({"userId": user, "left": left})),
-                    )
-                    .await;
+                second_factor::audit_recovery_used(&state, &subject, left).await;
             }
             let mut response = axum::Json(describe(&state, Some(&subject), false)).into_response();
             let opening = Opening {
                 restricted: false,
-                second_factor: Some(method),
+                second_factor: Some(method.as_str()),
                 offset_steps: offset,
             };
             open(&state, &headers, &subject, &mut response, opening).await?;
@@ -350,18 +315,7 @@ async fn second_factor(
             Ok(response)
         }
         Step::Wrong | Step::Locked(_) => {
-            security.sign_in_failed(&user);
-            tracing::info!(user, method, "a second step of a sign-in failed");
-            state
-                .audit(
-                    &Caller(None),
-                    Event::new(TWO_FACTOR_DOMAIN, "verify.failed", &user)
-                        .with(json!({"userId": user, "method": method})),
-                )
-                .await;
-            if security.sign_in_blocked(&user) {
-                audit_rate_limited(&state, &user, crate::client::current(), "UI").await;
-            }
+            second_factor::record_failure(&state, &user, method, "UI").await;
             if ceremony.attempts >= CEREMONY_ATTEMPTS {
                 security
                     .take_ceremony(handle, CeremonyKind::SignIn)
@@ -371,48 +325,11 @@ async fn second_factor(
             }
             match step {
                 Step::Locked(seconds) => Err(ApiError::TooManyAttempts(seconds)),
-                _ if method == PASSKEY => Ok(session_passkey::wrong()),
+                _ if method == Method::Passkey => Ok(session_passkey::wrong()),
                 _ => Ok(wrong_code()),
             }
         }
     }
-}
-
-async fn check_totp(state: &AppState, user: &str, code: &str) -> Result<Step, ApiError> {
-    let report = state
-        .security()
-        .verify_totp(user, code, Utc::now())
-        .await
-        .map_err(store_error)?;
-    if report.detail.unreadable_secret {
-        state
-            .audit(
-                &Caller(None),
-                Event::new(TWO_FACTOR_DOMAIN, "totp.unreadable", user)
-                    .with(json!({"userId": user})),
-            )
-            .await;
-    }
-    Ok(match report.result {
-        Verification::Accepted => Step::Accepted {
-            left: None,
-            offset: report.detail.offset_steps,
-        },
-        Verification::Rejected => Step::Wrong,
-        Verification::Locked { until } => {
-            if report.detail.fresh_lock {
-                state
-                    .audit(
-                        &Caller(None),
-                        Event::new(TWO_FACTOR_DOMAIN, "locked", user)
-                            .with(json!({"userId": user, "until": until.to_rfc3339()})),
-                    )
-                    .await;
-            }
-            let seconds = (until.to_utc() - Utc::now()).num_seconds().max(0) + 1;
-            Step::Locked(u64::try_from(seconds).unwrap_or(1))
-        }
-    })
 }
 
 pub(crate) async fn begin(

@@ -12,6 +12,7 @@ mod notify_mail;
 mod relying_party;
 pub mod revisions;
 pub mod routes;
+pub mod second_factor;
 pub mod space;
 
 use std::path::{Path, PathBuf};

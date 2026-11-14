@@ -185,34 +185,29 @@ async fn formats() -> Formats {
         .unwrap();
     let content = fixture.state.content();
     content.register(Arc::new(astrum_format_docker::Docker::default()));
-    content.register(Arc::new(astrum_format_npm::Npm::default()));
     content.register(Arc::new(astrum_format_openvsx::OpenVsx));
     content.register(Arc::new(astrum_format_raw::Raw));
     astrum_db::setting::put(
         fixture.state.db().conn(),
         astrum_security::model::REALMS_KEY,
-        &["AstrumAuthenticatingRealm", "DockerToken", "NpmToken"],
+        &["AstrumAuthenticatingRealm", "DockerToken"],
     )
     .await
     .unwrap();
     fixture.state.security().changed().await.unwrap();
-    for (format, name) in [("npm", "npm-hosted"), ("openvsx", "ovsx-hosted")] {
-        let created = fixture
-            .call(
-                Method::POST,
-                &format!("/service/rest/v1/repositories/{format}/hosted"),
-                Auth::Admin,
-                Some(json!({
-                    "name": name, "online": true,
-                    "storage": {"blobStoreName": "default", "strictContentTypeValidation": true, "writePolicy": "ALLOW"},
-                })),
-            )
-            .await;
-        assert_eq!(created.status, StatusCode::CREATED, "{}", created.text());
-    }
-    let routes = astrum_format_docker::routes()
-        .merge(astrum_format_openvsx::routes())
-        .merge(astrum_format_npm::routes());
+    let created = fixture
+        .call(
+            Method::POST,
+            "/service/rest/v1/repositories/openvsx/hosted",
+            Auth::Admin,
+            Some(json!({
+                "name": "ovsx-hosted", "online": true,
+                "storage": {"blobStoreName": "default", "strictContentTypeValidation": true, "writePolicy": "ALLOW"},
+            })),
+        )
+        .await;
+    assert_eq!(created.status, StatusCode::CREATED, "{}", created.text());
+    let routes = astrum_format_docker::routes().merge(astrum_format_openvsx::routes());
     let app = astrum_api::router_with(fixture.state.clone(), routes);
     Formats { fixture, app }
 }
@@ -290,20 +285,6 @@ impl Formats {
         let path = format!("/repository/ovsx-hosted/api/acme/verify-pat?token=jane:{password}");
         self.send(Method::GET, &path, &[], None).await
     }
-
-    async fn npm_login(&self, password: &str) -> Reply {
-        let body = json!({
-            "_id": "org.couchdb.user:jane", "name": "jane", "password": password,
-            "type": "user", "roles": [], "date": "2026-10-12T00:00:00.000Z",
-        });
-        self.send(
-            Method::PUT,
-            "/repository/npm-hosted/-/user/org.couchdb.user:jane",
-            &[],
-            Some(("application/json", serde_json::to_vec(&body).unwrap())),
-        )
-        .await
-    }
 }
 
 #[tokio::test]
@@ -348,17 +329,6 @@ async fn open_vsx_refuses_an_enrolled_user_like_a_wrong_password_and_audits_the_
             json!("SECOND_FACTOR_REQUIRED")
         ]
     );
-}
-
-#[tokio::test]
-async fn npm_login_refuses_an_enrolled_user_like_a_wrong_password() {
-    let world = formats().await;
-    let login = world.npm_login(SECRET).await;
-    assert_eq!(login.status, StatusCode::CREATED, "{}", login.text());
-    let wrong = world.npm_login("wrong").await;
-    assert_eq!(wrong.status, StatusCode::UNAUTHORIZED);
-    enroll(&world.fixture, "jane").await;
-    same_answer(&world.npm_login(SECRET).await, &wrong);
 }
 
 #[tokio::test]
