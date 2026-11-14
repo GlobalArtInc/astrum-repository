@@ -1614,6 +1614,7 @@ async fn ready_with(max_connections: u32, limits: astrum_format_jsr::Limits) -> 
         data,
         state,
         admin_password,
+        peer: None,
     }
 }
 
