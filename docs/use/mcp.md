@@ -86,11 +86,15 @@ counted per client address.
 | `list_users`, `list_roles`, `list_privileges` | Users with their roles; roles with their privileges and the roles they include; privileges, filtered by repository, format or name | `astrum:users:read`, `astrum:roles:read`, `astrum:privileges:read` |
 | `create_role`, `update_role` | Creates a role, or adds and takes away its privileges and included roles; built-in roles stay as they are | `astrum:roles:create`, `astrum:roles:update` |
 | `set_user_roles` | Gives roles to a user or takes them away, keeping the other details of the user | `astrum:users:update`, and the right to grant the roles |
+| `get_component_security`, `list_vulnerable_components`, `find_advisory` | The vulnerabilities of one component with its scan state and verdict; components with known vulnerabilities, filtered by repository, severity or blocked state; whether components are affected by an advisory id or alias. Only components of repositories the user may browse are returned. See [Vulnerability scanning](../repositories/security-scanning.md). | a token |
+| `rescan` | Queues the components of a repository that has a content policy for a new scan; the work runs in the background. Writes to the server. | `astrum:policies:update` |
+| `create_policy_exception` | Lets a component, advisory, licence or image digest through a content policy, with a reason and an optional expiry. Writes to the server. | `astrum:policyexceptions:create` |
 
 The tools that change the server are only offered to Write tokens, and every tool is only listed when the
 user holds the rights it needs; the server checks those rights again on every call. The only tools that
-add components are the two upload tools; nothing deletes components, repositories, blob stores or users,
-and nothing touches security settings.
+add components are the two upload tools; nothing deletes components, repositories, blob stores or users.
+The only security tools are `rescan` and `create_policy_exception`: they queue a scan and add an exception,
+and they do not change a policy or the advisory data.
 
 The server also offers two prompts: `diagnose_space`, which walks the agent through finding where the
 space went and what to do about it, and `find_artifact`, which finds a package and how to use its latest

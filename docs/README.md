@@ -34,6 +34,8 @@ The same pages are published as a site at https://astrum.globalart.dev.
 
 - [Repositories](repositories/overview.md)
 - [Cleanup policies](repositories/cleanup-policies.md)
+- [Content policies](repositories/policies.md)
+- [Vulnerability scanning](repositories/security-scanning.md)
 - [Routing rules](repositories/routing-rules.md)
 - [Formats](formats/README.md): one page per format with the settings of its clients
 
