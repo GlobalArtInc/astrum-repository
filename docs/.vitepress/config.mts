@@ -85,6 +85,7 @@ const sidebar: DefaultTheme.SidebarItem[] = [
       { text: 'Cleanup policies', link: '/repositories/cleanup-policies' },
       { text: 'Content policies', link: '/repositories/policies' },
       { text: 'Vulnerability scanning', link: '/repositories/security-scanning' },
+      { text: 'Image scanning and the pull gate', link: '/repositories/image-scanning' },
       { text: 'Routing rules', link: '/repositories/routing-rules' },
       { text: 'Licences', link: '/repositories/licenses' },
       { text: 'Image signatures', link: '/repositories/image-signatures' },

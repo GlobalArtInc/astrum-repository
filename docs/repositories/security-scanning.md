@@ -22,10 +22,12 @@ This version scans the packages of these formats:
 | Cargo | `crates.io` |
 | NuGet | `NuGet` |
 
-A component of any other format is recorded with the scan state `unsupported` and is never matched. Container
-images are not scanned in this version: the scanner has no inventory for the Docker format, so tags and
-digests are not judged and not refused. Advisory data for OS packages (Alpine, Debian) can be imported, but no
-component reads it yet.
+A component of any other format is recorded with the scan state `unsupported` and is never matched.
+
+Docker repositories are scanned per tag. The scanner builds an inventory of each image from the SBOM attached to it
+and from its layers, and the pull gate judges the manifests of the image. Advisory data for OS packages (Alpine,
+Debian, and Ubuntu when it is imported) is matched for images. The inventory, its limits and the gate are described in
+[Image scanning and the pull gate](image-scanning.md).
 
 ## Advisory data
 
@@ -174,7 +176,8 @@ The policy mode decides what a download sees:
 In `block` mode a download uses the stored verdict. If there is none, the server scans the component
 inside the request. The scan has a budget of 2 seconds. If the scan finishes, its verdict decides. If it
 does not finish in time or fails, the policy's `unscanned` setting decides: `allow` serves the file,
-`block` refuses it.
+`block` refuses it. Docker manifests are not scanned inside the request; the gate for them is described in
+[Image scanning and the pull gate](image-scanning.md#the-pull-gate).
 
 ### The refusal
 
@@ -197,6 +200,9 @@ for each component.
 The refusal names the policy and the reasons, but it does not link to the interface. Find the component in
 the browser to see the full verdict.
 
+A refused Docker manifest gets the OCI error body instead, with the code `DENIED` and the same policy name and
+reasons in its message. See [the Docker refusal](image-scanning.md#the-refusal).
+
 Downloads are refused only for the components that a policy applies to: those whose repository holds the
 policy. A group serves a member's file under the policy of the member that stores it.
 
@@ -215,7 +221,9 @@ do not skip a policy. An exception has:
 - **Expiry**: optional. An expired exception stops applying, and the server re-judges the affected
   components within one sweep, which runs every minute.
 
-An image digest target has no effect in this version, because container images have no verdicts.
+An image digest target applies to the verdict of that image digest in every tag. A component name target applies to
+the images of the tags that point at the digest, and an advisory target applies to the images as it does to the
+packages. See [Image scanning and the pull gate](image-scanning.md#operator-guidance).
 
 Exceptions are created in the interface on the policy exceptions page, under `/admin/security/policy-exceptions`,
 or over REST, and by the `create_policy_exception` tool over MCP. The REST endpoints are described in
@@ -279,14 +287,15 @@ advisory data is older than the stale limit. It repeats at most once a day for e
 
 These are the limits of this version. Read them before you turn on `block` in production.
 
-- **Container images are not scanned or refused.** The Docker format has no inventory, and the gate does not
-  check manifests. A `block` policy on a Docker repository does nothing.
+- **The Docker gate covers manifests only.** The pull gate refuses manifests of blocked images. It does not check
+  blobs, tag lists, the catalog, the referrers API or pushes. Read
+  [What the gate does not protect](image-scanning.md#what-the-gate-does-not-protect) before you turn on `block` on a
+  Docker repository.
 - **Only the download is refused.** Package metadata (npm packuments, the PyPI simple index,
   `maven-metadata.xml`) still lists a blocked version, so a resolver can choose it and then fail on the
   download.
 - **Licence and signature rules are stored but not enforced.** The policy object and the interface accept
   them. Nothing in this version refuses a download because of a licence or a signature.
-- **Digest exceptions have no effect**, for the reason given in [Exceptions](#exceptions).
 - **First scans are not complete.** A component that has never been scanned is `unscanned` until the queue
   reaches it. In `block` mode the first download waits at most 2 seconds for an inline scan. With
   `unscanned: allow` (the default) the download is served without a verdict. With `unscanned: block` it is

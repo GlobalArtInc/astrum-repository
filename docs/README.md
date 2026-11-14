@@ -36,6 +36,7 @@ The same pages are published as a site at https://astrum.globalart.dev.
 - [Cleanup policies](repositories/cleanup-policies.md)
 - [Content policies](repositories/policies.md)
 - [Vulnerability scanning](repositories/security-scanning.md)
+- [Image scanning and the pull gate](repositories/image-scanning.md): how Docker images are inventoried and judged, and what the gate refuses
 - [Routing rules](repositories/routing-rules.md)
 - [Licences](repositories/licenses.md): the licence rule of a policy, and the licence report
 - [Image signatures](repositories/image-signatures.md): refusing images that no trusted key has signed
