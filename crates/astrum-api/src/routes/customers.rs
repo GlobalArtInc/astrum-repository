@@ -421,6 +421,8 @@ async fn issue(
         .create_token(
             &owner,
             NewToken {
+                source: astrum_security::catalogue::DEFAULT_SOURCE.to_owned(),
+                external_subject: None,
                 name,
                 scope: Scope::Read,
                 days,

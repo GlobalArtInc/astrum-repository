@@ -44,6 +44,12 @@ pub struct Cli {
         help = "Addresses or CIDR ranges of the reverse proxies whose X-Forwarded-For is believed, comma-separated [env: ASTRUM_TRUSTED_PROXIES] [default: none]"
     )]
     pub trusted_proxies: Vec<String>,
+    #[arg(
+        long,
+        global = true,
+        help = "Let OpenID Connect and LDAP accounts hold personal access tokens [env: ASTRUM_EXTERNAL_TOKENS] [default: off]"
+    )]
+    pub external_tokens: bool,
     #[command(subcommand)]
     pub command: Option<Command>,
 }

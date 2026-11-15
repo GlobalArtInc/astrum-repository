@@ -25,7 +25,7 @@ pub mod totp;
 pub mod two_factor;
 
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicI64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicI64, Ordering};
 use std::sync::{Arc, Mutex, RwLock};
 use std::time::{Duration, Instant};
 
@@ -106,6 +106,7 @@ pub struct Security {
     secrets: Option<SecretBox>,
     ldap: ldap::Ldap,
     oidc: oidc::OidcProvider,
+    external_tokens: AtomicBool,
 }
 
 impl std::fmt::Debug for Security {
@@ -129,7 +130,16 @@ impl Security {
             secrets: None,
             ldap: ldap::Ldap::new(),
             oidc: oidc::OidcProvider::default(),
+            external_tokens: AtomicBool::new(false),
         })
+    }
+
+    pub fn set_external_tokens(&self, enabled: bool) {
+        self.external_tokens.store(enabled, Ordering::SeqCst);
+    }
+
+    pub fn external_tokens_enabled(&self) -> bool {
+        self.external_tokens.load(Ordering::SeqCst)
     }
 
     pub fn with_secrets(mut self, secrets: SecretBox) -> Self {
@@ -344,6 +354,7 @@ impl Security {
     pub async fn ldap_subject(
         &self,
         user_id: &str,
+        realm: &str,
     ) -> Result<Option<Subject>, ldap::LdapServerError> {
         let model = self.model();
         if !model.realm_active(realm::LDAP) || model.local_id_taken(user_id) {
@@ -358,7 +369,7 @@ impl Security {
         Ok(Some(model.external_subject(
             &user.username,
             ldap::SOURCE,
-            realm::LDAP,
+            realm,
             &user.groups,
         )))
     }

@@ -5,6 +5,7 @@ pub mod provider;
 
 use base64::Engine;
 use base64::engine::general_purpose::{STANDARD, URL_SAFE_NO_PAD};
+use chrono::{DateTime, FixedOffset};
 use rand::RngCore;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
@@ -75,6 +76,7 @@ pub struct OidcUser {
     pub last_name: String,
     pub email: String,
     pub groups: Vec<String>,
+    pub last_login_at: DateTime<FixedOffset>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -265,6 +267,7 @@ pub fn user_from_claims(
         last_name: last_name.unwrap_or_default(),
         email: email.unwrap_or_default(),
         groups: unique,
+        last_login_at: chrono::Utc::now().fixed_offset(),
     })
 }
 

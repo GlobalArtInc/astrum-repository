@@ -16,6 +16,7 @@ fn config(test: &TestDatabase, data_dir: PathBuf) -> Config {
         ldap_cache_ttl: std::time::Duration::from_secs(300),
         connectors: Default::default(),
         trusted_proxies: Default::default(),
+        external_tokens: false,
         file: data_dir.join("etc/astrum.toml"),
         file_found: false,
     }

@@ -5,7 +5,7 @@ use astrum_db::entity::{
     security_user, security_user_role,
 };
 use astrum_db::setting;
-use chrono::{DateTime, FixedOffset};
+use chrono::{DateTime, Duration, FixedOffset};
 use sea_orm::{ConnectionTrait, EntityTrait, QuerySelect};
 use serde::{Deserialize, Serialize};
 
@@ -24,6 +24,7 @@ use crate::two_factor::{self, FactorSummary, TwoFactorPolicy};
 pub const REALMS_KEY: &str = "security.realms";
 pub const ANONYMOUS_KEY: &str = "security.anonymous";
 pub const DEFAULT_ROLE_KEY: &str = "security.defaultRole";
+pub const OIDC_TOKEN_FRESHNESS: Duration = Duration::days(90);
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -278,6 +279,7 @@ impl SecurityModel {
                     last_name: row.last_name,
                     email: row.email,
                     groups: strings(&row.groups),
+                    last_login_at: row.last_login_at,
                 },
             );
         }
@@ -445,6 +447,28 @@ impl SecurityModel {
         }
         let user = self.oidc_users.get(user_id)?;
         Some(self.external_subject(&user.user_id, oidc::SOURCE, realm::OIDC, &user.groups))
+    }
+
+    pub fn oidc_token_subject(
+        &self,
+        user_id: &str,
+        external_subject: Option<&str>,
+        now: DateTime<FixedOffset>,
+    ) -> Option<Subject> {
+        if !self.realm_active(realm::OIDC) || self.local_id_taken(user_id) {
+            return None;
+        }
+        let user = self.oidc_users.get(user_id)?;
+        let bound = external_subject.filter(|subject| !subject.is_empty())?;
+        if user.subject != bound || now - user.last_login_at > OIDC_TOKEN_FRESHNESS {
+            return None;
+        }
+        Some(self.external_subject(
+            &user.user_id,
+            oidc::SOURCE,
+            realm::ACCESS_TOKEN,
+            &user.groups,
+        ))
     }
 
     pub fn local_subject(&self, user_id: &str, realm: &str) -> Option<Subject> {

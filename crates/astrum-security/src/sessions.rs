@@ -368,7 +368,7 @@ impl Security {
             && now - row.last_seen_at > Duration::minutes(i64::from(model.session_timeout_minutes));
         let external_stamp = credential_stamp(None);
         let (subject, stamp_matches) = match row.realm.as_str() {
-            realm::LDAP => match self.ldap_subject(&row.user_id).await {
+            realm::LDAP => match self.ldap_subject(&row.user_id, realm::LDAP).await {
                 Ok(subject) => (subject, row.credential_stamp == external_stamp),
                 Err(error) => {
                     tracing::warn!(user = %row.user_id, %error, "LDAP cannot confirm a session; the request goes on without it");
