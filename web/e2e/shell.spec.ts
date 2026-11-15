@@ -102,6 +102,7 @@ test('the settings hub shows the old sections without SSRF and audit tiles', asy
     /^Cleanup Policies/,
     /^Routing Rules/,
     /^Content Selectors/,
+    /^Replication/,
   ]);
   await expect(page.getByRole('region', { name: 'Support' }).getByRole('link')).toHaveText([
     /^System Information/,
@@ -129,7 +130,17 @@ test('the settings hub shows the old sections without SSRF and audit tiles', asy
     /^Default Role/,
     /^OpenID Connect/,
     /^Anonymous Access/,
+    /^IP allow list/,
     /^SSL Certificates/,
+    /^Customers/,
+    /^Two-factor authentication/,
+    /^Content Policies/,
+    /^Licences/,
+    /^Share links/,
+    /^Policy Exceptions/,
+    /^Cooldown/,
+    /^Trusted Keys/,
+    /^Vulnerability Data/,
   ]);
   await expect(page.getByRole('link', { name: /SSRF/ })).toHaveCount(0);
   await expect(page.getByRole('link', { name: /Audit/ })).toHaveCount(0);

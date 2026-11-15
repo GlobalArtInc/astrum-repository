@@ -18,9 +18,9 @@ function base32Key(secret: string): Buffer {
   return Buffer.from(bytes);
 }
 
-function totp(secret: string): string {
+function totp(secret: string, ahead = 0): string {
   const counter = Buffer.alloc(8);
-  counter.writeBigUInt64BE(BigInt(Math.floor(Date.now() / 1000 / 30)));
+  counter.writeBigUInt64BE(BigInt(Math.floor(Date.now() / 1000 / 30) + ahead));
   const digest = createHmac('sha1', base32Key(secret)).update(counter).digest();
   const offset = (digest[digest.length - 1] ?? 0) & 0x0f;
   return ((digest.readUInt32BE(offset) & 0x7fffffff) % 1_000_000).toString().padStart(6, '0');
@@ -75,9 +75,10 @@ test('a passkey is added, used at sign-in, renamed and removed', async ({ page, 
   await add.getByLabel('Passkey Name').fill('Laptop');
   await add.getByLabel('Current Password').fill(server.adminPassword);
   await add.getByRole('button', { name: 'Continue' }).click();
-  await expect(add.getByText('These codes are shown only once')).toBeVisible();
-  await add.getByRole('checkbox', { name: 'I saved these codes' }).click();
-  await add.getByRole('button', { name: 'Done' }).click();
+  const codes = page.getByRole('dialog', { name: 'Recovery Codes' });
+  await expect(codes.getByText('These codes are shown only once')).toBeVisible();
+  await codes.getByRole('checkbox', { name: 'I saved these codes' }).click();
+  await codes.getByRole('button', { name: 'Done' }).click();
   await expect(page.getByText('Laptop', { exact: true })).toBeVisible();
 
   await signOut(page);
@@ -116,9 +117,10 @@ test('an authenticator app is set up and asked for at sign-in', async ({ page, r
   const secret = (await setUp.locator('code').first().innerText()).replace(/\s/g, '');
   await setUp.getByLabel('Code').fill(totp(secret));
   await setUp.getByRole('button', { name: 'Confirm' }).click();
-  await expect(setUp.getByText('These codes are shown only once')).toBeVisible();
-  await setUp.getByRole('checkbox', { name: 'I saved these codes' }).click();
-  await setUp.getByRole('button', { name: 'Done' }).click();
+  const codes = page.getByRole('dialog', { name: 'Recovery Codes' });
+  await expect(codes.getByText('These codes are shown only once')).toBeVisible();
+  await codes.getByRole('checkbox', { name: 'I saved these codes' }).click();
+  await codes.getByRole('button', { name: 'Done' }).click();
   await expect(page.getByText('Set up', { exact: true })).toBeVisible();
 
   await signOut(page);
@@ -126,7 +128,7 @@ test('an authenticator app is set up and asked for at sign-in', async ({ page, r
   await page.getByLabel('Password', { exact: true }).fill(PASSWORD);
   await page.getByRole('button', { name: 'Sign in' }).click();
   await expect(page.getByRole('heading', { name: 'Two-factor authentication' })).toBeVisible();
-  await page.getByLabel('Authentication code').fill(totp(secret));
+  await page.getByLabel('Authentication code').fill(totp(secret, 1));
   await page.getByRole('button', { name: 'Sign in' }).click();
   await expect(page.getByRole('button', { name: /Account menu of/ })).toBeVisible();
 });
