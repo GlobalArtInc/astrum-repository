@@ -6,14 +6,15 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const CONFIG = JSON.parse(fs.readFileSync(path.join(ROOT, 'tools/i18n/dictionaries.json'), 'utf8'));
 const PLURAL_FORMS = ['zero', 'one', 'two', 'few', 'many', 'other'];
+const ACCESS_KEY = process.env.ASTRUM_OWNLATE_ACCESS_KEY || CONFIG.accessKey;
 
 const usage = `Usage: node tools/i18n/i18n.mjs <command>
 
   check                fail when a translation has a key the source lacks, other plural forms
                        than its language needs, or different placeholders than the source
   status               print how much of each dictionary is translated
-  pull                 fetch the translations from Ownlate into <dir>/<lang>.json
-                       (needs ${CONFIG.tokenEnv} and ${CONFIG.projectEnv})
+  pull                 fetch the published bundles of every language from Ownlate into <dir>/<lang>.json
+                       (needs no token)
   import <lang> <file> write <dir>/<lang>.json from a JSON file exported from Ownlate
   catalogue <lang>     print every entry of <lang> under its Ownlate key, for seeding a project`;
 
@@ -212,24 +213,34 @@ function flatten(node, prefix, into) {
   return into;
 }
 
-async function pull() {
-  const token = process.env[CONFIG.tokenEnv];
-  const project = process.env[CONFIG.projectEnv];
-  if (!token || !project) {
-    console.error(`${CONFIG.tokenEnv} and ${CONFIG.projectEnv} must be set`);
-    process.exit(2);
-  }
-  const url = `${CONFIG.url.replace(/\/$/, '')}/public/v1/segments/translations-map?projectId=${encodeURIComponent(project)}`;
-  const response = await fetch(url, { headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' } });
+async function getJson(url) {
+  const response = await fetch(url, { headers: { Accept: 'application/json' } });
   const body = await response.text();
   if (response.status !== 200) {
-    console.error(`${url} answered ${response.status}: ${body.slice(0, 300)}`);
+    console.error(`${url.replace(ACCESS_KEY, '<accessKey>')} answered ${response.status}: ${body.slice(0, 300)}`);
+    process.exit(1);
+  }
+  return JSON.parse(body);
+}
+
+// One answer with every language is over the gateway's size limit, so each language is fetched as its own bundle.
+async function pull() {
+  const base = `${CONFIG.url.replace(/\/$/, '')}/public/v1/ota/${ACCESS_KEY}`;
+  const manifest = await getJson(`${base}/manifest`);
+  if (!Array.isArray(manifest.languages)) {
+    console.error('the manifest has no languages list');
     process.exit(1);
   }
   const byLanguage = {};
-  for (const files of Object.values(JSON.parse(body))) {
-    for (const [language, messages] of Object.entries(files)) {
-      Object.assign(byLanguage[language] ??= {}, flatten(messages, '', {}));
+  for (const language of manifest.languages) {
+    if (language !== CONFIG.source && !language.startsWith(`${CONFIG.source}_`)) {
+      const bundle = await getJson(`${base}/bundles/${encodeURIComponent(language)}`);
+      if (!bundle?.translations || typeof bundle.translations !== 'object') {
+        console.error(`the bundle of ${language} has no translations object`);
+        process.exit(1);
+      }
+      byLanguage[language] = Object.fromEntries(Object.entries(bundle.translations)
+        .filter(([, text]) => typeof text === 'string' && text !== ''));
     }
   }
   for (const [language, messages] of Object.entries(byLanguage)) {
