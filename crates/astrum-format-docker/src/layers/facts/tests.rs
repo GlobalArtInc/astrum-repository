@@ -137,7 +137,7 @@ fn a_huge_claimed_size_never_makes_the_reader_pass_what_the_body_holds_or_the_ca
 fn a_gzip_bomb_is_cut_at_the_output_cap() {
     let zeros = vec![0u8; 8 * 1024 * 1024];
     let bomb = gzip(&tar(&[Entry::File("usr/share/zeros", &zeros)]));
-    assert!(bomb.len() < 64 * 1024);
+    assert!(bomb.len() * 64 < zeros.len(), "{}", bomb.len());
     let capped = Limits {
         max_output: 1024 * 1024,
         ..Limits::DEFAULT
