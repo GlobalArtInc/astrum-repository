@@ -95,7 +95,7 @@ describe('notification channel forms', () => {
   });
 
   it('offers the security events, leaves them off for a new channel and sends them in the order of the server', () => {
-    expect(initialValues(null, 'en').events).toEqual(['published', 'updated', 'deleted']);
+    expect(initialValues(null, 'en').events).toEqual(['published', 'promoted', 'updated', 'deleted']);
     const events: EventId[] = ['policy.blocked', 'vulnerability.found', 'published'];
     const values = { ...initialValues(saved, 'en'), events };
     expect(toRequest(values, saved).events).toEqual(['published', 'vulnerability.found', 'policy.blocked']);

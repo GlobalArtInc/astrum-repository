@@ -17,7 +17,7 @@ export type EventId =
   | 'cooldown.released';
 export type Language = 'ru' | 'en';
 
-export const DEFAULT_EVENTS: EventId[] = ['published', 'updated', 'deleted'];
+export const DEFAULT_EVENTS: EventId[] = ['published', 'promoted', 'updated', 'deleted'];
 export const TYPES: ChannelType[] = ['telegram', 'slack', 'webhook', 'email'];
 export const EVENTS: EventId[] = [
   'published',
