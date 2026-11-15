@@ -118,3 +118,12 @@ Limits to know about:
   existing tag of the repository counts as protected until the rule is fixed, and the error names the
   broken field. New tags can still be created, and the repository and the rule can still be changed or
   deleted.
+
+## Vulnerability scanning and the pull gate
+
+A Docker repository with a [content policy](../repositories/policies.md) is scanned per tag. The scanner reads the
+SBOM attached to an image and the packages in its layers, and matches them with the advisory data. In `block` mode
+the pull gate refuses `GET` and `HEAD` of a manifest of a blocked image with HTTP `403` and the OCI error code
+`DENIED`. Blobs, tag lists and the referrers API are not checked. The rules are in
+[Image scanning and the pull gate](../repositories/image-scanning.md), and the scanner itself is described in
+[Vulnerability scanning](../repositories/security-scanning.md).

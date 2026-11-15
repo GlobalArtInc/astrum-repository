@@ -39,6 +39,12 @@ The same pages are published as a site at https://astrum.globalart.dev.
 - [Repositories](repositories/overview.md)
 - [Cleanup policies](repositories/cleanup-policies.md)
 - [Quotas](repositories/quotas.md)
+- [Content policies](repositories/policies.md)
+- [Licences](repositories/licenses.md): the licence rule of a policy, and the licence report
+- [Vulnerability scanning](repositories/security-scanning.md)
+- [Image scanning and the pull gate](repositories/image-scanning.md): how Docker images are inventoried and judged, and what the gate refuses
+- [Image signatures](repositories/image-signatures.md): refusing images that no trusted key has signed
+- [SBOMs](repositories/sbom.md): the packages of an image, read from its SBOM
 - [Routing rules](repositories/routing-rules.md)
 - [Release cooldown](repositories/cooldown.md)
 - [Formats](formats/README.md): one page per format with the settings of its clients

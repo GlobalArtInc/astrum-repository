@@ -121,6 +121,9 @@ the sign-in or second-factor settings or the IP allow lists.
 The two share tools only add and remove share links. The two second-factor tools only read; no tool sets up,
 removes or resets a second factor.
 
+The only security tools that write are `rescan` and `create_policy_exception`: they queue a scan and add an
+exception, and they do not change a policy or the advisory data.
+
 The server also offers two prompts: `diagnose_space`, which walks the agent through finding where the
 space went, how soon each blob store fills and what to do about it, and `find_artifact`, which finds a package and how to use its latest
 version.
