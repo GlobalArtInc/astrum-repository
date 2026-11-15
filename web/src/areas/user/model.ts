@@ -6,6 +6,8 @@ export const ACCOUNT_PASSWORD = `${INTERNAL}/ui/user/password`;
 export const TOKENS = `${INTERNAL}/access-tokens`;
 export const MIN_PASSWORD = 8;
 export const TOKEN_REALM = 'AccessTokenRealm';
+export const OIDC_SOURCE = 'OAuth2';
+export const EXTERNAL_CREDENTIALS = 'credentials of this account are managed outside Astrum';
 
 export interface Account {
   userId: string;
@@ -42,6 +44,7 @@ export interface AccessToken {
   createdAt: string;
   expiresAt: string | null;
   lastUsedAt: string | null;
+  source?: string;
 }
 
 export interface CreatedToken extends AccessToken {
@@ -169,6 +172,10 @@ export function filterTokens(tokens: AccessToken[], query: string): AccessToken[
 
 export function needsPasswordSignIn(error: unknown): boolean {
   return error instanceof ApiError && error.status === 403 && /password/i.test(error.message);
+}
+
+export function managedOutside(error: unknown): boolean {
+  return error instanceof ApiError && error.status === 403 && error.message === EXTERNAL_CREDENTIALS;
 }
 
 export type UsageKind = 'docker' | 'podman' | 'npm' | 'maven' | 'pip' | 'curl';

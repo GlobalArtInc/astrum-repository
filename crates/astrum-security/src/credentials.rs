@@ -5,6 +5,7 @@ use crate::Error;
 use crate::catalogue::DEFAULT_SOURCE;
 use crate::oauth::granted_in;
 use crate::realm;
+use crate::tokens::held_by_a_new_local_user;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct ClearedCredentials {
@@ -26,7 +27,7 @@ pub async fn clear_credentials_of_new_local_user(
     user_id: &str,
 ) -> Result<ClearedCredentials, Error> {
     let access_tokens = access_token::Entity::delete_many()
-        .filter(access_token::Column::UserId.eq(user_id))
+        .filter(held_by_a_new_local_user(user_id))
         .exec(db)
         .await?
         .rows_affected;

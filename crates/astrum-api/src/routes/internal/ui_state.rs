@@ -35,6 +35,7 @@ struct UiState {
     session_timeout_minutes: u32,
     admin_password_file: Option<String>,
     oidc_enabled: bool,
+    external_tokens: bool,
     default_role: Option<UiRole>,
     nuget_api_key_realm: bool,
     ui_settings: UiSettingsXo,
@@ -145,6 +146,7 @@ async fn ui_state(
         session_timeout_minutes: model.session_timeout_minutes,
         admin_password_file,
         oidc_enabled: model.oidc.is_some() && model.realm_active(realm::OIDC),
+        external_tokens: security.external_tokens_enabled(),
         default_role: signed_in
             .and_then(|_| model.effective_default_role())
             .and_then(|id| model.roles.get(id))

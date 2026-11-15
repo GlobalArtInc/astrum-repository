@@ -710,7 +710,7 @@ impl Security {
     async fn grant_subject(&self, user_id: &str, user_realm: &str) -> Option<Subject> {
         let model = self.model();
         match user_realm {
-            realm::LDAP => match self.ldap_subject(user_id).await {
+            realm::LDAP => match self.ldap_subject(user_id, realm::LDAP).await {
                 Ok(subject) => subject,
                 Err(error) => {
                     tracing::warn!(user = %user_id, %error, "LDAP cannot confirm an agent's access");

@@ -162,6 +162,8 @@ impl Fixture {
             .create_token(
                 owner,
                 astrum_security::NewToken {
+                    source: astrum_security::catalogue::DEFAULT_SOURCE.to_owned(),
+                    external_subject: None,
                     name: "release".to_owned(),
                     scope: astrum_security::Scope::Read,
                     days: Some(30),

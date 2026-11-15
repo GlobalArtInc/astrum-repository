@@ -29,6 +29,7 @@ pub const ENV_SECRETS_KEY_FILE: &str = "ASTRUM_SECRETS_KEY_FILE";
 pub const ENV_WEB_DIR: &str = "ASTRUM_WEB_DIR";
 pub const ENV_TRUSTED_PROXIES: &str = "ASTRUM_TRUSTED_PROXIES";
 pub const ENV_LDAP_CACHE_TTL: &str = "ASTRUM_LDAP_CACHE_TTL";
+pub const ENV_EXTERNAL_TOKENS: &str = "ASTRUM_EXTERNAL_TOKENS";
 pub const ENV_CONNECTOR_TLS_CERTIFICATE: &str = "ASTRUM_CONNECTOR_TLS_CERTIFICATE";
 pub const ENV_CONNECTOR_TLS_KEY: &str = "ASTRUM_CONNECTOR_TLS_KEY";
 
@@ -43,6 +44,7 @@ pub struct Config {
     pub ldap_cache_ttl: Duration,
     pub connectors: ConnectorConfig,
     pub trusted_proxies: TrustedProxies,
+    pub external_tokens: bool,
     pub file: PathBuf,
     pub file_found: bool,
 }
@@ -112,6 +114,7 @@ struct FileConfig {
     data_dir: Option<PathBuf>,
     secrets_key_file: Option<PathBuf>,
     trusted_proxies: Option<Vec<String>>,
+    external_tokens: Option<bool>,
     #[serde(default)]
     database: FileDatabase,
     #[serde(default)]
@@ -195,6 +198,10 @@ pub fn summary(config: &Config) -> Vec<(String, String)> {
         (
             "trustedProxies".to_owned(),
             config.trusted_proxies.to_string(),
+        ),
+        (
+            "externalTokens".to_owned(),
+            config.external_tokens.to_string(),
         ),
         ("log.configuredFilter".to_owned(), config.log.filter.clone()),
         (
@@ -283,6 +290,16 @@ pub fn load(cli: &Cli, env: &dyn Fn(&str) -> Option<String>) -> Result<Config, C
 
     let trusted_proxies = trusted_proxies(cli, &env, parsed.trusted_proxies)?;
 
+    let external_tokens = if cli.external_tokens {
+        true
+    } else {
+        match (env(ENV_EXTERNAL_TOKENS), parsed.external_tokens) {
+            (Some(value), _) => parse_switch(&value, Origin::Env(ENV_EXTERNAL_TOKENS))?,
+            (None, Some(value)) => value,
+            (None, None) => false,
+        }
+    };
+
     let filter = match (env(ENV_LOG), parsed.log.filter) {
         (Some(value), _) => check_filter(value, Origin::Env(ENV_LOG))?,
         (None, Some(value)) => check_filter(value, Origin::File("log.filter"))?,
@@ -304,6 +321,7 @@ pub fn load(cli: &Cli, env: &dyn Fn(&str) -> Option<String>) -> Result<Config, C
         ldap_cache_ttl,
         connectors,
         trusted_proxies,
+        external_tokens,
         file,
         file_found,
     })
@@ -432,6 +450,14 @@ fn parse_duration(value: &str, origin: Origin<'_>) -> Result<Duration, ConfigErr
     }
 }
 
+fn parse_switch(value: &str, origin: Origin<'_>) -> Result<bool, ConfigError> {
+    match value.trim().to_ascii_lowercase().as_str() {
+        "true" | "yes" | "on" | "1" => Ok(true),
+        "false" | "no" | "off" | "0" => Ok(false),
+        _ => Err(origin.fail(format!("\"{value}\" is neither true nor false"))),
+    }
+}
+
 fn parse_format(value: &str, origin: Origin<'_>) -> Result<LogFormat, ConfigError> {
     match value.trim().to_ascii_lowercase().as_str() {
         "text" => Ok(LogFormat::Text),
@@ -481,6 +507,27 @@ mod tests {
         assert_eq!(config.ldap_cache_ttl, Duration::ZERO);
         assert!(load(&Cli::default(), &env(&[(ENV_LDAP_CACHE_TTL, "soon")])).is_err());
         assert!(load(&Cli::default(), &env(&[(ENV_LDAP_CACHE_TTL, "5x")])).is_err());
+    }
+
+    #[test]
+    fn external_tokens_are_off_unless_switched_on() {
+        assert!(!load(&Cli::default(), &env(&[])).unwrap().external_tokens);
+        let on = |config: Config| config.external_tokens;
+        let flag = <Cli as clap::Parser>::try_parse_from(["astrum", "--external-tokens"]).unwrap();
+        assert!(on(load(&flag, &env(&[])).unwrap()));
+        assert!(on(load(
+            &Cli::default(),
+            &env(&[(ENV_EXTERNAL_TOKENS, "true")])
+        )
+        .unwrap()));
+        let dir = data_dir_with("external_tokens = true\n");
+        assert!(on(load(&cli_in(dir.path()), &env(&[])).unwrap()));
+        let off = env(&[(ENV_EXTERNAL_TOKENS, "false")]);
+        assert!(!on(load(&cli_in(dir.path()), &off).unwrap()));
+        let error = load(&Cli::default(), &env(&[(ENV_EXTERNAL_TOKENS, "maybe")]))
+            .unwrap_err()
+            .to_string();
+        assert!(error.starts_with(ENV_EXTERNAL_TOKENS), "{error}");
     }
 
     #[test]

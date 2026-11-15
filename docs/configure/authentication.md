@@ -57,8 +57,29 @@ in `puppet.conf` can hold the token alone; Mix and rebar3 send their Hex API key
 depending on its version, as the query parameter `token`; Open VSX repositories take an access token in
 either place, and also `<user>:<password>` in the `token` parameter for users who have no token. The upload
 API of JetBrains plugin repositories takes the token as `Authorization: Bearer`.
-Tokens work while the Access Token Realm is active. They are the way for OpenID Connect users, who
-have no password, to use command-line tools, and they keep directory passwords out of CI for LDAP users.
+Tokens work while the Access Token Realm is active. Local accounts have tokens as before. Accounts of an
+identity provider (OpenID Connect and LDAP) have them only when the operator has switched on the
+`external_tokens` option (flag `--external-tokens`, variable `ASTRUM_EXTERNAL_TOKENS`, key `external_tokens`
+in `astrum.toml`; see [runtime configuration](../configure/runtime.md)). The option is off by default. While
+it is off, such an account has no token form, and any token it already has is refused. With the option on:
+
+- an OpenID Connect token is bound to the subject of the person it was issued to, so a user name that the
+  provider reuses does not inherit it. It works only while that person has signed in through the provider in
+  the last 90 days; an expiry chosen at creation also applies, and a token without one still stops after 90
+  days. Its roles are those of the groups seen at the last sign-in;
+- an LDAP token is checked against the directory on every use. The answer is cached for the LDAP cache time
+  (five minutes by default), and a cached answer is used while the directory is down;
+- a token never signs in as a local user;
+- a token stops working when its account is deleted in Astrum, when a local user with the same id (in any
+  letter case) is created, when the OpenID Connect or LDAP realm is switched off, or when the option is
+  switched off.
+
+Two risks are accepted:
+
+- an account disabled at the identity provider keeps token access with its old groups until 90 days after
+  its last sign-in, because Astrum is not told;
+- during an LDAP outage a token whose account has a cached answer stays valid for the length of the outage.
+
 A token cannot create or revoke tokens; that needs a sign-in with the password. A read-only token cannot
 change the account either. Users with the privileges `astrum:accesstokens:read` and
 `astrum:accesstokens:delete` can see and revoke the tokens of others.
@@ -188,9 +209,10 @@ complete without asking for a password.
 
 Command-line clients (`mvn`, `npm`, `docker`, `pip`, `helm` and the rest) send a user name and password
 or a token; they cannot follow the OpenID Connect browser flow. LDAP users can use their directory
-password with them, and OpenID Connect users use an [access token](#access-tokens). For CI and scripts
-create a local service user with only the roles it needs, give it an access token and store the token
-in the CI system's secret store. Format-specific tokens (npm, Docker, NuGet, RubyGems, Terraform) can
+password with them. OpenID Connect users can use an [access token](#access-tokens) only when the operator
+has switched on the `external_tokens` option (see there); otherwise, for CI and scripts, create a local
+service user with only the roles it needs, give it an access token and store the token in the CI system's
+secret store. Format-specific tokens (npm, Docker, NuGet, RubyGems, Terraform) can
 be issued for these users as described on the page of each [format](../formats/README.md).
 
 ### Failed password checks

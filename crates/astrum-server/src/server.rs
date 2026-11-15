@@ -45,6 +45,7 @@ impl Server {
             .set_trusted_proxies(config.trusted_proxies.clone())
             .map_err(|_| anyhow::anyhow!("the trusted proxies were set twice"))?;
         state.security().ldap().set_cache_ttl(config.ldap_cache_ttl);
+        state.security().set_external_tokens(config.external_tokens);
         crate::formats::register(state.content());
         crate::formats::register_tasks(state.tasks());
         state.tasks().register(std::sync::Arc::new(

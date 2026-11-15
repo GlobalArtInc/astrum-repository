@@ -25,7 +25,7 @@ pub mod totp;
 pub mod two_factor;
 
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicI64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicI64, Ordering};
 use std::sync::{Arc, Mutex, RwLock};
 use std::time::{Duration, Instant};
 
@@ -43,7 +43,8 @@ pub use selector::{Selector, SelectorError};
 pub use sessions::{ActiveSession, NewSession};
 pub use ssrf::SsrfProtection;
 pub use subject::{
-    EXTERNAL_CREDENTIALS, NarrowedSubject, PublicIdentity, Scope, Subject, TokenRef,
+    EXTERNAL_CREDENTIALS, EXTERNAL_TOKENS_OFF, NarrowedSubject, PublicIdentity, Scope, Subject,
+    TokenRef,
 };
 pub use tokens::{NewToken, TokenError, TokenInfo};
 pub use two_factor::{FactorSummary, Gate, Pending, Standing, TwoFactorPolicy};
@@ -106,6 +107,7 @@ pub struct Security {
     secrets: Option<SecretBox>,
     ldap: ldap::Ldap,
     oidc: oidc::OidcProvider,
+    external_tokens: AtomicBool,
 }
 
 impl std::fmt::Debug for Security {
@@ -129,7 +131,16 @@ impl Security {
             secrets: None,
             ldap: ldap::Ldap::new(),
             oidc: oidc::OidcProvider::default(),
+            external_tokens: AtomicBool::new(false),
         })
+    }
+
+    pub fn set_external_tokens(&self, enabled: bool) {
+        self.external_tokens.store(enabled, Ordering::SeqCst);
+    }
+
+    pub fn external_tokens_enabled(&self) -> bool {
+        self.external_tokens.load(Ordering::SeqCst)
     }
 
     pub fn with_secrets(mut self, secrets: SecretBox) -> Self {
@@ -344,6 +355,7 @@ impl Security {
     pub async fn ldap_subject(
         &self,
         user_id: &str,
+        realm: &str,
     ) -> Result<Option<Subject>, ldap::LdapServerError> {
         let model = self.model();
         if !model.realm_active(realm::LDAP) || model.local_id_taken(user_id) {
@@ -358,9 +370,17 @@ impl Security {
         Ok(Some(model.external_subject(
             &user.username,
             ldap::SOURCE,
-            realm::LDAP,
+            realm,
             &user.groups,
         )))
+    }
+
+    pub fn oidc_subject_of(&self, user_id: &str) -> Option<String> {
+        self.model()
+            .oidc_users
+            .get(user_id)
+            .map(|user| user.subject.clone())
+            .filter(|subject| !subject.is_empty())
     }
 
     pub fn profile(&self, subject: &Subject) -> Profile {
@@ -409,6 +429,7 @@ impl Security {
             return Ok(OidcSignIn::Reserved);
         }
         let now = chrono::Utc::now().fixed_offset();
+        let signed_in_at = user.last_login_at;
         astrum_db::entity::security_oidc_user::Entity::insert(
             astrum_db::entity::security_oidc_user::ActiveModel {
                 user_id: ActiveValue::Set(user.user_id.clone()),
@@ -417,7 +438,7 @@ impl Security {
                 last_name: ActiveValue::Set(user.last_name.clone()),
                 email: ActiveValue::Set(user.email.clone()),
                 groups: ActiveValue::Set(serde_json::json!(user.groups)),
-                last_login_at: ActiveValue::Set(now),
+                last_login_at: ActiveValue::Set(signed_in_at),
                 created_at: ActiveValue::Set(now),
             },
         )

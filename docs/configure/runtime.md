@@ -58,6 +58,7 @@ tls_key = "/astrum-data/etc/tls/key.pem"
 | `log.format` | `ASTRUM_LOG_FORMAT` | | `text` | `text` or `json` |
 | `web.dir` | `ASTRUM_WEB_DIR` | `--web-dir` | `/usr/share/astrum/web` | Directory of the built web interface |
 | `ldap.cache_ttl` | `ASTRUM_LDAP_CACHE_TTL` | | `5m` | How long LDAP users, their groups and successful sign-ins are cached; `90`, `90s`, `5m`, `2h`, `1d` or `0` |
+| `external_tokens` | `ASTRUM_EXTERNAL_TOKENS` | `--external-tokens` | `false` | Lets OpenID Connect and LDAP accounts hold [access tokens](authentication.md#access-tokens); `true`, `false`, `1`, `0`, `yes`, `no`, `on` or `off`. The flag turns it on |
 | `trusted_proxies` | `ASTRUM_TRUSTED_PROXIES` | `--trusted-proxies` | none | Addresses or CIDR ranges of the reverse proxies whose `X-Forwarded-For` is believed, see [trusted proxies](reverse-proxy.md#trusted-proxies); comma-separated in the variable and the option, a list in the file |
 | `connectors.tls_certificate` | `ASTRUM_CONNECTOR_TLS_CERTIFICATE` | | none | PEM certificate chain for Docker connectors with an HTTPS port |
 | `connectors.tls_key` | `ASTRUM_CONNECTOR_TLS_KEY` | | none | PEM private key for it; set both or neither |

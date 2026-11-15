@@ -3,6 +3,8 @@ import { CircleAlert, RotateCw } from 'lucide-react';
 import { ApiError } from '../api';
 import { type Translate, useT } from '../i18n';
 
+const BARE_FORBIDDEN = /^(forbidden|http 403)?$/i;
+
 export function describeError(t: Translate, error: unknown): string {
   if (error instanceof ApiError) {
     if (error.isNetwork) {
@@ -12,7 +14,7 @@ export function describeError(t: Translate, error: unknown): string {
       return t('ui.error.unauthorized');
     }
     if (error.status === 403) {
-      return t('ui.error.forbidden');
+      return BARE_FORBIDDEN.test(error.message.trim()) ? t('ui.error.forbidden') : error.message;
     }
     if (error.status === 404) {
       return t('ui.error.notFound');

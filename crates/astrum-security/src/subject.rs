@@ -9,6 +9,8 @@ use crate::permission::Permission;
 use crate::privilege::{Action, SelectorGrant};
 
 pub const EXTERNAL_CREDENTIALS: &str = "credentials of this account are managed outside Astrum";
+pub const EXTERNAL_TOKENS_OFF: &str =
+    "personal access tokens for accounts of an identity provider are switched off on this server";
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "UPPERCASE")]

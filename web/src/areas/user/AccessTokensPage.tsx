@@ -24,6 +24,7 @@ import {
   ConfirmDialog,
   CopyButton,
   DateTime,
+  describeError,
   ErrorState,
   type FieldBinding,
   MultiSelectField,
@@ -32,6 +33,7 @@ import {
   useForm,
   useToast,
 } from '../../ui';
+import { DEFAULT_SOURCE } from '../security/api';
 import { ListPager, SearchBox, usePaging } from '../security/shared/AdminList';
 import { AgentGrants } from './AgentGrants';
 import {
@@ -40,7 +42,9 @@ import {
   filterTokens,
   LIFETIMES,
   type Lifetime,
+  managedOutside,
   needsPasswordSignIn,
+  OIDC_SOURCE,
   type Scope,
   sortNewestFirst,
   TOKENS,
@@ -318,6 +322,17 @@ function PasswordRequired() {
   );
 }
 
+function Notice({ text }: { text: string }) {
+  return (
+    <Callout.Root color="amber" size="2">
+      <Callout.Icon>
+        <TriangleAlert size={18} />
+      </Callout.Icon>
+      <Callout.Text>{text}</Callout.Text>
+    </Callout.Root>
+  );
+}
+
 function TokenTable({
   tokens,
   everyone,
@@ -352,7 +367,14 @@ function TokenTable({
             <Table.RowHeaderCell>
               <span className={styles.name}>{token.name}</span>
             </Table.RowHeaderCell>
-            {everyone && <Table.Cell>{token.userId}</Table.Cell>}
+            {everyone && (
+              <Table.Cell>
+                {token.userId}
+                {token.source && token.source !== DEFAULT_SOURCE && (
+                  <span className={styles.muted}> ({token.source})</span>
+                )}
+              </Table.Cell>
+            )}
             <Table.Cell>
               <Flex gap="1" wrap="wrap">
                 <Badge size="1">
@@ -405,12 +427,16 @@ export default function AccessTokensPage() {
   const t = useT();
   const toast = useToast();
   const invalidate = useInvalidateApi();
-  const { user } = useSession();
+  const { state, user } = useSession();
   const canReadAll = useCan('astrum:accesstokens:read');
   const canDeleteAll = useCan('astrum:accesstokens:delete');
   const [everyone, setEveryone] = useState(false);
   const showAll = everyone && canReadAll;
-  const tokens = useApi<ScopedToken[]>(showAll ? withQuery(TOKENS, { userId: '*' }) : TOKENS);
+  const external = user !== null && user.source !== DEFAULT_SOURCE;
+  const externalOff = external && state.externalTokens !== true;
+  const tokens = useApi<ScopedToken[]>(showAll ? withQuery(TOKENS, { userId: '*' }) : TOKENS, {
+    enabled: !externalOff,
+  });
   const [created, setCreated] = useState<CreatedToken | null>(null);
   const [revoking, setRevoking] = useState<ScopedToken | null>(null);
   const [query, setQuery] = useState('');
@@ -439,8 +465,15 @@ export default function AccessTokensPage() {
       </header>
       {blocked ? (
         <PasswordRequired />
+      ) : externalOff ? (
+        <Notice text={t('user.tokens.externalOff')} />
+      ) : managedOutside(tokens.error) ? (
+        <Notice text={describeError(t, tokens.error)} />
       ) : (
         <>
+          {external && user?.source === OIDC_SOURCE && (
+            <p className={styles.hint}>{t('user.tokens.externalOidcNote')}</p>
+          )}
           <CreateTokenForm onCreated={setCreated} />
           {canReadAll && (
             <SegmentedControl.Root

@@ -209,6 +209,8 @@ pub async fn customer_world() -> World {
 
 pub fn customer_token(repositories: &[&str]) -> NewToken {
     NewToken {
+        source: astrum_security::catalogue::DEFAULT_SOURCE.to_owned(),
+        external_subject: None,
         name: "release".to_owned(),
         scope: Scope::Read,
         days: Some(30),

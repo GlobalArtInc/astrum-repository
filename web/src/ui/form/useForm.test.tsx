@@ -76,7 +76,7 @@ describe('useForm', () => {
 
   it('describes other failures for the whole form', async () => {
     const { result } = renderHook(
-      () => useForm({ initial: INITIAL, onSubmit: () => Promise.reject(new ApiError(403, 'no')) }),
+      () => useForm({ initial: INITIAL, onSubmit: () => Promise.reject(new ApiError(403, '')) }),
       { wrapper },
     );
     await act(() => result.current.submit());

@@ -19,6 +19,7 @@ pub struct Model {
     pub created_by: Option<String>,
     pub last_used_ip: Option<String>,
     pub expiry_notice: Option<i16>,
+    pub external_subject: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
