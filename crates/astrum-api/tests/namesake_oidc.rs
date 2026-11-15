@@ -145,7 +145,8 @@ async fn an_oidc_user_without_a_local_namesake_signs_in_but_keeps_no_credentials
     assert_eq!(reply.status, StatusCode::FORBIDDEN, "{}", reply.text());
     let body: Value = reply.json();
     assert!(
-        body.to_string().contains("managed outside Astrum"),
+        body.to_string()
+            .contains(astrum_security::EXTERNAL_TOKENS_OFF),
         "{body}"
     );
 }

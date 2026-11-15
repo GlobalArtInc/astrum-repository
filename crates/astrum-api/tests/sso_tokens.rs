@@ -3,14 +3,17 @@ mod support;
 mod world;
 
 use astrum_db::MIGRATIONS;
-use astrum_db::entity::security_oidc_user;
+use astrum_db::entity::{access_token, security_oidc_user};
 use astrum_security::oidc::{self, OidcUser};
-use astrum_security::{AuthError, NewToken, OidcSignIn, Scope, Security, Subject, realm};
+use astrum_security::{
+    AuthError, NewToken, OidcSignIn, Scope, Security, Subject, TokenError, realm, tokens,
+};
 use astrum_testkit::TestDatabase;
 use axum::http::{Method, StatusCode};
 use chrono::{Duration, Utc};
 use sea_orm::{ActiveValue, ConnectionTrait, DbBackend, EntityTrait, Statement};
 use serde_json::{Value, json};
+use uuid::Uuid;
 use world::{World, setup_with};
 
 const REALMS: &str = "/service/rest/v1/security/realms/active";
@@ -97,6 +100,43 @@ async fn mint(security: &Security, source: &str, user_id: &str, bound: Option<&s
     security.create_token(user_id, new).await.unwrap().1
 }
 
+async fn insert_row(
+    security: &Security,
+    source: &str,
+    user_id: &str,
+    bound: Option<&str>,
+    customer: Option<&str>,
+) -> String {
+    let token = format!(
+        "astrum_{}{}",
+        Uuid::new_v4().simple(),
+        &Uuid::new_v4().simple().to_string()[..8]
+    );
+    let now = Utc::now().fixed_offset();
+    access_token::Entity::insert(access_token::ActiveModel {
+        id: ActiveValue::Set(Uuid::new_v4()),
+        user_id: ActiveValue::Set(user_id.to_owned()),
+        source: ActiveValue::Set(source.to_owned()),
+        name: ActiveValue::Set("row".to_owned()),
+        token_hash: ActiveValue::Set(tokens::hash(&token)),
+        token_hint: ActiveValue::Set(token[..11].to_owned()),
+        scope: ActiveValue::Set("READ".to_owned()),
+        created_at: ActiveValue::Set(now),
+        expires_at: ActiveValue::Set(Some(now + Duration::days(30))),
+        last_used_at: ActiveValue::Set(None),
+        customer: ActiveValue::Set(customer.map(str::to_owned)),
+        repositories: ActiveValue::Set(customer.map(|_| vec!["crates".to_owned()])),
+        created_by: ActiveValue::Set(None),
+        last_used_ip: ActiveValue::Set(None),
+        expiry_notice: ActiveValue::Set(None),
+        external_subject: ActiveValue::Set(bound.map(str::to_owned)),
+    })
+    .exec(security.db())
+    .await
+    .unwrap();
+    token
+}
+
 async fn resolve(world: &World, token: &str) -> Result<Subject, AuthError> {
     world
         .fixture
@@ -160,8 +200,8 @@ async fn a_default_token_of_a_user_who_is_not_local_never_resolves_an_external_u
     let world = external_world().await;
     seed_oidc(&world, "rita", "sub-rita", 1).await;
     let security = world.fixture.state.security();
-    for user in ["rita", "alice"] {
-        let token = mint(security, "default", user, None).await;
+    for (user, bound) in [("rita", Some("sub-rita")), ("alice", None)] {
+        let token = mint(security, "default", user, bound).await;
         assert!(refused(resolve(&world, &token).await), "{user}");
     }
 }
@@ -172,7 +212,7 @@ async fn an_oidc_token_is_bound_to_the_subject_it_was_created_for() {
     seed_oidc(&world, "rita", "sub-old", 1).await;
     let security = world.fixture.state.security();
     let bound = mint(security, oidc::SOURCE, "rita", Some("sub-old")).await;
-    let unbound = mint(security, oidc::SOURCE, "rita", None).await;
+    let unbound = insert_row(security, oidc::SOURCE, "rita", None, None).await;
     assert!(resolve(&world, &bound).await.is_ok());
     assert!(refused(resolve(&world, &unbound).await));
     sign_in(&world, "rita", "sub-new").await;
@@ -239,16 +279,14 @@ async fn customer_tokens_keep_working_and_never_take_another_source() {
     let subject = resolve(&world, &plain).await.unwrap();
     assert_eq!(subject.realm, realm::ACCESS_TOKEN);
     assert_eq!(subject.token.unwrap().customer.as_deref(), Some("acme"));
-    let odd = NewToken {
-        source: oidc::SOURCE.to_owned(),
-        external_subject: Some("sub-rita".to_owned()),
-        customer: Some("acme".to_owned()),
-        repositories: Some(vec!["crates".to_owned()]),
-        days: Some(30),
-        scope: Scope::Read,
-        ..NewToken::personal("odd", Scope::Read, Some(30))
-    };
-    let (_, token) = security.create_token("rita", odd).await.unwrap();
+    let token = insert_row(
+        security,
+        oidc::SOURCE,
+        "rita",
+        Some("sub-rita"),
+        Some("acme"),
+    )
+    .await;
     assert!(refused(resolve(&world, &token).await));
 }
 
@@ -271,6 +309,133 @@ async fn external_tokens_are_refused_while_the_server_flag_is_off() {
     let local = resolve(&world, &local_token).await.unwrap();
     assert_eq!(local.user_id, "bob");
     assert_eq!(local.source, "default");
+}
+
+#[tokio::test]
+async fn create_token_refuses_rows_that_could_never_authenticate() {
+    let world = external_world().await;
+    let security = world.fixture.state.security();
+    let draft = |source: &str, bound: Option<&str>, customer: Option<&str>| NewToken {
+        source: source.to_owned(),
+        external_subject: bound.map(str::to_owned),
+        customer: customer.map(str::to_owned),
+        repositories: customer.map(|_| vec!["crates".to_owned()]),
+        ..NewToken::personal("ci", Scope::Read, Some(30))
+    };
+    let created = |draft: NewToken| async { security.create_token("rita", draft).await };
+    assert!(matches!(
+        created(draft("SAML", None, None)).await,
+        Err(TokenError::UnknownSource)
+    ));
+    assert!(matches!(
+        created(draft(oidc::SOURCE, None, None)).await,
+        Err(TokenError::MissingSubject)
+    ));
+    assert!(matches!(
+        created(draft(oidc::SOURCE, Some(""), None)).await,
+        Err(TokenError::MissingSubject)
+    ));
+    assert!(matches!(
+        created(draft("LDAP", None, Some("acme"))).await,
+        Err(TokenError::ExternalCustomer)
+    ));
+    assert!(
+        created(draft(oidc::SOURCE, Some("sub-rita"), None))
+            .await
+            .is_ok()
+    );
+    assert!(created(draft("LDAP", None, None)).await.is_ok());
+    security.set_external_tokens(false);
+    assert!(matches!(
+        created(draft("LDAP", None, None)).await,
+        Err(TokenError::ExternalOff)
+    ));
+    assert!(matches!(
+        created(draft(oidc::SOURCE, Some("sub-rita"), None)).await,
+        Err(TokenError::ExternalOff)
+    ));
+    assert!(created(draft("default", None, None)).await.is_ok());
+}
+
+#[tokio::test]
+async fn an_ldap_token_never_reaches_a_local_user_or_another_spelling_of_a_directory_user() {
+    let world = external_world().await;
+    let security = world.fixture.state.security();
+    let alice = mint(security, "LDAP", "alice", None).await;
+    let carol = mint(security, "LDAP", "carol", None).await;
+    assert!(resolve(&world, &alice).await.is_ok());
+    assert!(resolve(&world, &carol).await.is_ok());
+    for user in ["bob", "BOB", "ALICE"] {
+        let token = mint(security, "LDAP", user, None).await;
+        assert!(refused(resolve(&world, &token).await), "{user}");
+    }
+    set_realms(
+        &world,
+        json!(["AstrumAuthenticatingRealm", "AccessTokenRealm"]),
+    )
+    .await;
+    assert!(refused(resolve(&world, &alice).await));
+    set_realms(&world, realms(true)).await;
+    assert!(resolve(&world, &alice).await.is_ok());
+    let dave = mint(security, "LDAP", "dave", None).await;
+    world.directory.stop();
+    assert!(refused(resolve(&world, &dave).await));
+}
+
+#[tokio::test]
+async fn a_new_local_user_clears_the_external_tokens_of_its_namesakes_in_any_case_for_good() {
+    let world = external_world().await;
+    seed_oidc(&world, "rita", "sub-rita", 1).await;
+    let security = world.fixture.state.security();
+    let oidc_token = mint(security, oidc::SOURCE, "rita", Some("sub-rita")).await;
+    mint(security, "LDAP", "alice", None).await;
+    assert!(resolve(&world, &oidc_token).await.is_ok());
+    let body = json!({"userId": "RITA", "firstName": "Rita", "lastName": "Tester",
+        "emailAddress": "rita@example.org", "password": "local-rita-password", "status": "active",
+        "roles": []});
+    let users = "/service/rest/v1/security/users";
+    let created = world
+        .fixture
+        .call(Method::POST, users, support::Auth::Admin, Some(body))
+        .await;
+    assert_eq!(created.status, StatusCode::OK, "{}", created.text());
+    assert_eq!(
+        security
+            .tokens_of(oidc::SOURCE, "rita")
+            .await
+            .unwrap()
+            .len(),
+        0
+    );
+    assert_eq!(security.tokens_of("LDAP", "alice").await.unwrap().len(), 1);
+    let removed = world
+        .fixture
+        .call(
+            Method::DELETE,
+            &format!("{users}/RITA"),
+            support::Auth::Admin,
+            None,
+        )
+        .await;
+    assert_eq!(removed.status, StatusCode::NO_CONTENT, "{}", removed.text());
+    assert!(refused(resolve(&world, &oidc_token).await));
+    assert_eq!(
+        security
+            .tokens_of(oidc::SOURCE, "rita")
+            .await
+            .unwrap()
+            .len(),
+        0
+    );
+
+    mint(security, "LDAP", "ALICE", None).await;
+    mint(security, "default", "Zed", None).await;
+    assert_eq!(
+        security.delete_tokens_of("default", "zed").await.unwrap(),
+        0
+    );
+    assert_eq!(security.delete_tokens_of("LDAP", "Alice").await.unwrap(), 2);
+    assert_eq!(security.tokens_of("default", "Zed").await.unwrap().len(), 1);
 }
 
 async fn names(conn: &sea_orm::DatabaseConnection) -> Vec<String> {

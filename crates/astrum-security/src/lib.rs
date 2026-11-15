@@ -43,7 +43,8 @@ pub use selector::{Selector, SelectorError};
 pub use sessions::{ActiveSession, NewSession};
 pub use ssrf::SsrfProtection;
 pub use subject::{
-    EXTERNAL_CREDENTIALS, NarrowedSubject, PublicIdentity, Scope, Subject, TokenRef,
+    EXTERNAL_CREDENTIALS, EXTERNAL_TOKENS_OFF, NarrowedSubject, PublicIdentity, Scope, Subject,
+    TokenRef,
 };
 pub use tokens::{NewToken, TokenError, TokenInfo};
 pub use two_factor::{FactorSummary, Gate, Pending, Standing, TwoFactorPolicy};
@@ -374,6 +375,14 @@ impl Security {
         )))
     }
 
+    pub fn oidc_subject_of(&self, user_id: &str) -> Option<String> {
+        self.model()
+            .oidc_users
+            .get(user_id)
+            .map(|user| user.subject.clone())
+            .filter(|subject| !subject.is_empty())
+    }
+
     pub fn profile(&self, subject: &Subject) -> Profile {
         let model = self.model();
         match subject.source.as_str() {
@@ -420,6 +429,7 @@ impl Security {
             return Ok(OidcSignIn::Reserved);
         }
         let now = chrono::Utc::now().fixed_offset();
+        let signed_in_at = user.last_login_at;
         astrum_db::entity::security_oidc_user::Entity::insert(
             astrum_db::entity::security_oidc_user::ActiveModel {
                 user_id: ActiveValue::Set(user.user_id.clone()),
@@ -428,7 +438,7 @@ impl Security {
                 last_name: ActiveValue::Set(user.last_name.clone()),
                 email: ActiveValue::Set(user.email.clone()),
                 groups: ActiveValue::Set(serde_json::json!(user.groups)),
-                last_login_at: ActiveValue::Set(now),
+                last_login_at: ActiveValue::Set(signed_in_at),
                 created_at: ActiveValue::Set(now),
             },
         )

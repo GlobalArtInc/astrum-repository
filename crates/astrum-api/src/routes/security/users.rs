@@ -4,6 +4,7 @@ use astrum_security::bootstrap::ADMIN_PASSWORD_FILE;
 use astrum_security::catalogue::{ADMIN_USER, DEFAULT_SOURCE};
 use astrum_security::credentials::clear_credentials_of_new_local_user;
 use astrum_security::realm::{self, USER_SOURCES};
+use astrum_security::tokens::delete_tokens_of_user;
 use astrum_security::{SecurityModel, Subject, UserStatus, ldap, oidc, password};
 use axum::Router;
 use axum::body::Bytes;
@@ -556,6 +557,9 @@ async fn remove(
     security_user_role::Entity::delete_by_id((user_id.clone(), source.to_owned()))
         .exec(&txn)
         .await?;
+    if source != DEFAULT_SOURCE {
+        delete_tokens_of_user(&txn, source, &user_id).await?;
+    }
     if source == oidc::SOURCE {
         security_oidc_user::Entity::delete_by_id(user_id.clone())
             .exec(&txn)
@@ -570,7 +574,10 @@ async fn remove(
     }
     if source == DEFAULT_SOURCE {
         state.security().close_sessions_of(&user_id).await?;
-        state.security().delete_tokens_of(&user_id).await?;
+        state
+            .security()
+            .delete_tokens_of(DEFAULT_SOURCE, &user_id)
+            .await?;
         state
             .security()
             .delete_oauth_grants_of_local_user(&user_id)

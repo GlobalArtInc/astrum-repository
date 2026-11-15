@@ -485,9 +485,13 @@ fn token_problem(error: TokenError) -> ApiError {
         }
         TokenError::Repositories(message) => ApiError::invalid("repositories", message),
         TokenError::UnknownCustomer => missing_customer(),
-        TokenError::TooMany | TokenError::TooManyForCustomer | TokenError::Scope => {
-            ApiError::BadRequest(error.to_string())
-        }
+        TokenError::TooMany
+        | TokenError::TooManyForCustomer
+        | TokenError::Scope
+        | TokenError::UnknownSource
+        | TokenError::MissingSubject
+        | TokenError::ExternalCustomer
+        | TokenError::ExternalOff => ApiError::BadRequest(error.to_string()),
         TokenError::Internal(error) => error.into(),
     }
 }

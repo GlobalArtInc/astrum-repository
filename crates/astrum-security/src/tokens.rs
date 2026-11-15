@@ -4,6 +4,7 @@ use std::net::IpAddr;
 use astrum_db::entity::{access_token, customer};
 use astrum_repo::config::valid_name;
 use chrono::{DateTime, Duration, FixedOffset, Utc};
+use sea_orm::sea_query::{Expr, Func, SimpleExpr};
 use sea_orm::{
     ActiveValue, ColumnTrait, Condition, ConnectionTrait, DatabaseTransaction, DbBackend,
     EntityTrait, PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, Statement, TransactionTrait,
@@ -91,6 +92,14 @@ pub enum TokenError {
     CustomerExpiry,
     #[error("the customer does not exist")]
     UnknownCustomer,
+    #[error("a token belongs to a local user, an OpenID Connect account or an LDAP account")]
+    UnknownSource,
+    #[error("a token of an OpenID Connect account must be bound to the subject of the account")]
+    MissingSubject,
+    #[error("a customer token belongs to a local user")]
+    ExternalCustomer,
+    #[error("{}", crate::EXTERNAL_TOKENS_OFF)]
+    ExternalOff,
     #[error(transparent)]
     Internal(#[from] Error),
 }
@@ -141,6 +150,41 @@ fn info(row: access_token::Model) -> TokenInfo {
         last_used_ip: row.last_used_ip,
         expiry_notice: row.expiry_notice,
     }
+}
+
+fn same_id_in_any_case(user_id: &str) -> SimpleExpr {
+    Expr::expr(Func::lower(Expr::col(access_token::Column::UserId)))
+        .eq(Func::lower(Expr::val(user_id)))
+}
+
+fn held_by(source: &str, user_id: &str) -> Condition {
+    let same = match source == DEFAULT_SOURCE {
+        true => access_token::Column::UserId.eq(user_id),
+        false => same_id_in_any_case(user_id),
+    };
+    Condition::all()
+        .add(access_token::Column::Source.eq(source))
+        .add(same)
+}
+
+pub(crate) fn held_by_a_new_local_user(user_id: &str) -> Condition {
+    Condition::any().add(held_by(DEFAULT_SOURCE, user_id)).add(
+        Condition::all()
+            .add(access_token::Column::Source.ne(DEFAULT_SOURCE))
+            .add(same_id_in_any_case(user_id)),
+    )
+}
+
+pub async fn delete_tokens_of_user(
+    db: &impl ConnectionTrait,
+    source: &str,
+    user_id: &str,
+) -> Result<u64, Error> {
+    let deleted = access_token::Entity::delete_many()
+        .filter(held_by(source, user_id))
+        .exec(db)
+        .await?;
+    Ok(deleted.rows_affected)
 }
 
 fn normalise(repositories: &[String]) -> Result<Vec<String>, TokenError> {
@@ -202,6 +246,26 @@ impl Security {
             .is_some_and(|days| !(MIN_DAYS..=MAX_DAYS).contains(&days))
         {
             return Err(TokenError::Days);
+        }
+        match new.source.as_str() {
+            DEFAULT_SOURCE => {}
+            oidc::SOURCE | ldap::SOURCE => {
+                if new.customer.is_some() {
+                    return Err(TokenError::ExternalCustomer);
+                }
+                if !self.external_tokens_enabled() {
+                    return Err(TokenError::ExternalOff);
+                }
+                if new.source == oidc::SOURCE
+                    && new
+                        .external_subject
+                        .as_deref()
+                        .is_none_or(|subject| subject.is_empty())
+                {
+                    return Err(TokenError::MissingSubject);
+                }
+            }
+            _ => return Err(TokenError::UnknownSource),
         }
         let repositories = new.repositories.as_deref().map(normalise).transpose()?;
         if repositories.is_some() && new.scope != Scope::Read {
@@ -369,12 +433,8 @@ impl Security {
         Ok(deleted.rows_affected)
     }
 
-    pub async fn delete_tokens_of(&self, user_id: &str) -> Result<u64, Error> {
-        let deleted = access_token::Entity::delete_many()
-            .filter(access_token::Column::UserId.eq(user_id))
-            .exec(&self.db)
-            .await?;
-        Ok(deleted.rows_affected)
+    pub async fn delete_tokens_of(&self, source: &str, user_id: &str) -> Result<u64, Error> {
+        delete_tokens_of_user(&self.db, source, user_id).await
     }
 
     pub async fn authenticate_token(

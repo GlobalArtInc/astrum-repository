@@ -1,6 +1,8 @@
 use astrum_db::audit::Event;
+use astrum_security::catalogue::DEFAULT_SOURCE;
 use astrum_security::{
-    EXTERNAL_CREDENTIALS, NewToken as TokenDraft, Scope, Subject, TokenError, TokenInfo, realm,
+    EXTERNAL_CREDENTIALS, EXTERNAL_TOKENS_OFF, NewToken as TokenDraft, Scope, Subject, TokenError,
+    TokenInfo, ldap, oidc, realm,
 };
 use axum::Router;
 use axum::extract::{Path, Query, State};
@@ -26,6 +28,7 @@ pub fn routes() -> Router<AppState> {
 struct TokenView {
     id: Uuid,
     user_id: String,
+    source: String,
     name: String,
     hint: String,
     scope: Scope,
@@ -41,6 +44,7 @@ impl From<TokenInfo> for TokenView {
         Self {
             id: token.id,
             user_id: token.user_id,
+            source: token.source,
             name: token.name,
             hint: token.hint,
             scope: token.scope,
@@ -93,10 +97,46 @@ fn owner(caller: &Caller) -> Result<&Subject, ApiError> {
     Ok(subject)
 }
 
-fn own_id(subject: &Subject) -> Result<&str, ApiError> {
-    subject
-        .local_user_id()
-        .ok_or_else(|| ApiError::Forbidden(EXTERNAL_CREDENTIALS.to_owned()))
+struct OwnerKey {
+    source: String,
+    user_id: String,
+    external_subject: Option<String>,
+}
+
+fn own_key(state: &AppState, subject: &Subject) -> Result<OwnerKey, ApiError> {
+    if let Some(user_id) = subject.local_user_id() {
+        return Ok(OwnerKey {
+            source: DEFAULT_SOURCE.to_owned(),
+            user_id: user_id.to_owned(),
+            external_subject: None,
+        });
+    }
+    let security = state.security();
+    if !security.external_tokens_enabled() {
+        return Err(ApiError::Forbidden(EXTERNAL_TOKENS_OFF.to_owned()));
+    }
+    let external = || ApiError::Forbidden(EXTERNAL_CREDENTIALS.to_owned());
+    match subject.source.as_str() {
+        oidc::SOURCE => {
+            if security.model().local_id_taken(&subject.user_id) {
+                return Err(external());
+            }
+            let bound = security
+                .oidc_subject_of(&subject.user_id)
+                .ok_or_else(external)?;
+            Ok(OwnerKey {
+                source: oidc::SOURCE.to_owned(),
+                user_id: subject.user_id.clone(),
+                external_subject: Some(bound),
+            })
+        }
+        ldap::SOURCE => Ok(OwnerKey {
+            source: ldap::SOURCE.to_owned(),
+            user_id: subject.user_id.clone(),
+            external_subject: None,
+        }),
+        _ => Err(external()),
+    }
 }
 
 async fn list(
@@ -105,18 +145,21 @@ async fn list(
     Query(query): Query<ListQuery>,
 ) -> Result<axum::Json<Vec<TokenView>>, ApiError> {
     let subject = owner(&caller)?;
-    let user = match query.user_id.as_deref() {
+    let security = state.security();
+    let tokens = match query.user_id.as_deref() {
         Some("*") => {
             caller.require("astrum:accesstokens:read")?;
-            None
+            security.tokens(None).await?
         }
         Some(user) if user != subject.user_id => {
             caller.require("astrum:accesstokens:read")?;
-            Some(user.to_owned())
+            security.tokens(Some(user)).await?
         }
-        _ => Some(own_id(subject)?.to_owned()),
+        _ => {
+            let key = own_key(&state, subject)?;
+            security.tokens_of(&key.source, &key.user_id).await?
+        }
     };
-    let tokens = state.security().tokens(user.as_deref()).await?;
     Ok(axum::Json(
         tokens.into_iter().map(TokenView::from).collect(),
     ))
@@ -127,7 +170,7 @@ async fn create(
     caller: Caller,
     Json(body): Json<NewToken>,
 ) -> Result<Response, ApiError> {
-    let owner_id = own_id(owner(&caller)?)?;
+    let key = own_key(&state, owner(&caller)?)?;
     let days = body.expires_in_days.ok_or_else(|| {
         ApiError::invalid(
             "expiresInDays",
@@ -152,9 +195,11 @@ async fn create(
     let created = state
         .security()
         .create_token(
-            owner_id,
+            &key.user_id,
             TokenDraft {
-                created_by: Some(owner_id.to_owned()),
+                source: key.source,
+                external_subject: key.external_subject,
+                created_by: Some(key.user_id.clone()),
                 repositories,
                 ..TokenDraft::personal(&body.name, body.scope, days)
             },
@@ -179,7 +224,11 @@ async fn create(
             | TokenError::TooManyForCustomer
             | TokenError::Scope
             | TokenError::CustomerExpiry
-            | TokenError::UnknownCustomer),
+            | TokenError::UnknownCustomer
+            | TokenError::UnknownSource
+            | TokenError::MissingSubject
+            | TokenError::ExternalCustomer
+            | TokenError::ExternalOff),
         ) => {
             return Err(ApiError::BadRequest(error.to_string()));
         }
@@ -189,7 +238,7 @@ async fn create(
         .audit(
             &caller,
             Event::new("security.accesstoken", "created", &info.name).with(audited(
-                json!({"id": info.id, "user": info.user_id, "scope": info.scope}),
+                json!({"id": info.id, "user": info.user_id, "source": info.source, "scope": info.scope}),
                 &info,
             )),
         )
@@ -207,18 +256,26 @@ async fn remove(
     let subject = owner(&caller)?;
     let missing = || ApiError::not_found("there is no such access token");
     let id = Uuid::parse_str(&id).map_err(|_| missing())?;
-    let token = state.security().token(id).await?.ok_or_else(missing)?;
-    if token.user_id == subject.user_id {
-        own_id(subject)?;
-    } else if !subject.is_permitted("astrum:accesstokens:delete") {
-        return Err(missing());
-    }
-    state.security().delete_token(id).await?;
+    let security = state.security();
+    let found = security.token(id).await?.ok_or_else(missing)?;
+    let own = match found.user_id == subject.user_id {
+        true => {
+            let key = own_key(&state, subject)?;
+            security.token_of(&key.source, &key.user_id, id).await?
+        }
+        false => None,
+    };
+    let token = match own {
+        Some(token) => token,
+        None if subject.is_permitted("astrum:accesstokens:delete") => found,
+        None => return Err(missing()),
+    };
+    security.delete_token(id).await?;
     state
         .audit(
             &caller,
             Event::new("security.accesstoken", "deleted", &token.name).with(audited(
-                json!({"id": token.id, "user": token.user_id}),
+                json!({"id": token.id, "user": token.user_id, "source": token.source}),
                 &token,
             )),
         )

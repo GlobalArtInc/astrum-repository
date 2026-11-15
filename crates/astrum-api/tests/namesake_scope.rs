@@ -150,7 +150,7 @@ async fn directory_only_users_get_no_credentials_to_keep() {
         .answer(denied, Method::POST, TOKENS, alice(), Some(token))
         .await;
     assert!(
-        reply.text().contains("managed outside Astrum"),
+        reply.text().contains(astrum_security::EXTERNAL_TOKENS_OFF),
         "{}",
         reply.text()
     );

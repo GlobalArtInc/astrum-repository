@@ -194,7 +194,7 @@ async fn status(
     let standing = model.second_factor_standing(&subject.user_id);
     let now = Utc::now().fixed_offset();
     let tokens = security
-        .tokens(Some(&subject.user_id))
+        .tokens_of(DEFAULT_SOURCE, &subject.user_id)
         .await?
         .iter()
         .filter(|token| token.expires_at.is_none_or(|expires| expires > now))
