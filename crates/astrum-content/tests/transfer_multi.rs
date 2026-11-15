@@ -196,7 +196,7 @@ async fn transfers_creating_the_same_components_in_opposite_orders_never_deadloc
     }
     assert_eq!(target_rows(&world, "target").await, (2 * rounds, assets));
     assert_eq!(hold_rows(&world).await, 0);
-    assert_eq!(unnamed_blobs(&world).await, 0);
+    assert_eq!(settled_unnamed_blobs(&world).await, 0);
 }
 
 #[tokio::test]
@@ -383,7 +383,7 @@ async fn a_creation_waiting_on_a_key_never_closes_a_cycle_with_the_id_ordered_lo
     assert!(first.is_ok() && second.is_ok(), "{first:?} and {second:?}");
     assert_eq!(target_rows(&world, "target").await, (2, 4));
     assert_eq!(hold_rows(&world).await, 0);
-    assert_eq!(unnamed_blobs(&world).await, 0);
+    assert_eq!(settled_unnamed_blobs(&world).await, 0);
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
@@ -505,5 +505,5 @@ async fn components_whose_assets_are_all_unchanged_are_neither_created_nor_touch
         1
     );
     assert_eq!(hold_rows(&world).await, 0);
-    assert_eq!(unnamed_blobs(&world).await, 0);
+    assert_eq!(settled_unnamed_blobs(&world).await, 0);
 }

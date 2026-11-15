@@ -84,7 +84,7 @@ async fn a_protected_asset_takes_the_same_content_again_but_never_other_content(
     assert_eq!(row(&target, "/locked/a").await.size, 3);
     put(&target, "/free/a", b"one").await.unwrap();
     put(&target, "/free/a", b"two").await.unwrap();
-    assert_eq!(unnamed_blobs(&world).await, 0);
+    assert_eq!(settled_unnamed_blobs(&world).await, 0);
 }
 
 #[tokio::test]
@@ -269,7 +269,7 @@ async fn the_check_sees_what_a_concurrent_writer_committed_under_the_usage_lock(
     first.unwrap();
     refused(second, "/locked/q");
     assert_eq!(row(&target, "/locked/q").await.size, MAGIC as i64);
-    assert_eq!(unnamed_blobs(&world).await, 0);
+    assert_eq!(settled_unnamed_blobs(&world).await, 0);
     world
         .db
         .conn()

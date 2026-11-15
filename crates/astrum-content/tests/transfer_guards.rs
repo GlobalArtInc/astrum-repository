@@ -69,7 +69,7 @@ async fn race_rounds(world: &World, name: &str, policy: WritePolicy, one_compone
         assert_eq!(blobs_in(world, "default").await, before - 1);
     }
     assert_eq!(hold_rows(world).await, 0);
-    assert_eq!(unnamed_blobs(world).await, 0);
+    assert_eq!(settled_unnamed_blobs(world).await, 0);
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
@@ -121,7 +121,7 @@ async fn rewritten_and_extra_blobs_stay_held_until_the_commit_and_leave_no_orpha
     assert_eq!(outcome.status, Status::Copied);
     assert_eq!(target_rows(&world, "target").await, (1, 2));
     assert_eq!(hold_rows(&world).await, 0);
-    assert_eq!(unnamed_blobs(&world).await, 0);
+    assert_eq!(settled_unnamed_blobs(&world).await, 0);
     assert_eq!(blobs_in(&world, "default").await, 3);
 }
 

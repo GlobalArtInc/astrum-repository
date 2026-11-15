@@ -502,6 +502,16 @@ pub async fn unnamed_blobs(world: &World) -> i64 {
     listed.len() as i64 - named
 }
 
+pub async fn settled_unnamed_blobs(world: &World) -> i64 {
+    let deadline = Instant::now() + Duration::from_secs(10);
+    let mut unnamed = unnamed_blobs(world).await;
+    while unnamed != 0 && Instant::now() < deadline {
+        tokio::time::sleep(Duration::from_millis(20)).await;
+        unnamed = unnamed_blobs(world).await;
+    }
+    unnamed
+}
+
 pub async fn wait_for_lock(world: &World) {
     let deadline = Instant::now() + Duration::from_secs(20);
     while number(
