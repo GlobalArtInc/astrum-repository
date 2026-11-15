@@ -145,6 +145,14 @@ async fn a_lease_that_expired_under_a_slow_worker_commits_only_once() {
     assert_eq!(queue::requeue_expired(db).await.unwrap(), 1);
     local.due().await;
     drain(local).await;
+    let deadline = std::time::Instant::now() + Duration::from_secs(20);
+    while local.get("mirror", NAME).await.body != ALPHA {
+        assert!(
+            std::time::Instant::now() < deadline,
+            "the mirror did not answer with the replicated object within 20 s"
+        );
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
     assert_eq!(local.get("mirror", NAME).await.body, ALPHA);
     remote.force.open();
     let pass = slow.await.unwrap();

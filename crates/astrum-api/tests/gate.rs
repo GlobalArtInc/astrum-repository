@@ -1696,14 +1696,19 @@ async fn a_scan_that_outlives_its_caller_keeps_its_slot_until_it_ends() {
         Some("pass"),
         "the scan went on after its caller had left"
     );
-    for _ in 0..20 {
-        let again = get(&fixture, &second).await;
-        assert_eq!(again.status, StatusCode::OK, "{}", again.text());
-        if results(&fixture).get("inline_scan_pass") == Some(&1) {
-            break;
-        }
-        settled(&gate, 1).await;
+    let patient = install_small_gate(&fixture, 20_000, 1);
+    let again = get(&fixture, &second).await;
+    assert_eq!(again.status, StatusCode::OK, "{}", again.text());
+    let deadline = std::time::Instant::now() + Duration::from_secs(20);
+    while results(&fixture).get("inline_scan_pass") != Some(&1) {
+        assert!(
+            std::time::Instant::now() < deadline,
+            "the scan at download of the second component did not count a pass within 20 s: {:?}",
+            results(&fixture)
+        );
+        tokio::time::sleep(Duration::from_millis(50)).await;
     }
+    settled(&patient, 1).await;
     assert_eq!(results(&fixture)["inline_scan_pass"], 1);
 }
 
