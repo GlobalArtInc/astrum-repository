@@ -51,4 +51,5 @@ These answers refuse the sign-in:
 
 Token issue is for local accounts only. A directory account, including one whose user name equals the name
 of a local user, gets `401` and the message that the account signs in through a directory, so it uses an
-[access token](../configure/authentication.md#access-tokens) instead.
+[access token](../configure/authentication.md#access-tokens) instead. Such an account has an access token only
+when the operator has switched on the `external_tokens` option (see [access tokens](../configure/authentication.md#access-tokens)).
