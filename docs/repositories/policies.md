@@ -5,9 +5,12 @@ and what a download of a blocked component gets. The rules are judged by the [vu
 scanner](security-scanning.md); the policy only says what to do with the result. A policy does nothing until
 it is attached to a repository.
 
-A policy has three blocks: `vulnerabilities`, `licenses` and `signatures`. This version enforces only the
-`vulnerabilities` block. The `licenses` and `signatures` blocks can be stored and edited, but nothing in
-this version acts on them. The rest of this page describes the `vulnerabilities` block in detail.
+A policy has three blocks: `vulnerabilities`, `licenses` and `signatures`. The `vulnerabilities` block is
+enforced for the formats the scanner reads; components of other formats are never matched. The `licenses`
+block is enforced for the package formats listed in [Licences](licenses.md). The `signatures` block is
+enforced for Docker repositories only, by the check described in [Image signatures](image-signatures.md).
+For Docker images, the `vulnerabilities` and `signatures` blocks apply, and the `licenses` block does not.
+The rest of this page describes the `vulnerabilities` block in detail.
 
 ## The policy object
 
@@ -16,8 +19,8 @@ this version acts on them. The rest of this page describes the `vulnerabilities`
 | `name` | text | The name. Letters, digits, `-`, `_` and `.`; it must not start with `_` or `.`; at most 64 characters. It is fixed once created. |
 | `notes` | text | Free text, at most 1000 characters. |
 | `vulnerabilities` | object | The rule block described below. |
-| `licenses` | object | Stored, not enforced in this version: `mode`, `list` (`allow` or `deny`), `ids` (up to 1000 SPDX identifiers) and `unknown` (`allow`, `report` or `block`, `report` by default). |
-| `signatures` | object | Stored, not enforced in this version: `mode` and `keys` (up to 64 names of trusted keys). |
+| `licenses` | object | Enforced for the formats listed in [Licences](licenses.md), not for Docker images: `mode`, `list` (`allow` or `deny`), `ids` (up to 1000 SPDX identifiers) and `unknown` (`allow`, `report` or `block`, `report` by default). |
+| `signatures` | object | Enforced for Docker repositories: `mode` and `keys` (up to 64 names of trusted keys). See [Image signatures](image-signatures.md). |
 | `revision` | number | Set by the server. It goes up on every change to the policy, and a verdict is judged against one revision. |
 
 The REST API rejects unknown fields. A misspelt field name is an error, and it does not turn into a default.
@@ -129,14 +132,18 @@ The body of `POST /exceptions`:
 | `policy` | no | The policy it applies to. Left out, it applies to every policy. |
 | `advisory` | one of the targets | An advisory identifier or alias. |
 | `name` | one of the targets | The component name. |
-| `digest` | one of the targets | An image digest, `sha256:` or `sha512:` with lowercase hexadecimal digits. Has no effect in this version. |
+| `digest` | one of the targets | An image digest, `sha256:` or `sha512:` with lowercase hexadecimal digits. It covers that image only. |
 | `license` | for `license` only | An SPDX identifier. |
 | `format`, `namespace`, `version` | no | Narrow a name target to one format, namespace or version. |
 | `expiresAt` | no | When the exception ends, as an RFC 3339 time. |
 
 An exception needs at least one of `advisory`, `license`, `name` or `digest`. A `license` exception needs a
 `license` target and cannot name an advisory. A `vulnerability` exception cannot name a license. A `signature`
-exception cannot name an advisory. An unknown `format` is refused.
+exception needs a `policy` and cannot name an advisory. An unknown `format` is refused.
+
+A `name` exception covers an image through the tags of the repository that point at its digest; at most 50 such
+tags are considered for each digest. An advisory exception covers the image when the scanner finds that advisory
+in it. An exception takes effect when the verdict is judged again.
 
 ### Trusted keys
 
@@ -148,7 +155,7 @@ exception cannot name an advisory. An unknown `format` is refused.
 
 The server reads the algorithm and the fingerprint from the PEM and returns them with the key. A private key is
 refused, with the message that the public key must be given. Keys are used by the `signatures` block, which
-this version does not enforce.
+the signed-only check of Docker repositories enforces.
 
 ### Advisory data
 

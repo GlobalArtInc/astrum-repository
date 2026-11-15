@@ -76,6 +76,9 @@ A manifest read (a pull by tag or by digest) is checked as follows.
 4. The signatures are looked up in the repository that holds the manifest. For a group, the first member that
    holds it is used, and that member's policy applies; a policy on the group itself is ignored.
 
+The signature check runs first and the vulnerability gate second: an image that fails the signature check is
+refused before its vulnerabilities are looked at (see [Image scanning and the pull gate](image-scanning.md#the-pull-gate)).
+
 ### Verifying the candidates
 
 - The legacy tag `sha256-<hex>.sig` is read first. Then the signature manifests of the digest, the ones the

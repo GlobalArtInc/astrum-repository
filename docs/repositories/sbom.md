@@ -14,6 +14,10 @@ package lists. It shows the packages and does not keep the documents: each reque
 | DSSE envelopes with the in-toto payload type around either of them | Yes, the payload is read from the envelope |
 | SPDX 3, XML and other SBOM formats | No. They answer `422` with the category `unsupported` |
 
+When the vulnerability scanner reads an image, a document in one of the unsupported formats, such as an SPDX 3 document or
+a provenance statement, is skipped silently. It does not make the inventory of the image incomplete: the packages of
+the other SBOMs and of the layers are used.
+
 The server looks at the media types of the document layers: `application/spdx+json`,
 `application/vnd.cyclonedx+json`, `application/vnd.in-toto+json`, `application/vnd.dsse.envelope.v1+json` and
 `text/spdx+json`. It reads at most four of them per request, in the order of the manifest, and the first one that
@@ -86,6 +90,9 @@ The ecosystem is derived from the purl type:
 | `gem` | `RubyGems` |
 | `deb` | `Debian:<major>` for a `distro=debian-<major>` qualifier, and `Ubuntu:<yy.04>:LTS` for an Ubuntu long-term release such as `distro=ubuntu-24.04`. Other distributions have none |
 | `apk` | `Alpine:v<major>.<minor>` for a `distro=alpine-<major>.<minor>` qualifier |
+| `composer` | `Packagist`. Mapped, but not matched by the advisory data, so these packages get no findings |
+| `pub` | `Pub`. Mapped, but not matched by the advisory data, so these packages get no findings |
+| `hex` | `Hex`. Mapped, but not matched by the advisory data, so these packages get no findings |
 
 Any other purl type gives `null`.
 

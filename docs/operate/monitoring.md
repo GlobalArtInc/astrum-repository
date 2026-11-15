@@ -72,11 +72,22 @@ database pool are those of the node that served the scrape, the rest is the same
 | `astrum_data_directory_size_bytes`, `astrum_data_directory_free_bytes` | gauge | | The volume of the data directory |
 | `astrum_database_connections` | gauge | `state` | Connections to PostgreSQL, `idle` or `used` |
 | `astrum_notification_deliveries_pending` | gauge | | Notifications waiting to be sent or sent again |
+| `astrum_replication_pending` | gauge | `replication` | Components waiting to be sent by a replication |
+| `astrum_replication_dead` | gauge | `replication` | Components a replication gave up on, until someone retries or discards them |
+| `astrum_replication_lag_seconds` | gauge | `replication` | Age of the oldest component a replication has not delivered yet; 0 when none waits |
+| `astrum_replication_last_success_timestamp_seconds` | gauge | `replication` | When a replication last delivered a component; 0 when it never did |
+| `astrum_replication_remote_suspended` | gauge | `remote` | 1 while a replication remote is paused after failures, 0 otherwise |
+| `astrum_replication_transfers_total` | counter | `replication`, `result` | Transfer attempts of the dispatcher on this node, by `result`: `ok`, `failed` or `dead`; reset when the node restarts |
+| `astrum_replication_bytes_total` | counter | `replication` | Blob bytes this node transferred for a replication: uploaded for a push, downloaded for a pull; reset when the node restarts |
 | `astrum_policy_gate_decisions_total` | counter | `result` | Download checks of repositories with a content policy on this node; `notice_failed` counts a refusal whose notification could not be written, besides its decision, and the refusal itself is not affected |
 | `astrum_scheduler_last_tick_timestamp_seconds` | gauge | | When the scheduler of the node last looked for due tasks |
 | `astrum_task_running` | gauge | `task`, `type` | 1 while a task runs or waits to run |
 | `astrum_task_last_run_success`, `astrum_task_last_run_timestamp_seconds` | gauge | `task`, `type` | Outcome and end of the last finished run |
 | `astrum_metrics_collection_complete` | gauge | | 0 when the measurements did not finish within 8 seconds and were left out |
+
+The replication alert state is not a metric. Each replication has an `alertState` of `ok`, `failing` or `dead_items`,
+shown in the interface and returned by the API; the rules and the messages are in
+[Alerts and metrics](../configure/replication.md#alerts-and-metrics).
 
 Turn off **Report every repository** in the capability on a server with very many repositories; the two
 `astrum_repository_*` metrics then go away. Requests to names that are not repositories are counted

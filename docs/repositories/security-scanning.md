@@ -112,9 +112,10 @@ A component is queued for a scan in these cases, but only in repositories that h
   `componentId` to scan one component. A group has no components of its own and cannot be scanned. The
   response gives the number of queued components.
 - the task `scan.repository` runs. Its settings are the repository (`repositoryName`, or all repositories
-  with a policy) and **Extract again** (`reextract`), which queues every component. Without it, only
-  components that were never scanned, were scanned by an older extractor or whose last scan failed are
-  queued.
+  with a policy) and **Extract again** (`reextract`), which queues every component. Without it, the task queues
+  the components that were never scanned, whose last scan is `failed` or `incomplete`, that were scanned by an older
+  extractor, and the Docker components whose last scan is `unsupported`. A component with a complete scan made by
+  the current extractor is not queued, and a component that is already queued keeps its place in the queue.
 
 There are no periodic rescans. When an advisory changes, only the packages whose ecosystem and name changed
 are matched again.
@@ -294,8 +295,9 @@ These are the limits of this version. Read them before you turn on `block` in pr
 - **Only the download is refused.** Package metadata (npm packuments, the PyPI simple index,
   `maven-metadata.xml`) still lists a blocked version, so a resolver can choose it and then fail on the
   download.
-- **Licence and signature rules are stored but not enforced.** The policy object and the interface accept
-  them. Nothing in this version refuses a download because of a licence or a signature.
+- **Licence and signature rules apply only where stated.** The licence rule applies to the formats listed in
+  [Licences](licenses.md), and the signature rule to Docker repositories ([Image signatures](image-signatures.md)).
+  Nothing else refuses a download because of a licence or a signature.
 - **First scans are not complete.** A component that has never been scanned is `unscanned` until the queue
   reaches it. In `block` mode the first download waits at most 2 seconds for an inline scan. With
   `unscanned: allow` (the default) the download is served without a verdict. With `unscanned: block` it is

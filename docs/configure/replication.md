@@ -40,11 +40,14 @@ format as the source (`maven2` to `maven2`, and so on); a pull has the same rule
 What is not replicated:
 
 - Proxy and group repositories. The server refuses them as a source.
+- Docker repositories. The form refuses them as a source with the reason `Docker images cannot be replicated yet: their
+  transfer needs the image closure`. Protobuf repositories are refused with `the format protobuf takes no part in
+  replication`.
 - Components of other hosted formats. The server accepts the replication, but every component fails
   permanently with the reason `the format <id> takes no part in replication`; see [dead items](#dead-items).
 - Repository settings, cleanup policies, routing rules and write policies, and users, roles and tokens.
 - Deletes, unless **Propagate deletes** is on.
-- Attribute-only changes, such as a yank. The transfer of these three formats does not carry component
+- Attribute-only changes, such as a pypi yank. The transfer of pypi, maven2, helm and raw does not carry component
   attributes; see [what replication does not do](#what-replication-does-not-do).
 - Writes that the receiver makes for a replication, and writes a pull makes into its local repository. They are
   not captured, so they are not sent back.
@@ -412,6 +415,8 @@ fingerprint.
 - A component the sender never sent under this replication is not deleted, and the item is dropped.
 - When the receiver's copy has changed, or its origin is not the sender, the tombstone is refused with
   `409` and the item is dead. The receiver keeps its copy.
+- When the receiver protects the component under the rules of its format, for example a Docker tag under immutable
+  tags, the tombstone is refused with `409` and the code `protected`, the item is dead, and the component stays.
 
 The fingerprint covers the format, namespace, name and version, the path, SHA-256 and size of every file, and
 the metadata, without the origin mark.
@@ -502,6 +507,10 @@ its remote**, and its property `replicationId` names the replication.
 | Items leased by one worker at a time | At most 20 |
 
 A staged blob is held against compaction for 48 hours, until its component is committed or the staging ends.
+
+Staged bytes are not counted by the quota of the receiving repository until the component that uses them is
+committed. The commit checks the quota again, under the usage lock of the repository, so a commit that would pass the
+limit is refused and nothing is written.
 
 ## Pull replication
 
@@ -959,12 +968,12 @@ tokens. The tools that read use the reads of REST, so their answers are the same
 
 - **Chain components by events.** A component that B received from A is not queued on B, so it does not reach
   C by events. It reaches C only when B's reconcile run finds it missing there.
-- **Transfer formats other than `maven2`, `helm` and `raw`.** Other formats are accepted as sources of a
-  replication, but every component fails permanently.
+- **Formats without a transfer.** A component of a format with no transfer, such as protobuf, fails permanently.
+  Docker repositories cannot be replicated at all (see the list of what is not replicated above).
 - **Delete by default.** Deletes are sent only with **Propagate deletes**.
 - **Replicate attribute-only changes in this version.** A change that touches only the attributes of a component
-  (a yank, for example) queues an item, but the bundle of `maven2`, `helm` and `raw` does not carry component
-  attributes, so the receiver gets the same content and shows no change. Such a change is not replicated.
+  (a pypi yank, for example) queues an item, but the bundle of `pypi`, `maven2`, `helm` and `raw` does not carry
+  component attributes, so the receiver gets the same content and shows no change. Such a change is not replicated.
 - **Events between servers.** A push receiver never reads from the sender. A pull replication has no event
   feed from the remote either: it learns about changes only at its reconcile run, see [pull replication](#pull-replication).
 - **Copy settings, policies or accounts.** Repository settings, cleanup policies, routing rules, write

@@ -16,8 +16,9 @@ version.
 - An inventory belongs to one repository and one digest. Its key is `oci:<repository>:<digest>`. A verdict belongs to
   one repository and one digest too, with the subject `oci:<digest>`. An image pulled by tag or by digest gets the
   same verdict.
-- The pull gate enforces the `vulnerabilities` block of a policy. It does not read the `licenses` or the `signatures`
-  block.
+- The pull gate enforces the `vulnerabilities` block of a policy. The `signatures` block is checked by the signed-only
+  check, which runs before this gate (see [Image signatures](image-signatures.md)). The `licenses` block is not applied
+  to images.
 
 ## How an image gets an inventory
 
@@ -133,8 +134,10 @@ its index (see [Index and platform images](#index-and-platform-images)).
 
 ### Images with no packages
 
-An image with no SBOM and no package database, whose layers are read in full, gets no inventory. Its verdict then
-reads `scan: missing`. With `unscanned: block` the gate refuses such an image.
+An image with no SBOM and no package database, whose layers are read in full, gets no inventory. Its tag component
+is recorded with the scan state `unsupported`, and its verdict reads `scan: missing`. With `unscanned: block` the gate
+refuses such an image for as long as it has neither an SBOM nor a readable package database: the gate does not retry
+an `unsupported` image by itself, and a new scan finds the same result.
 
 ## Layer extraction
 
@@ -265,7 +268,9 @@ verdicts of digests that no manifest or tag holds.
 ### Requests covered
 
 The gate runs on every `GET` and `HEAD` of a manifest, by tag or by digest, in hosted, proxy and group repositories.
-It runs before the conditional-request check, so an `If-None-Match` header does not skip it. The manifest preview of
+The signature check runs first and the vulnerability gate second: an image that fails the signature check is
+refused before its vulnerabilities are looked at (see [Image signatures](image-signatures.md)).
+The gate runs before the conditional-request check, so an `If-None-Match` header does not skip it. The manifest preview of
 the web interface runs the same check.
 
 In a group, the gate judges the member that serves the manifest, with that member's policy and verdicts. A repository
@@ -361,6 +366,9 @@ A refusal writes an audit entry with the action `blocked` in the policy domain. 
 repository per hour. Its attributes are the repository, the digest, the policy, the state, and the tag when the pull
 was by tag. The reasons are not in the entry.
 
+A refusal of an image by the Docker gate is written to the audit log only. It is not sent through the notification
+channels, unlike a refused download of a component of another format.
+
 ## What the gate does not protect
 
 - **Blobs** by digest, `GET` and `HEAD`. The layers of a blocked image can be downloaded. Mounts from another
@@ -377,7 +385,8 @@ was by tag. The reasons are not in the entry.
 - **Incomplete inventories under `unscanned: allow`.** The packages that were read are judged, so a blocking finding
   among them refuses the image. The packages that were not read are not judged.
 - **Images with no packages.** They are judged as `unscanned` with `scan: missing`. Under `allow` they are served.
-- **The licence and signature blocks** of a policy. The gate does not read them.
+- **The licence block** of a policy: it is not applied to images. The signature block is checked by its own gate,
+  described in [Image signatures](image-signatures.md).
 
 ## Operator guidance
 
