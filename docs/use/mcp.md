@@ -96,6 +96,8 @@ counted per client address.
 | `list_share_links` | Your share links with their expiry and downloads, never the address; `all` lists everyone's | a token; `all` needs `astrum:sharelinks:read` |
 | `revoke_share_link` | Revokes a link at once: your own, or anyone's with the right to delete links | a token; links of others need `astrum:sharelinks:delete` |
 | `set_user_roles` | Gives roles to a user or takes them away, keeping the other details of the user | `astrum:users:update`, and the right to grant the roles |
+| `list_replications`, `get_replication_status` | Replications with their remote, filters and alert state; the status of one, with its first 20 dead items and their ids | `astrum:replication:read`; the dead items also need the view right on the source repository |
+| `retry_replication_items`, `run_replication_reconcile` | Requeues dead items of a [replication](../configure/replication.md#mcp-tools), or queues a reconcile run now | `astrum:replication:update`, and admin of the source repository |
 | `get_ip_allow_list` | The management, content and agents [allow lists](../configure/ip-allow-list.md), the address the server sees for you and the trusted proxies; read only, the lists are changed in the web interface | `astrum:*` (administrator) |
 
 The summaries of advisories that the security tools return are copied from public vulnerability
