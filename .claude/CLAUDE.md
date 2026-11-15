@@ -112,7 +112,7 @@ repository is public: never commit secrets.
 - Not done: retiring
   the Java container on `prod1-astrum1` (owner's call; the runbook asked for two quiet weeks first),
   renaming `astrum-next` to `astrum` in infra and gitops afterwards.
-- Owner deferred (2026-10-18): no limit on failed sign-ins, unknown Bearer tokens answer 401 instead of
+- Owner deferred (2026-10-18): unknown Bearer tokens answer 401 instead of
   anonymous, uploader and client address visible to readers, task types without a counterpart and cleanup
   `retain`, the Swift upload form and `/v1/lifecycle/phase`. On `docker-prod` (`forceBasicAuth`) the Java
   server challenged with Basic, the Rust server challenges with Bearer.
@@ -238,6 +238,10 @@ repository is public: never commit secrets.
 - Ownlate project `f1f93c0e-4902-434d-a551-e94ba7e1e304`, file `119d5931-d6cc-4e49-aaa6-ce23ad9b6257`.
   Write source texts first (no language), then Russian with approve=true; keep batches under ~150; a
   "session expired" error may still have applied the write. The CI workflow pulls and checks them when the secrets are set.
+- `pull` reads the PUBLISHED release language by language (`/public/v1/ota/<accessKey>/manifest` and `/bundles/<language>`,
+  the public key is in `tools/i18n/dictionaries.json`); it needs no token. So after importing or approving texts, create a
+  release (`create_release`), or `pull` and CI do not see them. The one-answer `translations-map` endpoint is refused by the
+  Ownlate gateway above 4 MiB (the project passed it in November 2026): do not use it.
 
 ## Parallel agents (how it worked)
 - One worktree per task: `git worktree add -b <branch> /home/user/wt/<name> origin/main`; install

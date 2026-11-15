@@ -43,6 +43,10 @@ What is not replicated:
 - Docker repositories. The form refuses them as a source with the reason `Docker images cannot be replicated yet: their
   transfer needs the image closure`. Protobuf repositories are refused with `the format protobuf takes no part in
   replication`.
+- npm repositories. The form refuses them with the reason `npm packages cannot be replicated yet: the replication
+  worker lacks the read rights the bundle of a version requires, dist-tag changes raise no replication event and the
+  unpublish of a version fails the fingerprint check`. Use [promotion](../use/promotion.md) to move npm packages
+  between instances.
 - Components of other hosted formats. The server accepts the replication, but every component fails
   permanently with the reason `the format <id> takes no part in replication`; see [dead items](#dead-items).
 - Repository settings, cleanup policies, routing rules and write policies, and users, roles and tokens.
@@ -969,7 +973,7 @@ tokens. The tools that read use the reads of REST, so their answers are the same
 - **Chain components by events.** A component that B received from A is not queued on B, so it does not reach
   C by events. It reaches C only when B's reconcile run finds it missing there.
 - **Formats without a transfer.** A component of a format with no transfer, such as protobuf, fails permanently.
-  Docker repositories cannot be replicated at all (see the list of what is not replicated above).
+  Docker and npm repositories cannot be replicated at all (see the list of what is not replicated above).
 - **Delete by default.** Deletes are sent only with **Propagate deletes**.
 - **Replicate attribute-only changes in this version.** A change that touches only the attributes of a component
   (a pypi yank, for example) queues an item, but the bundle of `pypi`, `maven2`, `helm` and `raw` does not carry
