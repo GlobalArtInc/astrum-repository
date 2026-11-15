@@ -91,6 +91,8 @@ counted per client address.
 | `upload_component` | Uploads a file of up to 64 KiB given inline as base64 | the right to add to some repository |
 | `promote_components` | Copies components between hosted repositories, or moves them with `move`; `dryRun` previews the result without writing | read on the source and add on the target; edit for `conflict: replace`, delete for `move` |
 | `list_users`, `list_roles`, `list_privileges` | Users with their roles; roles with their privileges and the roles they include; privileges, filtered by repository, format or name | `astrum:users:read`, `astrum:roles:read`, `astrum:privileges:read` |
+| `get_two_factor_status` | Takes `userId`. Whether the user has a second factor set up (an authenticator app, passkeys or both) and whether an authenticator app is one of them, how many recovery codes are left, the requirement that applies and whether sign-in is locked; see [two-factor authentication](../configure/two-factor.md) | `astrum:users:read` |
+| `get_two_factor_policy` | No arguments. The methods that are on, who must have a second factor, the grace period and when the requirement was last widened | `astrum:*`; not offered to Read tokens |
 | `create_role`, `update_role` | Creates a role, or adds and takes away its privileges and included roles; built-in roles stay as they are | `astrum:roles:create`, `astrum:roles:update` |
 | `create_share_link` | Creates a link that downloads one file, or the files of a folder, without an account until it expires; the address is in this answer only ([Share links](share-links.md)) | `astrum:sharelinks:create` and read access to the path |
 | `list_share_links` | Your share links with their expiry and downloads, never the address; `all` lists everyone's | a token; `all` needs `astrum:sharelinks:read` |
@@ -109,7 +111,8 @@ user holds the rights it needs; the server checks those rights again on every ca
 components are the two upload tools and `promote_components`, which also deletes the source component when
 it is called with `move`; no other tool deletes components, repositories, blob stores or users, and nothing
 touches security settings.
-The two share tools only add and remove share links.
+The two share tools only add and remove share links. The two second-factor tools only read; no tool sets up,
+removes or resets a second factor.
 
 The server also offers two prompts: `diagnose_space`, which walks the agent through finding where the
 space went, how soon each blob store fills and what to do about it, and `find_artifact`, which finds a package and how to use its latest

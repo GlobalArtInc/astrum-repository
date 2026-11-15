@@ -27,6 +27,7 @@ The same pages are published as a site at https://astrum.globalart.dev.
 - [Reverse proxy and TLS](configure/reverse-proxy.md)
 - [Users, realms and sign-in](configure/authentication.md)
 - [IP allow list](configure/ip-allow-list.md)
+- [Two-factor authentication](configure/two-factor.md)
 - [Outbound HTTP and proxy](configure/outbound-http.md)
 - [SSL certificates](configure/ssl-certificates.md)
 - [Capabilities](configure/capabilities.md)

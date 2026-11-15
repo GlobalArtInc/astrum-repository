@@ -80,6 +80,7 @@ const sidebar: DefaultTheme.SidebarItem[] = [
       { text: 'Reverse proxy and TLS', link: '/configure/reverse-proxy' },
       { text: 'Users, realms and sign-in', link: '/configure/authentication' },
       { text: 'IP allow list', link: '/configure/ip-allow-list' },
+      { text: 'Two-factor authentication', link: '/configure/two-factor' },
       { text: 'Outbound HTTP and proxy', link: '/configure/outbound-http' },
       { text: 'SSL certificates', link: '/configure/ssl-certificates' },
       { text: 'Capabilities', link: '/configure/capabilities' },
