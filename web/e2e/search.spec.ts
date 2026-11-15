@@ -93,7 +93,7 @@ test('criteria search combines conditions and opens components', async ({ page }
   await page.getByRole('combobox', { name: 'Field' }).nth(1).click();
   await page.getByRole('option', { name: 'Version', exact: true }).click();
   await page.getByRole('textbox', { name: 'Value' }).nth(1).fill('1.3.0');
-  await page.getByRole('button', { name: 'Search', exact: true }).click();
+  await page.getByRole('main').getByRole('button', { name: 'Search', exact: true }).click();
   await expect(page).toHaveURL(/\/search\/custom\?group=com\.glob\*&version=1\.3\.0$/);
   await expect(page.getByText('1 component found')).toBeVisible();
   const row = page.getByRole('button', { name: 'Open astrum-client in the repository' });
@@ -108,7 +108,7 @@ test('criteria search combines conditions and opens components', async ({ page }
   await expect(page.getByRole('button', { name: 'Open report-builder in the repository' })).toBeVisible();
   await page.getByRole('button', { name: 'Clear All' }).click();
   await expect(page).toHaveURL(/\/search\/custom$/);
-  await page.getByRole('button', { name: 'Search', exact: true }).click();
+  await page.getByRole('main').getByRole('button', { name: 'Search', exact: true }).click();
   await expect(page.getByText(/^\d+ components found$/)).toBeVisible();
 });
 

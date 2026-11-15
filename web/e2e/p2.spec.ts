@@ -233,7 +233,7 @@ test('a P2 proxy made through the form serves a composite site and shows its usa
   await page.getByRole('combobox', { name: 'Condition' }).click();
   await page.getByRole('option', { name: 'Contains' }).click();
   await page.getByRole('textbox', { name: 'Value' }).fill('Core');
-  await page.getByRole('button', { name: 'Search', exact: true }).click();
+  await page.getByRole('main').getByRole('button', { name: 'Search', exact: true }).click();
   await expect(page).toHaveURL(/\/search\/custom\?p2\.pluginName=\*Core\*$/);
   await expect(page.getByText('org.example.core').first()).toBeVisible();
 

@@ -32,6 +32,8 @@ test('a fresh server walks the administrator through the first steps', async ({ 
     await expect(page.getByRole('heading', { name: 'Anonymous access' })).toBeVisible();
     await page.getByRole('radio', { name: /Allow anonymous access/ }).click();
     await page.getByRole('button', { name: 'Continue' }).click();
+    await expect(page.getByRole('heading', { name: 'Repositories' })).toBeVisible();
+    await page.getByRole('button', { name: 'Skip for now' }).click();
     await expect(page.getByRole('heading', { name: 'All set' })).toBeVisible();
     await page.getByRole('button', { name: 'Go to the dashboard' }).click();
     await expect(page).toHaveURL(`${fresh.url}/`);

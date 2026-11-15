@@ -94,7 +94,7 @@ test('a file shows its details and how to fetch it', async ({ page, server }) =>
   await enter(page, server.adminPassword);
   await page.goto(`/browse/${SEED.npm}`);
   const tree = page.getByRole('tree');
-  await expect(tree.getByRole('treeitem', { level: 1 })).toHaveText(['@team', 'left-pad']);
+  await expect(tree.getByRole('treeitem', { level: 1 })).toHaveText([/^left-pad/, /^@team/]);
   await tree.getByRole('treeitem', { name: '@team' }).click();
   await tree.getByRole('treeitem', { name: 'tool', exact: true }).click();
   await tree.getByRole('treeitem', { name: 'tool-1.0.0.tgz' }).click();
@@ -169,7 +169,7 @@ test('someone who only sees a group browses its members through it', async ({ pa
   await expect(page.getByRole('heading', { level: 2, name: 'readme.txt' })).toBeVisible();
   const details = page.getByRole('region', { name: 'Details' });
   await expect(details.getByText(SEED.raw, { exact: true })).toBeVisible();
-  await expect(details.getByText(/^15\sB$/)).toBeVisible();
+  await expect(details.getByLabel('Summary').getByText(/^15\sB$/)).toBeVisible();
   await expect(details.getByRole('link', { name: 'Download' })).toHaveAttribute(
     'href',
     new RegExp(`/repository/${SEED.rawGroup}/docs/readme\\.txt$`),
