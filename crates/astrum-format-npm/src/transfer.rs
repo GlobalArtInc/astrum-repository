@@ -444,6 +444,12 @@ impl Transfer for Npm {
             }
         }
     }
+
+    fn replicable(&self) -> Result<(), &'static str> {
+        Err(
+            "npm packages cannot be replicated yet: the replication worker lacks the read rights the bundle of a version requires, dist-tag changes raise no replication event and the unpublish of a version fails the fingerprint check",
+        )
+    }
 }
 
 #[cfg(test)]

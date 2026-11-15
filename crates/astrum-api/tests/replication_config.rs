@@ -65,6 +65,7 @@ async fn ready() -> Fixture {
     content.register(Arc::new(astrum_format_pypi::PyPi));
     content.register(Arc::new(astrum_format_nuget::Nuget::default()));
     content.register(Arc::new(astrum_format_docker::Docker::default()));
+    content.register(Arc::new(astrum_format_npm::Npm::default()));
     create_repository(&fixture, "src", "raw").await;
     fixture
 }
@@ -987,6 +988,26 @@ async fn a_format_that_cannot_be_replicated_is_refused_for_push_and_pull() {
         refused.text()
     );
     assert_eq!(fields(&refused), ["sourceRepository"]);
+}
+
+#[tokio::test]
+async fn npm_packages_are_refused_for_push_and_pull() {
+    let fixture = ready().await;
+    create_repository(&fixture, "packages", "npm").await;
+    let remote_id = make_remote(&fixture, "Mirror").await;
+    for direction in ["push", "pull"] {
+        let mut body = replication(direction, &remote_id);
+        body["sourceRepository"] = json!("packages");
+        body["direction"] = json!(direction);
+        let refused = admin(&fixture, Method::POST, REPLICATIONS, Some(body)).await;
+        assert_eq!(refused.status, StatusCode::BAD_REQUEST, "{direction}");
+        assert_eq!(fields(&refused), ["sourceRepository"], "{direction}");
+        assert!(
+            refused.text().contains("npm packages cannot be replicated"),
+            "{}",
+            refused.text()
+        );
+    }
 }
 
 #[tokio::test]
