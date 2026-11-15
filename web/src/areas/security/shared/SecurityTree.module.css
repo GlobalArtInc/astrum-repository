@@ -73,7 +73,7 @@
   display: flex;
   gap: 16px;
   align-items: center;
-  min-width: 720px;
+  min-width: 1043px;
   padding: 4px 8px;
 }
 
@@ -91,6 +91,7 @@
 .header > :nth-child(4),
 .description {
   flex: 1 1 369px;
+  min-width: 240px;
 }
 
 .header {
@@ -227,7 +228,7 @@
   line-height: 16.8px;
   letter-spacing: 0.03px;
   color: var(--gray-a11);
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .empty {
