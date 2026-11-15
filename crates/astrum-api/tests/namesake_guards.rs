@@ -124,7 +124,7 @@ async fn a_directory_session_cannot_delete_a_token_left_under_its_id() {
     let session = world.session("alice", ALICE_PASSWORD).await;
     let path = format!("{TOKENS}/{}", left.id);
     world
-        .within(StatusCode::FORBIDDEN, Method::DELETE, &path, &session)
+        .within(StatusCode::NOT_FOUND, Method::DELETE, &path, &session)
         .await;
     assert!(security.token(left.id).await.unwrap().is_some());
 }

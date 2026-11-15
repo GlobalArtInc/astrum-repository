@@ -2,9 +2,11 @@ mod support;
 #[path = "support/namesake.rs"]
 mod world;
 
-use astrum_security::{EXTERNAL_TOKENS_OFF, Security, oidc, realm};
+use astrum_db::entity::access_token;
+use astrum_security::{EXTERNAL_TOKENS_OFF, Security, oidc, realm, tokens};
 use astrum_testkit::oidc::MockProvider;
 use axum::http::{Method, StatusCode, header};
+use sea_orm::{ActiveValue, EntityTrait};
 use serde_json::{Value, json};
 use support::{Auth, Fixture, Reply};
 use world::{TOKENS, alice, setup};
@@ -137,6 +139,38 @@ async fn who_am_i(fixture: &Fixture, user: &str, token: &str) -> Value {
     reply.json()["user"].clone()
 }
 
+async fn insert_row(security: &Security, source: &str, user_id: &str) -> uuid::Uuid {
+    let plain = format!(
+        "astrum_{}{}",
+        uuid::Uuid::new_v4().simple(),
+        &uuid::Uuid::new_v4().simple().to_string()[..8]
+    );
+    let now = chrono::Utc::now().fixed_offset();
+    let id = uuid::Uuid::new_v4();
+    access_token::Entity::insert(access_token::ActiveModel {
+        id: ActiveValue::Set(id),
+        user_id: ActiveValue::Set(user_id.to_owned()),
+        source: ActiveValue::Set(source.to_owned()),
+        name: ActiveValue::Set("row".to_owned()),
+        token_hash: ActiveValue::Set(tokens::hash(&plain)),
+        token_hint: ActiveValue::Set(plain[..11].to_owned()),
+        scope: ActiveValue::Set("READ".to_owned()),
+        created_at: ActiveValue::Set(now),
+        expires_at: ActiveValue::Set(None),
+        last_used_at: ActiveValue::Set(None),
+        customer: ActiveValue::Set(None),
+        repositories: ActiveValue::Set(None),
+        created_by: ActiveValue::Set(None),
+        last_used_ip: ActiveValue::Set(None),
+        expiry_notice: ActiveValue::Set(None),
+        external_subject: ActiveValue::Set(None),
+    })
+    .exec(security.db())
+    .await
+    .unwrap();
+    id
+}
+
 async fn held(security: &Security, source: &str, user_id: &str) -> usize {
     security.tokens_of(source, user_id).await.unwrap().len()
 }
@@ -195,6 +229,67 @@ async fn an_oidc_account_lists_creates_and_removes_its_tokens() {
         .call(Method::GET, STATE, Auth::Basic("rita", &token), None)
         .await;
     assert_eq!(dead.status, StatusCode::UNAUTHORIZED, "{}", dead.text());
+}
+
+#[tokio::test]
+async fn an_oidc_account_lists_and_removes_only_its_own_source_and_user() {
+    let (fixture, provider) = setup_oidc(true).await;
+    let security = fixture.state.security();
+    let session = sign_in(
+        &fixture,
+        &provider,
+        json!({"sub": "u-5", "preferred_username": "rita"}),
+    )
+    .await;
+    let created = within(&fixture, Method::POST, TOKENS, &session, Some(draft())).await;
+    assert_eq!(created.status, StatusCode::CREATED, "{}", created.text());
+    let own = created.json()["id"].as_str().unwrap().to_owned();
+    let foreign = [
+        insert_row(security, "default", "rita").await,
+        insert_row(security, "LDAP", "rita").await,
+    ];
+
+    let listed = within(&fixture, Method::GET, TOKENS, &session, None).await;
+    let listed: Value = listed.json();
+    assert_eq!(listed.as_array().unwrap().len(), 1, "{listed}");
+    assert_eq!(listed[0]["id"], own);
+    for id in foreign {
+        let path = format!("{TOKENS}/{id}");
+        let reply = within(&fixture, Method::DELETE, &path, &session, None).await;
+        assert_eq!(reply.status, StatusCode::NOT_FOUND, "{}", reply.text());
+        assert!(security.token(id).await.unwrap().is_some());
+    }
+    let path = format!("{TOKENS}/{own}");
+    let reply = within(&fixture, Method::DELETE, &path, &session, None).await;
+    assert_eq!(reply.status, StatusCode::NO_CONTENT, "{}", reply.text());
+    assert_eq!(held(security, oidc::SOURCE, "rita").await, 0);
+}
+
+#[tokio::test]
+async fn an_external_account_can_still_remove_its_own_token_while_the_option_is_off() {
+    let (fixture, provider) = setup_oidc(true).await;
+    let security = fixture.state.security();
+    let session = sign_in(
+        &fixture,
+        &provider,
+        json!({"sub": "u-6", "preferred_username": "rita"}),
+    )
+    .await;
+    let created = within(&fixture, Method::POST, TOKENS, &session, Some(draft())).await;
+    let own = created.json()["id"].as_str().unwrap().to_owned();
+    let other = insert_row(security, "LDAP", "rita").await;
+    security.set_external_tokens(false);
+
+    let listed = within(&fixture, Method::GET, TOKENS, &session, None).await;
+    assert_eq!(listed.status, StatusCode::FORBIDDEN, "{}", listed.text());
+    let path = format!("{TOKENS}/{other}");
+    let reply = within(&fixture, Method::DELETE, &path, &session, None).await;
+    assert_eq!(reply.status, StatusCode::NOT_FOUND, "{}", reply.text());
+    let path = format!("{TOKENS}/{own}");
+    let reply = within(&fixture, Method::DELETE, &path, &session, None).await;
+    assert_eq!(reply.status, StatusCode::NO_CONTENT, "{}", reply.text());
+    assert_eq!(held(security, oidc::SOURCE, "rita").await, 0);
+    assert!(security.token(other).await.unwrap().is_some());
 }
 
 #[tokio::test]

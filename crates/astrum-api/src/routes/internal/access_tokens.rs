@@ -103,7 +103,13 @@ struct OwnerKey {
     external_subject: Option<String>,
 }
 
-fn own_key(state: &AppState, subject: &Subject) -> Result<OwnerKey, ApiError> {
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum WhenOff {
+    Refuse,
+    Allow,
+}
+
+fn own_key(state: &AppState, subject: &Subject, when_off: WhenOff) -> Result<OwnerKey, ApiError> {
     if let Some(user_id) = subject.local_user_id() {
         return Ok(OwnerKey {
             source: DEFAULT_SOURCE.to_owned(),
@@ -112,31 +118,33 @@ fn own_key(state: &AppState, subject: &Subject) -> Result<OwnerKey, ApiError> {
         });
     }
     let security = state.security();
-    if !security.external_tokens_enabled() {
+    let external = || ApiError::Forbidden(EXTERNAL_CREDENTIALS.to_owned());
+    let source = match subject.source.as_str() {
+        oidc::SOURCE => oidc::SOURCE,
+        ldap::SOURCE => ldap::SOURCE,
+        _ => return Err(external()),
+    };
+    if when_off == WhenOff::Refuse && !security.external_tokens_enabled() {
         return Err(ApiError::Forbidden(EXTERNAL_TOKENS_OFF.to_owned()));
     }
-    let external = || ApiError::Forbidden(EXTERNAL_CREDENTIALS.to_owned());
-    match subject.source.as_str() {
+    let external_subject = match source {
         oidc::SOURCE => {
             if security.model().local_id_taken(&subject.user_id) {
                 return Err(external());
             }
-            let bound = security
-                .oidc_subject_of(&subject.user_id)
-                .ok_or_else(external)?;
-            Ok(OwnerKey {
-                source: oidc::SOURCE.to_owned(),
-                user_id: subject.user_id.clone(),
-                external_subject: Some(bound),
-            })
+            Some(
+                security
+                    .oidc_subject_of(&subject.user_id)
+                    .ok_or_else(external)?,
+            )
         }
-        ldap::SOURCE => Ok(OwnerKey {
-            source: ldap::SOURCE.to_owned(),
-            user_id: subject.user_id.clone(),
-            external_subject: None,
-        }),
-        _ => Err(external()),
-    }
+        _ => None,
+    };
+    Ok(OwnerKey {
+        source: source.to_owned(),
+        user_id: subject.user_id.clone(),
+        external_subject,
+    })
 }
 
 async fn list(
@@ -156,7 +164,7 @@ async fn list(
             security.tokens(Some(user)).await?
         }
         _ => {
-            let key = own_key(&state, subject)?;
+            let key = own_key(&state, subject, WhenOff::Refuse)?;
             security.tokens_of(&key.source, &key.user_id).await?
         }
     };
@@ -170,7 +178,7 @@ async fn create(
     caller: Caller,
     Json(body): Json<NewToken>,
 ) -> Result<Response, ApiError> {
-    let key = own_key(&state, owner(&caller)?)?;
+    let key = own_key(&state, owner(&caller)?, WhenOff::Refuse)?;
     let days = body.expires_in_days.ok_or_else(|| {
         ApiError::invalid(
             "expiresInDays",
@@ -258,16 +266,17 @@ async fn remove(
     let id = Uuid::parse_str(&id).map_err(|_| missing())?;
     let security = state.security();
     let found = security.token(id).await?.ok_or_else(missing)?;
-    let own = match found.user_id == subject.user_id {
+    let same_id = found.user_id == subject.user_id;
+    let own = match same_id {
         true => {
-            let key = own_key(&state, subject)?;
+            let key = own_key(&state, subject, WhenOff::Allow)?;
             security.token_of(&key.source, &key.user_id, id).await?
         }
         false => None,
     };
     let token = match own {
         Some(token) => token,
-        None if subject.is_permitted("astrum:accesstokens:delete") => found,
+        None if !same_id && subject.is_permitted("astrum:accesstokens:delete") => found,
         None => return Err(missing()),
     };
     security.delete_token(id).await?;

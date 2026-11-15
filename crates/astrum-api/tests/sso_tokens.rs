@@ -436,6 +436,32 @@ async fn a_new_local_user_clears_the_external_tokens_of_its_namesakes_in_any_cas
     );
     assert_eq!(security.delete_tokens_of("LDAP", "Alice").await.unwrap(), 2);
     assert_eq!(security.tokens_of("default", "Zed").await.unwrap().len(), 1);
+
+    mint(security, oidc::SOURCE, "rita", Some("sub-rita")).await;
+    mint(security, oidc::SOURCE, "Rita", Some("sub-big-rita")).await;
+    assert_eq!(
+        security
+            .delete_tokens_of(oidc::SOURCE, "Rita")
+            .await
+            .unwrap(),
+        1
+    );
+    assert_eq!(
+        security
+            .tokens_of(oidc::SOURCE, "rita")
+            .await
+            .unwrap()
+            .len(),
+        1
+    );
+    assert_eq!(
+        security
+            .tokens_of(oidc::SOURCE, "Rita")
+            .await
+            .unwrap()
+            .len(),
+        0
+    );
 }
 
 async fn names(conn: &sea_orm::DatabaseConnection) -> Vec<String> {

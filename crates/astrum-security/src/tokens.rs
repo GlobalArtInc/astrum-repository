@@ -158,7 +158,7 @@ fn same_id_in_any_case(user_id: &str) -> SimpleExpr {
 }
 
 fn held_by(source: &str, user_id: &str) -> Condition {
-    let same = match source == DEFAULT_SOURCE {
+    let same = match source == DEFAULT_SOURCE || source == oidc::SOURCE {
         true => access_token::Column::UserId.eq(user_id),
         false => same_id_in_any_case(user_id),
     };
