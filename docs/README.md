@@ -50,6 +50,7 @@ The same pages are published as a site at https://astrum.globalart.dev.
 - [REST API](use/rest-api.md)
 - [Promote components](use/promotion.md)
 - [Agents over MCP](use/mcp.md)
+- [Customers and their download tokens](use/customers.md)
 - [Interface language](use/language.md)
 
 ## Operate
