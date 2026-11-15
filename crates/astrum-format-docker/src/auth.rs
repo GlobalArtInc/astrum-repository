@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 
+use astrum_api::auth::PasswordRefusal;
 use astrum_api::{AppState, Caller};
 use astrum_security::tokens::looks_like_token;
-use astrum_security::{AuthError, SecurityModel, Subject};
+use astrum_security::{SecurityModel, Subject};
 use axum::Form;
 use axum::extract::{Query, State};
 use axum::http::{HeaderMap, HeaderValue, StatusCode, Uri, header};
@@ -18,6 +19,8 @@ pub const REALM: &str = "DockerToken";
 pub const API_VERSION: &str = "registry/2.0";
 pub const ANONYMOUS_TOKEN: &str = "anonymous";
 pub const LIFETIME_SECONDS: i64 = 1800;
+const DIRECTORY_ACCOUNT: &str =
+    "this account signs in through a directory; use an access token instead";
 
 pub fn challenge(security: &SecurityModel, base_url: &str, scope: Option<&str>) -> String {
     if !security.realm_active(REALM) {
@@ -124,15 +127,21 @@ fn token_body(token: &str, lifetime: i64, scope: Option<&str>) -> Response {
 }
 
 async fn issue(state: &AppState, subject: &Subject) -> Result<String, RegistryError> {
+    subject
+        .require_unnarrowed()
+        .map_err(|error| RegistryError::denied(error.to_string()))?;
     state
         .security()
         .issue_format_token(
             REALM,
-            &subject.user_id,
+            subject,
             Some(chrono::Duration::seconds(LIFETIME_SECONDS)),
         )
         .await
-        .map_err(|error| astrum_content::ContentError::internal(error).into())
+        .map_err(|error| match error {
+            astrum_security::Error::NotLocal => RegistryError::denied(DIRECTORY_ACCOUNT),
+            other => astrum_content::ContentError::internal(other).into(),
+        })
 }
 
 fn inactive() -> Response {
@@ -200,21 +209,28 @@ pub async fn oauth(
     };
     let security = state.security();
     if looks_like_token(password) {
-        return match security.authenticate_token(Some(username), password).await {
+        return match security
+            .authenticate_token(Some(username), password, astrum_api::client::current())
+            .await
+        {
             Ok(_) => token_body(password, LIFETIME_SECONDS, scope),
             Err(_) => oauth_error(StatusCode::UNAUTHORIZED, "invalid_grant"),
         };
     }
-    match security.authenticate(username, password).await {
+    match astrum_api::auth::check_password(&state, username, password, "Docker", false).await {
         Ok(subject) => match issue(&state, &subject).await {
             Ok(token) => token_body(&token, LIFETIME_SECONDS, scope),
             Err(error) => error.into_response(),
         },
-        Err(AuthError::BadCredentials) => {
+        Err(PasswordRefusal::Wrong(gate)) => {
             tracing::info!(user = %username, "a Docker token request failed");
+            astrum_api::auth::audit_refused_password(&state, username, "/v2/token", &headers, gate)
+                .await;
             oauth_error(StatusCode::UNAUTHORIZED, "invalid_grant")
         }
-        Err(AuthError::Internal(error)) => {
+        Err(PasswordRefusal::Throttled(seconds)) => astrum_api::auth::registry_throttled(seconds),
+        Err(PasswordRefusal::Busy) => astrum_api::auth::registry_busy(),
+        Err(PasswordRefusal::Internal(error)) => {
             RegistryError::from(astrum_content::ContentError::internal(error)).into_response()
         }
     }

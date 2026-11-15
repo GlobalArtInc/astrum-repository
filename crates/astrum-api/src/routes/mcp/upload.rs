@@ -25,7 +25,6 @@ use tokio::io::AsyncWriteExt;
 use super::loopback::{Fetched, refusal};
 use crate::routes::components::{Failure, repository_failure, require_upload_spec, submit};
 use crate::routes::content::context_at;
-use crate::routes::internal::client_ip;
 use crate::routes::repositories::base_url;
 use crate::{ApiError, AppState, Caller, limits};
 
@@ -647,10 +646,7 @@ pub(super) async fn receive(
     uri: Uri,
     body: Body,
 ) -> Response {
-    let key = format!(
-        "upload:{}",
-        crate::auth::client_address().unwrap_or_default()
-    );
+    let key = format!("upload:{}", crate::client::throttle_bucket());
     if let Err(wait) = state.limits().take(&key, limits::UPLOAD_ATTEMPTS) {
         return too_many(wait);
     }
@@ -690,7 +686,7 @@ async fn accept(
         Caller(Some(subject.clone())),
         &row.repository,
         base_url(&headers, &uri),
-        crate::auth::client_address().unwrap_or_else(|| client_ip(&headers)),
+        crate::auth::client_address().unwrap_or_default(),
     )
     .await
     {

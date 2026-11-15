@@ -2,6 +2,7 @@ use astrum_blob::{ContentStream, Written};
 use astrum_content::store::{self, Asset, ComponentKey, PutAsset};
 use astrum_content::{ContentError, Ctx};
 use astrum_db::entity::asset;
+use astrum_repo::config::{Repository, WritePolicy};
 use futures_util::TryStreamExt;
 use sea_orm::{
     ConnectionTrait, DbBackend, EntityTrait, FromQueryResult, Statement, Value as SqlValue,
@@ -17,8 +18,65 @@ pub const TAG: &str = "tag";
 pub const OCTET_STREAM: &str = "application/octet-stream";
 const ANNOTATIONS_KEPT: usize = 16 * 1024;
 
+pub fn write_policy(target: &Ctx) -> Option<WritePolicy> {
+    target
+        .repository
+        .attributes
+        .storage
+        .as_ref()
+        .and_then(|storage| storage.write_policy)
+}
+
+pub fn may_move_tag(target: &Ctx, tag: &str) -> bool {
+    match write_policy(target) {
+        Some(WritePolicy::AllowOnce) => {
+            tag == "latest"
+                && target
+                    .repository
+                    .attributes
+                    .storage
+                    .as_ref()
+                    .and_then(|storage| storage.latest_policy)
+                    .unwrap_or(false)
+        }
+        Some(WritePolicy::Deny) => false,
+        _ => true,
+    }
+}
+
+pub const BLOB_PATH_PREFIX: &str = "/v2/-/blobs/";
+
+pub fn immutable_tag(repository: &Repository, image: &str, tag: &str) -> Option<String> {
+    let rules = repository
+        .attributes
+        .storage
+        .as_ref()?
+        .immutable_tags
+        .as_ref()
+        .filter(|rules| !rules.patterns.is_empty())?;
+    let reason = match rules.matcher() {
+        Ok(matcher) => matcher.reason(tag)?,
+        Err(error) => format!("the immutable tag rules cannot be applied: {error}"),
+    };
+    Some(format!(
+        "tag {tag} of {image} is immutable in repository {} ({reason})",
+        repository.name
+    ))
+}
+
+pub fn protected_tag(repository: &Repository, asset: &Asset) -> Option<String> {
+    if asset.kind != TAG {
+        return None;
+    }
+    let (image, tag) = asset
+        .path
+        .strip_prefix("/v2/")?
+        .rsplit_once("/manifests/")?;
+    immutable_tag(repository, image, tag)
+}
+
 pub fn blob_path(digest: &Digest) -> String {
-    format!("/v2/-/blobs/{digest}")
+    format!("{BLOB_PATH_PREFIX}{digest}")
 }
 
 pub fn manifest_path(image: &str, reference: &str) -> String {
@@ -116,6 +174,73 @@ pub async fn referrers(
     .await
 }
 
+pub async fn document_referrers(
+    ctx: &Ctx,
+    image: &str,
+    subject: &Digest,
+    limit: i64,
+) -> Result<Vec<Asset>, ContentError> {
+    Ok(asset::Entity::find()
+        .from_raw_sql(Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            "SELECT * FROM asset WHERE format = 'docker' AND repository = $1 \
+             AND kind = 'manifest' AND attributes #>> '{docker,name}' = $2 \
+             AND attributes #>> '{docker,subject}' = $3 \
+             AND attributes #>> '{docker,artifactKind}' IN ('sbom', 'attestation') \
+             ORDER BY id DESC LIMIT $4",
+            vec![
+                ctx.name().into(),
+                image.into(),
+                subject.to_string().into(),
+                limit.into(),
+            ],
+        ))
+        .all(ctx.db())
+        .await?)
+}
+
+pub async fn referrer_digests(
+    ctx: &Ctx,
+    image: &str,
+    subject: &Digest,
+    max: usize,
+) -> Result<Vec<Digest>, ContentError> {
+    #[derive(FromQueryResult)]
+    struct Referrer {
+        digest: Option<String>,
+    }
+    let limit = max
+        .checked_add(1)
+        .and_then(|limit| i64::try_from(limit).ok())
+        .ok_or_else(|| {
+            ContentError::internal(std::io::Error::other("the referrer limit is out of range"))
+        })?;
+    let found = Referrer::find_by_statement(Statement::from_sql_and_values(
+        DbBackend::Postgres,
+        "SELECT attributes #>> '{docker,digest}' AS digest FROM asset \
+         WHERE format = 'docker' AND repository = $1 AND kind = 'manifest' \
+         AND attributes #>> '{docker,name}' = $2 AND attributes #>> '{docker,subject}' = $3 \
+         ORDER BY path LIMIT $4",
+        vec![
+            ctx.name().into(),
+            image.into(),
+            subject.to_string().into(),
+            limit.into(),
+        ],
+    ))
+    .all(ctx.db())
+    .await?;
+    if found.len() > max {
+        return Err(ContentError::BadRequest(format!(
+            "the image {image} has more than the {max} referrers of {subject} that one transfer takes"
+        )));
+    }
+    Ok(found
+        .into_iter()
+        .filter_map(|row| row.digest.as_deref().and_then(Digest::parse))
+        .collect())
+}
+
 pub async fn has_image(ctx: &Ctx, image: &str) -> Result<bool, ContentError> {
     #[derive(FromQueryResult)]
     struct Found {
@@ -196,10 +321,7 @@ pub fn manifest_attributes(
     manifest: &Manifest,
     tag: Option<&str>,
 ) -> Value {
-    let kind = match tag {
-        Some(tag) => crate::manifest::kind_for_tag(manifest.kind, tag),
-        None => manifest.kind,
-    };
+    let kind = manifest.kind;
     let mut docker = Map::new();
     docker.insert("name".to_owned(), image.into());
     docker.insert("digest".to_owned(), digest.to_string().into());
@@ -240,7 +362,7 @@ pub fn manifest_put(
         .attributes(attributes);
     put.verified = false;
     if let Some(tag) = tag {
-        let kind = crate::manifest::kind_for_tag(manifest.kind, tag);
+        let kind = manifest.kind;
         put = put.component(ComponentKey {
             namespace: String::new(),
             name: image.to_owned(),
@@ -278,6 +400,27 @@ pub async fn read_all(ctx: &Ctx, asset: &Asset, limit: usize) -> Result<Vec<u8>,
     Ok(collected)
 }
 
+pub async fn read_capped(ctx: &Ctx, asset: &Asset, limit: usize) -> Result<Vec<u8>, ContentError> {
+    let store = ctx.content.blob_stores().get(&asset.blob_store).await?;
+    let Some(content) = store.read(asset.blob_id.into()).await? else {
+        return Err(ContentError::not_found(format!(
+            "the blob of {} is missing",
+            asset.path
+        )));
+    };
+    let mut stream = content.stream;
+    let mut collected = Vec::with_capacity(asset.size.clamp(0, limit as i64 + 1) as usize);
+    while let Some(chunk) = stream.try_next().await.map_err(ContentError::internal)? {
+        let room = limit + 1 - collected.len();
+        if chunk.len() >= room {
+            collected.extend_from_slice(&chunk[..room]);
+            break;
+        }
+        collected.extend_from_slice(&chunk);
+    }
+    Ok(collected)
+}
+
 pub async fn stream_of(ctx: &Ctx, asset: &Asset) -> Result<ContentStream, ContentError> {
     let store = ctx.content.blob_stores().get(&asset.blob_store).await?;
     store
@@ -301,4 +444,81 @@ pub async fn adopt_blob(
 
 pub fn discard(ctx: &Ctx, written: &Written) {
     store::discard(ctx.content.clone(), &written.store, written.id.uuid());
+}
+
+#[cfg(test)]
+mod tests {
+    use astrum_repo::RepositoryType;
+    use chrono::DateTime;
+    use serde_json::json;
+    use uuid::Uuid;
+
+    use super::*;
+
+    fn repository() -> Repository {
+        Repository {
+            name: "rel".to_owned(),
+            format: astrum_repo::format("docker").unwrap(),
+            kind: RepositoryType::Hosted,
+            online: true,
+            attributes: serde_json::from_value(json!({
+                "storage": {"immutableTags": {"patterns": ["v*"]}}
+            }))
+            .unwrap(),
+        }
+    }
+
+    fn asset(kind: &str, path: &str) -> Asset {
+        let now = DateTime::parse_from_rfc3339("2026-11-11T00:00:00Z").unwrap();
+        Asset {
+            id: 1,
+            repository: "rel".to_owned(),
+            format: "docker".to_owned(),
+            path: path.to_owned(),
+            kind: kind.to_owned(),
+            component_id: None,
+            blob_store: "default".to_owned(),
+            blob_id: Uuid::nil(),
+            size: 0,
+            content_type: OCTET_STREAM.to_owned(),
+            sha1: String::new(),
+            sha256: String::new(),
+            sha512: String::new(),
+            md5: String::new(),
+            attributes: json!({}),
+            uploader: String::new(),
+            uploader_ip: String::new(),
+            created_at: now,
+            blob_updated_at: now,
+            last_downloaded_at: None,
+            download_count: 0,
+            last_verified_at: None,
+            remote_etag: None,
+            remote_last_modified: None,
+            upstream_published_at: None,
+        }
+    }
+
+    #[test]
+    fn protected_tag_takes_the_image_and_the_tag_from_the_path() {
+        let repository = repository();
+        let reason = |path: &str| protected_tag(&repository, &asset(TAG, path));
+        let message = |image: &str| {
+            Some(format!(
+                "tag v1 of {image} is immutable in repository rel (rule v*)"
+            ))
+        };
+        assert_eq!(reason("/v2/app/manifests/v1"), message("app"));
+        assert_eq!(reason("/v2/team/app/manifests/v1"), message("team/app"));
+        assert_eq!(
+            reason("/v2/a/manifests/b/manifests/v1"),
+            message("a/manifests/b")
+        );
+        assert_eq!(reason("/v2/app/manifests/dev"), None);
+        assert_eq!(reason("/v2/app"), None);
+        assert_eq!(
+            protected_tag(&repository, &asset(BLOB, "/v2/-/blobs/sha256:abc")),
+            None
+        );
+    }
 }

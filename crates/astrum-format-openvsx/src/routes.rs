@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use astrum_api::auth::PasswordRefusal;
 use astrum_api::routes::content::{blocked, context};
 use astrum_api::{AppState, Caller};
 use astrum_content::{ContentError, ContentRequest};
@@ -56,12 +57,19 @@ fn token_of(query: Option<&str>, headers: &HeaderMap) -> Option<String> {
     given.or_else(bearer).filter(|value| !value.is_empty())
 }
 
-async fn authenticate(state: &AppState, token: &str) -> Result<Subject, Box<Response>> {
+async fn authenticate(
+    state: &AppState,
+    headers: &HeaderMap,
+    token: &str,
+) -> Result<Subject, Box<Response>> {
     let security = state.security();
     if looks_like_token(token) {
-        return match security.authenticate_token(None, token).await {
+        return match security
+            .authenticate_token(None, token, astrum_api::client::current())
+            .await
+        {
             Ok(subject) => Ok(subject),
-            Err(AuthError::BadCredentials) => Err(refused(
+            Err(AuthError::BadCredentials | AuthError::SecondFactor(_)) => Err(refused(
                 StatusCode::UNAUTHORIZED,
                 "the access token is not valid; create one under Access Tokens in Astrum Repository",
             )),
@@ -76,26 +84,38 @@ async fn authenticate(state: &AppState, token: &str) -> Result<Subject, Box<Resp
             "the token must be an access token of Astrum Repository or <user>:<password>",
         ));
     };
-    if security.sign_in_blocked(user) {
-        return Err(refused(
-            StatusCode::TOO_MANY_REQUESTS,
-            "too many failed sign-ins; wait a few minutes",
-        ));
-    }
-    match security.authenticate(user, password).await {
-        Ok(subject) => {
-            security.sign_in_succeeded(user);
-            Ok(subject)
-        }
-        Err(AuthError::BadCredentials) => {
-            security.sign_in_failed(user);
+    match astrum_api::auth::check_password(state, user, password, "Open VSX", false).await {
+        Ok(subject) => Ok(subject),
+        Err(PasswordRefusal::Wrong(gate)) => {
             tracing::info!(user, "an Open VSX sign-in failed");
+            astrum_api::auth::audit_refused_password(state, user, "/repository", headers, gate)
+                .await;
             Err(refused(
                 StatusCode::UNAUTHORIZED,
                 "the user name or password is wrong",
             ))
         }
-        Err(AuthError::Internal(error)) => {
+        Err(PasswordRefusal::Throttled(seconds)) => {
+            let mut response = refused(
+                StatusCode::TOO_MANY_REQUESTS,
+                "too many failed sign-ins; wait a few minutes",
+            );
+            response
+                .headers_mut()
+                .insert(header::RETRY_AFTER, HeaderValue::from(seconds));
+            Err(response)
+        }
+        Err(PasswordRefusal::Busy) => {
+            let mut response = refused(
+                StatusCode::TOO_MANY_REQUESTS,
+                astrum_api::error::CONCURRENT_MESSAGE,
+            );
+            response
+                .headers_mut()
+                .insert(header::RETRY_AFTER, HeaderValue::from(1u64));
+            Err(response)
+        }
+        Err(PasswordRefusal::Internal(error)) => {
             Err(Box::new(ContentError::internal(error).into_response()))
         }
     }
@@ -121,7 +141,7 @@ async fn with_token(
         && anonymous
         && let Some(token) = token_of(parts.uri.query(), &parts.headers)
     {
-        match authenticate(&state, &token).await {
+        match authenticate(&state, &parts.headers, &token).await {
             Ok(subject) => ctx.subject = Some(subject),
             Err(response) => return *response,
         }

@@ -4,6 +4,7 @@ mod html;
 pub mod import;
 mod index;
 mod json;
+mod license;
 mod metadata;
 mod name;
 mod negotiate;
@@ -11,16 +12,21 @@ mod remote;
 mod upload;
 
 use astrum_content::format::SearchTarget;
-use astrum_content::store;
+use astrum_content::import::{Described, Imported, Plan};
+use astrum_content::inventory::{Inventory, PackageRef};
+use astrum_content::store::{self, Component};
+use astrum_content::transfer::{Bundle, GenericTransfer, Transfer};
 use astrum_content::{
     Asset, BrowseLayout, ContentError, ContentRequest, Ctx, Format, SearchKey, Serve, UploadField,
     UploadForm, UploadSpec, View, group, serve,
 };
 use astrum_repo::RepositoryType;
+use astrum_scan::osv::normalise_name;
 use async_trait::async_trait;
 use axum::body::Body;
 use axum::http::{Method, StatusCode, header};
 use axum::response::Response;
+use futures_util::future::BoxFuture;
 use sha2::{Digest, Sha256};
 
 pub use index::{File, Project};
@@ -55,6 +61,49 @@ const SEARCH_KEYS: &[SearchKey] = &[
 ];
 
 pub struct PyPi;
+
+static TRANSFER: GenericTransfer = GenericTransfer {
+    plan: import::plan,
+    describe: describe_imported,
+    after: None,
+    admit: Some(admit_bundle),
+    replaceable: None,
+    check_content_type: true,
+    carried: &[],
+    bundle_skip: None,
+};
+
+fn describe_imported(file: &Imported) -> BoxFuture<'_, Result<Option<Described>, String>> {
+    Box::pin(import::describe(file))
+}
+
+fn admit_bundle<'a>(_ctx: &'a Ctx, bundle: &'a Bundle) -> BoxFuture<'a, Result<(), ContentError>> {
+    Box::pin(std::future::ready(admit(bundle)))
+}
+
+fn admit(bundle: &Bundle) -> Result<(), ContentError> {
+    for asset in &bundle.assets {
+        if import::plan(RepositoryType::Hosted, &asset.path, &asset.kind) == Plan::Derived {
+            continue;
+        }
+        let filename = asset.path.rsplit('/').next().unwrap_or_default().to_owned();
+        let (path, _) = hosted::Package {
+            metadata: metadata::CoreMetadata::from_form([
+                ("name", bundle.name.as_str()),
+                ("version", bundle.version.as_str()),
+            ]),
+            filename,
+        }
+        .path()?;
+        if path != asset.path {
+            return Err(ContentError::BadRequest(format!(
+                "the bundle path {} does not match {path}, where the upload would store it",
+                asset.path
+            )));
+        }
+    }
+    Ok(())
+}
 
 #[derive(Debug, PartialEq, Eq)]
 enum Route {
@@ -228,15 +277,56 @@ async fn leaf_names(ctx: &Ctx) -> Result<Vec<String>, ContentError> {
 
 async fn leaf_project(ctx: &Ctx, project: &str) -> Result<Option<Project>, ContentError> {
     match ctx.kind() {
-        RepositoryType::Proxy => Ok(remote::page(ctx, project).await?.map(Project::localize)),
+        RepositoryType::Proxy => {
+            let Some(page) = remote::page(ctx, project).await?.map(Project::localize) else {
+                return Ok(None);
+            };
+            match ctx.content.gate().cooldown(ctx).await? {
+                Some(cooldown) if cooldown.block => Ok(Some(page.hide_cooldown(&cooldown))),
+                _ => Ok(Some(page)),
+            }
+        }
         _ => hosted::project(ctx, project).await,
     }
+}
+
+pub(crate) fn package_inventory(name: &str, version: &str) -> Option<Inventory> {
+    if name.is_empty() || version.is_empty() {
+        return None;
+    }
+    let name = normalise_name("PyPI", name);
+    let purl = format!("pkg:pypi/{name}@{version}");
+    Some(Inventory {
+        key: purl.clone(),
+        packages: vec![PackageRef {
+            ecosystem: "PyPI".to_owned(),
+            name,
+            version: version.to_owned(),
+            purl,
+        }],
+        license: None,
+        complete: true,
+        ..Inventory::default()
+    })
 }
 
 #[async_trait]
 impl Format for PyPi {
     fn id(&self) -> &'static str {
         ID
+    }
+
+    async fn inventory(
+        &self,
+        _ctx: &Ctx,
+        component: &Component,
+    ) -> Result<Option<Inventory>, ContentError> {
+        Ok(
+            package_inventory(&component.name, &component.version).map(|inventory| Inventory {
+                license: license::fact(&component.attributes),
+                ..inventory
+            }),
+        )
     }
 
     async fn handle(&self, ctx: Ctx, request: ContentRequest) -> Result<Response, ContentError> {
@@ -322,11 +412,32 @@ impl Format for PyPi {
     fn search_keys(&self) -> &'static [SearchKey] {
         SEARCH_KEYS
     }
+
+    fn transfer(&self) -> Option<&dyn Transfer> {
+        Some(&TRANSFER)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn hosted_and_proxy_packages_name_themselves_by_name_and_version() {
+        let hosted = package_inventory("requests", "2.32.3").unwrap();
+        assert_eq!(hosted.key, "pkg:pypi/requests@2.32.3");
+        assert_eq!(hosted.packages[0].name, "requests");
+        let proxy = package_inventory("django", "5.0.6").unwrap();
+        assert_eq!(proxy.key, "pkg:pypi/django@5.0.6");
+        assert!(package_inventory("requests", "").is_none());
+    }
+
+    #[test]
+    fn names_are_normalised_as_pep_503() {
+        let found = package_inventory("Friendly__Bard.Lib", "1.0.0").unwrap();
+        assert_eq!(found.key, "pkg:pypi/friendly-bard-lib@1.0.0");
+        assert_eq!(found.packages[0].name, "friendly-bard-lib");
+    }
 
     #[test]
     fn paths_route_to_pages_and_files() {

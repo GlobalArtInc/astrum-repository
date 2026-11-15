@@ -11,6 +11,9 @@ use axum::routing::any;
 
 use crate::{ID, REALM, TOKEN_DAYS};
 
+const DIRECTORY_ACCOUNT: &str =
+    "this account signs in through a directory; use an access token instead";
+
 pub fn routes() -> Router<AppState> {
     Router::new()
         .route(
@@ -71,6 +74,9 @@ async fn authenticate(
     else {
         return ContentError::Unauthorized.into_response();
     };
+    if let Err(error) = subject.require_unnarrowed() {
+        return text(StatusCode::FORBIDDEN, error.to_string());
+    }
     let security = state.security();
     if !security.model().realm_active(REALM) {
         return text(
@@ -80,11 +86,7 @@ async fn authenticate(
         );
     }
     match security
-        .issue_format_token(
-            REALM,
-            &subject.user_id,
-            Some(chrono::Duration::days(TOKEN_DAYS)),
-        )
+        .issue_format_token(REALM, &subject, Some(chrono::Duration::days(TOKEN_DAYS)))
         .await
     {
         Ok(token) => {
@@ -95,6 +97,9 @@ async fn authenticate(
                 )
                 .await;
             text(StatusCode::OK, token)
+        }
+        Err(astrum_security::Error::NotLocal) => {
+            text(StatusCode::FORBIDDEN, DIRECTORY_ACCOUNT.to_owned())
         }
         Err(error) => ContentError::internal(error).into_response(),
     }

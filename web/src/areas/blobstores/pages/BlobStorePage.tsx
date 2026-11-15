@@ -4,24 +4,35 @@ import { useId, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { api, useApi, useInvalidateApi } from '../../../api';
 import { useCan } from '../../../auth/state';
-import { useI18n } from '../../../i18n';
-import { describeError, EmptyState, ErrorState, Page, Tooltip, useConfirm, useToast } from '../../../ui';
+import { formatNumber, useI18n } from '../../../i18n';
+import {
+  describeError,
+  EmptyState,
+  ErrorState,
+  FileSize,
+  Page,
+  Tooltip,
+  useConfirm,
+  useToast,
+} from '../../../ui';
 import { storeTypeName } from '../../repositories/components/EditTabs';
 import {
   configPath,
   convertPath,
+  daysUntilFull,
   deletePath,
   LIST_ADDRESS,
   storeAddress,
   storeType,
   UI_BLOB_STORES,
   type UiBlobStore,
+  useBlobStoreUsage,
   useUiBlobStores,
 } from '../api';
 import styles from '../blobstores.module.css';
 import { BlobStoreForm } from '../components/BlobStoreForm';
 import { ConvertDialog } from '../components/ConvertDialog';
-import type { StoreDocument } from '../model';
+import { holdsMovedAssets, type StoreDocument } from '../model';
 
 function Loading() {
   return (
@@ -50,7 +61,7 @@ export function deleteRefusal(t: ReturnType<typeof useI18n>['t'], store: UiBlobS
 }
 
 export default function BlobStorePage() {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const navigate = useNavigate();
   const confirm = useConfirm();
   const toast = useToast();
@@ -66,6 +77,7 @@ export default function BlobStorePage() {
   const store = list.data?.find((candidate) => candidate.name === name);
   const configAddress = type ? configPath(type, name) : null;
   const config = useApi<StoreDocument>(configAddress);
+  const usage = useBlobStoreUsage(name);
   const formId = useId();
   const [dirty, setDirty] = useState(false);
   const [version, setVersion] = useState(0);
@@ -118,6 +130,7 @@ export default function BlobStorePage() {
   }
 
   const refusal = deleteRefusal(t, store);
+  const fullInDays = daysUntilFull(store);
   const remove = async () => {
     const agreed = await confirm({
       title: t('blobstores.delete.title', { name }),
@@ -190,12 +203,44 @@ export default function BlobStorePage() {
             <Callout.Text>{t('blobstores.edit.unavailable')}</Callout.Text>
           </Callout.Root>
         )}
+        {fullInDays !== null && (
+          <Callout.Root color="orange" role="status" className={styles.callout}>
+            <Callout.Icon>
+              <CircleAlert size={16} />
+            </Callout.Icon>
+            <Callout.Text>
+              {t('blobstores.forecast.detail', {
+                count: fullInDays,
+                sampleDays: store.forecast?.sampleDays ?? 0,
+              })}
+            </Callout.Text>
+          </Callout.Root>
+        )}
         <Callout.Root className={styles.callout} variant="surface">
           <Callout.Icon>
             <Info size={16} />
           </Callout.Icon>
           <Callout.Text>{t('blobstores.edit.warning')}</Callout.Text>
         </Callout.Root>
+        {usage.data && (
+          <>
+            <dl className={styles.usage}>
+              <div>
+                <dt>{t('blobstores.usage.assets')}</dt>
+                <dd>{formatNumber(language, usage.data.assets)}</dd>
+              </div>
+              <div>
+                <dt>{t('blobstores.usage.size')}</dt>
+                <dd>
+                  <FileSize bytes={usage.data.bytes} />
+                </dd>
+              </div>
+            </dl>
+            {holdsMovedAssets(store, usage.data) && (
+              <p className={styles.sectionText}>{t('blobstores.usage.moved')}</p>
+            )}
+          </>
+        )}
         {config.error ? (
           <ErrorState error={config.error} onRetry={() => void config.refetch()} />
         ) : !config.data ? (

@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 
@@ -139,6 +139,20 @@ struct Referenced {
     blob_id: Uuid,
 }
 
+#[derive(FromQueryResult)]
+struct Protected {
+    blob_id: Uuid,
+    named: bool,
+}
+
+const PROTECTED: &str = "SELECT blob_id, bool_or(named) AS named FROM ( \
+     SELECT blob_id, false AS named FROM blob_hold \
+     WHERE blob_store = ANY($1) AND blob_id = ANY($2) \
+     UNION ALL \
+     SELECT blob_id, true AS named FROM asset \
+     WHERE blob_store = ANY($1) AND blob_id = ANY($2)) AS protected \
+     GROUP BY blob_id";
+
 async fn compact(
     run: &Run,
     name: &str,
@@ -159,7 +173,7 @@ async fn compact(
     .collect();
     let cutoff = SystemTime::now() - grace;
     let mut after: Option<BlobId> = None;
-    let (mut examined, mut deleted, mut freed) = (0i64, 0i64, 0i64);
+    let (mut examined, mut deleted, mut freed, mut kept) = (0i64, 0i64, 0i64, 0i64);
     loop {
         run.check()?;
         let page = store.list(after, PAGE).await?;
@@ -173,21 +187,29 @@ async fn compact(
             continue;
         }
         let ids: Vec<Uuid> = old.iter().map(|blob| blob.id.uuid()).collect();
-        let referenced: HashSet<Uuid> =
-            Referenced::find_by_statement(Statement::from_sql_and_values(
+        let protected: HashMap<Uuid, bool> =
+            Protected::find_by_statement(Statement::from_sql_and_values(
                 DbBackend::Postgres,
-                "SELECT blob_id FROM asset WHERE blob_store = ANY($1) AND blob_id = ANY($2)",
+                PROTECTED,
                 [owners.to_vec().into(), ids.into()],
             ))
             .all(run.db())
             .await?
             .into_iter()
-            .map(|found| found.blob_id)
+            .map(|found| (found.blob_id, found.named))
             .collect();
         for blob in old {
             let id = blob.id.uuid();
-            if referenced.contains(&id) || uploading.contains(&id) {
+            if uploading.contains(&id) {
                 continue;
+            }
+            match protected.get(&id) {
+                Some(true) => continue,
+                Some(false) => {
+                    kept += 1;
+                    continue;
+                }
+                None => {}
             }
             run.check()?;
             if store.delete(blob.id).await? {
@@ -198,8 +220,12 @@ async fn compact(
             }
         }
     }
+    let held = match kept {
+        0 => String::new(),
+        kept => format!(", kept {kept} held for transfers"),
+    };
     run.info(format!(
-        "{name}: examined {examined} blobs, deleted {deleted} that nothing refers to ({})",
+        "{name}: examined {examined} blobs, deleted {deleted} that nothing refers to ({}){held}",
         size(freed)
     ));
     Ok((deleted, freed))

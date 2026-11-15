@@ -2,8 +2,8 @@
 
 Astrum Repository is a self-hosted artifact repository manager. One server hosts, proxies and groups
 repositories for Alpine, Ansible Galaxy, APT, Bazel, Cargo, Chef Supermarket, Chromium extensions, CocoaPods, Composer, Conan, Conda, Docker and
-other OCI artifacts, Firefox add-ons, Git LFS, Go, Helm, Hex, Hugging Face, JetBrains plugins, Maven, Nix, npm, NuGet, Open VSX, P2, pacman, Protobuf, pub, Puppet
-Forge, PyPI, R, RubyGems, Swift, Terraform, Vagrant, Yum and raw files, and remote caches for Nx and Turborepo, with users, roles, content selectors, cleanup
+other OCI artifacts, Firefox add-ons, Git LFS, Go, Helm, Hex, Homebrew, Hugging Face, JetBrains plugins, JSR, Maven, Nix, npm, NuGet, OPAM, Open VSX, P2, pacman, Protobuf, pub, Puppet
+Forge, PyPI, R, RubyGems, Swift, Terraform, Vagrant, Yum and raw files, and remote caches for Bazel, Gradle, Nx, sccache and Turborepo, with users, roles, content selectors, cleanup
 policies, LDAP and OpenID Connect sign-in, and a web interface in twelve languages. It is a single program that
 keeps its data in PostgreSQL and in blob stores on disk or in S3.
 
@@ -26,23 +26,38 @@ The same pages are published as a site at https://astrum.globalart.dev.
 - [Blob stores](configure/blob-stores.md)
 - [Reverse proxy and TLS](configure/reverse-proxy.md)
 - [Users, realms and sign-in](configure/authentication.md)
+- [IP allow list](configure/ip-allow-list.md)
+- [Two-factor authentication](configure/two-factor.md)
 - [Outbound HTTP and proxy](configure/outbound-http.md)
 - [SSL certificates](configure/ssl-certificates.md)
 - [Capabilities](configure/capabilities.md)
+- [Replication to another Astrum server](configure/replication.md)
+- [Notifications](configure/notifications.md): channels, events and webhook requests
 
 ## Repositories
 
 - [Repositories](repositories/overview.md)
 - [Cleanup policies](repositories/cleanup-policies.md)
+- [Quotas](repositories/quotas.md)
+- [Content policies](repositories/policies.md)
+- [Licences](repositories/licenses.md): the licence rule of a policy, and the licence report
+- [Vulnerability scanning](repositories/security-scanning.md)
+- [Image scanning and the pull gate](repositories/image-scanning.md): how Docker images are inventoried and judged, and what the gate refuses
+- [Image signatures](repositories/image-signatures.md): refusing images that no trusted key has signed
+- [SBOMs](repositories/sbom.md): the packages of an image, read from its SBOM
 - [Routing rules](repositories/routing-rules.md)
+- [Release cooldown](repositories/cooldown.md)
 - [Formats](formats/README.md): one page per format with the settings of its clients
 
 ## Use
 
 - [Web interface](use/web-interface.md)
 - [Connect build tools to repositories](use/clients.md)
+- [Share links](use/share-links.md)
 - [REST API](use/rest-api.md)
+- [Promote components](use/promotion.md)
 - [Agents over MCP](use/mcp.md)
+- [Customers and their download tokens](use/customers.md)
 - [Interface language](use/language.md)
 
 ## Operate

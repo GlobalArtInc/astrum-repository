@@ -24,6 +24,7 @@ function store(name: string, extra: Partial<UiBlobStore> = {}): UiBlobStore {
     availableSpace: 10 * 1024 * 1024 * 1024,
     softQuota: null,
     quotaStatus: null,
+    forecast: null,
     repositories: [],
     repositoryCount: 0,
     groups: [],
@@ -95,6 +96,37 @@ describe('the blob store list', () => {
   });
 });
 
+describe('the fill forecast', () => {
+  const filling = store('filling', {
+    forecast: { daysUntilFull: 11.2, bytesPerDay: 1000, basis: 'capacity', sampleDays: 9 },
+  });
+  const quiet = store('quiet', {
+    forecast: { daysUntilFull: null, bytesPerDay: 0, basis: 'capacity', sampleDays: 9 },
+  });
+
+  it('shows the days left in the list only for a store that has a value', async () => {
+    serve({ [`GET ${LIST}`]: () => jsonResponse([filling, quiet]) });
+    page('/admin/repository/blobstores');
+    const row = await screen.findByRole('row', { name: 'Open filling' });
+    expect(within(row).getByText('Full in 12 days')).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('row', { name: 'Open quiet' })).queryByText(/Full in/),
+    ).not.toBeInTheDocument();
+  });
+
+  it('explains the forecast on the page of the store', async () => {
+    serve({
+      [`GET ${LIST}`]: () => jsonResponse([filling]),
+      'GET /service/rest/v1/blobstores/file/filling': () =>
+        jsonResponse({ softQuota: null, path: 'filling' }),
+    });
+    page('/admin/repository/blobstores/file/filling');
+    expect(
+      await screen.findByText('At the growth of the last 9 days this blob store will be full in 12 days.'),
+    ).toBeInTheDocument();
+  });
+});
+
 describe('a blob store page', () => {
   it('refuses to delete a used store', async () => {
     serve({
@@ -106,6 +138,30 @@ describe('a blob store page', () => {
     expect(screen.getByText('File Blob Store')).toBeInTheDocument();
     expect(await screen.findByRole('textbox', { name: /Path/ })).toHaveValue('default');
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+  });
+
+  it('shows what a store holds and that tiering moved it when no repository uses it', async () => {
+    serve({
+      'GET /service/rest/v1/blobstores/file/spare': () => jsonResponse({ softQuota: null, path: 'spare' }),
+      'GET /service/rest/internal/ui/blobstores/spare/usage': () => jsonResponse({ assets: 3, bytes: 4096 }),
+    });
+    page('/admin/repository/blobstores/file/spare');
+    expect(await screen.findByText('Assets')).toBeInTheDocument();
+    expect(screen.getByText('3')).toBeInTheDocument();
+    expect(screen.getByTitle(/4,096/)).toBeInTheDocument();
+    expect(screen.getByText('Assets were moved here by a tiering task.')).toBeInTheDocument();
+  });
+
+  it('shows the figures without the note for a store that a repository uses', async () => {
+    serve({
+      'GET /service/rest/v1/blobstores/file/default': () =>
+        jsonResponse({ softQuota: null, path: 'default' }),
+      'GET /service/rest/internal/ui/blobstores/default/usage': () =>
+        jsonResponse({ assets: 12, bytes: 4096 }),
+    });
+    page('/admin/repository/blobstores/file/default');
+    expect(await screen.findByText('12')).toBeInTheDocument();
+    expect(screen.queryByText('Assets were moved here by a tiering task.')).not.toBeInTheDocument();
   });
 
   it('shows the refusal of a member removal on the members field', async () => {

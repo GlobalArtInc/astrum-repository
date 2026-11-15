@@ -5,27 +5,78 @@ use astrum_api::domains::DomainRoute;
 use astrum_api::{AppState, Caller};
 use astrum_content::ContentRequest;
 use axum::Router;
-use axum::extract::{Path, Request, State};
+use axum::extract::rejection::QueryRejection;
+use axum::extract::{Path, Query, Request, State};
 use axum::http::{HeaderMap, StatusCode, Uri, header};
 use axum::response::{IntoResponse, Response};
 use axum::routing::{any, get};
+use serde::Deserialize;
 use serde_json::json;
 
+use astrum_api::ApiError;
+use astrum_content::{ContentError, View};
+
 use crate::error::RegistryError;
-use crate::{Docker, ID, Mount, admit, auth, insert, json_response, link, paginate};
+use crate::reference::{Digest, Reference};
+use crate::sbom::{self, Outcome};
+use crate::{
+    Docker, ID, Mount, admit, auth, insert, json_response, link, paginate, storage, supply,
+};
 
 pub const FIRST_SUGGESTED_PORT: u16 = 8082;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Connector(pub u16);
 
+#[derive(Deserialize)]
+struct SupplyChainQuery {
+    image: Option<String>,
+    reference: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct SbomQuery {
+    image: Option<String>,
+    digest: Option<String>,
+    page: Option<String>,
+    filter: Option<String>,
+}
+
 pub fn routes() -> Router<AppState> {
+    routes_with_limit(sbom::shared().clone())
+}
+
+pub fn routes_with_sbom_limit(permits: usize) -> Router<AppState> {
+    routes_with_limit(sbom::Limit::new(permits))
+}
+
+fn routes_with_limit(limit: sbom::Limit) -> Router<AppState> {
     let docker = Arc::new(Docker::default());
     let catalog_docker = docker.clone();
     Router::new()
         .route(
             "/service/rest/internal/ui/docker/suggest-port",
             get(suggest_port),
+        )
+        .route(
+            "/service/rest/v1/docker/{repository}/supply-chain",
+            get(supply_chain),
+        )
+        .route(
+            "/service/rest/v1/docker/{repository}/sbom",
+            get(
+                move |state: State<AppState>,
+                      caller: Caller,
+                      repository: Path<String>,
+                      query: Result<Query<SbomQuery>, QueryRejection>,
+                      headers: HeaderMap,
+                      uri: Uri| {
+                    let limit = limit.clone();
+                    async move {
+                        sbom_packages(limit, state, caller, repository, query, headers, uri).await
+                    }
+                },
+            ),
         )
         .route("/v2", get(auth::ping))
         .route("/v2/", get(auth::ping))
@@ -155,6 +206,159 @@ async fn suggest_port(State(state): State<AppState>, caller: Caller, uri: Uri) -
     match port {
         Some(port) => axum::Json(port).into_response(),
         None => astrum_api::ApiError::NotFound("every port is taken".to_owned()).into_response(),
+    }
+}
+
+async fn supply_chain(
+    State(state): State<AppState>,
+    caller: Caller,
+    Path(repository): Path<String>,
+    Query(query): Query<SupplyChainQuery>,
+    headers: HeaderMap,
+    uri: Uri,
+) -> Result<Response, ApiError> {
+    let image = query
+        .image
+        .filter(|image| !image.is_empty())
+        .ok_or_else(|| ApiError::BadRequest("image is required".to_owned()))?;
+    let raw = query
+        .reference
+        .filter(|reference| !reference.is_empty())
+        .ok_or_else(|| ApiError::BadRequest("reference is required".to_owned()))?;
+    let (ctx, _) =
+        astrum_api::routes::content::context(&state, caller, &repository, &headers, &uri)
+            .await
+            .map_err(content_failure)?;
+    ctx.require(View::Read, &storage::manifest_path(&image, &raw))
+        .map_err(content_failure)?;
+    if ctx.format_id() != ID {
+        return Err(ApiError::BadRequest(format!(
+            "{repository} is not a Docker repository"
+        )));
+    }
+    let reference = Reference::parse(&raw)
+        .ok_or_else(|| ApiError::not_found(format!("{raw} is not a reference")))?;
+    let listing = supply::list(&ctx, &image, &reference, state.policy_cache())
+        .await
+        .map_err(content_failure)?
+        .ok_or_else(|| ApiError::not_found(format!("{raw} is not stored for {image}")))?;
+    Ok(axum::Json(listing).into_response())
+}
+
+fn refusal(status: StatusCode, message: String, category: &str) -> Response {
+    (
+        status,
+        axum::Json(json!({"id": "*", "message": message, "category": category})),
+    )
+        .into_response()
+}
+
+fn busy() -> Response {
+    (
+        StatusCode::SERVICE_UNAVAILABLE,
+        [(header::RETRY_AFTER, sbom::RETRY_AFTER_SECONDS)],
+        axum::Json(json!({
+            "id": "*",
+            "message": "too many SBOM documents are being read; retry shortly",
+            "category": "busy"
+        })),
+    )
+        .into_response()
+}
+
+async fn sbom_packages(
+    limit: sbom::Limit,
+    State(state): State<AppState>,
+    caller: Caller,
+    Path(repository): Path<String>,
+    query: Result<Query<SbomQuery>, QueryRejection>,
+    headers: HeaderMap,
+    uri: Uri,
+) -> Result<Response, ApiError> {
+    let Query(query) = query.map_err(|_| {
+        ApiError::BadRequest(
+            "the query string is not valid; each parameter may appear once".to_owned(),
+        )
+    })?;
+    let image = query
+        .image
+        .filter(|image| !image.is_empty())
+        .ok_or_else(|| ApiError::BadRequest("image is required".to_owned()))?;
+    let raw = query
+        .digest
+        .filter(|digest| !digest.is_empty())
+        .ok_or_else(|| ApiError::BadRequest("digest is required".to_owned()))?;
+    let page = sbom::page_number(query.page.as_deref()).map_err(ApiError::BadRequest)?;
+    let filter = query.filter.unwrap_or_default();
+    if filter.chars().count() > sbom::FILTER_CHARS {
+        return Err(ApiError::BadRequest(format!(
+            "filter must be at most {} characters",
+            sbom::FILTER_CHARS
+        )));
+    }
+    let (ctx, _) =
+        astrum_api::routes::content::context(&state, caller, &repository, &headers, &uri)
+            .await
+            .map_err(content_failure)?;
+    ctx.require(View::Read, &storage::manifest_path(&image, &raw))
+        .map_err(content_failure)?;
+    if ctx.format_id() != ID {
+        return Err(ApiError::BadRequest(format!(
+            "{repository} is not a Docker repository"
+        )));
+    }
+    let not_listed =
+        || ApiError::not_found(format!("{raw} is not an SBOM or attestation of {image}"));
+    let digest = Digest::parse(&raw).ok_or_else(not_listed)?;
+    let artifact = supply::artifact(&ctx, &image, &digest)
+        .await
+        .map_err(content_failure)?
+        .ok_or_else(not_listed)?;
+    ctx.require(View::Read, &artifact.asset.path)
+        .map_err(content_failure)?;
+    let Some(_permit) = limit.take() else {
+        return Ok(busy());
+    };
+    let outcome = sbom::load(&ctx, &image, &artifact)
+        .await
+        .map_err(content_failure)?;
+    Ok(match outcome {
+        Outcome::Parsed(parsed) => {
+            let body = tokio::task::spawn_blocking(move || sbom::page_of(parsed, page, &filter))
+                .await
+                .map_err(ApiError::internal)?;
+            axum::Json(body).into_response()
+        }
+        Outcome::TooLarge => refusal(
+            StatusCode::PAYLOAD_TOO_LARGE,
+            format!(
+                "the SBOM documents of the artifact are larger than {} bytes",
+                astrum_sbom::MAX_INPUT_BYTES
+            ),
+            "too_large",
+        ),
+        Outcome::Missing(message) => ApiError::NotFound(message).into_response(),
+        Outcome::Refused(error) => refusal(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            error.to_string(),
+            error.category(),
+        ),
+        Outcome::NoDocument => refusal(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "the artifact has no SBOM document layer".to_owned(),
+            "unsupported",
+        ),
+    })
+}
+
+fn content_failure(error: ContentError) -> ApiError {
+    match error {
+        ContentError::NotFound(message) => ApiError::NotFound(message),
+        ContentError::Unauthorized => ApiError::Unauthorized,
+        ContentError::Forbidden => ApiError::forbidden(),
+        ContentError::Blocked(message) => ApiError::Forbidden(message),
+        ContentError::BadRequest(message) => ApiError::BadRequest(message),
+        other => ApiError::internal(other),
     }
 }
 

@@ -8,6 +8,7 @@ use astrum_blob::{
 };
 use astrum_db::revision;
 use astrum_security::SecretBox;
+use sea_orm::{ConnectionTrait, DbBackend, Statement, TransactionTrait};
 use support::{Db, S3Server, chunks, file_config, pattern, read_all};
 
 fn secrets() -> SecretBox {
@@ -246,6 +247,92 @@ async fn members_of_a_group_cannot_be_deleted() {
     assert!(config::delete(db.db.conn(), "both").await.unwrap());
     assert!(config::delete(db.db.conn(), "two").await.unwrap());
     assert!(!config::delete(db.db.conn(), "two").await.unwrap());
+}
+
+#[tokio::test]
+async fn a_store_named_only_by_assets_cannot_be_deleted() {
+    let db = Db::new().await;
+    db.register_file("cold", "cold").await;
+    db.register_file("unused", "unused").await;
+    db.db
+        .conn()
+        .execute_unprepared(
+            "INSERT INTO repository (name, format, type, blob_store) VALUES ('docs', 'raw', 'hosted', NULL); \
+             INSERT INTO asset (repository, format, path, blob_store, blob_id, size, content_type, sha1, sha256, sha512, md5) \
+             VALUES ('docs', 'raw', '/a', 'cold', gen_random_uuid(), 1, 'x', '', '', '', '')",
+        )
+        .await
+        .unwrap();
+
+    assert!(matches!(
+        config::delete(db.db.conn(), "cold").await,
+        Err(Error::InUse(name)) if name == "cold"
+    ));
+    assert!(config::delete(db.db.conn(), "unused").await.unwrap());
+
+    db.db
+        .conn()
+        .execute_unprepared("DELETE FROM asset")
+        .await
+        .unwrap();
+    assert!(config::delete(db.db.conn(), "cold").await.unwrap());
+}
+
+const SHARE_STORE: &str = "SELECT 1 AS locked FROM blob_store WHERE name = 'cold' FOR SHARE";
+
+#[tokio::test]
+async fn the_delete_guard_is_checked_after_the_row_lock() {
+    let db = Db::new().await;
+    db.register_file("cold", "cold").await;
+    db.db
+        .conn()
+        .execute_unprepared(
+            "INSERT INTO repository (name, format, type, blob_store) VALUES ('docs', 'raw', 'hosted', NULL)",
+        )
+        .await
+        .unwrap();
+    let other = db.test.connect().await;
+
+    let mover = other.conn().begin().await.unwrap();
+    assert!(
+        mover
+            .query_one(Statement::from_string(DbBackend::Postgres, SHARE_STORE))
+            .await
+            .unwrap()
+            .is_some()
+    );
+    mover
+        .execute_unprepared(
+            "INSERT INTO asset (repository, format, path, blob_store, blob_id, size, content_type, sha1, sha256, sha512, md5) \
+             VALUES ('docs', 'raw', '/a', 'cold', gen_random_uuid(), 1, 'x', '', '', '', '')",
+        )
+        .await
+        .unwrap();
+    let conn = db.db.conn().clone();
+    let delete = tokio::spawn(async move { config::delete(&conn, "cold").await });
+    tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+    assert!(!delete.is_finished(), "the delete waits for the share lock");
+    mover.commit().await.unwrap();
+    assert!(matches!(
+        delete.await.unwrap(),
+        Err(Error::InUse(name)) if name == "cold"
+    ));
+
+    db.db
+        .conn()
+        .execute_unprepared("DELETE FROM asset")
+        .await
+        .unwrap();
+    assert!(config::delete(db.db.conn(), "cold").await.unwrap());
+    let late = other.conn().begin().await.unwrap();
+    assert!(
+        late.query_one(Statement::from_string(DbBackend::Postgres, SHARE_STORE))
+            .await
+            .unwrap()
+            .is_none(),
+        "a share lock finds no row of a deleted store"
+    );
+    late.rollback().await.unwrap();
 }
 
 #[tokio::test]

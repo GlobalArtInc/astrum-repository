@@ -61,6 +61,8 @@ database pool are those of the node that served the scrape, the rest is the same
 | `astrum_http_request_duration_seconds` | histogram | `area` | Time until the response headers were ready; a download keeps streaming after that |
 | `astrum_repository_requests_total` | counter | `repository`, `method`, `status` | Requests to each repository |
 | `astrum_repository_online` | gauge | `repository`, `format`, `type` | 1 online, 0 offline |
+| `astrum_repository_bytes` | gauge | `repository` | Logical bytes of the assets of each repository, from its usage counter |
+| `astrum_repository_quota_bytes` | gauge | `repository` | The quota limit in bytes; only repositories that have a [quota](../repositories/quotas.md) |
 | `astrum_blobstore_up` | gauge | `blobstore`, `type` | 1 when the store opens and answers |
 | `astrum_blobstore_blobs`, `astrum_blobstore_size_bytes` | gauge | `blobstore`, `type` | Blobs and bytes in the store |
 | `astrum_blobstore_available_bytes` | gauge | `blobstore`, `type` | Free space, for stores that can tell it (file, remote, group) |
@@ -70,10 +72,22 @@ database pool are those of the node that served the scrape, the rest is the same
 | `astrum_data_directory_size_bytes`, `astrum_data_directory_free_bytes` | gauge | | The volume of the data directory |
 | `astrum_database_connections` | gauge | `state` | Connections to PostgreSQL, `idle` or `used` |
 | `astrum_notification_deliveries_pending` | gauge | | Notifications waiting to be sent or sent again |
+| `astrum_replication_pending` | gauge | `replication` | Components waiting to be sent by a replication |
+| `astrum_replication_dead` | gauge | `replication` | Components a replication gave up on, until someone retries or discards them |
+| `astrum_replication_lag_seconds` | gauge | `replication` | Age of the oldest component a replication has not delivered yet; 0 when none waits |
+| `astrum_replication_last_success_timestamp_seconds` | gauge | `replication` | When a replication last delivered a component; 0 when it never did |
+| `astrum_replication_remote_suspended` | gauge | `remote` | 1 while a replication remote is paused after failures, 0 otherwise |
+| `astrum_replication_transfers_total` | counter | `replication`, `result` | Transfer attempts of the dispatcher on this node, by `result`: `ok`, `failed` or `dead`; reset when the node restarts |
+| `astrum_replication_bytes_total` | counter | `replication` | Blob bytes this node transferred for a replication: uploaded for a push, downloaded for a pull; reset when the node restarts |
+| `astrum_policy_gate_decisions_total` | counter | `result` | Download checks of repositories with a content policy on this node; `notice_failed` counts a refusal whose notification could not be written, besides its decision, and the refusal itself is not affected |
 | `astrum_scheduler_last_tick_timestamp_seconds` | gauge | | When the scheduler of the node last looked for due tasks |
 | `astrum_task_running` | gauge | `task`, `type` | 1 while a task runs or waits to run |
 | `astrum_task_last_run_success`, `astrum_task_last_run_timestamp_seconds` | gauge | `task`, `type` | Outcome and end of the last finished run |
 | `astrum_metrics_collection_complete` | gauge | | 0 when the measurements did not finish within 8 seconds and were left out |
+
+The replication alert state is not a metric. Each replication has an `alertState` of `ok`, `failing` or `dead_items`,
+shown in the interface and returned by the API; the rules and the messages are in
+[Alerts and metrics](../configure/replication.md#alerts-and-metrics).
 
 Turn off **Report every repository** in the capability on a server with very many repositories; the two
 `astrum_repository_*` metrics then go away. Requests to names that are not repositories are counted
@@ -89,7 +103,15 @@ store
   and group stores (a group counts the free space of all its members);
 - passed its [soft quota](../configure/blob-stores.md#soft-quotas), unless that is turned off;
 - cannot be opened or reached, such as a remote store whose agent does not answer, unless that is
-  turned off.
+  turned off;
+- will be full soon: its growth over the last 30 days fills it in fewer days than **Forecast alert
+  (days)**, see [the forecast](#fill-forecast).
+
+The same checks watch the repositories that have a quota (`storage.quota` in the repository settings).
+A repository is reported when it uses at least its warning percentage of the limit and when it reaches
+the limit. Both are one problem that changes kind: a repository that crosses the warning gets one
+message, the same repository reaching the limit gets one more, and one message tells when it is back
+below the warning. Repositories without a quota are not checked, and neither is a group repository.
 
 A problem is reported once when it starts, again after **Repeat after (hours)** while it lasts (0 never
 repeats it), and, with **Send a message when a problem is over**, once more when it ends. The checks run
@@ -98,6 +120,61 @@ last check and the problems that last; the metric `astrum_blobstore_space_alert`
 
 Messages follow the language of the channel. A webhook receives the events `blobstore.alert` and
 `blobstore.recovered` with the message in `text`; `repository` and `component` are `null`.
+
+### Fill forecast
+
+The task that records the daily usage (see [tasks](tasks.md)) keeps one row per blob store and day. The
+forecast fits a straight line through the last 30 of those days and needs at least 7. When the line
+rises, the days left are the room left divided by the bytes it grows per day. The room is:
+
+- the free space the store reports, for file and remote stores;
+- the limit of a soft quota of the type space used, minus what the store uses; a store that has both
+  counts the smaller of the two;
+- nothing for an S3 store without a soft quota, which has no forecast.
+
+A group store has no forecast of its own; each of its members is forecast on its own. The setting
+**Forecast alert (days)** (`forecastDays`, from 0 to 365, 14 by default) is the number of days below
+which the space alert sends the message "will be full in N days"; 0 turns this alert off. The days
+change with every check, so the message is sent once when the problem starts, like the others.
+
+`GET /service/rest/v1/blobstores/{name}/forecast` answers the same numbers for one store, to callers who
+may read the blob stores:
+
+```json
+{"daysUntilFull": 11.2, "bytesPerDay": 1000.0, "basis": "capacity", "sampleDays": 9}
+```
+
+`daysUntilFull` is `null` when the store does not grow, when there is no room to measure against or when
+fewer than 7 days were recorded; `bytesPerDay` is `null` below 7 days; `basis` is `capacity` (free
+space), `softQuota` or `null`; `sampleDays` is the number of days used. The blob store list and the page
+of a store show "Full in N days" when there is a value.
+
+## Usage history
+
+The daily task **Record repository usage** (at 00:30 UTC, see [scheduled tasks](tasks.md)) keeps one row per
+day for every repository, with its components, assets, bytes and downloads, and one per blob store, with its
+blob count, bytes and free space. It records the day before. A run for a day that already has rows replaces
+them. Rows older than the setting `usage.history.daysKept` (default `730`) are deleted. Downloads are taken
+from the download records of the assets, so downloads of assets deleted on the same day are lost.
+
+Two routes read the repository rows:
+
+- `GET /service/rest/v1/repositories/{name}/usage/history?days=` returns the days that have a row, oldest
+  first, as objects with `day`, `components`, `assets`, `bytes` and `downloads`. `days` is from 1 to 730,
+  default 90; any other value is answered with 400 and the field `days`. Rights are those of the repository
+  summary: anonymous callers get 401, callers without access to the repository get 403, and an unknown
+  repository gets 404.
+- `GET /service/rest/internal/ui/usage-history?days=` serves the web interface. It answers an object that
+  maps each repository the caller may browse to the `bytes` of its days, oldest first, for the last `days`
+  days that have a row. `days` is from 1 to 730, default 30; other values get 400 as above. A repository the
+  caller may not browse has no key, and anonymous callers get 401.
+
+## Vulnerability data alert
+
+When the task **Security - Synchronize vulnerability data** ends and the data of an ecosystem is older
+than its **Stale after days**, or was never synced, it sends one message a day for as long as that lasts
+to the notification channels that listen to **Vulnerability found**. A webhook receives the event
+`advisories.stale` with the message in `text`; `repository` and `component` are `null`.
 
 ## What to watch
 

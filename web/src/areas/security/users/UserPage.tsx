@@ -18,7 +18,6 @@ import {
   SELECTORS,
   USER_SOURCES,
   USERS,
-  type User,
   type UserSource,
 } from '../api';
 import { EditBar, EditForm, FormSection } from '../shared/Edit';
@@ -27,6 +26,7 @@ import { refusedBy } from '../shared/messages';
 import { SecurityTree, userTree } from '../shared/SecurityTree';
 import { TransferList } from '../shared/TransferList';
 import { useLeave } from '../shared/useLeave';
+import type { UserWithSecondFactor } from '../two-factor/api';
 import { ChangePasswordDialog } from './ChangePasswordDialog';
 import {
   deleteQuery,
@@ -39,7 +39,12 @@ import {
   type UserValues,
   validateUser,
 } from './model';
+import { SecondFactorPanel } from './SecondFactorPanel';
 import styles from './Users.module.css';
+
+export interface UserFormProps {
+  user?: UserWithSecondFactor;
+}
 
 function Tree({ user, roleIds, source }: { user: string; roleIds: readonly string[]; source: string }) {
   const t = useT();
@@ -70,7 +75,7 @@ function Tree({ user, roleIds, source }: { user: string; roleIds: readonly strin
   );
 }
 
-function UserForm({ user }: { user?: User }) {
+function UserForm({ user }: UserFormProps) {
   const t = useT();
   const toast = useToast();
   const navigate = useNavigate();
@@ -301,6 +306,11 @@ function UserForm({ user }: { user?: User }) {
             </div>
           )}
         </FormSection>
+        {user?.twoFactor && (
+          <FormSection title={t('security.twoFactor.panel')}>
+            <SecondFactorPanel userId={user.userId} isMe={isMe} />
+          </FormSection>
+        )}
         <FormSection title={t('security.user.roles')}>
           <TransferList
             label={t('security.user.roles')}
@@ -352,7 +362,9 @@ function UserForm({ user }: { user?: User }) {
 export default function UserPage() {
   const t = useT();
   const { userId, source = DEFAULT_SOURCE } = useParams();
-  const users = useApi<User[]>(userId === undefined ? null : withQuery(USERS, { source, userId }));
+  const users = useApi<UserWithSecondFactor[]>(
+    userId === undefined ? null : withQuery(USERS, { source, userId }),
+  );
   if (userId === undefined) {
     return <UserForm key="create" />;
   }

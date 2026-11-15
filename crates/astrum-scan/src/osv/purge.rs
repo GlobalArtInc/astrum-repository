@@ -1,0 +1,58 @@
+use sea_orm::{ConnectionTrait, DatabaseConnection, DbBackend, DbErr, Statement, TransactionTrait};
+
+use crate::PACKAGE_LOCK;
+
+const GRACE: &str = "1 hour";
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Purged {
+    pub inventories: u64,
+    pub packages: u64,
+    pub layer_facts: u64,
+}
+
+async fn delete(db: &impl ConnectionTrait, sql: &str) -> Result<u64, DbErr> {
+    Ok(db
+        .execute(Statement::from_string(DbBackend::Postgres, sql))
+        .await?
+        .rows_affected())
+}
+
+pub async fn run(db: &DatabaseConnection) -> Result<Purged, DbErr> {
+    let layer_facts = delete(
+        db,
+        &format!(
+            "DELETE FROM oci_layer_facts f WHERE f.extracted_at < now() - interval '{GRACE}' \
+             AND NOT EXISTS (SELECT 1 FROM asset a WHERE a.sha256 = split_part(f.digest, ':', 2) \
+             AND a.format = 'docker' AND a.kind = 'blob')"
+        ),
+    )
+    .await?;
+    let txn = db.begin().await?;
+    txn.execute_unprepared(&format!("SELECT pg_advisory_xact_lock({PACKAGE_LOCK})"))
+        .await?;
+    let inventories = delete(
+        &txn,
+        &format!(
+            "DELETE FROM sca_inventory i WHERE i.extracted_at < now() - interval '{GRACE}' \
+             AND NOT EXISTS (SELECT 1 FROM component_scan s WHERE s.inventory_id = i.id) \
+             AND NOT EXISTS (SELECT 1 FROM policy_verdict v WHERE v.subject LIKE 'oci:%' \
+               AND i.key = 'oci:' || v.repository || ':' || substr(v.subject, 5))"
+        ),
+    )
+    .await?;
+    let packages = delete(
+        &txn,
+        "DELETE FROM sca_package WHERE id IN (\
+           SELECT p.id FROM sca_package p WHERE NOT EXISTS \
+             (SELECT 1 FROM sca_inventory_package ip WHERE ip.package_id = p.id) \
+           ORDER BY p.id FOR UPDATE OF p)",
+    )
+    .await?;
+    txn.commit().await?;
+    Ok(Purged {
+        inventories,
+        packages,
+        layer_facts,
+    })
+}

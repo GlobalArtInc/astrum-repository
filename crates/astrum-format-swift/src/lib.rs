@@ -1,6 +1,7 @@
 mod archive;
 pub mod import;
 mod paths;
+mod transfer;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::io;
@@ -8,6 +9,7 @@ use std::io;
 use astrum_blob::ContentStream;
 use astrum_content::format::SearchTarget;
 use astrum_content::store::{self, ComponentKey, PutAsset};
+use astrum_content::transfer::Transfer;
 use astrum_content::{
     Asset, Component, ContentError, ContentRequest, Ctx, Format, SearchKey, Serve, View, group,
     serve,
@@ -239,6 +241,45 @@ fn write_policy(ctx: &Ctx) -> WritePolicy {
         .as_ref()
         .and_then(|storage| storage.write_policy)
         .unwrap_or(WritePolicy::Allow)
+}
+
+fn refuse_read_only(target: &Ctx) -> Result<(), Problem> {
+    match write_policy(target) {
+        WritePolicy::Deny => Err(Problem::new(
+            StatusCode::METHOD_NOT_ALLOWED,
+            format!(
+                "publishing isn't supported: repository {} is read-only",
+                target.name()
+            ),
+        )),
+        _ => Ok(()),
+    }
+}
+
+fn refuse_duplicate(
+    target: &Ctx,
+    existing: &[Component],
+    version: &str,
+    identical: Option<&str>,
+) -> Result<(), Problem> {
+    let same = |found: &Component| {
+        identical.is_some_and(|checksum| {
+            attributes(found)["checksum"]
+                .as_str()
+                .is_some_and(|stored| stored.eq_ignore_ascii_case(checksum))
+        })
+    };
+    match existing
+        .iter()
+        .any(|found| found.version == version && !same(found))
+        && write_policy(target) != WritePolicy::Allow
+    {
+        true => Err(Problem::new(
+            StatusCode::CONFLICT,
+            format!("a release with version {version} already exists"),
+        )),
+        false => Ok(()),
+    }
 }
 
 async fn releases_of(ctx: &Ctx, package: &Package) -> Result<Vec<Component>, Problem> {
@@ -759,29 +800,14 @@ impl Swift {
                 ));
             }
         };
-        if write_policy(&target) == WritePolicy::Deny {
-            return Err(Problem::new(
-                StatusCode::METHOD_NOT_ALLOWED,
-                format!(
-                    "publishing isn't supported: repository {} is read-only",
-                    target.name()
-                ),
-            ));
-        }
+        refuse_read_only(&target)?;
         let existing = releases_of(&target, &package).await?;
         let canonical = canonical(&package, &existing);
         if ctx.kind() == RepositoryType::Hosted {
             ctx.require(View::Add, &canonical.archive_path())?;
         }
         let version = package.version.clone().unwrap_or_default();
-        if existing.iter().any(|found| found.version == version)
-            && write_policy(&target) != WritePolicy::Allow
-        {
-            return Err(Problem::new(
-                StatusCode::CONFLICT,
-                format!("a release with version {version} already exists"),
-            ));
-        }
+        refuse_duplicate(&target, &existing, &version, None)?;
         let content_type = request
             .header("content-type")
             .unwrap_or_default()
@@ -1233,6 +1259,10 @@ impl Format for Swift {
 
     fn search_keys(&self) -> &'static [SearchKey] {
         SEARCH_KEYS
+    }
+
+    fn transfer(&self) -> Option<&dyn Transfer> {
+        Some(&transfer::TRANSFER)
     }
 }
 

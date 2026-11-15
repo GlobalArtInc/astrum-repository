@@ -22,6 +22,14 @@
     "one": "{count} repository",
     "other": "{count} repositories"
   },
+  "blobstores.forecast.days": {
+    "one": "Full in {count} day",
+    "other": "Full in {count} days"
+  },
+  "blobstores.forecast.detail": {
+    "one": "At the growth of the last {sampleDays} days this blob store will be full in {count} day.",
+    "other": "At the growth of the last {sampleDays} days this blob store will be full in {count} days."
+  },
   "blobstores.list.empty": "No blob stores",
   "blobstores.create.title": "Create Blob Store",
   "blobstores.create.description": "Set up where repositories keep their data",
@@ -115,6 +123,9 @@
   "blobstores.edit.usedByRepositories": "The repositories {names} use it.",
   "blobstores.edit.memberOf": "It is a member of the group {groups}.",
   "blobstores.edit.cannotDelete": "It cannot be deleted while it is in use.",
+  "blobstores.usage.assets": "Assets",
+  "blobstores.usage.size": "Size",
+  "blobstores.usage.moved": "Assets were moved here by a tiering task.",
   "blobstores.edit.delete": "Delete",
   "blobstores.edit.unavailable": "The server cannot reach this blob store. Check its settings and the storage behind it.",
   "blobstores.edit.unsupported": "This type of blob store is not supported",

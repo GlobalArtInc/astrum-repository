@@ -529,3 +529,36 @@ async fn proxies_cache_the_remote_index_and_groups_merge_their_members() {
     let proxy_publish = publish(&fixture, "remote", Auth::Admin, "other", "1.0.0").await;
     assert_eq!(proxy_publish.status, StatusCode::METHOD_NOT_ALLOWED);
 }
+
+#[tokio::test]
+async fn a_token_limited_to_repositories_gets_no_cargo_token() {
+    let fixture = ready().await;
+    create(&fixture, "hosted", hosted("closed", "ALLOW_ONCE", true)).await;
+    let reply = fixture
+        .call(
+            Method::PUT,
+            "/service/rest/v1/security/realms/active",
+            Auth::Admin,
+            Some(json!([
+                "AstrumAuthenticatingRealm",
+                "AccessTokenRealm",
+                "CargoToken"
+            ])),
+        )
+        .await;
+    assert_eq!(reply.status, StatusCode::NO_CONTENT, "{}", reply.text());
+    let (_, token) = fixture.customer_token("acme", &["closed"]).await;
+    let refused = fixture
+        .call(
+            Method::GET,
+            "/repository/closed/me",
+            Auth::Basic("acme", &token),
+            None,
+        )
+        .await;
+    assert_eq!(refused.status, StatusCode::FORBIDDEN, "{}", refused.text());
+    let admin = fixture
+        .call(Method::GET, "/repository/closed/me", Auth::Admin, None)
+        .await;
+    assert_eq!(admin.status, StatusCode::OK);
+}

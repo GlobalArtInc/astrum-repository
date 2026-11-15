@@ -11,6 +11,7 @@ repositories themselves are in [repositories](../repositories/overview.md).
 | [Ansible Galaxy](ansible.md) | `ansible-galaxy` | ✓ | ✓ | ✓ |
 | [APT](apt.md) | `apt` | ✓ | ✓ | |
 | [Bazel](bazel.md) | Bazel modules (Bzlmod) | ✓ | ✓ | ✓ |
+| [Bazel remote cache](bazelcache.md) | Bazel | ✓ | | |
 | [Cargo](cargo.md) | `cargo` | ✓ | ✓ | ✓ |
 | [Chef Supermarket](chef.md) | Berkshelf, Policyfiles, `knife` | ✓ | ✓ | ✓ |
 | [Chromium extensions](chrome.md) | Chrome, Edge and other Chromium browsers | ✓ | ✓ | ✓ |
@@ -22,15 +23,19 @@ repositories themselves are in [repositories](../repositories/overview.md).
 | [Firefox add-ons](firefox.md) | Firefox | ✓ | ✓ | ✓ |
 | [Git LFS](gitlfs.md) | `git lfs` | ✓ | | |
 | [Go](go.md) | `go` | ✓ | ✓ | ✓ |
+| [Gradle build cache](gradlecache.md) | Gradle | ✓ | | |
 | [Helm](helm.md) | `helm` | ✓ | ✓ | ✓ |
 | [Hex](hex.md) | Mix, rebar3 | ✓ | ✓ | ✓ |
+| [Homebrew](homebrew.md) | `brew` | | ✓ | |
 | [Hugging Face](huggingface.md) | `huggingface_hub`, `transformers`, `hf` | | ✓ | |
 | [JetBrains plugins](jetbrains.md) | IntelliJ Platform IDEs | ✓ | ✓ | ✓ |
+| [JSR (Deno and TypeScript)](jsr.md) | `deno`, `deno publish` | ✓ | ✓ | ✓ |
 | [Maven](maven.md) | Maven, Gradle | ✓ | ✓ | ✓ |
 | [Nix](nix.md) | `nix` | ✓ | ✓ | ✓ |
 | [npm](npm.md) | npm, pnpm, Yarn | ✓ | ✓ | ✓ |
 | [NuGet](nuget.md) | `dotnet`, `nuget` | ✓ | ✓ | ✓ |
 | [Nx remote cache](nx.md) | Nx | ✓ | | |
+| [OPAM](opam.md) | `opam` | ✓ | ✓ | |
 | [Open VSX](openvsx.md) | VSCodium, code-server, `ovsx` | ✓ | ✓ | ✓ |
 | [P2](p2.md) | Eclipse | | ✓ | |
 | [pacman](pacman.md) | `pacman` | ✓ | ✓ | ✓ |
@@ -41,6 +46,7 @@ repositories themselves are in [repositories](../repositories/overview.md).
 | [R](r.md) | `install.packages` | ✓ | ✓ | ✓ |
 | [Raw files](raw.md) | `curl` and any HTTP client | ✓ | ✓ | ✓ |
 | [RubyGems](rubygems.md) | `gem`, Bundler | ✓ | ✓ | ✓ |
+| [sccache remote cache](sccache.md) | `sccache` | ✓ | | |
 | [Swift](swift.md) | Swift Package Manager | ✓ | ✓ | ✓ |
 | [Terraform](terraform.md) | `terraform` | ✓ | ✓ | ✓ |
 | [Turborepo remote cache](turbo.md) | `turbo` | ✓ | | |

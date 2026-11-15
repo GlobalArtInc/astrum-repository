@@ -9,7 +9,7 @@ use astrum_format_protobuf::proto::{
     download_request, graph, label_ref, module_ref, owner_ref, resource_ref, scoped_label_ref,
     update_modules_request, upload_request,
 };
-use astrum_security::Scope;
+use astrum_security::{NewToken, Scope};
 use axum::body::Body;
 use axum::http::{Method, StatusCode};
 use base64::Engine;
@@ -72,7 +72,7 @@ async fn token(fixture: &Fixture, scope: Scope) -> String {
     fixture
         .state
         .security()
-        .create_token("admin", "protobuf", scope, None)
+        .create_token("admin", NewToken::personal("protobuf", scope, None))
         .await
         .unwrap()
         .1
@@ -1578,4 +1578,68 @@ async fn the_current_user_is_the_owner_of_the_token_so_that_buf_registry_login_w
     )
     .await;
     assert_eq!(wrong.0, StatusCode::UNAUTHORIZED);
+}
+
+#[tokio::test]
+async fn a_module_write_over_the_quota_is_a_failed_precondition() {
+    let fixture = ready().await;
+    let updated = fixture
+        .call(
+            Method::PUT,
+            &format!("/service/rest/v1/repositories/protobuf/hosted/{REPOSITORY}"),
+            Auth::Admin,
+            Some(json!({
+                "name": REPOSITORY,
+                "online": true,
+                "storage": {
+                    "blobStoreName": "default",
+                    "strictContentTypeValidation": true,
+                    "writePolicy": "ALLOW",
+                    "quota": {"limitBytes": 1, "enforce": true}
+                }
+            })),
+        )
+        .await;
+    assert_eq!(updated.status, StatusCode::NO_CONTENT, "{}", updated.text());
+    let writer = token(&fixture, Scope::Write).await;
+    let refusal = refused(
+        &fixture,
+        MODULES,
+        "CreateModules",
+        Some(&writer),
+        &create_request("acme", "greeter"),
+    )
+    .await;
+    assert_eq!(refusal.1, "failed_precondition");
+    assert!(refusal.2.contains(REPOSITORY), "{}", refusal.2);
+    assert!(refusal.2.contains("quota"), "{}", refusal.2);
+}
+
+#[tokio::test]
+async fn a_token_limited_to_repositories_is_known_by_its_customer() {
+    let fixture = ready().await;
+    fixture
+        .add_user("olivia", "correct horse battery", &["nx-admin"])
+        .await;
+    let (_, limited) = fixture
+        .customer_token_of("olivia", "acme", &[REPOSITORY])
+        .await;
+    let response: proto::GetCurrentUserResponse = rpc(
+        &fixture,
+        AUTHN,
+        "GetCurrentUser",
+        &limited,
+        &proto::GetCurrentUserRequest {},
+    )
+    .await;
+    assert_eq!(response.user.unwrap().username, "acme");
+    let subject: proto::GetCurrentUserSubjectResponse = rpc(
+        &fixture,
+        AUTHN,
+        "GetCurrentUserSubject",
+        &limited,
+        &proto::GetCurrentUserSubjectRequest {},
+    )
+    .await;
+    assert_eq!(subject.subject, "acme");
 }

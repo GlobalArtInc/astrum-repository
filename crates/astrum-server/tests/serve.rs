@@ -15,6 +15,7 @@ fn config(test: &TestDatabase, data_dir: PathBuf) -> Config {
         web_dir: data_dir.join("web"),
         ldap_cache_ttl: std::time::Duration::from_secs(300),
         connectors: Default::default(),
+        trusted_proxies: Default::default(),
         file: data_dir.join("etc/astrum.toml"),
         file_found: false,
     }
@@ -70,6 +71,133 @@ async fn without_a_database_the_server_does_not_start() {
     };
     let error = Server::start(&config).await.err().unwrap().to_string();
     assert!(error.contains("ASTRUM_DATABASE_URL"), "{error}");
+}
+
+#[test]
+fn an_invalid_trusted_proxy_stops_the_start_before_anything_is_opened() {
+    for (value, shown) in [
+        ("10.0.0.0/8,gateway", "\"gateway\""),
+        ("10.0.0.0/8,::/0", "list the proxies"),
+    ] {
+        let data = tempfile::tempdir().unwrap();
+        let output = std::process::Command::new(env!("CARGO_BIN_EXE_astrum"))
+            .env("ASTRUM_DATA_DIR", data.path())
+            .env("ASTRUM_TRUSTED_PROXIES", value)
+            .env_remove("ASTRUM_CONFIG")
+            .env_remove("ASTRUM_DATABASE_URL")
+            .output()
+            .unwrap();
+        assert!(!output.status.success(), "{value}");
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        assert!(stderr.contains("ASTRUM_TRUSTED_PROXIES"), "{stderr}");
+        assert!(stderr.contains(shown), "{stderr}");
+    }
+}
+
+#[tokio::test]
+async fn trusted_proxies_reach_the_running_state() {
+    let test = TestDatabase::create().await;
+    let data = tempfile::tempdir().unwrap();
+    let config = Config {
+        trusted_proxies: astrum_api::client::TrustedProxies::parse(["10.0.0.0/8"]).unwrap(),
+        ..config(&test, data.path().to_owned())
+    };
+    let server = Server::start(&config).await.unwrap();
+    assert!(
+        server
+            .state()
+            .trusted_proxies()
+            .contains("10.1.2.3".parse().unwrap())
+    );
+    assert!(
+        !server
+            .state()
+            .trusted_proxies()
+            .contains("192.0.2.1".parse().unwrap())
+    );
+}
+
+fn ip_allow_reset(data: &std::path::Path, url: Option<&str>) -> std::process::Output {
+    let mut command = std::process::Command::new(env!("CARGO_BIN_EXE_astrum"));
+    command
+        .env("ASTRUM_DATA_DIR", data)
+        .env_remove("ASTRUM_CONFIG")
+        .env_remove("ASTRUM_DATABASE_URL")
+        .args(["ip-allow", "reset"]);
+    if let Some(url) = url {
+        command.env("ASTRUM_DATABASE_URL", url);
+    }
+    command.output().unwrap()
+}
+
+#[tokio::test]
+async fn the_ip_allow_reset_command_reopens_a_stopped_server() {
+    use astrum_security::ip_allow::{IP_ALLOW_KEY, IpAllowSettings, Surface};
+    let test = TestDatabase::create().await;
+    let data = tempfile::tempdir().unwrap();
+    let config = config(&test, data.path().to_owned());
+    let server = Server::start(&config).await.unwrap();
+    let locked = IpAllowSettings {
+        management: vec!["192.0.2.1".to_owned()],
+        ..Default::default()
+    };
+    astrum_db::setting::put(server.state().db().conn(), IP_ALLOW_KEY, &locked)
+        .await
+        .unwrap();
+    server.state().security().changed().await.unwrap();
+    assert!(
+        server
+            .state()
+            .security()
+            .model()
+            .ip_allow
+            .restricts(Surface::Management)
+    );
+    let before =
+        astrum_db::revision::current(server.state().db().conn(), astrum_db::revision::SECURITY)
+            .await
+            .unwrap();
+    drop(server);
+
+    let url = test.url().expose().to_owned();
+    let output = ip_allow_reset(data.path(), Some(&url));
+    assert!(output.status.success(), "{output:?}");
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("every address is allowed"), "{stdout}");
+
+    let server = Server::start(&config).await.unwrap();
+    let state = server.state();
+    assert!(
+        !state
+            .security()
+            .model()
+            .ip_allow
+            .restricts(Surface::Management)
+    );
+    let after = astrum_db::revision::current(state.db().conn(), astrum_db::revision::SECURITY)
+        .await
+        .unwrap();
+    assert!(after > before, "{after} {before}");
+    let stored: IpAllowSettings = astrum_db::setting::get(state.db().conn(), IP_ALLOW_KEY)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(stored, IpAllowSettings::default());
+}
+
+#[test]
+fn the_ip_allow_reset_command_fails_with_the_reason() {
+    let data = tempfile::tempdir().unwrap();
+    let output = ip_allow_reset(data.path(), None);
+    assert_eq!(output.status.code(), Some(1), "{output:?}");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("astrum ip-allow reset:"), "{stderr}");
+    assert!(stderr.contains("ASTRUM_DATABASE_URL"), "{stderr}");
+    let output = ip_allow_reset(data.path(), Some("postgres://nobody@127.0.0.1:1/none"));
+    assert_eq!(output.status.code(), Some(1), "{output:?}");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("astrum ip-allow reset:"), "{stderr}");
+    assert!(!String::from_utf8_lossy(&output.stdout).contains("cleared"));
 }
 
 #[test]
@@ -326,4 +454,69 @@ async fn docker_connectors_follow_the_repository_configuration() {
 
     stop.send(()).unwrap();
     running.await.unwrap().unwrap();
+}
+
+fn reset_command(test: &TestDatabase, data: &std::path::Path, user: &str) -> std::process::Output {
+    std::process::Command::new(env!("CARGO_BIN_EXE_astrum"))
+        .env("ASTRUM_DATA_DIR", data)
+        .env("ASTRUM_DATABASE_URL", test.url().expose())
+        .env_remove("ASTRUM_CONFIG")
+        .args(["two-factor", "reset", user])
+        .output()
+        .unwrap()
+}
+
+#[tokio::test]
+async fn the_command_line_resets_the_second_factor_of_a_user() {
+    use astrum_security::totp::{self, TotpSecret};
+    use astrum_security::two_factor::store::Confirmation;
+
+    let test = TestDatabase::create().await;
+    let data = tempfile::tempdir().unwrap();
+    let db = test.migrated().await;
+    astrum_security::bootstrap(db.conn(), data.path())
+        .await
+        .unwrap();
+    let security = astrum_security::Security::load(db.conn().clone())
+        .await
+        .unwrap()
+        .with_secrets(astrum_security::SecretBox::from_key([7; 32]));
+    let pending = security
+        .begin_totp(
+            "admin",
+            "AstrumAuthenticatingRealm",
+            "Astrum",
+            "admin",
+            "127.0.0.1",
+        )
+        .await
+        .unwrap();
+    let secret = TotpSecret::from_base32(&pending.secret).unwrap();
+    let now = std::time::SystemTime::now();
+    let seconds = now.duration_since(std::time::UNIX_EPOCH).unwrap().as_secs();
+    let code = totp::code_at(&secret, totp::step_at(seconds));
+    let outcome = security
+        .confirm_totp("admin", &pending.ceremony, &code, now.into())
+        .await
+        .unwrap();
+    assert!(matches!(outcome, Confirmation::Enrolled { .. }));
+    assert!(security.summary("admin").await.unwrap().enrolled());
+
+    let unknown = reset_command(&test, data.path(), "nobody");
+    assert_eq!(unknown.status.code(), Some(1));
+    assert!(String::from_utf8_lossy(&unknown.stderr).contains("nobody"));
+    assert!(security.summary("admin").await.unwrap().enrolled());
+
+    let output = reset_command(&test, data.path(), "admin");
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout).trim(),
+        "second factor of admin was reset"
+    );
+    assert!(!security.summary("admin").await.unwrap().enrolled());
 }

@@ -2,12 +2,61 @@ use md5::Md5;
 use sha1::Sha1;
 use sha2::{Digest, Sha256, Sha512};
 
+use crate::{BlobId, Error};
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Digests {
     pub sha1: String,
     pub sha256: String,
     pub sha512: String,
     pub md5: String,
+}
+
+impl Digests {
+    pub(crate) fn lowercased(&self) -> Self {
+        Self {
+            sha1: self.sha1.to_ascii_lowercase(),
+            sha256: self.sha256.to_ascii_lowercase(),
+            sha512: self.sha512.to_ascii_lowercase(),
+            md5: self.md5.to_ascii_lowercase(),
+        }
+    }
+}
+
+pub(crate) fn require(store: &str, id: BlobId, expected: &Digests) -> Result<(), Error> {
+    match expected.sha256.is_empty() {
+        true => Err(Error::NoDigest {
+            store: store.to_owned(),
+            id,
+        }),
+        false => Ok(()),
+    }
+}
+
+pub(crate) fn check(
+    store: &str,
+    id: BlobId,
+    expected: &Digests,
+    actual: &Digests,
+) -> Result<(), Error> {
+    require(store, id, expected)?;
+    for (algorithm, wanted, found) in [
+        ("SHA-256", &expected.sha256, &actual.sha256),
+        ("SHA-1", &expected.sha1, &actual.sha1),
+        ("SHA-512", &expected.sha512, &actual.sha512),
+        ("MD5", &expected.md5, &actual.md5),
+    ] {
+        if !wanted.is_empty() && !wanted.eq_ignore_ascii_case(found) {
+            return Err(Error::Digest {
+                store: store.to_owned(),
+                id,
+                algorithm,
+                expected: wanted.clone(),
+                actual: found.clone(),
+            });
+        }
+    }
+    Ok(())
 }
 
 #[derive(Default)]

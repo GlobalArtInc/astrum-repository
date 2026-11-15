@@ -16,6 +16,9 @@ import {
   useDocumentTitle,
   useToast,
 } from '../../../ui';
+import { COOLDOWN, type CooldownWait, type CooldownWaitPage } from '../../security/api';
+import { type ComponentSecurity, isUnavailable, worstSeverity } from '../../security/findings/model';
+import { ImageSupplyChain } from '../docker/SupplyChain';
 import { componentKey, fromProxy, parseComponentKey } from '../links';
 import {
   REPOSITORIES_PATH,
@@ -27,11 +30,12 @@ import {
   type VersionsResponse,
 } from '../types';
 import styles from './ComponentPage.module.css';
+import { type SecurityEntry, SecurityTab } from './SecurityTab';
 import { componentGuideUrl, componentPath, componentSnippets, registryUrl } from './snippets';
 import { type FileRow, FilesTab, RepositoriesTab, VersionsTab } from './tables';
 
 const PREFIX = '/search/component/';
-const TABS = ['versions', 'repos', 'files'] as const;
+const TABS = ['versions', 'repos', 'files', 'security'] as const;
 type Tab = 'overview' | (typeof TABS)[number];
 
 export function locate(pathname: string): { key: string; tab: Tab } {
@@ -213,18 +217,23 @@ function Overview({
     componentSnippets({ format, group, name, version: entry.version, repository, baseUrl: state.baseUrl })
       .length > 0;
   return (
-    <div className={styles.overview} data-single={!hasSnippets}>
-      {hasSnippets && (
-        <Dependencies
-          format={format}
-          group={group}
-          name={name}
-          version={entry.version}
-          repository={repository}
-        />
+    <>
+      <div className={styles.overview} data-single={!hasSnippets}>
+        {hasSnippets && (
+          <Dependencies
+            format={format}
+            group={group}
+            name={name}
+            version={entry.version}
+            repository={repository}
+          />
+        )}
+        <Facts format={format} group={group} name={name} entry={entry} />
+      </div>
+      {format === 'docker' && repository !== '' && entry.version !== '' && (
+        <ImageSupplyChain repository={repository} image={name} reference={entry.version} />
       )}
-      <Facts format={format} group={group} name={name} entry={entry} />
-    </div>
+    </>
   );
 }
 
@@ -293,6 +302,71 @@ function PathButton({ text }: { text: string }) {
   );
 }
 
+const WAIT_PAGES = 4;
+
+async function findWait(
+  repository: string,
+  matches: (wait: CooldownWait) => boolean,
+  signal: AbortSignal,
+): Promise<CooldownWait | null> {
+  let token: string | null = null;
+  for (let page = 0; page < WAIT_PAGES; page += 1) {
+    const list: CooldownWaitPage = await api.get<CooldownWaitPage>(
+      withQuery(COOLDOWN, { repository, continuationToken: token }),
+      { signal },
+    );
+    const found = list.items.find(matches);
+    if (found) {
+      return found;
+    }
+    if (!list.continuationToken) {
+      return null;
+    }
+    token = list.continuationToken;
+  }
+  return null;
+}
+
+function CooldownLine({
+  group,
+  name,
+  version,
+  repositories,
+}: {
+  group: string;
+  name: string;
+  version: string;
+  repositories: string[];
+}) {
+  const t = useT();
+  const waits = useQueries({
+    queries: repositories.map((repository) => {
+      const target = withQuery(COOLDOWN, { repository });
+      return {
+        queryKey: [...apiKey(target), 'component', group, name, version],
+        queryFn: ({ signal }: { signal: AbortSignal }) =>
+          findWait(
+            repository,
+            (item) => item.name === name && (item.namespace ?? '') === group && item.version === version,
+            signal,
+          ),
+      };
+    }),
+  });
+  const wait = waits.flatMap((result) => (result.data ? [result.data] : []))[0];
+  if (!wait) {
+    return null;
+  }
+  return (
+    <Text as="p" size="2" color="gray">
+      {t.rich('browse.component.cooldown', {
+        published: <DateTime value={wait.publishedAt} />,
+        available: <DateTime value={wait.availableAt} />,
+      })}
+    </Text>
+  );
+}
+
 function Frame({
   crumbs,
   title,
@@ -342,6 +416,31 @@ export default function ComponentPage() {
     }),
   });
   const loaded = components.flatMap((result) => (result.data ? [result.data] : []));
+  const signedIn = useSession().user !== null;
+  const securities = useQueries({
+    queries: (entry?.componentIds ?? []).map((id) => {
+      const target = path`/service/rest/v1/components/${id}/security`;
+      return {
+        queryKey: apiKey(target),
+        queryFn: ({ signal }: { signal: AbortSignal }) => api.get<ComponentSecurity>(target, { signal }),
+        enabled: signedIn,
+      };
+    }),
+  });
+  const securityEntries: SecurityEntry[] = securities.map((result, index) => {
+    const found = components[index]?.data;
+    return {
+      id: entry?.componentIds[index] ?? '',
+      repository: found?.repository,
+      coordinates: found
+        ? { format: found.format, namespace: found.group, name: found.name, version: found.version }
+        : undefined,
+      result,
+    };
+  });
+  const currentSeverity = worstSeverity(
+    securities.flatMap((result) => result.data?.vulnerabilities.map((item) => item.severity) ?? []),
+  );
   const files: FileRow[] = loaded.flatMap((component) =>
     component.assets.map((asset) => ({ ...asset, key: `${component.repository}|${asset.path}` })),
   );
@@ -405,6 +504,11 @@ export default function ComponentPage() {
     { id: 'versions', label: t('browse.component.versionsTab'), count: list.length },
     { id: 'repos', label: t('browse.component.repositoriesTab'), count: repositoryCount },
     { id: 'files', label: t('browse.component.files'), count: loadingFiles ? undefined : files.length },
+    ...(securities.some(
+      (result) => result.data !== undefined || (result.isError && !isUnavailable(result.error)),
+    )
+      ? [{ id: 'security' as const, label: t('browse.component.securityTab') }]
+      : []),
   ];
   return (
     <Frame crumbs={crumbs} title={title}>
@@ -414,6 +518,14 @@ export default function ComponentPage() {
         name={name}
         version={entry.version}
         proxied={fromProxy(repositories.data, entry.repositories)}
+      />
+      <CooldownLine
+        group={group}
+        name={name}
+        version={entry.version}
+        repositories={entry.repositories.filter((item) =>
+          (repositories.data ?? []).some((known) => known.name === item && known.type === 'proxy'),
+        )}
       />
       <TabNav.Root className={styles.tabs} aria-label={t('browse.component.tabs')}>
         {tabs.map((item) => (
@@ -436,9 +548,19 @@ export default function ComponentPage() {
           current={entry.version}
           hrefOf={(version) => tabUrl(own, 'versions', version)}
           compare={compare}
+          currentSeverity={currentSeverity}
         />
       )}
-      {tab === 'repos' && <RepositoriesTab versions={list} repositories={repositories.data ?? []} />}
+      {tab === 'repos' && (
+        <RepositoriesTab
+          versions={list}
+          repositories={repositories.data ?? []}
+          current={entry}
+          format={format}
+          name={name}
+        />
+      )}
+      {tab === 'security' && <SecurityTab entries={signedIn ? securityEntries : []} />}
       {tab === 'files' &&
         (filesError ? (
           <ErrorState error={filesError} />

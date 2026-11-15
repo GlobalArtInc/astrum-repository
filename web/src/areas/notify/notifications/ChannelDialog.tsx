@@ -140,8 +140,12 @@ function Help({ type }: { type: ChannelType }) {
               t.rich('notify.notifications.webhookHelp.headers', {
                 event: <code key="event">X-Astrum-Event</code>,
                 published: <code key="published">component.published</code>,
+                promoted: <code key="promoted">component.promoted</code>,
                 updated: <code key="updated">component.updated</code>,
                 deleted: <code key="deleted">component.deleted</code>,
+                vulnerability: <code key="vulnerability">vulnerability.found</code>,
+                blocked: <code key="blocked">policy.blocked</code>,
+                released: <code key="released">cooldown.released</code>,
                 test: <code key="test">test</code>,
                 delivery: <code key="delivery">X-Astrum-Delivery</code>,
               }),

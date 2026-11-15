@@ -3,17 +3,34 @@ use std::collections::BTreeSet;
 use astrum_blob::config::Settings;
 use astrum_blob::{FillPolicy, SoftQuota, quota};
 use axum::Router;
-use axum::extract::State;
+use axum::extract::{Path, State};
 use axum::routing::get;
+use sea_orm::{DbBackend, FromQueryResult, Statement};
 use serde::Serialize;
 
 use super::UI;
 use super::access::survey;
+use crate::forecast::{self, Forecast};
 use crate::routes::blobstores::measure_all;
 use crate::{ApiError, AppState, Caller};
 
 pub fn routes() -> Router<AppState> {
-    Router::new().route(&format!("{UI}/blobstores"), get(list))
+    Router::new()
+        .route(&format!("{UI}/blobstores"), get(list))
+        .route(&format!("{UI}/blobstores/{{name}}/usage"), get(usage))
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Usage {
+    assets: i64,
+    bytes: i64,
+}
+
+#[derive(FromQueryResult)]
+struct UsageRow {
+    assets: i64,
+    bytes: i64,
 }
 
 #[derive(Serialize)]
@@ -49,6 +66,7 @@ struct StoreXo {
     available_space: Option<u64>,
     soft_quota: Option<SoftQuota>,
     quota_status: Option<QuotaState>,
+    forecast: Option<Forecast>,
     repositories: Vec<String>,
     repository_count: usize,
     groups: Vec<String>,
@@ -71,9 +89,16 @@ async fn list(
                 .map(|group| (config.name.clone(), group.members.clone()))
         })
         .collect();
-    let items = measured
-        .into_iter()
-        .map(|(config, measured)| {
+    let mut items = Vec::new();
+    for (config, measured) in measured {
+        let forecast = match forecast::of_store(state.db().conn(), &config, &measured).await {
+            Ok(found) => Some(found),
+            Err(error) => {
+                tracing::warn!(store = %config.name, %error, "the fill forecast of a blob store could not be computed");
+                None
+            }
+        };
+        items.push({
             let users: Vec<&str> = survey
                 .all
                 .iter()
@@ -112,6 +137,7 @@ async fn list(
                 available_space: measured.available,
                 soft_quota: config.soft_quota,
                 quota_status,
+                forecast,
                 repositories: users
                     .iter()
                     .filter(|name| visible.contains(*name))
@@ -136,7 +162,42 @@ async fn list(
                 }
             }
             item
-        })
-        .collect();
+        });
+    }
     Ok(axum::Json(items))
+}
+
+async fn usage(
+    State(state): State<AppState>,
+    caller: Caller,
+    Path(name): Path<String>,
+) -> Result<axum::Json<Usage>, ApiError> {
+    caller.require("astrum:blobstores:read")?;
+    let config = state
+        .blob_stores()
+        .config(&name)
+        .await
+        .map_err(ApiError::internal)?
+        .ok_or_else(|| ApiError::not_found(format!("There is no blob store named '{name}'")))?;
+    let members = config
+        .group()
+        .map(|group| group.members.clone())
+        .unwrap_or_default();
+    let statement = Statement::from_sql_and_values(
+        DbBackend::Postgres,
+        "SELECT count(*)::bigint AS assets, coalesce(sum(size), 0)::bigint AS bytes FROM asset \
+         WHERE blob_store = $1 OR blob_store = ANY($2)",
+        [config.name.clone().into(), members.into()],
+    );
+    let row = UsageRow::find_by_statement(statement)
+        .one(state.db().conn())
+        .await?
+        .unwrap_or(UsageRow {
+            assets: 0,
+            bytes: 0,
+        });
+    Ok(axum::Json(Usage {
+        assets: row.assets,
+        bytes: row.bytes,
+    }))
 }

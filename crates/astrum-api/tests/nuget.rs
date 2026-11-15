@@ -3,6 +3,12 @@ mod support;
 use std::net::SocketAddr;
 use std::sync::Arc;
 
+use astrum_blob::Written;
+use astrum_content::store;
+use astrum_content::transfer::{
+    BlobSource, Bundle, BundleAsset, Conflict, LocalSource, Outcome, PROMOTED, Sink, Status, Terms,
+};
+use astrum_content::{ContentError, Format};
 use astrum_security::model::REALMS_KEY;
 use astrum_security::ssrf::{SSRF_KEY, SsrfProtection};
 use axum::body::Body;
@@ -1230,4 +1236,236 @@ async fn content_selectors_judge_the_request_path() {
         )
         .await;
     assert_eq!(index.status, StatusCode::FORBIDDEN);
+}
+
+const PACKAGE_PATH: &str = "/astrum.probe/1.0.0/astrum.probe.1.0.0.nupkg";
+
+async fn promotion_source(fixture: &Fixture) -> Bundle {
+    create(fixture, "hosted", hosted("source", "ALLOW")).await;
+    create(fixture, "hosted", hosted("target", "ALLOW")).await;
+    for package in [
+        nupkg("Astrum.Probe", "1.0.0", ""),
+        symbols("Astrum.Probe", "1.0.0"),
+    ] {
+        let reply = push(fixture, "source", package, Auth::Admin).await;
+        assert_eq!(reply.status, StatusCode::CREATED, "{}", reply.text());
+    }
+    let format = astrum_format_nuget::Nuget::default();
+    support::bundle_of(fixture, &format, "source", PACKAGE_PATH).await
+}
+
+async fn try_promote(fixture: &Fixture, bundle: &Bundle) -> Result<Outcome, ContentError> {
+    let from = support::repository_ctx(fixture, "source").await;
+    let to = support::repository_ctx(fixture, "target").await;
+    let format = astrum_format_nuget::Nuget::default();
+    let transfer = format.transfer().expect("nuget takes part in promotion");
+    transfer
+        .receive(
+            &to,
+            bundle,
+            &LocalSource::new(from),
+            Terms::new(Conflict::Fail, PROMOTED),
+        )
+        .await
+}
+
+#[tokio::test]
+async fn components_are_promoted_between_hosted_repositories() {
+    let fixture = ready().await;
+    let bundle = promotion_source(&fixture).await;
+    let format = astrum_format_nuget::Nuget::default();
+    let outcome = support::receive(&fixture, &format, "source", "target", &bundle).await;
+    assert_eq!(outcome.status, Status::Copied);
+    let package = get(
+        &fixture,
+        "/repository/target/v3/content/astrum.probe/1.0.0/astrum.probe.1.0.0.nupkg",
+    )
+    .await;
+    assert_eq!(package.body, nupkg("Astrum.Probe", "1.0.0", ""));
+    let symbol = get(
+        &fixture,
+        "/repository/target/v3/content/astrum.probe/1.0.0/astrum.probe.1.0.0.snupkg",
+    )
+    .await;
+    assert_eq!(symbol.body, symbols("Astrum.Probe", "1.0.0"));
+    assert_eq!(
+        get_json(
+            &fixture,
+            "/repository/target/v3/content/astrum.probe/index.json"
+        )
+        .await,
+        json!({"versions": ["1.0.0"]})
+    );
+    let registration = get_json(
+        &fixture,
+        "/repository/target/v3/registration/astrum.probe/index.json",
+    )
+    .await;
+    assert_eq!(registration["items"][0]["count"], 1);
+    let assets = get_json(&fixture, "/service/rest/v1/search?repository=target").await;
+    assert_eq!(assets["items"][0]["assets"].as_array().unwrap().len(), 2);
+}
+
+#[tokio::test]
+async fn promotion_refuses_an_invalid_id_before_anything_is_recorded() {
+    let fixture = ready().await;
+    let mut bundle = promotion_source(&fixture).await;
+    bundle.name = "Astrum..Probe".to_owned();
+    match try_promote(&fixture, &bundle).await {
+        Err(ContentError::BadRequest(message)) => {
+            assert_eq!(
+                message,
+                "Invalid NuGet package: the id Astrum..Probe is not valid"
+            )
+        }
+        other => panic!("expected a refusal, got {other:?}"),
+    }
+    assert!(
+        store::find(fixture.state.db().conn(), "target", PACKAGE_PATH)
+            .await
+            .unwrap()
+            .is_none()
+    );
+}
+
+#[tokio::test]
+async fn promotion_refuses_a_wrong_path_before_anything_is_recorded() {
+    let fixture = ready().await;
+    let mut bundle = promotion_source(&fixture).await;
+    bundle.name = "Other.Probe".to_owned();
+    match try_promote(&fixture, &bundle).await {
+        Err(ContentError::BadRequest(message)) => assert!(
+            message.starts_with(&format!("the bundle path {PACKAGE_PATH} does not match")),
+            "{message}"
+        ),
+        other => panic!("expected a refusal, got {other:?}"),
+    }
+    assert!(
+        store::find(fixture.state.db().conn(), "target", PACKAGE_PATH)
+            .await
+            .unwrap()
+            .is_none()
+    );
+}
+
+#[tokio::test]
+async fn symbols_are_refused_when_their_package_is_not_in_the_target() {
+    let fixture = ready().await;
+    let mut bundle = promotion_source(&fixture).await;
+    bundle
+        .assets
+        .retain(|asset| asset.path.ends_with(".snupkg"));
+    match try_promote(&fixture, &bundle).await {
+        Err(ContentError::BadRequest(message)) => assert_eq!(
+            message,
+            "the package Astrum.Probe 1.0.0 is not in target; push it before its symbols"
+        ),
+        other => panic!("expected a refusal, got {other:?}"),
+    }
+}
+
+#[tokio::test]
+async fn promotion_refuses_an_id_that_differs_from_the_target_only_in_case() {
+    let fixture = ready().await;
+    create(&fixture, "hosted", hosted("source", "ALLOW")).await;
+    create(&fixture, "hosted", hosted("target", "ALLOW")).await;
+    let held = push(
+        &fixture,
+        "target",
+        nupkg("Newtonsoft.Json", "13.0.1", ""),
+        Auth::Admin,
+    )
+    .await;
+    assert_eq!(held.status, StatusCode::CREATED, "{}", held.text());
+    let source = push(
+        &fixture,
+        "source",
+        nupkg("Newtonsoft.Json", "1.0.0", ""),
+        Auth::Admin,
+    )
+    .await;
+    assert_eq!(source.status, StatusCode::CREATED, "{}", source.text());
+    let format = astrum_format_nuget::Nuget::default();
+    let mut bundle = support::bundle_of(
+        &fixture,
+        &format,
+        "source",
+        "/newtonsoft.json/1.0.0/newtonsoft.json.1.0.0.nupkg",
+    )
+    .await;
+    bundle.name = "newtonsoft.json".to_owned();
+    match try_promote(&fixture, &bundle).await {
+        Err(ContentError::BadRequest(message)) => assert_eq!(
+            message,
+            "Invalid NuGet package: the id newtonsoft.json differs from Newtonsoft.Json only in case, which the repository already holds"
+        ),
+        other => panic!("expected a refusal, got {other:?}"),
+    }
+    assert!(
+        store::find(
+            fixture.state.db().conn(),
+            "target",
+            "/newtonsoft.json/1.0.0/newtonsoft.json.1.0.0.nupkg"
+        )
+        .await
+        .unwrap()
+        .is_none()
+    );
+    bundle.name = "Newtonsoft.Json".to_owned();
+    let outcome = try_promote(&fixture, &bundle).await.unwrap();
+    assert_eq!(outcome.status, Status::Copied);
+}
+
+struct Lowered(LocalSource);
+
+#[async_trait::async_trait]
+impl BlobSource for Lowered {
+    async fn write(&self, sink: &Sink, asset: &BundleAsset) -> Result<Written, ContentError> {
+        let mut stored = asset.clone();
+        stored.path = stored.path.to_lowercase();
+        self.0.write(sink, &stored).await
+    }
+}
+
+#[tokio::test]
+async fn a_bundle_path_that_differs_in_case_is_stored_under_the_canonical_path() {
+    let fixture = ready().await;
+    create(&fixture, "hosted", hosted("source", "ALLOW")).await;
+    create(&fixture, "hosted", hosted("target", "ALLOW_ONCE")).await;
+    let pushed = push(&fixture, "source", nupkg("Foo", "1.0.0", ""), Auth::Admin).await;
+    assert_eq!(pushed.status, StatusCode::CREATED, "{}", pushed.text());
+    let format = astrum_format_nuget::Nuget::default();
+    let mut bundle =
+        support::bundle_of(&fixture, &format, "source", "/foo/1.0.0/foo.1.0.0.nupkg").await;
+    bundle.name = "Foo".to_owned();
+    bundle.assets[0].path = "/Foo/1.0.0/Foo.1.0.0.nupkg".to_owned();
+    let from = support::repository_ctx(&fixture, "source").await;
+    let to = support::repository_ctx(&fixture, "target").await;
+    let outcome = format
+        .transfer()
+        .expect("nuget takes part in promotion")
+        .receive(
+            &to,
+            &bundle,
+            &Lowered(LocalSource::new(from)),
+            Terms::new(Conflict::Fail, PROMOTED),
+        )
+        .await
+        .unwrap();
+    assert_eq!(outcome.status, Status::Copied);
+    let db = fixture.state.db().conn();
+    assert!(
+        store::find(db, "target", "/foo/1.0.0/foo.1.0.0.nupkg")
+            .await
+            .unwrap()
+            .is_some()
+    );
+    assert!(
+        store::find(db, "target", "/Foo/1.0.0/Foo.1.0.0.nupkg")
+            .await
+            .unwrap()
+            .is_none()
+    );
+    let again = push(&fixture, "target", nupkg("Foo", "1.0.0", ""), Auth::Admin).await;
+    assert_eq!(again.status, StatusCode::CONFLICT, "{}", again.text());
 }

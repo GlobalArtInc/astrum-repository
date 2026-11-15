@@ -341,6 +341,7 @@ pub async fn put_asset(
             store::put(ctx, put, astrum_blob::content_of(body)).await?;
         }
         _ => {
+            let put = put.declared_size(request.content_length());
             store::put(ctx, put, request.into_stream()).await?;
         }
     }

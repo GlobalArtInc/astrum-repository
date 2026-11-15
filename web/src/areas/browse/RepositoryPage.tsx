@@ -21,6 +21,9 @@ import {
 import { AssetPanel, assetPath, ComponentPanel, FolderPanel, treePath } from './details/panels';
 import { settingsPath } from './list/RepositoryListPage';
 import { OnlineStatus } from './parts';
+import { PromoteDialog } from './promote/PromoteDialog';
+import type { PromoteEntry } from './promote/selection';
+import { usePromotionTargets } from './promote/targets';
 import styles from './RepositoryPage.module.css';
 import { RepositorySearch } from './RepositorySearch';
 import {
@@ -129,10 +132,14 @@ function HeaderSearch({ repository, onOpen }: { repository: RepositoryItem; onOp
   const t = useT();
   const [text, setText] = useState('');
   const [open, setOpen] = useState(false);
+  const [picked, setPicked] = useState<PromoteEntry[]>([]);
+  const [promoting, setPromoting] = useState(false);
+  const source = picked[0]?.source ?? '';
+  const targets = usePromotionTargets(source === '' ? [] : [source]).get(source) ?? [];
   const query = useDebounced(text.trim(), 300);
   const box = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (!open) {
+    if (!open || promoting) {
       return;
     }
     const close = (event: MouseEvent) => {
@@ -142,7 +149,7 @@ function HeaderSearch({ repository, onOpen }: { repository: RepositoryItem; onOp
     };
     document.addEventListener('mousedown', close);
     return () => document.removeEventListener('mousedown', close);
-  }, [open]);
+  }, [open, promoting]);
   return (
     <div ref={box} className={styles.search}>
       <TextField.Root
@@ -184,12 +191,25 @@ function HeaderSearch({ repository, onOpen }: { repository: RepositoryItem; onOp
             repository={repository}
             query={query}
             selection=""
+            picked={picked}
+            onPick={setPicked}
+            onPromote={() => setPromoting(true)}
             onOpen={(target) => {
               setOpen(false);
               onOpen(target);
             }}
           />
         </div>
+      )}
+      {picked.length > 0 && (
+        <PromoteDialog
+          open={promoting}
+          onOpenChange={setPromoting}
+          source={source}
+          format={picked[0]?.format ?? ''}
+          items={picked.map((entry) => entry.item)}
+          targets={targets}
+        />
       )}
     </div>
   );
@@ -225,7 +245,7 @@ function Header({ repository, onOpen }: { repository: RepositoryItem; onOpen(pat
           </div>
         </div>
         <div className={styles.headerActions}>
-          <HeaderSearch repository={repository} onOpen={onOpen} />
+          <HeaderSearch key={repository.name} repository={repository} onOpen={onOpen} />
           <Button variant="surface" color="gray" highContrast onClick={copy}>
             <Copy size={14} aria-hidden="true" />
             {t('browse.repository.copyUrl')}

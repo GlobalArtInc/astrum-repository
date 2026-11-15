@@ -77,6 +77,20 @@ fn section_keys_are_the_json_names() {
 }
 
 #[test]
+fn a_policy_shows_in_the_document_only_when_set() {
+    let hosted = spec("maven", "hosted");
+    let mut body = minimal(hosted, "x");
+    body["policy"] = json!({"name": "strict"});
+    let repository = prepare(hosted, body, None).unwrap();
+    assert_eq!(
+        repository.document("http://h")["policy"],
+        json!({"name": "strict"})
+    );
+    let plain = prepare(hosted, minimal(hosted, "y"), None).unwrap();
+    assert!(plain.document("http://h").get("policy").is_none());
+}
+
+#[test]
 fn names_follow_the_documented_pattern() {
     for good in ["maven-releases", "-x", "a.b_c", "A1", &"x".repeat(200)] {
         assert!(
@@ -499,5 +513,23 @@ fn only_docker_repositories_force_basic_auth() {
         !prepare(raw, minimal(raw, "z"), None)
             .unwrap()
             .forces_basic_auth()
+    );
+}
+
+#[test]
+fn docker_hosted_keeps_immutable_tags_through_the_document() {
+    let docker = spec("docker", "hosted");
+    let mut body = minimal(docker, "tags");
+    body["storage"]["immutableTags"] = json!({"patterns": ["v*"], "exceptions": ["v*-rc*"]});
+    let first = prepare(docker, body, None).unwrap();
+    let document = first.document("http://localhost:8081");
+    let rules = json!({"patterns": ["v*"], "exceptions": ["v*-rc*"]});
+    assert_eq!(document["storage"]["immutableTags"], rules);
+    let mut again = document.clone();
+    again["name"] = json!("second");
+    let second = prepare(docker, again, None).unwrap();
+    assert_eq!(
+        second.document("http://localhost:8081")["storage"]["immutableTags"],
+        rules
     );
 }

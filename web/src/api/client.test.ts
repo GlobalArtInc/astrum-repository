@@ -92,6 +92,26 @@ describe('the API client', () => {
     stop();
   });
 
+  it('keeps the code of an error body', async () => {
+    mockFetch(jsonResponse({ id: '*', message: 'the code is wrong', code: 'second-factor-invalid' }, 401));
+    const error = (await request('/x').catch((failure: unknown) => failure)) as ApiError;
+    expect(error.code).toBe('second-factor-invalid');
+  });
+
+  it('reads a positive whole Retry-After in seconds and ignores other values', async () => {
+    const throttled = (retryAfter: string) =>
+      new Response(JSON.stringify({ id: '*', message: 'wait' }), {
+        status: 429,
+        headers: { 'content-type': 'application/json', 'Retry-After': retryAfter },
+      });
+    mockFetch(throttled('30'));
+    expect(((await request('/x').catch((failure: unknown) => failure)) as ApiError).retryAfter).toBe(30);
+    mockFetch(throttled('Wed, 21 Oct 2026 07:28:00 GMT'));
+    expect(
+      ((await request('/x').catch((failure: unknown) => failure)) as ApiError).retryAfter,
+    ).toBeUndefined();
+  });
+
   it('turns network failures into status 0', async () => {
     mockFetch(new TypeError('Failed to fetch'));
     const error = (await request('/x').catch((failure: unknown) => failure)) as ApiError;

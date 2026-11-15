@@ -250,6 +250,7 @@ pub async fn entry(
     path: &str,
     limit: u64,
 ) -> Result<Option<Vec<u8>>, ContentError> {
+    ctx.content.gate().check(ctx, &release.asset).await?;
     let source = zip::Blob {
         store: ctx
             .content

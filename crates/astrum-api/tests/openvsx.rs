@@ -6,8 +6,8 @@ use std::sync::{Arc, Mutex};
 
 use astrum_format_openvsx::names;
 use astrum_format_openvsx::testing::{Spec, vsix};
-use astrum_security::Scope;
 use astrum_security::ssrf::{SSRF_KEY, SsrfProtection};
+use astrum_security::{NewToken, Scope};
 use axum::Router;
 use axum::body::Body;
 use axum::extract::{Path, RawQuery, State};
@@ -536,6 +536,29 @@ async fn hosted_repositories_take_ovsx_publish_and_serve_the_registry_api() {
 }
 
 #[tokio::test]
+async fn wrong_passwords_in_a_token_pause_the_pair() {
+    let fixture = ready().await;
+    create(&fixture, "hosted", hosted("closed", "ALLOW")).await;
+    fixture.add_user("deployer", "deployer-password", &[]).await;
+    let wrong = "/repository/closed/api/acme/verify-pat?token=deployer:wrong";
+    for _ in 0..10 {
+        let reply = get(&fixture, wrong, Auth::None).await;
+        assert_eq!(reply.status, StatusCode::UNAUTHORIZED);
+    }
+    for token in ["deployer:wrong", "deployer:deployer-password"] {
+        let reply = get(
+            &fixture,
+            &format!("/repository/closed/api/acme/verify-pat?token={token}"),
+            Auth::None,
+        )
+        .await;
+        assert_eq!(reply.status, StatusCode::TOO_MANY_REQUESTS, "{token}");
+        assert!(reply.headers.contains_key("retry-after"));
+        assert!(reply.json()["error"].is_string());
+    }
+}
+
+#[tokio::test]
 async fn the_gallery_answers_editor_queries() {
     let fixture = ready().await;
     create(&fixture, "hosted", hosted("vsx", "ALLOW_ONCE")).await;
@@ -881,7 +904,7 @@ async fn tokens_challenges_and_privileges_follow_the_ovsx_client() {
     let (_, token) = fixture
         .state
         .security()
-        .create_token("deployer", "ovsx", Scope::Write, None)
+        .create_token("deployer", NewToken::personal("ovsx", Scope::Write, None))
         .await
         .unwrap();
     let bearer = format!("Bearer {token}");
@@ -989,7 +1012,7 @@ async fn tokens_challenges_and_privileges_follow_the_ovsx_client() {
     let (_, read_token) = fixture
         .state
         .security()
-        .create_token("reader", "ovsx", Scope::Write, None)
+        .create_token("reader", NewToken::personal("ovsx", Scope::Write, None))
         .await
         .unwrap();
     let unpublish_refused = call(
@@ -1811,4 +1834,133 @@ async fn the_rest_api_and_the_upload_form_take_open_vsx_repositories() {
     )
     .await;
     assert_eq!(other.status, StatusCode::OK, "{}", other.text());
+}
+
+#[tokio::test]
+async fn publishing_over_the_quota_answers_413_and_stores_nothing() {
+    let fixture = ready().await;
+    let mut body = hosted("vsx", "ALLOW");
+    body["storage"]["quota"] = json!({"limitBytes": 10, "enforce": true});
+    create(&fixture, "hosted", body).await;
+    let refused = publish(
+        &fixture,
+        "vsx",
+        Auth::Admin,
+        &package("hello", "1.0.0", None),
+    )
+    .await;
+    assert_eq!(
+        refused.status,
+        StatusCode::PAYLOAD_TOO_LARGE,
+        "{}",
+        refused.text()
+    );
+    assert!(refused.text().contains("vsx"), "{}", refused.text());
+    assert!(refused.text().contains("10"), "{}", refused.text());
+    let usage = astrum_content::usage::current(fixture.state.db().conn(), "vsx")
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(usage.bytes, 0);
+}
+
+#[tokio::test]
+async fn files_inside_a_blocked_extension_are_refused_and_a_group_does_not_fall_through() {
+    use sea_orm::ConnectionTrait;
+    let fixture = ready().await;
+    let policy = fixture
+        .call(
+            Method::POST,
+            "/service/rest/v1/security/policies",
+            Auth::Admin,
+            Some(
+                json!({"name": "strict", "vulnerabilities": {"mode": "block", "severity": "high"}}),
+            ),
+        )
+        .await;
+    assert_eq!(policy.status, StatusCode::CREATED, "{}", policy.text());
+    let mut guarded = hosted("vsx-a", "ALLOW_ONCE");
+    guarded["policy"] = json!({"name": "strict"});
+    create(&fixture, "hosted", guarded).await;
+    create(&fixture, "hosted", hosted("vsx-b", "ALLOW_ONCE")).await;
+    create(
+        &fixture,
+        "group",
+        json!({
+            "name": "vsx-all",
+            "online": true,
+            "storage": {"blobStoreName": "default", "strictContentTypeValidation": true},
+            "group": {"memberNames": ["vsx-a", "vsx-b"]},
+        }),
+    )
+    .await;
+    let bytes = package("hello", "1.0.0", None);
+    for repository in ["vsx-a", "vsx-b"] {
+        let done = publish(&fixture, repository, Auth::Admin, &bytes).await;
+        assert_eq!(done.status, StatusCode::CREATED, "{}", done.text());
+    }
+    let entries = |repository: &str| {
+        [
+            format!("/repository/{repository}/api/acme/hello/1.0.0/file/README.md"),
+            format!("/repository/{repository}/vscode/unpkg/acme/hello/1.0.0/extension/README.md"),
+            format!("/repository/{repository}/api/acme/hello/1.0.0/file/acme.hello-1.0.0.vsix"),
+        ]
+    };
+    for repository in ["vsx-a", "vsx-b", "vsx-all"] {
+        for path in entries(repository) {
+            let reply = get(&fixture, &path, Auth::Admin).await;
+            assert_eq!(reply.status, StatusCode::OK, "{path}: {}", reply.text());
+        }
+    }
+
+    let id: i64 = fixture
+        .state
+        .db()
+        .conn()
+        .query_one(sea_orm::Statement::from_string(
+            sea_orm::DbBackend::Postgres,
+            "SELECT id FROM component WHERE repository = 'vsx-a'".to_owned(),
+        ))
+        .await
+        .unwrap()
+        .unwrap()
+        .try_get("", "id")
+        .unwrap();
+    fixture
+        .state
+        .db()
+        .conn()
+        .execute_unprepared(&format!(
+            "INSERT INTO policy_verdict (repository, subject, policy, component_id, blocked, state, \
+               reasons, policy_revision, max_severity, high) \
+             SELECT 'vsx-a', 'c:{id}', 'strict', {id}, true, 'block', \
+               '[{{\"kind\":\"vulnerability\",\"advisory\":\"GHSA-1\",\"aliases\":[],\"severity\":\"high\",\"malicious\":false,\"package\":\"npm/x@1\",\"fixed\":\"2\",\"blocking\":true}}]'::jsonb, \
+               revision, 'high', 1 FROM content_policy WHERE name = 'strict' \
+             ON CONFLICT (repository, subject) DO UPDATE SET blocked = true, state = 'block', \
+               reasons = EXCLUDED.reasons, policy_revision = EXCLUDED.policy_revision"
+        ))
+        .await
+        .unwrap();
+
+    for repository in ["vsx-a", "vsx-all"] {
+        for path in entries(repository) {
+            let reply = get(&fixture, &path, Auth::Admin).await;
+            assert_eq!(
+                reply.status,
+                StatusCode::FORBIDDEN,
+                "{path}: {}",
+                reply.text()
+            );
+            assert_eq!(reply.headers["x-astrum-blocked-by"], "strict", "{path}");
+            assert!(
+                reply.text().contains("blocked by policy strict: GHSA-1"),
+                "{path}: {}",
+                reply.text()
+            );
+        }
+    }
+    for path in entries("vsx-b") {
+        let reply = get(&fixture, &path, Auth::Admin).await;
+        assert_eq!(reply.status, StatusCode::OK, "{path}: {}", reply.text());
+    }
 }

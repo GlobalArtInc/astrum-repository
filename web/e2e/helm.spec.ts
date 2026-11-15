@@ -206,7 +206,7 @@ test('the criteria search finds charts by their metadata', async ({ page, server
   await page.getByRole('combobox', { name: 'Condition' }).click();
   await page.getByRole('option', { name: 'Contains' }).click();
   await page.getByRole('textbox', { name: 'Value' }).fill('gateway');
-  await page.getByRole('button', { name: 'Search', exact: true }).click();
+  await page.getByRole('main').getByRole('button', { name: 'Search', exact: true }).click();
   await expect(page).toHaveURL(/\/search\/custom\?helm\.description=\*gateway\*$/);
   const found = page.getByRole('table').getByRole('button', { name: /^Open .* in the repository$/ });
   await expect(found).toHaveCount(1);

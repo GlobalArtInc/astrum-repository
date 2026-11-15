@@ -1,11 +1,21 @@
 mod auth;
+pub mod children;
 mod error;
+mod evidence;
+mod exempt;
+mod gate;
 pub mod gc;
 pub mod import;
+mod inventory;
+mod layers;
 mod manifest;
 mod reference;
 mod routes;
+mod sbom;
+mod signed_only;
 mod storage;
+mod supply;
+pub mod transfer;
 mod upload;
 mod upstream;
 
@@ -13,24 +23,27 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 
 use astrum_content::format::SearchTarget;
-use astrum_content::store::{self, Asset};
+use astrum_content::inventory::Inventory;
+use astrum_content::store::{self, Asset, Component};
 use astrum_content::{
     BrowseLayout, ContentError, ContentRequest, Ctx, Format, SearchKey, Serve, View, group, serve,
 };
 use astrum_repo::RepositoryType;
-use astrum_repo::config::WritePolicy;
+use astrum_repo::config::{Repository, WritePolicy};
 use async_trait::async_trait;
 use axum::body::Body;
 use axum::http::{HeaderMap, HeaderValue, Method, StatusCode, header};
 use axum::response::{IntoResponse, Response};
 use serde_json::{Value, json};
 
+pub use astrum_signature as signature;
 pub use auth::REALM;
-pub use routes::{Connector, FIRST_SUGGESTED_PORT, routes};
+pub use routes::{Connector, FIRST_SUGGESTED_PORT, routes, routes_with_sbom_limit};
 
 use crate::error::RegistryError;
 use crate::manifest::Manifest;
 use crate::reference::{Digest, Reference, Route};
+use crate::signed_only::SignedOnly;
 use crate::upstream::Upstreams;
 
 pub const ID: &str = "docker";
@@ -105,6 +118,7 @@ impl Mount {
 #[derive(Default)]
 pub struct Docker {
     upstreams: Upstreams,
+    signed_only: SignedOnly,
 }
 
 enum BlobHit {
@@ -377,15 +391,6 @@ impl Docker {
         }
     }
 
-    fn writable_policy(target: &Ctx) -> Option<WritePolicy> {
-        target
-            .repository
-            .attributes
-            .storage
-            .as_ref()
-            .and_then(|storage| storage.write_policy)
-    }
-
     async fn writable(&self, ctx: &Ctx, path: &str) -> Result<Ctx, RegistryError> {
         if !ctx.allowed(View::Add, path) && !ctx.allowed(View::Edit, path) {
             ctx.require(View::Add, path)?;
@@ -408,7 +413,7 @@ impl Docker {
                 )));
             }
         };
-        if Self::writable_policy(&target) == Some(WritePolicy::Deny) {
+        if storage::write_policy(&target) == Some(WritePolicy::Deny) {
             return Err(RegistryError::refused(format!(
                 "the repository {} is read-only",
                 target.name()
@@ -434,14 +439,18 @@ impl Docker {
         ctx: &Ctx,
         image: &str,
         reference: &Reference,
-    ) -> Result<Option<Asset>, ContentError> {
+    ) -> Result<Option<(Ctx, Asset)>, ContentError> {
         match ctx.kind() {
-            RepositoryType::Group => Ok(group::first(ctx, |member| async move {
-                self.leaf_manifest(&member, image, reference).await
-            })
-            .await?
-            .map(|(_, asset)| asset)),
-            _ => self.leaf_manifest(ctx, image, reference).await,
+            RepositoryType::Group => {
+                group::first(ctx, |member| async move {
+                    self.leaf_manifest(&member, image, reference).await
+                })
+                .await
+            }
+            _ => Ok(self
+                .leaf_manifest(ctx, image, reference)
+                .await?
+                .map(|asset| (ctx.clone(), asset))),
         }
     }
 
@@ -500,16 +509,20 @@ impl Docker {
         let name = call.mount.name(image);
         let reference =
             Reference::parse(raw).ok_or_else(|| RegistryError::manifest_unknown(&name, raw))?;
-        let asset = self
+        let (holder, asset) = self
             .find_manifest(ctx, image, &reference)
             .await?
             .ok_or_else(|| RegistryError::manifest_unknown(&name, raw))?;
+        self.signed_only
+            .require(&self.upstreams, &holder, image, &reference, &asset)
+            .await?;
         let digest = match &reference {
             Reference::Digest(digest) => digest.to_string(),
             Reference::Tag(_) => storage::digest_of(&asset)
                 .map(|digest| digest.to_string())
                 .unwrap_or_else(|| format!("sha256:{}", asset.sha256)),
         };
+        gate::gate_manifest(&holder, &reference, &asset).await?;
         let etag = format!("\"{digest}\"");
         let mut response = Response::builder()
             .header(header::CONTENT_TYPE, storage::media_type_of(&asset))
@@ -534,6 +547,12 @@ impl Docker {
         }
         let stream = storage::stream_of(ctx, &asset).await?;
         ctx.content.note_download(asset.id);
+        ctx.content.note_token_download(
+            ctx.subject.as_ref(),
+            &asset.repository,
+            true,
+            asset.size.max(0) as u64,
+        );
         response
             .body(Body::from_stream(stream))
             .map_err(|error| ContentError::internal(error).into())
@@ -569,6 +588,12 @@ impl Docker {
             .map_err(|_| RegistryError::too_large(MANIFEST_LIMIT))?;
         let parsed = manifest::parse(&bytes, content_type.as_deref())
             .map_err(RegistryError::manifest_invalid)?;
+        if parsed.children.len() > children::LIMIT {
+            return Err(RegistryError::manifest_invalid(format!(
+                "an index may list at most {} manifests",
+                children::LIMIT
+            )));
+        }
         let digest = match &reference {
             Reference::Digest(digest) => {
                 if !digest.matches_bytes(&bytes) {
@@ -586,10 +611,8 @@ impl Docker {
         };
         tags.dedup();
         for tag in &tags {
-            if !reference::valid_tag(tag) {
-                return Err(RegistryError::manifest_invalid(format!(
-                    "{tag} is not a valid tag"
-                )));
+            if let Some(problem) = reference::tag_problem(tag) {
+                return Err(RegistryError::manifest_invalid(problem));
             }
         }
         for blob in &parsed.blobs {
@@ -617,7 +640,10 @@ impl Docker {
             match storage::find(&target, &tag_path).await? {
                 Some(existing) if storage::digest_of(&existing).as_ref() == Some(&digest) => {}
                 Some(_) => {
-                    if !self.may_move_tag(&target, tag) {
+                    if let Some(reason) = storage::immutable_tag(&target.repository, image, tag) {
+                        return Err(RegistryError::refused(reason));
+                    }
+                    if !storage::may_move_tag(&target, tag) {
                         return Err(RegistryError::refused(format!(
                             "repository {} does not allow updating tag {tag} of {image}",
                             target.name()
@@ -651,23 +677,6 @@ impl Docker {
         Ok(response)
     }
 
-    fn may_move_tag(&self, target: &Ctx, tag: &str) -> bool {
-        match Self::writable_policy(target) {
-            Some(WritePolicy::AllowOnce) => {
-                tag == "latest"
-                    && target
-                        .repository
-                        .attributes
-                        .storage
-                        .as_ref()
-                        .and_then(|storage| storage.latest_policy)
-                        .unwrap_or(false)
-            }
-            Some(WritePolicy::Deny) => false,
-            _ => true,
-        }
-    }
-
     async fn store_manifest(
         &self,
         target: &Ctx,
@@ -690,6 +699,10 @@ impl Docker {
             let put = storage::manifest_put(image, tag, digest, parsed, Some(tag));
             store::adopt(target, put, &written).await?;
         }
+        if manifest::is_index(&parsed.media_type) {
+            children::replace(target.db(), target.name(), digest, &parsed.children).await?;
+        }
+        inventory::requeue::after_store(target, image, parsed, tags).await;
         Ok(())
     }
 
@@ -711,6 +724,9 @@ impl Docker {
             Some(Reference::Tag(tag)) => {
                 match storage::find(ctx, &storage::manifest_path(image, &tag)).await? {
                     Some(found) => {
+                        if let Some(reason) = storage::protected_tag(&ctx.repository, &found) {
+                            return Err(RegistryError::refused(reason));
+                        }
                         store::delete_asset(&ctx.content, found).await?;
                         true
                     }
@@ -734,7 +750,9 @@ impl Docker {
     ) -> Result<bool, ContentError> {
         let mut queue = vec![digest.clone()];
         let mut seen = HashSet::new();
-        let mut deleted = false;
+        let mut known = HashSet::new();
+        let mut doomed: Vec<Asset> = Vec::new();
+        let mut forgotten: Vec<String> = Vec::new();
         while let Some(current) = queue.pop() {
             if !seen.insert(current.clone()) {
                 continue;
@@ -750,26 +768,40 @@ impl Docker {
                     queue.push(next);
                 }
             }
-            let mut doomed = storage::tags_pointing_at(ctx, image, &current).await?;
+            let mut found = storage::tags_pointing_at(ctx, image, &current).await?;
             let schema = current.referrers_tag();
             for suffix in ["", ".sig", ".att", ".sbom"] {
                 let path = storage::manifest_path(image, &format!("{schema}{suffix}"));
-                if let Some(found) = storage::find(ctx, &path).await?
-                    && !doomed.iter().any(|known| known.id == found.id)
+                if let Some(tagged) = storage::find(ctx, &path).await?
+                    && !found.iter().any(|other| other.id == tagged.id)
                 {
-                    if let Some(target) = storage::digest_of(&found) {
+                    if let Some(target) = storage::digest_of(&tagged) {
                         queue.push(target);
                     }
-                    doomed.push(found);
+                    found.push(tagged);
                 }
             }
+            let stored = own.is_some();
             if let Some(own) = own {
-                doomed.push(own);
+                found.push(own);
             }
-            for asset in doomed {
-                store::delete_asset(&ctx.content, asset).await?;
-                deleted = true;
+            if stored {
+                forgotten.push(current.to_string());
             }
+            doomed.extend(found.into_iter().filter(|asset| known.insert(asset.id)));
+        }
+        if let Some(reason) = doomed
+            .iter()
+            .find_map(|asset| storage::protected_tag(&ctx.repository, asset))
+        {
+            return Err(ContentError::Protected(reason));
+        }
+        let deleted = !doomed.is_empty();
+        for asset in doomed {
+            store::delete_asset(&ctx.content, asset).await?;
+        }
+        for digest in forgotten {
+            children::forget(ctx.db(), ctx.name(), &digest).await?;
         }
         Ok(deleted)
     }
@@ -1368,6 +1400,13 @@ impl Format for Docker {
         Ok(self.serve(ctx, request, mount).await)
     }
 
+    async fn gate_asset(&self, ctx: &Ctx, asset: &Asset) -> Result<(), ContentError> {
+        match gate::reference_of(asset) {
+            Some(reference) => gate::gate_manifest(ctx, &reference, asset).await,
+            None => Ok(()),
+        }
+    }
+
     async fn get(&self, ctx: &Ctx, path: &str) -> Result<Option<Asset>, ContentError> {
         match ctx.kind() {
             RepositoryType::Group => {
@@ -1382,6 +1421,18 @@ impl Format for Docker {
         }
     }
 
+    fn transfer(&self) -> Option<&dyn astrum_content::transfer::Transfer> {
+        Some(&transfer::TRANSFER)
+    }
+
+    fn can_protect(&self, asset: &Asset) -> bool {
+        asset.kind == storage::TAG
+    }
+
+    fn protected(&self, repository: &Repository, asset: &Asset) -> Option<String> {
+        storage::protected_tag(repository, asset)
+    }
+
     fn browse_layout(&self) -> BrowseLayout {
         BrowseLayout {
             path: Some(
@@ -1393,6 +1444,14 @@ impl Format for Docker {
 
     fn search_keys(&self) -> &'static [SearchKey] {
         SEARCH_KEYS
+    }
+
+    async fn inventory(
+        &self,
+        ctx: &Ctx,
+        component: &Component,
+    ) -> Result<Option<Inventory>, ContentError> {
+        inventory::of(&self.upstreams, ctx, component).await
     }
 }
 

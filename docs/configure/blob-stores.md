@@ -169,7 +169,45 @@ under **Settings → System → Tasks** take care of the rest:
 |---|---|
 | Admin - Cleanup repositories using their associated policies | Runs the cleanup policies assigned to repositories; daily by default |
 | Docker - Delete unused manifests and images | Deletes untagged manifests and unused layers of hosted Docker repositories that are older than the deploy offset (24 hours by default); daily by default |
-| Admin - Compact blob store | Deletes blobs that no asset refers to, such as the leftovers of interrupted uploads, if they are older than the grace period (one day by default); daily by default |
+| Admin - Compact blob store | Deletes blobs that no asset refers to and no running transfer holds, such as the leftovers of interrupted uploads, if they are older than the grace period (one day by default); daily by default |
 | Repair - Recalculate blob store storage | Counts the blobs and bytes of a store again, if the totals shown drifted |
 
 The totals of a store (blob count and bytes) are kept in the database and updated as blobs come and go.
+
+## Moving idle blobs to another store
+
+The task **Admin - Move idle blobs to another store** (type `blobstore.tier`) moves the blobs that nobody uses
+from one store to another, for example from a fast local store to a cheaper S3 bucket. Create it under
+**Settings → System → Tasks**; it has no schedule by default, so run it by hand or give it one. The
+blob store page shows the assets and the size each store holds, so you can see what a move changed.
+
+| Property | Meaning | Default |
+|---|---|---|
+| `source` | The blob store to move blobs from | |
+| `target` | The blob store to move them to | |
+| `repository` | Only the assets of this repository; empty takes every repository | all |
+| `idleDays` | An asset is idle when the later of its last blob update and its last download is older than this many days | `90` |
+| `minSizeMiB` | Blobs smaller than this stay where they are | `1` |
+| `maxGiBPerRun` | The run stops after moving this much | `50` |
+| `maxAssetsPerRun` | The run stops after moving this many assets | `100000` |
+| `maxMiBPerSecond` | Speed limit for reading from the source; `0` is unlimited. Server-side copies of blobs with equal content are not limited, as they do not read the source | `0` |
+| `drainMinutes` | How long the old blob stays after its asset has moved | `60` |
+| `dryRun` | Reports what would move and writes nothing | `false` |
+
+Only component assets and Docker blobs move, and only those of at least `minSizeMiB`; Docker manifests and
+metadata stay. The target must not overlap the source: a store cannot be a source and a target at once, and
+a group and its member cannot be used together. A cold store must not share a group with the store that
+repositories write to, because new blobs would land in it.
+
+Readers see nothing change. The asset points at the target at once, and a download that started before the
+move still gets the old blob, which stays for the drain time. After that the same task deletes it on its next
+run, or **Admin - Delete expired sessions and uploads** does.
+
+To move the blobs back, create the same task with `source` and `target` swapped and `idleDays` set to `0`.
+Run it with `dryRun` first to see the numbers. The report says, for example:
+
+```
+moved 1204 assets (3.2 GB) from default to archive; 0 changed meanwhile, 0 corrupt at source, 0 failed; freed 1.1 GB from earlier runs
+```
+
+A dry run says `would move 1204 assets (3.2 GB) from default to archive`.

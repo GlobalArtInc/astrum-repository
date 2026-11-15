@@ -106,11 +106,15 @@ impl From<ContentError> for Status {
                 Code::PermissionDenied,
                 "you do not have the permission this needs",
             ),
+            ContentError::Blocked(message) => Status::new(Code::PermissionDenied, message),
             ContentError::BadRequest(message) => Status::invalid(message),
-            ContentError::Conflict(message) => Status::exists(message),
+            ContentError::Conflict(message) | ContentError::Protected(message) => {
+                Status::exists(message)
+            }
             ContentError::MethodNotAllowed { method, .. } => {
                 Status::invalid(format!("{method} is not allowed here"))
             }
+            ContentError::QuotaExceeded { .. } => Status::precondition(error.to_string()),
             ContentError::RangeNotSatisfiable(_) | ContentError::PreconditionFailed => {
                 Status::precondition("a precondition of the request does not hold")
             }
@@ -344,6 +348,10 @@ mod tests {
         );
         assert_eq!(
             Status::from(ContentError::Forbidden).code,
+            Code::PermissionDenied
+        );
+        assert_eq!(
+            Status::from(ContentError::Blocked("blocked by policy".to_owned())).code,
             Code::PermissionDenied
         );
         assert_eq!(

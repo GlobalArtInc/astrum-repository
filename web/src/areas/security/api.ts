@@ -12,6 +12,14 @@ export const ANONYMOUS = `${SECURITY}/anonymous`;
 export const REALMS_AVAILABLE = `${SECURITY}/realms/available`;
 export const REALMS_ACTIVE = `${SECURITY}/realms/active`;
 export const SSRF = `${SECURITY}/ssrf-protection`;
+export const IP_ALLOW = `${SECURITY}/ip-allow`;
+export const POLICIES = `${SECURITY}/policies`;
+export const POLICY_EXCEPTIONS = `${SECURITY}/exceptions`;
+export const COOLDOWN = `${SECURITY}/cooldown`;
+export const TRUSTED_KEYS = `${SECURITY}/keys`;
+export const ADVISORY_FEEDS = `${SECURITY}/advisories/feeds`;
+export const ADVISORY_IMPORT = `${SECURITY}/advisories/import`;
+export const SECURITY_SUMMARY = `${SECURITY}/summary`;
 export const REPOSITORIES = `${V1}/repositories`;
 export const ROLE_SOURCES = `${INTERNAL}/ui/roles/sources`;
 export const SOURCE_ROLES = `${INTERNAL}/ui/roles`;
@@ -118,10 +126,49 @@ export interface SsrfProtection {
   allowedDomains: string[];
 }
 
+export interface IpAllowLists {
+  management: string[];
+  content: string[];
+  agents: string[];
+}
+
+export interface IpAllowView extends IpAllowLists {
+  yourAddress: string | null;
+  peer: string | null;
+  trustedProxies: string[];
+  forwardedIgnored: boolean;
+}
+
 export interface Repository {
   name: string;
   format: string;
   type: string;
+}
+
+export type CooldownMode = 'off' | 'report' | 'block';
+
+export interface CooldownRule {
+  mode: CooldownMode;
+  minAgeDays: number;
+  exclude: string[];
+}
+
+export interface CooldownWaitPage {
+  items: CooldownWait[];
+  continuationToken: string | null;
+}
+
+export interface CooldownWait {
+  repository: string;
+  format: string;
+  namespace: string | null;
+  name: string;
+  version: string;
+  publishedAt: string;
+  availableAt: string;
+  blocked: boolean;
+  refusals: number;
+  firstRefusedAt: string | null;
 }
 
 export interface ContentSelector {

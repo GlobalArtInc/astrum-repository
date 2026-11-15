@@ -6,6 +6,7 @@ use std::net::SocketAddr;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
+use astrum_content::transfer::Status;
 use astrum_security::ssrf::{SSRF_KEY, SsrfProtection};
 use axum::Router;
 use axum::body::Body;
@@ -1064,4 +1065,43 @@ async fn groups_merge_indexes_and_the_first_member_wins() {
 fn base64_credentials(user: &str, password: &str) -> String {
     use base64::Engine;
     base64::engine::general_purpose::STANDARD.encode(format!("{user}:{password}"))
+}
+
+#[tokio::test]
+async fn charts_and_their_provenance_are_promoted_and_the_target_index_lists_them() {
+    let fixture = ready().await;
+    create(&fixture, "hosted", hosted("source", "ALLOW")).await;
+    create(&fixture, "hosted", hosted("target", "ALLOW")).await;
+    let chart = package("web", "1.2.3");
+    let signed = provenance("web", "1.2.3", &chart).into_bytes();
+    let uploaded = put(
+        &fixture,
+        "/repository/source/web-1.2.3.tgz",
+        chart,
+        Auth::Admin,
+    )
+    .await;
+    assert_eq!(uploaded.status, StatusCode::OK, "{}", uploaded.text());
+    let signed_upload = put(
+        &fixture,
+        "/repository/source/web-1.2.3.tgz.prov",
+        signed.clone(),
+        Auth::Admin,
+    )
+    .await;
+    assert_eq!(
+        signed_upload.status,
+        StatusCode::OK,
+        "{}",
+        signed_upload.text()
+    );
+    let format = astrum_format_helm::Helm::default();
+    let bundle = support::bundle_of(&fixture, &format, "source", "/web-1.2.3.tgz").await;
+    let outcome = support::receive(&fixture, &format, "source", "target", &bundle).await;
+    assert_eq!(outcome.status, Status::Copied);
+    let index = index_of(&get(&fixture, "/repository/target/index.yaml").await);
+    assert_eq!(versions(&index, "web"), ["1.2.3"]);
+    let prov = get(&fixture, "/repository/target/web-1.2.3.tgz.prov").await;
+    assert_eq!(prov.status, StatusCode::OK, "{}", prov.text());
+    assert_eq!(prov.body, signed);
 }

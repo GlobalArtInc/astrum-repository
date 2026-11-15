@@ -2,8 +2,11 @@ mod support;
 #[path = "support/namesake.rs"]
 mod world;
 
+use std::collections::BTreeSet;
+
 use astrum_db::entity::{audit_event, oauth_grant, user_session};
-use astrum_security::Scope;
+use astrum_security::catalogue::DEFAULT_SOURCE;
+use astrum_security::{NewToken, Scope, Subject};
 use axum::http::{Method, StatusCode};
 use sea_orm::{ActiveValue, ColumnTrait, EntityTrait, QueryFilter};
 use serde_json::{Value, json};
@@ -71,6 +74,7 @@ async fn session_row(world: &World, user: &str, realm: &str) {
         last_seen_at: ActiveValue::Set(now),
         client_ip: ActiveValue::Set(String::new()),
         user_agent: ActiveValue::Set(String::new()),
+        restricted: ActiveValue::Set(false),
     })
     .exec(world.fixture.state.db().conn())
     .await
@@ -103,7 +107,7 @@ async fn a_new_local_user_does_not_inherit_the_credentials_of_its_id() {
     let world = setup().await;
     let security = world.fixture.state.security();
     let (_, old) = security
-        .create_token("zoe", "old", Scope::Write, None)
+        .create_token("zoe", NewToken::personal("old", Scope::Write, None))
         .await
         .unwrap();
     let dead = || Auth::Basic("zoe", old.as_str());
@@ -118,8 +122,16 @@ async fn a_new_local_user_does_not_inherit_the_credentials_of_its_id() {
         )
         .await
         .unwrap();
+    let stale = Subject::new(
+        "zoe",
+        DEFAULT_SOURCE,
+        LOCAL_REALM,
+        BTreeSet::new(),
+        Vec::new(),
+        Vec::new(),
+    );
     security
-        .issue_format_token("NpmToken", "zoe", None)
+        .issue_format_token("NpmToken", &stale, None)
         .await
         .unwrap();
     world.grant("zoe", LOCAL_REALM).await;

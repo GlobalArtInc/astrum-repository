@@ -33,7 +33,7 @@ test('a hugging face proxy is made through the form and offers its criteria', as
   await page.getByRole('combobox', { name: 'Condition' }).click();
   await page.getByRole('option', { name: 'Contains' }).click();
   await page.getByRole('textbox', { name: 'Value' }).fill('config');
-  await page.getByRole('button', { name: 'Search', exact: true }).click();
+  await page.getByRole('main').getByRole('button', { name: 'Search', exact: true }).click();
   await expect(page).toHaveURL(/\/search\/custom\?huggingface\.file=\*config\*$/);
 
   await page.setViewportSize({ width: 390, height: 844 });

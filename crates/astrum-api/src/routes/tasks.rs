@@ -223,6 +223,7 @@ pub async fn creatable(state: &AppState) -> Result<Vec<std::sync::Arc<dyn TaskKi
         .tasks()
         .kinds()
         .into_iter()
+        .filter(|kind| !kind.system())
         .filter(|kind| !kind.singleton() || !counts.contains_key(kind.id()))
         .collect())
 }
@@ -325,6 +326,20 @@ async fn prepare(
         &choices,
         &mut problems,
     );
+    if let Err(problem) = kind
+        .validate(state.content(), stored_properties.as_ref(), &properties)
+        .await
+    {
+        problems.add(problem.id, problem.message);
+    }
+    let stores = state
+        .tasks()
+        .content()
+        .blob_stores()
+        .configs()
+        .await
+        .map_err(ApiError::internal)?;
+    kind.check(&properties, &stores, &mut problems);
     problems.finish().map_err(self::problems)?;
     Ok(NewTask {
         kind: kind.id().to_owned(),
@@ -371,6 +386,14 @@ async fn create(
         .tasks()
         .kind(kind_id)
         .ok_or_else(|| ApiError::invalid("type", format!("{kind_id} is not a task type")))?;
+    if kind.system() {
+        return Err(ApiError::invalid(
+            "type",
+            format!(
+                "{kind_id} tasks are made and removed by the system and cannot be created here"
+            ),
+        ));
+    }
     if kind.singleton() && store::count_of_kind(state.db().conn(), kind.id()).await? > 0 {
         return Err(ApiError::invalid(
             "type",

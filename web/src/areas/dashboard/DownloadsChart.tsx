@@ -1,8 +1,8 @@
 import { Text } from '@radix-ui/themes';
 import { type PointerEvent, useLayoutEffect, useRef, useState } from 'react';
-import { formatNumber, type Language, useI18n, useT } from '../../i18n';
+import { type Language, useI18n } from '../../i18n';
 import styles from './Dashboard.module.css';
-import { axisMax, type DayDownloads, isWeekend, parseDay, peakOf } from './types';
+import { axisMax, type DayEntry, isWeekend, parseDay, peakBy } from './types';
 
 export const CHART_HEIGHT = 260;
 const LEFT = 48;
@@ -95,8 +95,16 @@ interface Hover {
   y: number;
 }
 
-export function DownloadsChart({ days }: { days: DayDownloads[] }) {
-  const t = useT();
+export type ChartFormat = (language: Language, value: number) => string;
+
+interface ChartProps<T extends DayEntry> {
+  days: T[];
+  value: (entry: T) => number;
+  format: ChartFormat;
+  ariaLabel: string;
+}
+
+export function DownloadsChart<T extends DayEntry>({ days, value, format, ariaLabel }: ChartProps<T>) {
   const { language } = useI18n();
   const [ref, measured] = useWidth();
   const [hover, setHover] = useState<Hover | null>(null);
@@ -107,9 +115,9 @@ export function DownloadsChart({ days }: { days: DayDownloads[] }) {
   const slot = plot / Math.max(1, count);
   const gap = Math.min(barGap(count), slot / 2);
   const barWidth = Math.max(1, Math.floor(slot - gap));
-  const peak = peakOf(days);
-  const max = axisMax(peak?.downloads ?? 0);
-  const scale = (value: number) => bottom - (value / max) * (bottom - TOP);
+  const peak = peakBy(days, value);
+  const max = axisMax(peak ? value(peak) : 0);
+  const scale = (amount: number) => bottom - (amount / max) * (bottom - TOP);
   const ticks = [0, max / 2, max];
   const step = labelStep(count, width);
 
@@ -134,7 +142,7 @@ export function DownloadsChart({ days }: { days: DayDownloads[] }) {
       onPointerMove={onMove}
       onPointerLeave={() => setHover(null)}
     >
-      <svg width={width} height={CHART_HEIGHT} role="img" aria-label={t('dashboard.chart.label')}>
+      <svg width={width} height={CHART_HEIGHT} role="img" aria-label={ariaLabel}>
         {ticks.map((tick) => (
           <line
             key={`grid-${tick}`}
@@ -155,14 +163,15 @@ export function DownloadsChart({ days }: { days: DayDownloads[] }) {
           />
         )}
         {days.map((entry, index) => {
-          if (entry.downloads <= 0) {
+          const amount = value(entry);
+          if (amount <= 0) {
             return null;
           }
           const x = LEFT + index * slot + gap / 2;
           return (
             <path
               key={entry.day}
-              d={bar(x, scale(entry.downloads), barWidth, bottom)}
+              d={bar(x, scale(amount), barWidth, bottom)}
               className={isWeekend(entry.day) ? styles.weekendBar : styles.weekdayBar}
               data-day={entry.day}
             />
@@ -177,7 +186,7 @@ export function DownloadsChart({ days }: { days: DayDownloads[] }) {
             textAnchor="end"
             className={styles.axisText}
           >
-            {formatNumber(language, tick)}
+            {format(language, tick)}
           </text>
         ))}
         {days.map((entry, index) => {
@@ -203,9 +212,9 @@ export function DownloadsChart({ days }: { days: DayDownloads[] }) {
           (() => {
             const index = days.indexOf(peak);
             const center = LEFT + index * slot + slot / 2;
-            const label = formatNumber(language, peak.downloads);
+            const label = format(language, value(peak));
             const bubble = Math.round(label.length * 6.6 + 12);
-            const top = scale(peak.downloads) - 24;
+            const top = scale(value(peak)) - 24;
             return (
               <g className={styles.peak}>
                 <rect x={center - bubble / 2} y={top} width={bubble} height={18} rx={6} />
@@ -231,7 +240,7 @@ export function DownloadsChart({ days }: { days: DayDownloads[] }) {
             {longDay(language, hovered.day)}
           </Text>
           <Text as="div" size="2" weight="bold">
-            {formatNumber(language, hovered.downloads)}
+            {format(language, value(hovered))}
           </Text>
         </div>
       )}

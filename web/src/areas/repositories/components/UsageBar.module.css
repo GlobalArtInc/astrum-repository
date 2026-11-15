@@ -1,0 +1,59 @@
+.usage {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.figures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+  margin: 0;
+}
+
+.figures div {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.figures dt {
+  color: var(--gray-11);
+  font-size: var(--font-size-1);
+}
+
+.figures dd {
+  margin: 0;
+}
+
+.track {
+  height: 8px;
+  border-radius: var(--radius-2);
+  background: var(--gray-5);
+  overflow: hidden;
+}
+
+.fill {
+  height: 100%;
+  background: var(--accent-9);
+}
+
+.fill[data-level="warning"] {
+  background: var(--amber-9);
+}
+
+.fill[data-level="full"] {
+  background: var(--red-9);
+}
+
+.note {
+  margin: 0;
+  color: var(--gray-11);
+  font-size: var(--font-size-1);
+}
+
+.note[data-level="warning"] {
+  color: var(--amber-11);
+}
+
+.note[data-level="full"] {
+  color: var(--red-11);
+}

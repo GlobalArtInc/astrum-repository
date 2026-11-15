@@ -17,6 +17,7 @@ import {
   describeError,
   ErrorState,
   FormError,
+  NumberField,
   Page,
   SelectField,
   TextAreaField,
@@ -38,6 +39,7 @@ import {
   fromPolicy,
   LIST_PAGE,
   MAX_DAYS,
+  MAX_RETAIN,
   POLICIES,
   type Policy,
   type PolicyValues,
@@ -199,6 +201,7 @@ function PolicyForm({
     days: t('cleanup.problems.days', { max: MAX_DAYS }),
     regex: t('cleanup.problems.regex'),
     regexInvalid: t('cleanup.problems.regexInvalid'),
+    keep: t('cleanup.problems.keep', { max: MAX_RETAIN }),
   };
   const live = validate(values, criteria, creating, texts);
 
@@ -244,6 +247,7 @@ function PolicyForm({
           criteriaLastDownloaded: 'usage',
           criteriaAssetRegex: 'regex',
           criteriaReleaseType: 'releaseType',
+          retain: 'keep',
         };
         const unmatched: string[] = [];
         for (const problem of error.fieldErrors) {
@@ -442,6 +446,16 @@ function PolicyForm({
                 <ProblemText message={problems.regex} />
               </Criterion>
             )}
+            <NumberField
+              label={t('cleanup.form.keep')}
+              hint={t('cleanup.form.keepHint')}
+              min={1}
+              max={MAX_RETAIN}
+              value={values.keep}
+              onChange={(value) => set('keep', value)}
+              error={problems.keep}
+              disabled={readOnly}
+            />
           </div>
           {problems.criteria && (
             <Text as="p" size="2" color="red" role="alert" className={styles.criteriaProblem}>

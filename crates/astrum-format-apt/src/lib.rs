@@ -1,14 +1,17 @@
 pub mod deb;
 mod hosted;
+pub mod import;
 pub mod metadata;
 mod signing;
 pub mod task;
 pub mod testing;
 
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
+use astrum_content::import::{Described, Imported};
 use astrum_content::proxy;
 use astrum_content::store::{self, ComponentKey, PutAsset};
+use astrum_content::transfer::{Bundle, GenericTransfer, Transfer};
 use astrum_content::{
     Asset, BrowseLayout, ContentError, ContentRequest, Ctx, Format, Freshness, Serve, UploadField,
     UploadForm, UploadSpec, View, serve,
@@ -19,6 +22,7 @@ use axum::body::Body;
 use axum::http::{Method, StatusCode, header};
 use axum::response::Response;
 use futures_util::TryStreamExt;
+use futures_util::future::BoxFuture;
 use serde_json::json;
 
 pub const ID: &str = "apt";
@@ -29,6 +33,7 @@ pub const DEB_TYPE: &str = "application/x-debian-package";
 #[derive(Default)]
 pub struct Apt {
     keys: Arc<signing::Keys>,
+    transfer: OnceLock<GenericTransfer>,
 }
 
 pub fn distribution(ctx: &Ctx) -> String {
@@ -38,6 +43,31 @@ pub fn distribution(ctx: &Ctx) -> String {
         .as_ref()
         .and_then(|apt| apt.distribution.clone())
         .unwrap_or_default()
+}
+
+fn transfer_with(keys: Arc<signing::Keys>) -> GenericTransfer {
+    GenericTransfer {
+        plan: import::plan,
+        describe: describe_imported,
+        after: None,
+        admit: Some(admit_bundle),
+        replaceable: None,
+        check_content_type: true,
+        carried: &[],
+        bundle_skip: None,
+    }
+    .after_with(move |ctx, _| {
+        let keys = keys.clone();
+        Box::pin(async move { hosted::rebuild(ctx, &keys, false).await })
+    })
+}
+
+fn describe_imported(file: &Imported) -> BoxFuture<'_, Result<Option<Described>, String>> {
+    Box::pin(import::describe(file))
+}
+
+fn admit_bundle<'a>(ctx: &'a Ctx, bundle: &'a Bundle) -> BoxFuture<'a, Result<(), ContentError>> {
+    Box::pin(std::future::ready(hosted::admit(ctx, bundle)))
 }
 
 fn escape(text: &str) -> String {
@@ -276,6 +306,13 @@ impl Format for Apt {
         let written = store::write_blob(&ctx, UploadForm::stream(file).await?).await?;
         hosted::adopt(&ctx, &self.keys, written).await?;
         Ok(())
+    }
+
+    fn transfer(&self) -> Option<&dyn Transfer> {
+        Some(
+            self.transfer
+                .get_or_init(|| transfer_with(self.keys.clone())),
+        )
     }
 
     fn browse_layout(&self) -> BrowseLayout {

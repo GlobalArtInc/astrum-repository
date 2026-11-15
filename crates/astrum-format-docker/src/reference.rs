@@ -127,6 +127,10 @@ pub fn valid_tag(tag: &str) -> bool {
     }
 }
 
+pub fn tag_problem(tag: &str) -> Option<String> {
+    (!valid_tag(tag)).then(|| format!("{tag} is not a valid tag"))
+}
+
 pub fn valid_name(name: &str) -> bool {
     !name.is_empty() && name.len() <= 255 && name.split('/').all(valid_component)
 }

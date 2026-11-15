@@ -314,7 +314,7 @@ async fn deleting_a_folder_removes_what_the_caller_may_delete() {
     assert_eq!(reply.status, StatusCode::OK, "{}", reply.text());
     assert_eq!(
         reply.json(),
-        json!({"deletedAssets": 2, "deletedComponents": 2, "skippedAssets": 1})
+        json!({"deletedAssets": 2, "deletedComponents": 2, "skippedAssets": 1, "protectedAssets": 0})
     );
     let root = browse(&fixture, "files", "a", Auth::Admin).await.json();
     assert_eq!(kinds_and_names(&root), pairs(&[("asset", "one.txt")]));
@@ -372,7 +372,7 @@ async fn deleting_a_folder_removes_what_the_caller_may_delete() {
     let reply = remove(&fixture, "files", "a/", Auth::Admin).await;
     assert_eq!(
         reply.json(),
-        json!({"deletedAssets": 1, "deletedComponents": 1, "skippedAssets": 0})
+        json!({"deletedAssets": 1, "deletedComponents": 1, "skippedAssets": 0, "protectedAssets": 0})
     );
     assert_eq!(
         remove(&fixture, "files", "a", Auth::Admin).await.status,
@@ -419,7 +419,7 @@ async fn groups_refuse_folder_deletes_and_proxies_take_them() {
     let reply = remove(&fixture, "releases", "org/acme/lib/1.0", Auth::Admin).await;
     assert_eq!(
         reply.json(),
-        json!({"deletedAssets": 2, "deletedComponents": 1, "skippedAssets": 0})
+        json!({"deletedAssets": 2, "deletedComponents": 1, "skippedAssets": 0, "protectedAssets": 0})
     );
     let lib = browse(&fixture, "releases", "org/acme/lib", Auth::Admin)
         .await

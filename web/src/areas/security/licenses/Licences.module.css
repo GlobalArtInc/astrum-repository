@@ -1,0 +1,21 @@
+.filters {
+  margin-bottom: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 12rem;
+}
+
+.label {
+  font-size: 13px;
+  color: var(--gray-11);
+}
+
+.more {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+}

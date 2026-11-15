@@ -80,6 +80,7 @@ where
         match visit(member_ctx.clone()).await {
             Ok(Some(found)) => return Ok(Some((member_ctx, found))),
             Ok(None) => {}
+            Err(error @ ContentError::Blocked(_)) => return Err(error),
             Err(error) => {
                 tracing::info!(group = ctx.name(), member = member_ctx.name(), %error, "a group member failed; trying the next");
             }

@@ -8,13 +8,16 @@ mod packument;
 mod path;
 mod reply;
 mod search;
+mod transfer;
 mod upload;
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, Weak};
 
 use astrum_content::format::{SearchKey, SearchTarget};
-use astrum_content::store::PutAsset;
+use astrum_content::inventory::{Inventory, LicenseFact, PackageRef};
+use astrum_content::store::{self, Component, PutAsset};
+use astrum_content::transfer::Transfer;
 use astrum_content::{
     Asset, BrowseLayout, ContentError, ContentRequest, Ctx, Format, Freshness, Serve, UploadForm,
     UploadSpec, View, serve,
@@ -25,7 +28,7 @@ use axum::http::{Method, StatusCode};
 use axum::response::Response;
 use serde_json::{Value, json};
 
-use crate::documents::not_found;
+use crate::documents::{not_found, read_json};
 use crate::path::{Name, Route};
 
 pub use login::routes;
@@ -211,16 +214,83 @@ fn whoami(ctx: &Ctx) -> Result<Response, ContentError> {
     match &ctx.subject {
         Some(subject) if !subject.anonymous => Ok(reply::json(
             StatusCode::OK,
-            &json!({"username": subject.user_id}),
+            &json!({"username": subject.public_identity().id}),
         )),
         _ => Err(ContentError::Unauthorized),
     }
+}
+
+fn package_name(namespace: &str, name: &str) -> Option<Name> {
+    let full = match namespace {
+        "" => name.to_owned(),
+        scope => format!("@{scope}/{name}"),
+    };
+    Name::parse(&full)
+}
+
+pub(crate) fn package_inventory(namespace: &str, name: &str, version: &str) -> Option<Inventory> {
+    if name.is_empty() || version.is_empty() {
+        return None;
+    }
+    let package = package_name(namespace, name)?;
+    let purl = match &package.scope {
+        Some(scope) => format!("pkg:npm/%40{scope}/{}@{version}", package.bare),
+        None => format!("pkg:npm/{}@{version}", package.bare),
+    };
+    Some(Inventory {
+        key: purl.clone(),
+        packages: vec![PackageRef {
+            ecosystem: "npm".to_owned(),
+            name: package.to_string(),
+            version: version.to_owned(),
+            purl,
+        }],
+        license: None,
+        complete: true,
+        ..Inventory::default()
+    })
+}
+
+async fn stored_license(
+    ctx: &Ctx,
+    component: &Component,
+) -> Result<Option<LicenseFact>, ContentError> {
+    let Some(name) = package_name(&component.namespace, &component.name) else {
+        return Ok(None);
+    };
+    let Some(asset) = store::find(ctx.db(), ctx.name(), &name.packument_path()).await? else {
+        return Ok(None);
+    };
+    let doc = read_json(ctx, &asset).await?;
+    Ok(
+        packument::license(&doc, &component.version).map(|declared| LicenseFact {
+            declared,
+            source: "npm.packument".to_owned(),
+        }),
+    )
 }
 
 #[async_trait]
 impl Format for Npm {
     fn id(&self) -> &'static str {
         ID
+    }
+
+    async fn inventory(
+        &self,
+        ctx: &Ctx,
+        component: &Component,
+    ) -> Result<Option<Inventory>, ContentError> {
+        let Some(inventory) =
+            package_inventory(&component.namespace, &component.name, &component.version)
+        else {
+            return Ok(None);
+        };
+        let license = stored_license(ctx, component).await?;
+        Ok(Some(Inventory {
+            license,
+            ..inventory
+        }))
     }
 
     async fn handle(&self, ctx: Ctx, request: ContentRequest) -> Result<Response, ContentError> {
@@ -235,8 +305,22 @@ impl Format for Npm {
             Route::Tarball { name, file } => {
                 let path = name.tarball_path(&file);
                 let version = name.version_of_file(&file);
+                let published = match &version {
+                    Some(version) if ctx.kind() == RepositoryType::Proxy => {
+                        documents::cached_date(ctx, &name, &path, version).await?
+                    }
+                    _ => None,
+                };
                 astrum_content::fetch(self, ctx, &path, Freshness::Content, || {
-                    documents::tarball_put(&name, PutAsset::cached(path.clone()), version.clone())
+                    let put = documents::tarball_put(
+                        &name,
+                        PutAsset::cached(path.clone()),
+                        version.clone(),
+                    );
+                    match published {
+                        Some(at) => put.published(at),
+                        None => put,
+                    }
                 })
                 .await
             }
@@ -268,5 +352,41 @@ impl Format for Npm {
 
     fn search_keys(&self) -> &'static [SearchKey] {
         SEARCH_KEYS
+    }
+
+    fn transfer(&self) -> Option<&dyn Transfer> {
+        Some(self)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn hosted_and_proxy_packages_name_themselves_by_name_and_version() {
+        let hosted = package_inventory("", "left-pad", "1.3.0").unwrap();
+        assert_eq!(hosted.key, "pkg:npm/left-pad@1.3.0");
+        assert_eq!(hosted.packages[0].name, "left-pad");
+        let proxy = package_inventory("", "express", "4.19.2").unwrap();
+        assert_eq!(proxy.key, "pkg:npm/express@4.19.2");
+        assert!(package_inventory("", "left-pad", "").is_none());
+    }
+
+    #[test]
+    fn scoped_packages_keep_the_scope_in_name_and_purl() {
+        let found = package_inventory("babel", "core", "7.24.0").unwrap();
+        assert_eq!(found.key, "pkg:npm/%40babel/core@7.24.0");
+        assert_eq!(found.packages[0].name, "@babel/core");
+    }
+
+    #[test]
+    fn scoped_packages_read_their_packument_from_the_scoped_path() {
+        let package = package_name("babel", "core").unwrap();
+        assert_eq!(package.packument_path(), "/@babel/core");
+        assert_eq!(
+            package_name("", "left-pad").unwrap().packument_path(),
+            "/left-pad"
+        );
     }
 }

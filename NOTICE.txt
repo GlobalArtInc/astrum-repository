@@ -57,8 +57,11 @@ Cargo.lock; a full list comes from `cargo tree -p astrum-server -e normal
     and the crates around them).
   - CDLA-Permissive-2.0: webpki-roots, the list of root certificates of the
     Mozilla CA Certificate Program.
-  - Mozilla Public License 2.0: ldap3_proto, used unmodified. Its source code
-    is available at https://github.com/kanidm/ldap3.
+  - Mozilla Public License 2.0: ldap3_proto, webauthn-rs, webauthn-rs-core,
+    webauthn-rs-proto, webauthn-attestation-ca and crypto-glue, used unmodified.
+    Their source code is available at https://github.com/kanidm/ldap3 (ldap3_proto),
+    https://github.com/kanidm/webauthn-rs (the webauthn-rs crates) and
+    https://github.com/kanidm/crypto-glue (crypto-glue).
 
 Web UI (npm packages bundled into web/dist; exact versions in
 web/pnpm-lock.yaml; a full list comes from `pnpm licenses list --prod` in

@@ -88,9 +88,9 @@ fn code_of(error: &ContentError) -> &'static str {
     match error {
         ContentError::NotFound(_) => "NOT_FOUND",
         ContentError::Unauthorized => "UNAUTHORIZED",
-        ContentError::Forbidden => "FORBIDDEN",
+        ContentError::Forbidden | ContentError::Blocked(_) => "FORBIDDEN",
         ContentError::MethodNotAllowed { .. } => "METHOD_NOT_ALLOWED",
-        ContentError::Conflict(_) => "CONFLICT",
+        ContentError::Conflict(_) | ContentError::Protected(_) => "CONFLICT",
         ContentError::BadGateway(_) | ContentError::Unavailable(_) => "REMOTE_FAILED",
         ContentError::Internal(_) => "SERVER_ERROR",
         _ => "INVALID_DATA",
@@ -114,6 +114,7 @@ pub fn error(error: ContentError, message: Option<String>) -> Response {
         None,
         &json!({"error_messages": [message], "error_code": code_of(&error)}),
     );
+    error.mark(&mut response);
     let headers = response.headers_mut();
     match error {
         ContentError::Unauthorized => {
@@ -473,6 +474,18 @@ mod tests {
         Urls {
             base: "https://repo.example/repository/chef".to_owned(),
         }
+    }
+
+    #[test]
+    fn a_refusal_by_a_policy_answers_forbidden_with_its_text_and_names_the_policy() {
+        let refused = error(
+            ContentError::blocked_by("strict", "GHSA-1: high in a@1"),
+            None,
+        );
+        assert_eq!(refused.status(), StatusCode::FORBIDDEN);
+        assert_eq!(refused.headers()["x-astrum-blocked-by"], "strict");
+        assert_eq!(code_of(&ContentError::Blocked("x".to_owned())), "FORBIDDEN");
+        assert_eq!(code_of(&ContentError::Forbidden), "FORBIDDEN");
     }
 
     #[test]

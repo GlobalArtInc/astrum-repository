@@ -1,0 +1,20 @@
+ALTER TABLE notification_change DROP COLUMN detail;
+
+DROP TABLE oci_signature_check;
+DROP TABLE docker_manifest_child;
+DROP TABLE policy_dirty;
+DROP TABLE policy_verdict;
+DROP TABLE component_license;
+DROP TABLE scan_queue;
+DROP TABLE component_scan;
+DROP TABLE oci_layer_facts;
+DROP TABLE sca_inventory_package;
+DROP TABLE sca_inventory;
+DROP TABLE sca_match;
+DROP TABLE sca_package;
+DROP TABLE advisory_feed;
+DROP TABLE advisory_affected;
+DROP TABLE advisory;
+DROP TABLE trusted_key;
+DROP TABLE policy_exception;
+DROP TABLE content_policy;

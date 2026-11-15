@@ -8,21 +8,18 @@ use crate::{METADATA, MODULE_ARCHIVE};
 
 const BASE_KEYS: &[&str] = &["kind", "namespace", "name", "provider", "version"];
 
-pub fn plan(repository: RepositoryType, path: &str, _kind: &str) -> Plan {
-    match (repository, Endpoint::parse(path)) {
-        (_, Endpoint::ModuleArchive(..) | Endpoint::ProviderFile(..)) => Plan::Import,
-        (
-            RepositoryType::Proxy,
-            Endpoint::Discovery
-            | Endpoint::ModuleVersions(_)
-            | Endpoint::ProviderVersions(_)
-            | Endpoint::ProviderDownload(..),
-        ) => Plan::Import,
-        (_, Endpoint::Other) => Plan::Skip(
-            "the path is not a module, a provider file or a registry document".to_owned(),
-        ),
-        _ => Plan::Derived,
+pub fn plan(_repository: RepositoryType, path: &str, _kind: &str) -> Plan {
+    match Endpoint::parse(path) {
+        Endpoint::ModuleArchive(..) | Endpoint::ProviderFile(..) => Plan::Import,
+        _ => Plan::Skip("the path is not a module archive or a provider file".to_owned()),
     }
+}
+
+fn generated(attributes: &Value) -> bool {
+    attributes
+        .pointer("/terraform/generated")
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
 }
 
 fn extra(attributes: &Value) -> Value {
@@ -41,11 +38,15 @@ pub async fn describe(file: &Imported) -> Result<Option<Described>, String> {
     match Endpoint::parse(&file.path) {
         Endpoint::ModuleArchive(module, name) => {
             let head = file.head(8).await.map_err(|error| error.to_string())?;
-            let extension = paths::archive_extension(&name)
-                .or_else(|| paths::sniff(&head))
-                .ok_or_else(|| {
-                    "the module package is neither a .zip nor a .tar.gz archive".to_owned()
-                })?;
+            let extension = match (paths::archive_extension(&name), paths::sniff(&head)) {
+                (Some(extension), Some(sniffed)) if extension == sniffed => extension,
+                _ => {
+                    return Err(
+                        "A module package must be a .zip or .tar.gz archive of the module directory"
+                            .to_owned(),
+                    );
+                }
+            };
             let subdir = file
                 .attributes
                 .pointer("/terraform/subdir")
@@ -62,7 +63,18 @@ pub async fn describe(file: &Imported) -> Result<Option<Described>, String> {
                 .attributes(module_attributes(&module, subdir));
             Ok(Some(Described::source(put)))
         }
-        Endpoint::ProviderFile(provider, _, kind) => {
+        Endpoint::ProviderFile(provider, name, kind) => {
+            if matches!(kind, paths::FileKind::Shasums | paths::FileKind::Signature)
+                && generated(&file.attributes)
+            {
+                return Ok(None);
+            }
+            if matches!(kind, paths::FileKind::Archive { .. }) {
+                let head = file.head(8).await.map_err(|error| error.to_string())?;
+                if paths::sniff(&head) != Some("zip") {
+                    return Err(format!("A provider package must be a zip archive: {name}"));
+                }
+            }
             let mut extra = extra(&file.attributes);
             if let (paths::FileKind::Archive { os, arch }, Value::Object(values)) =
                 (&kind, &mut extra)
@@ -70,12 +82,13 @@ pub async fn describe(file: &Imported) -> Result<Option<Described>, String> {
                 values.insert("os".to_owned(), Value::String(os.clone()));
                 values.insert("arch".to_owned(), Value::String(arch.clone()));
             }
-            let put = file
+            let mut put = file
                 .put(file.path.clone())
                 .kind(kind.asset_kind())
                 .content_type(kind.content_type())
                 .component(provider_component(&provider))
                 .attributes(provider_attributes(&provider, extra));
+            put.check_content_type = false;
             Ok(Some(Described::source(put)))
         }
         Endpoint::Discovery

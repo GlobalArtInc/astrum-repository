@@ -15,6 +15,7 @@ use axum::routing::{delete, get, post};
 use serde::{Deserialize, Serialize};
 use tokio::task::JoinSet;
 
+use crate::forecast::{self, Forecast};
 use crate::{ApiError, AppState, Caller, Validation};
 
 const BLOBSTORES: &str = "/service/rest/v1/blobstores";
@@ -33,6 +34,7 @@ pub fn routes() -> Router<AppState> {
             &format!("{BLOBSTORES}/{{name}}/quota-status"),
             get(quota_status),
         )
+        .route(&format!("{BLOBSTORES}/{{name}}/forecast"), get(forecast_of))
         .route(&format!("{BLOBSTORES}/file"), post(file::create))
         .route(
             &format!("{BLOBSTORES}/file/{{name}}"),
@@ -152,6 +154,19 @@ async fn quota_status(
         message: status.message,
         blob_store_name: config.name,
     }))
+}
+
+async fn forecast_of(
+    State(state): State<AppState>,
+    caller: Caller,
+    Path(name): Path<String>,
+) -> Result<axum::Json<Forecast>, ApiError> {
+    caller.require(READ)?;
+    let config = find(&state, &name).await?;
+    let measured = measure(&state, &config).await;
+    Ok(axum::Json(
+        forecast::of_store(state.db().conn(), &config, &measured).await?,
+    ))
 }
 
 async fn remove(

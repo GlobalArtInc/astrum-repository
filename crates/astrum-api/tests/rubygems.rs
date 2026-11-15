@@ -5,6 +5,10 @@ use std::io::{Read, Write};
 use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
 
+use astrum_blob::{Written, content_of};
+use astrum_content::store;
+use astrum_content::transfer::{BlobSource, BundleAsset, Conflict, PROMOTED, Sink, Status, Terms};
+use astrum_content::{ContentError, Format};
 use astrum_format_rubygems::index::md5_hex;
 use astrum_format_rubygems::testing::gem;
 use astrum_security::catalogue::ADMIN_USER;
@@ -692,4 +696,136 @@ async fn gems_upload_through_the_components_api_and_show_in_the_tree() {
         .await
         .json();
     assert_eq!(files["children"][0]["name"], "uploaded-1.2.3.gem");
+}
+
+#[tokio::test]
+async fn gems_are_promoted_and_the_target_index_lists_them() {
+    let fixture = ready().await;
+    create(&fixture, "hosted", hosted("gems-source", "ALLOW")).await;
+    create(&fixture, "hosted", hosted("gems-target", "ALLOW")).await;
+    let data = gem("hola", "1.0.0", "ruby", &[]);
+    let pushed = push(&fixture, "gems-source", &basic(&fixture), data.clone()).await;
+    assert_eq!(pushed.status, StatusCode::OK, "{}", pushed.text());
+    let format = astrum_format_rubygems::Rubygems;
+    let bundle = support::bundle_of(&fixture, &format, "gems-source", "/gems/hola-1.0.0.gem").await;
+    let outcome = support::receive(&fixture, &format, "gems-source", "gems-target", &bundle).await;
+    assert_eq!(outcome.status, Status::Copied);
+    let served = get(&fixture, "/repository/gems-target/gems/hola-1.0.0.gem").await;
+    assert_eq!(served.status, StatusCode::OK, "{}", served.text());
+    assert_eq!(served.body, data);
+    assert_eq!(
+        text(&fixture, "/repository/gems-target/info/hola").await,
+        format!("---\n1.0.0 |checksum:{}\n", sha256(&data))
+    );
+}
+
+async fn blobs(fixture: &Fixture) -> usize {
+    fixture
+        .state
+        .content()
+        .blob_stores()
+        .get("default")
+        .await
+        .unwrap()
+        .list(None, 1000)
+        .await
+        .unwrap()
+        .len()
+}
+
+struct Uploaded(Vec<u8>);
+
+#[async_trait::async_trait]
+impl BlobSource for Uploaded {
+    async fn write(&self, sink: &Sink, _asset: &BundleAsset) -> Result<Written, ContentError> {
+        Ok(sink.store.put(content_of(self.0.clone())).await?)
+    }
+}
+
+#[tokio::test]
+async fn promotion_refuses_gem_paths_that_do_not_match_their_spec() {
+    let fixture = ready().await;
+    create(&fixture, "hosted", hosted("gems-source", "ALLOW")).await;
+    create(&fixture, "hosted", hosted("gems-target", "ALLOW")).await;
+    let data = gem("hola", "1.0.0", "ruby", &[]);
+    let pushed = push(&fixture, "gems-source", &basic(&fixture), data.clone()).await;
+    assert_eq!(pushed.status, StatusCode::OK, "{}", pushed.text());
+    let format = astrum_format_rubygems::Rubygems;
+    let path = "/gems/hola-1.0.0.gem";
+    let bundle = support::bundle_of(&fixture, &format, "gems-source", path).await;
+    let before = blobs(&fixture).await;
+    for wrong in ["/gems/other-1.0.0.gem", "/gems/hola-2.0.0.gem"] {
+        let mut crafted = bundle.clone();
+        for asset in &mut crafted.assets {
+            asset.path = wrong.to_owned();
+        }
+        let to = support::repository_ctx(&fixture, "gems-target").await;
+        let refused = format
+            .transfer()
+            .expect("rubygems takes part in promotion")
+            .receive(
+                &to,
+                &crafted,
+                &Uploaded(data.clone()),
+                Terms::new(Conflict::Fail, PROMOTED),
+            )
+            .await;
+        match refused {
+            Err(ContentError::BadRequest(message)) => assert_eq!(
+                message,
+                format!(
+                    "the bundle path {wrong} does not match {path}, where the upload would store the gem"
+                )
+            ),
+            other => panic!("expected a refusal, got {other:?}"),
+        }
+        assert!(
+            store::find(fixture.state.db().conn(), "gems-target", wrong)
+                .await
+                .unwrap()
+                .is_none()
+        );
+    }
+    assert_eq!(blobs(&fixture).await, before);
+}
+
+#[tokio::test]
+async fn a_token_limited_to_repositories_gets_no_api_key() {
+    let fixture = ready().await;
+    create(&fixture, "hosted", hosted("gems", "ALLOW")).await;
+    let realms = fixture
+        .call(
+            Method::PUT,
+            "/service/rest/v1/security/realms/active",
+            Auth::Admin,
+            Some(json!([
+                "AstrumAuthenticatingRealm",
+                "AccessTokenRealm",
+                "RubyGemsApiKey"
+            ])),
+        )
+        .await;
+    assert_eq!(realms.status, StatusCode::NO_CONTENT, "{}", realms.text());
+    let (_, token) = fixture.customer_token("acme", &["gems"]).await;
+    for method in [Method::GET, Method::POST, Method::DELETE] {
+        let reply = fixture
+            .call(
+                method.clone(),
+                "/repository/gems/api/v1/api_key",
+                Auth::Basic("acme", &token),
+                None,
+            )
+            .await;
+        assert_eq!(
+            reply.status,
+            StatusCode::FORBIDDEN,
+            "{method}: {}",
+            reply.text()
+        );
+    }
+    assert!(
+        !text(&fixture, "/repository/gems/api/v1/api_key")
+            .await
+            .is_empty()
+    );
 }

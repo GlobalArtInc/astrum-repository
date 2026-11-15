@@ -5,7 +5,7 @@ export interface Spec {
   type: RepositoryType;
 }
 
-const WRITABLE_MEMBER = new Set(['cargo', 'docker', 'swift']);
+const WRITABLE_MEMBER = new Set(['cargo', 'docker', 'jsr', 'swift']);
 const API_NAMES: Record<string, string> = { maven2: 'maven' };
 export const TYPES: readonly RepositoryType[] = ['hosted', 'proxy', 'group'];
 
@@ -29,8 +29,11 @@ export function formatFromUrl(segment: string, formats: readonly UiFormat[] = []
 export const sections = {
   writePolicy: (spec: Spec) => spec.type === 'hosted',
   latestPolicy: (spec: Spec) => spec.format === 'docker' && spec.type === 'hosted',
+  immutableTags: (spec: Spec) => spec.format === 'docker' && spec.type === 'hosted',
   proxy: (spec: Spec) => spec.type === 'proxy',
   group: (spec: Spec) => spec.type === 'group',
+  quota: (spec: Spec) => spec.type !== 'group',
+  policy: (spec: Spec) => spec.type !== 'group',
   writableMember: (spec: Spec) => spec.type === 'group' && WRITABLE_MEMBER.has(spec.format),
   preemptive: (spec: Spec) => spec.format === 'maven2' && spec.type === 'proxy',
   maven: (spec: Spec) => spec.format === 'maven2' && spec.type !== 'group',

@@ -14,6 +14,7 @@ use support::{Auth, Fixture, Reply};
 const TASKS: &str = "/service/rest/v1/tasks";
 const POLICIES: &str = "/service/rest/internal/cleanup-policies";
 const UI_TASKS: &str = "/service/rest/internal/ui/tasks";
+const BLOBSTORES: &str = "/service/rest/v1/blobstores";
 
 async fn ready() -> Fixture {
     let fixture = Fixture::new().await;
@@ -27,6 +28,7 @@ async fn ready() -> Fixture {
     let tasks = fixture.state.tasks();
     tasks.register(Arc::new(astrum_format_docker::gc::Gc));
     tasks.add_expiry(Arc::new(astrum_format_docker::gc::UploadExpiry));
+    tasks.add_expiry(Arc::new(astrum_tasks::kinds::cooldown::CooldownExpiry));
     fixture
 }
 
@@ -131,6 +133,7 @@ async fn tasks_are_created_read_changed_and_deleted_like_the_public_api() {
         "repository.purge-unused",
         "blobstore.metrics.reconcile",
         "security.purge-expired",
+        "blobstore.tier",
     ] {
         assert!(types.contains(&wanted), "{wanted} in {types:?}");
     }
@@ -504,7 +507,7 @@ async fn schedules_fire_when_due_and_abandoned_runs_fail() {
 async fn built_in_tasks_are_created_once_and_stay_editable() {
     let fixture = ready().await;
     let db = fixture.state.db().conn();
-    assert_eq!(astrum_tasks::bootstrap(db).await.unwrap(), 4);
+    assert_eq!(astrum_tasks::bootstrap(db).await.unwrap(), 6);
     assert_eq!(astrum_tasks::bootstrap(db).await.unwrap(), 0);
     let listed = call(&fixture, Method::GET, TASKS, None).await.json();
     let names: Vec<&str> = listed["items"]
@@ -519,7 +522,9 @@ async fn built_in_tasks_are_created_once_and_stay_editable() {
             "Cleanup service",
             "Compact blob stores",
             "Delete expired sessions and uploads",
-            "Delete unused Docker manifests and layers"
+            "Delete unused Docker manifests and layers",
+            "Notify about expiring customer tokens",
+            "Record repository usage"
         ]
     );
     let cleanup = &listed["items"][0];
@@ -563,6 +568,35 @@ async fn built_in_tasks_are_created_once_and_stay_editable() {
         )
         .await;
     assert_eq!(refused.status, StatusCode::FORBIDDEN);
+}
+
+#[tokio::test]
+async fn usage_snapshot_is_added_to_an_existing_install_once() {
+    let fixture = ready().await;
+    let db = fixture.state.db().conn();
+    assert_eq!(astrum_tasks::bootstrap(db).await.unwrap(), 6);
+    let task = astrum_tasks::store::find_by_name(db, "Record repository usage")
+        .await
+        .unwrap()
+        .unwrap();
+    astrum_tasks::store::delete(db, task.id).await.unwrap();
+    astrum_db::setting::delete(db, astrum_tasks::bootstrap::USAGE_SNAPSHOT_PROVISIONED)
+        .await
+        .unwrap();
+    assert_eq!(astrum_tasks::bootstrap(db).await.unwrap(), 1);
+    assert_eq!(astrum_tasks::bootstrap(db).await.unwrap(), 0);
+    let task = astrum_tasks::store::find_by_name(db, "Record repository usage")
+        .await
+        .unwrap()
+        .unwrap();
+    astrum_tasks::store::delete(db, task.id).await.unwrap();
+    assert_eq!(astrum_tasks::bootstrap(db).await.unwrap(), 0);
+    assert!(
+        astrum_tasks::store::find_by_name(db, "Record repository usage")
+            .await
+            .unwrap()
+            .is_none()
+    );
 }
 
 #[tokio::test]
@@ -822,6 +856,219 @@ async fn cleanup_policies_are_managed_previewed_assigned_and_applied() {
     );
 }
 
+async fn tag_policy(fixture: &Fixture, body: Value) {
+    let created = call(fixture, Method::POST, POLICIES, Some(body)).await;
+    assert_eq!(created.status, StatusCode::OK, "{}", created.text());
+}
+
+async fn tag_repository(fixture: &Fixture) {
+    let created = call(
+        fixture,
+        Method::POST,
+        "/service/rest/v1/repositories/docker/hosted",
+        Some(json!({
+            "name": "images",
+            "online": true,
+            "storage": {"blobStoreName": "default", "strictContentTypeValidation": true, "writePolicy": "ALLOW"},
+            "docker": {"v1Enabled": false, "forceBasicAuth": true},
+            "cleanup": {"policyNames": ["newest-tags"]}
+        })),
+    )
+    .await;
+    assert_eq!(created.status, StatusCode::CREATED, "{}", created.text());
+}
+
+async fn push_tags(fixture: &Fixture, image: &str, tags: &[&str]) {
+    for tag in tags {
+        push_image(
+            fixture,
+            image,
+            tag,
+            format!("layer of {image}:{tag}").as_bytes(),
+        )
+        .await;
+    }
+}
+
+async fn age_tags(fixture: &Fixture, filter: &str, interval: &str) {
+    execute(
+        fixture,
+        &format!(
+            "UPDATE asset SET blob_updated_at = now() - interval '{interval}' FROM component c WHERE c.id = asset.component_id AND c.repository = 'images' AND {filter}"
+        ),
+    )
+    .await;
+}
+
+async fn preview_tags(fixture: &Fixture, body: Value) -> Value {
+    let preview = call(
+        fixture,
+        Method::POST,
+        &format!("{POLICIES}/preview/components?page=0&size=25"),
+        Some(body),
+    )
+    .await;
+    assert_eq!(preview.status, StatusCode::OK, "{}", preview.text());
+    preview.json()
+}
+
+fn listed(preview: &Value) -> Vec<String> {
+    preview["results"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|row| {
+            format!(
+                "{}:{}",
+                row["name"].as_str().unwrap(),
+                row["version"].as_str().unwrap()
+            )
+        })
+        .collect()
+}
+
+async fn run_tag_cleanup(fixture: &Fixture) -> Value {
+    let cleanup = create_task(
+        fixture,
+        json!({"type": "repository.cleanup", "name": "Cleanup"}),
+    )
+    .await;
+    let id = cleanup["id"].as_str().unwrap().to_owned();
+    let done = run_now(fixture, &id).await;
+    assert_eq!(done["lastRunResult"], "OK", "{done}");
+    last_run(fixture, &id).await["counts"].clone()
+}
+
+#[tokio::test]
+async fn docker_cleanup_keeps_the_newest_tags_of_each_image() {
+    let fixture = ready().await;
+    tag_policy(
+        &fixture,
+        json!({"name": "newest-tags", "format": "docker", "retain": 2, "sortBy": "lastBlobUpdated"}),
+    )
+    .await;
+    let public = call(
+        &fixture,
+        Method::GET,
+        "/service/rest/v1/cleanup-policies/newest-tags",
+        None,
+    )
+    .await
+    .json();
+    assert_eq!(public["sortBy"], "lastBlobUpdated");
+    tag_repository(&fixture).await;
+    push_tags(&fixture, "a", &["v1", "v2", "v3", "v4", "v5"]).await;
+    push_tags(&fixture, "b", &["w1", "w2"]).await;
+    for (tag, days) in [("v1", 50), ("v2", 40), ("v3", 30), ("v4", 20), ("v5", 10)] {
+        age_tags(
+            &fixture,
+            &format!("c.version = '{tag}'"),
+            &format!("{days} days"),
+        )
+        .await;
+    }
+    age_tags(&fixture, "c.name = 'b'", "60 days").await;
+
+    let preview = preview_tags(
+        &fixture,
+        json!({"name": "newest-tags", "format": "docker", "retain": 2, "repository": "images"}),
+    )
+    .await;
+    assert_eq!(preview["total"], 3);
+    assert_eq!(listed(&preview), ["a:v1", "a:v2", "a:v3"]);
+    let counts = run_tag_cleanup(&fixture).await;
+    assert_eq!(counts["components"], 3);
+    let kept = count(
+        &fixture,
+        "SELECT count(*) AS n FROM component WHERE repository = 'images' AND name = 'a' AND version IN ('v4', 'v5')",
+    )
+    .await;
+    assert_eq!(kept, 2);
+    let left_a = count(
+        &fixture,
+        "SELECT count(*) AS n FROM component WHERE repository = 'images' AND name = 'a'",
+    )
+    .await;
+    assert_eq!(left_a, 2);
+    let left_b = count(
+        &fixture,
+        "SELECT count(*) AS n FROM component WHERE repository = 'images' AND name = 'b'",
+    )
+    .await;
+    assert_eq!(left_b, 2);
+}
+
+#[tokio::test]
+async fn docker_retain_counts_every_tag_but_deletes_only_the_matching_ones() {
+    let fixture = ready().await;
+    tag_policy(
+        &fixture,
+        json!({"name": "newest-tags", "format": "docker", "retain": 2, "criteriaLastBlobUpdated": 35}),
+    )
+    .await;
+    tag_repository(&fixture).await;
+    push_tags(&fixture, "a", &["v1", "v2", "v3", "v4", "v5"]).await;
+    for (tag, days) in [("v1", 50), ("v2", 40), ("v3", 30), ("v4", 20), ("v5", 10)] {
+        age_tags(
+            &fixture,
+            &format!("c.version = '{tag}'"),
+            &format!("{days} days"),
+        )
+        .await;
+    }
+
+    let preview = preview_tags(
+        &fixture,
+        json!({"name": "newest-tags", "format": "docker", "retain": 2, "criteriaLastBlobUpdated": 35, "repository": "images"}),
+    )
+    .await;
+    assert_eq!(preview["total"], 2);
+    assert_eq!(listed(&preview), ["a:v1", "a:v2"]);
+    let counts = run_tag_cleanup(&fixture).await;
+    assert_eq!(counts["components"], 2);
+    let left_a = count(
+        &fixture,
+        "SELECT count(*) AS n FROM component WHERE repository = 'images' AND name = 'a'",
+    )
+    .await;
+    assert_eq!(left_a, 3);
+    let v3 = count(
+        &fixture,
+        "SELECT count(*) AS n FROM component WHERE repository = 'images' AND name = 'a' AND version = 'v3'",
+    )
+    .await;
+    assert_eq!(v3, 1);
+}
+
+#[tokio::test]
+async fn docker_ties_on_blob_time_delete_the_smallest_component_id() {
+    let fixture = ready().await;
+    tag_policy(
+        &fixture,
+        json!({"name": "newest-tags", "format": "docker", "retain": 2}),
+    )
+    .await;
+    tag_repository(&fixture).await;
+    push_tags(&fixture, "b", &["w1", "w2", "w3"]).await;
+    age_tags(&fixture, "c.name = 'b'", "60 days").await;
+
+    let preview = preview_tags(
+        &fixture,
+        json!({"name": "newest-tags", "format": "docker", "retain": 2, "repository": "images"}),
+    )
+    .await;
+    assert_eq!(preview["total"], 1);
+    assert_eq!(listed(&preview), ["b:w1"]);
+    let counts = run_tag_cleanup(&fixture).await;
+    assert_eq!(counts["components"], 1);
+    let left = count(
+        &fixture,
+        "SELECT count(*) AS n FROM component WHERE repository = 'images' AND name = 'b' AND version IN ('w2', 'w3')",
+    )
+    .await;
+    assert_eq!(left, 2);
+}
+
 #[tokio::test]
 async fn compaction_deletes_old_blobs_nothing_refers_to() {
     let fixture = ready().await;
@@ -899,12 +1146,12 @@ fn sha256(bytes: &[u8]) -> String {
     format!("sha256:{}", hex::encode(Sha256::digest(bytes)))
 }
 
-async fn push_blob(fixture: &Fixture, bytes: &[u8]) -> String {
+async fn push_blob(fixture: &Fixture, image: &str, bytes: &[u8]) -> String {
     let digest = sha256(bytes);
     let reply = fixture
         .send_body(
             Method::POST,
-            &format!("/repository/images/v2/app/blobs/uploads/?digest={digest}"),
+            &format!("/repository/images/v2/{image}/blobs/uploads/?digest={digest}"),
             Auth::Admin,
             Body::from(bytes.to_vec()),
             &[("content-type", "application/octet-stream")],
@@ -914,9 +1161,9 @@ async fn push_blob(fixture: &Fixture, bytes: &[u8]) -> String {
     digest
 }
 
-async fn push_image(fixture: &Fixture, tag: &str, layer: &[u8]) -> String {
-    let config = push_blob(fixture, b"{\"os\":\"linux\"}").await;
-    let layer = push_blob(fixture, layer).await;
+async fn push_image(fixture: &Fixture, image: &str, tag: &str, layer: &[u8]) -> String {
+    let config = push_blob(fixture, image, b"{\"os\":\"linux\"}").await;
+    let layer = push_blob(fixture, image, layer).await;
     let manifest = json!({
         "schemaVersion": 2,
         "mediaType": "application/vnd.oci.image.manifest.v1+json",
@@ -927,7 +1174,7 @@ async fn push_image(fixture: &Fixture, tag: &str, layer: &[u8]) -> String {
     let reply = fixture
         .send_body(
             Method::PUT,
-            &format!("/repository/images/v2/app/manifests/{tag}"),
+            &format!("/repository/images/v2/{image}/manifests/{tag}"),
             Auth::Admin,
             Body::from(bytes.clone()),
             &[("content-type", "application/vnd.oci.image.manifest.v1+json")],
@@ -953,8 +1200,8 @@ async fn docker_garbage_collection_removes_untagged_manifests_and_their_layers()
     )
     .await;
     assert_eq!(created.status, StatusCode::CREATED, "{}", created.text());
-    let kept_layer = push_image(&fixture, "stable", b"layer of stable").await;
-    let gone_layer = push_image(&fixture, "old", b"layer of old").await;
+    let kept_layer = push_image(&fixture, "app", "stable", b"layer of stable").await;
+    let gone_layer = push_image(&fixture, "app", "old", b"layer of old").await;
     let deleted = fixture
         .call(
             Method::DELETE,
@@ -1044,10 +1291,13 @@ async fn expired_sessions_tokens_and_uploads_are_deleted() {
          ('new', 'admin', 'AstrumAuthenticatingRealm', 's', 'c', now(), now(), '', '')",
     )
     .await;
-    fixture
-        .state
-        .security()
-        .issue_format_token("DockerToken", "admin", Some(chrono::Duration::seconds(-5)))
+    let security = fixture.state.security();
+    let admin = security
+        .model()
+        .local_subject("admin", "DockerToken")
+        .unwrap();
+    security
+        .issue_format_token("DockerToken", &admin, Some(chrono::Duration::seconds(-5)))
         .await
         .unwrap();
     execute(
@@ -1122,4 +1372,353 @@ async fn purge_unused_deletes_cached_content_nobody_downloaded() {
     )
     .await;
     assert_eq!(hosted.json()[0]["id"], "properties.repositoryName");
+}
+
+fn age_blob(fixture: &Fixture, id: astrum_blob::BlobId) {
+    std::fs::File::options()
+        .write(true)
+        .open(
+            fixture
+                .data
+                .path()
+                .join("blobs/default/content")
+                .join(id.location()),
+        )
+        .unwrap()
+        .set_modified(SystemTime::now() - Duration::from_secs(3 * 86_400))
+        .unwrap();
+}
+
+async fn compact_everything(fixture: &Fixture) -> String {
+    let task = create_task(
+        fixture,
+        json!({"type": "blobstore.compact", "name": "Compact", "properties": {"blobstoreName": "*", "blobsOlderThan": "1"}}),
+    )
+    .await;
+    run_now(fixture, task["id"].as_str().unwrap()).await;
+    task["id"].as_str().unwrap().to_owned()
+}
+
+#[tokio::test]
+async fn every_hold_protects_its_blob_until_the_sweep_and_an_asset_keeps_it_even_then() {
+    let fixture = ready().await;
+    raw_hosted(&fixture, "files", None).await;
+    upload(&fixture, "files", "kept.txt", b"kept").await;
+    let store = fixture.state.blob_stores().get("default").await.unwrap();
+    let conn = fixture.state.db().conn();
+    let named = astrum_content::store::find(conn, "files", "/kept.txt")
+        .await
+        .unwrap()
+        .unwrap();
+    let named_id = astrum_blob::BlobId::from(named.blob_id);
+    let put = async |bytes: &'static [u8]| {
+        store
+            .put(astrum_blob::content_of(bytes.to_vec()))
+            .await
+            .unwrap()
+            .id
+    };
+    let held = put(b"held").await;
+    let lapsed = put(b"lapsed").await;
+    let plain = put(b"plain").await;
+    for id in [held, lapsed, plain, named_id] {
+        age_blob(&fixture, id);
+    }
+    let hour = Duration::from_secs(3600);
+    for (name, id) in [("default", held), ("default", lapsed), ("pool", named_id)] {
+        astrum_content::holds::hold(conn, name, id, hour)
+            .await
+            .unwrap();
+    }
+    execute(
+        &fixture,
+        &format!(
+            "UPDATE blob_hold SET held_until = now() - interval '1 minute' WHERE blob_id = '{}'",
+            lapsed.uuid()
+        ),
+    )
+    .await;
+
+    let compaction = compact_everything(&fixture).await;
+    assert!(store.exists(held).await.unwrap(), "a live hold protects");
+    assert!(
+        store.exists(lapsed).await.unwrap(),
+        "a hold that ran out protects until the sweep removes it"
+    );
+    assert!(store.exists(named_id).await.unwrap());
+    assert!(!store.exists(plain).await.unwrap());
+    assert_eq!(
+        last_run(&fixture, &compaction).await["counts"],
+        json!({"blobs": 1, "bytes": 5})
+    );
+    assert_eq!(
+        count(&fixture, "SELECT count(*) AS n FROM blob_hold").await,
+        3
+    );
+
+    execute(
+        &fixture,
+        "UPDATE blob_hold SET held_until = now() - interval '1 minute'",
+    )
+    .await;
+    let expire = create_task(
+        &fixture,
+        json!({"type": "security.purge-expired", "name": "Expire"}),
+    )
+    .await;
+    let done = run_now(&fixture, expire["id"].as_str().unwrap()).await;
+    assert_eq!(done["lastRunResult"], "OK", "{done}");
+    assert_eq!(
+        done["runMessage"],
+        "deleted 0 sessions, 0 client tokens and 0 unfinished uploads; released 3 expired blob holds"
+    );
+    assert_eq!(
+        count(&fixture, "SELECT count(*) AS n FROM blob_hold").await,
+        0
+    );
+    assert!(!store.exists(held).await.unwrap(), "nothing names it");
+    assert!(!store.exists(lapsed).await.unwrap(), "nothing names it");
+    assert!(
+        store.exists(named_id).await.unwrap(),
+        "an asset names it, whichever store the hold named"
+    );
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn held_duplicates_survive_compaction_that_runs_alongside_and_loose_ones_do_not() {
+    let fixture = ready().await;
+    raw_hosted(&fixture, "files", None).await;
+    upload(&fixture, "files", "kept.txt", b"kept").await;
+    let store = fixture.state.blob_stores().get("default").await.unwrap();
+    let conn = fixture.state.db().conn();
+    let source = astrum_content::store::find(conn, "files", "/kept.txt")
+        .await
+        .unwrap()
+        .unwrap();
+    let digests = astrum_blob::Digests {
+        sha1: source.sha1.clone(),
+        sha256: source.sha256.clone(),
+        sha512: source.sha512.clone(),
+        md5: source.md5.clone(),
+    };
+    let source_id = astrum_blob::BlobId::from(source.blob_id);
+    let mut orphans = Vec::new();
+    for _ in 0..3 {
+        let orphan = store
+            .put(astrum_blob::content_of(b"orphan".to_vec()))
+            .await
+            .unwrap()
+            .id;
+        age_blob(&fixture, orphan);
+        orphans.push(orphan);
+    }
+    age_blob(&fixture, source_id);
+    let task = create_task(
+        &fixture,
+        json!({"type": "blobstore.compact", "name": "Compact", "properties": {"blobstoreName": "*", "blobsOlderThan": "0"}}),
+    )
+    .await;
+    let task_id = task["id"].as_str().unwrap().to_owned();
+
+    let duplicating = async {
+        let (mut held, mut loose) = (Vec::new(), Vec::new());
+        for round in 0..30 {
+            let copy = store.duplicate(source_id, &digests).await.unwrap().id;
+            match round % 10 {
+                0 => loose.push(copy),
+                _ => {
+                    astrum_content::holds::hold(conn, "default", copy, Duration::from_secs(3600))
+                        .await
+                        .unwrap();
+                    held.push(copy);
+                }
+            }
+            age_blob(&fixture, copy);
+            tokio::task::yield_now().await;
+        }
+        (held, loose)
+    };
+    let compacting = async {
+        for _ in 0..3 {
+            let done = run_now(&fixture, &task_id).await;
+            assert_eq!(done["lastRunResult"], "OK", "{done}");
+        }
+    };
+    let ((held, loose), ()) = tokio::join!(duplicating, compacting);
+
+    age_blob(&fixture, source_id);
+    let done = run_now(&fixture, &task_id).await;
+    assert_eq!(done["lastRunResult"], "OK", "{done}");
+    for id in &held {
+        assert!(store.exists(*id).await.unwrap(), "{id} was held");
+    }
+    for id in loose.iter().chain(&orphans) {
+        assert!(!store.exists(*id).await.unwrap(), "{id} was not held");
+    }
+    assert!(
+        store.exists(source_id).await.unwrap(),
+        "an asset names the source"
+    );
+    assert_eq!(
+        count(&fixture, "SELECT count(*) AS n FROM blob_hold").await,
+        held.len() as i64
+    );
+}
+
+async fn protected_repository(fixture: &Fixture) {
+    let created = call(
+        fixture,
+        Method::POST,
+        "/service/rest/v1/repositories/docker/hosted",
+        Some(json!({
+            "name": "images",
+            "online": true,
+            "storage": {
+                "blobStoreName": "default",
+                "strictContentTypeValidation": true,
+                "writePolicy": "ALLOW",
+                "immutableTags": {"patterns": ["v*"], "exceptions": []}
+            },
+            "docker": {"v1Enabled": false, "forceBasicAuth": true},
+            "cleanup": {"policyNames": ["old-tags"]}
+        })),
+    )
+    .await;
+    assert_eq!(created.status, StatusCode::CREATED, "{}", created.text());
+}
+
+async fn run_protected_cleanup(fixture: &Fixture) -> Value {
+    let cleanup = create_task(
+        fixture,
+        json!({"type": "repository.cleanup", "name": "Cleanup"}),
+    )
+    .await;
+    let id = cleanup["id"].as_str().unwrap().to_owned();
+    let done = run_now(fixture, &id).await;
+    assert_eq!(done["lastRunResult"], "OK", "{done}");
+    last_run(fixture, &id).await
+}
+
+#[tokio::test]
+async fn docker_cleanup_keeps_old_immutable_tags_and_says_so() {
+    let fixture = ready().await;
+    tag_policy(
+        &fixture,
+        json!({"name": "old-tags", "format": "docker", "criteriaLastBlobUpdated": 35}),
+    )
+    .await;
+    protected_repository(&fixture).await;
+    push_tags(&fixture, "a", &["v1", "w1"]).await;
+    age_tags(&fixture, "c.name = 'a'", "50 days").await;
+
+    let run = run_protected_cleanup(&fixture).await;
+    assert_eq!(run["counts"]["components"], 1);
+    assert_eq!(run["counts"]["protected"], 1);
+    assert!(
+        run["message"]
+            .as_str()
+            .unwrap()
+            .ends_with("kept 1 component protected by immutable tag rules"),
+        "{run}"
+    );
+    let kept = count(
+        &fixture,
+        "SELECT count(*) AS n FROM component WHERE repository = 'images' AND version = 'v1'",
+    )
+    .await;
+    assert_eq!(kept, 1);
+    let deleted = count(
+        &fixture,
+        "SELECT count(*) AS n FROM component WHERE repository = 'images' AND version = 'w1'",
+    )
+    .await;
+    assert_eq!(deleted, 0);
+}
+
+#[tokio::test]
+async fn docker_cleanup_that_only_met_immutable_tags_says_nothing_was_deleted() {
+    let fixture = ready().await;
+    tag_policy(
+        &fixture,
+        json!({"name": "old-tags", "format": "docker", "criteriaLastBlobUpdated": 35}),
+    )
+    .await;
+    protected_repository(&fixture).await;
+    push_tags(&fixture, "a", &["v1"]).await;
+    age_tags(&fixture, "c.name = 'a'", "50 days").await;
+
+    let run = run_protected_cleanup(&fixture).await;
+    assert_eq!(run["counts"]["protected"], 1);
+    assert_eq!(
+        run["message"],
+        "nothing was deleted by the cleanup policies of 1 repository, kept 1 component protected by immutable tag rules"
+    );
+}
+
+#[tokio::test]
+async fn docker_cleanup_moves_past_more_protected_components_than_one_batch() {
+    let fixture = ready().await;
+    tag_policy(
+        &fixture,
+        json!({"name": "old-tags", "format": "docker", "criteriaLastBlobUpdated": 35}),
+    )
+    .await;
+    protected_repository(&fixture).await;
+    let tags: Vec<String> = (1..=201).map(|n| format!("v{n}")).collect();
+    let tags: Vec<&str> = tags.iter().map(String::as_str).collect();
+    push_tags(&fixture, "a", &tags).await;
+    push_tags(&fixture, "a", &["w1"]).await;
+    age_tags(&fixture, "c.name = 'a'", "50 days").await;
+
+    let run = run_protected_cleanup(&fixture).await;
+    assert_eq!(run["counts"]["components"], 1);
+    assert_eq!(run["counts"]["protected"], 201);
+    let left = count(
+        &fixture,
+        "SELECT count(*) AS n FROM component WHERE repository = 'images'",
+    )
+    .await;
+    assert_eq!(left, 201);
+}
+
+#[tokio::test]
+async fn a_tier_task_whose_stores_overlap_is_refused_with_the_stores_named() {
+    let fixture = ready().await;
+    for name in ["one", "two"] {
+        let created = call(
+            &fixture,
+            Method::POST,
+            &format!("{BLOBSTORES}/file"),
+            Some(json!({"name": name, "path": name})),
+        )
+        .await;
+        assert_eq!(created.status, StatusCode::NO_CONTENT, "{}", created.text());
+    }
+    let group = call(
+        &fixture,
+        Method::POST,
+        &format!("{BLOBSTORES}/group"),
+        Some(json!({"name": "pool", "members": ["one", "two"], "fillPolicy": "roundRobin"})),
+    )
+    .await;
+    assert_eq!(group.status, StatusCode::CREATED, "{}", group.text());
+    let refused = call(
+        &fixture,
+        Method::POST,
+        TASKS,
+        Some(json!({"type": "blobstore.tier", "name": "Tier idle blobs", "properties": {"source": "pool", "target": "two"}})),
+    )
+    .await;
+    assert_eq!(
+        refused.status,
+        StatusCode::BAD_REQUEST,
+        "{}",
+        refused.text()
+    );
+    assert_eq!(refused.json()[0]["id"], "properties.target");
+    let message = refused.json()[0]["message"].as_str().unwrap().to_owned();
+    assert!(
+        message.contains("pool") && message.contains("two"),
+        "{message}"
+    );
 }

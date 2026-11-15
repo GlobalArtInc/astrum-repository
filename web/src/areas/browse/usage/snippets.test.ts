@@ -1409,3 +1409,127 @@ describe('protobuf usage', () => {
     expect(code(snippets, 'module')).toContain('name: <registry host>/<owner>/<module>');
   });
 });
+
+describe('bazelcache usage', () => {
+  it('points Bazel at the cache in .bazelrc and sets the upload flag for CI and developers', () => {
+    const snippets = usageSnippets(context({ format: 'bazelcache', repositoryName: 'bazel-cache' }));
+    expect(ids(snippets)).toEqual(['bazelrc', 'developers', 'ci']);
+    expect(code(snippets, 'bazelrc')).toContain(
+      'build --remote_cache=https://repo.example.org/repository/bazel-cache\n',
+    );
+    expect(code(snippets, 'developers')).toBe('build --remote_upload_local_results=false');
+    expect(code(snippets, 'ci')).toBe('build --remote_upload_local_results=true');
+    expect(supportsUsage('bazelcache')).toBe(true);
+  });
+});
+
+describe('jsr usage', () => {
+  it('points Deno at the registry, imports a package by name and publishes with a token', () => {
+    const snippets = usageSnippets(
+      context({
+        format: 'jsr',
+        repositoryName: 'jsr-hosted',
+        component: { group: '@acme', name: 'hello', version: '0.1.0' },
+      }),
+    );
+    expect(ids(snippets)).toEqual(['environment', 'imports', 'publish']);
+    expect(code(snippets, 'environment')).toBe(
+      'export JSR_URL=https://repo.example.org/repository/jsr-hosted/',
+    );
+    expect(JSON.parse(code(snippets, 'imports'))).toEqual({
+      imports: { '@acme/hello': 'jsr:@acme/hello@0.1.0' },
+    });
+    expect(code(snippets, 'publish')).toBe('deno publish --token <access token>');
+    expect(supportsUsage('jsr')).toBe(true);
+  });
+
+  it('offers no publish step for a proxy or a group', () => {
+    const snippets = usageSnippets(
+      context({ format: 'jsr', repositoryName: 'jsr-proxy', repositoryType: 'proxy' }),
+    );
+    expect(ids(snippets)).toEqual(['environment', 'imports']);
+    expect(code(snippets, 'imports')).toContain('jsr:@<scope>/<package>');
+  });
+});
+
+describe('opam usage', () => {
+  it('adds a hosted repository and offers the uploads', () => {
+    const snippets = usageSnippets(
+      context({
+        format: 'opam',
+        repositoryName: 'ocaml',
+        component: { group: '', name: 'hello', version: '1.0' },
+      }),
+    );
+    expect(ids(snippets)).toEqual(['add', 'upload']);
+    expect(code(snippets, 'add')).toBe(
+      'opam repo add ocaml https://repo.example.org/repository/ocaml --all-switches --set-default',
+    );
+    expect(code(snippets, 'upload')).toContain(
+      '-T opam https://repo.example.org/repository/ocaml/packages/hello/hello.1.0/opam',
+    );
+    expect(code(snippets, 'upload')).toContain('/cache/sha256/');
+    expect(supportsUsage('opam')).toBe(true);
+  });
+
+  it('adds a proxy and offers removing the default repository', () => {
+    const snippets = usageSnippets(
+      context({ format: 'opam', repositoryName: 'opam-proxy', repositoryType: 'proxy' }),
+    );
+    expect(ids(snippets)).toEqual(['add', 'remove']);
+    expect(code(snippets, 'add')).toBe(
+      'opam repo add opam-proxy https://repo.example.org/repository/opam-proxy --all-switches --set-default',
+    );
+    expect(code(snippets, 'remove')).toBe('opam repo remove default --all');
+  });
+});
+
+describe('homebrew usage', () => {
+  it('points brew at the API and the bottles of a proxy, with the token for a private one', () => {
+    const snippets = usageSnippets(
+      context({
+        format: 'homebrew',
+        repositoryName: 'brew',
+        repositoryType: 'proxy',
+        component: { group: 'homebrew/core', name: 'jq', version: '1.7.1' },
+      }),
+    );
+    expect(ids(snippets)).toEqual(['environment', 'install', 'private']);
+    expect(code(snippets, 'environment')).toBe(
+      [
+        'export HOMEBREW_API_DOMAIN=https://repo.example.org/repository/brew/api',
+        'export HOMEBREW_ARTIFACT_DOMAIN=https://repo.example.org/repository/brew',
+        'export HOMEBREW_ARTIFACT_DOMAIN_NO_FALLBACK=1',
+      ].join('\n'),
+    );
+    expect(code(snippets, 'install')).toBe('brew install jq');
+    expect(code(snippets, 'private')).toContain('HOMEBREW_DOCKER_REGISTRY_TOKEN=<access token>');
+    expect(supportsUsage('homebrew')).toBe(true);
+  });
+});
+
+describe('sccache usage', () => {
+  it('points sccache at the repository by environment variables, with read-only mode for developers', () => {
+    const snippets = usageSnippets(context({ format: 'sccache', repositoryName: 'sccache-cache' }));
+    expect(ids(snippets)).toEqual(['environment', 'rust', 'cc', 'developers']);
+    expect(code(snippets, 'environment')).toContain(
+      'SCCACHE_WEBDAV_ENDPOINT=https://repo.example.org/repository/sccache-cache\n',
+    );
+    expect(code(snippets, 'rust')).toBe('RUSTC_WRAPPER=sccache cargo build');
+    expect(code(snippets, 'developers')).toBe('SCCACHE_WEBDAV_RW_MODE=READ_ONLY');
+    expect(supportsUsage('sccache')).toBe(true);
+  });
+});
+
+describe('gradlecache usage', () => {
+  it('points Gradle at the cache by settings, properties and CI', () => {
+    const snippets = usageSnippets(context({ format: 'gradlecache', repositoryName: 'gradle-cache' }));
+    expect(ids(snippets)).toEqual(['settings', 'properties', 'ci']);
+    expect(code(snippets, 'settings')).toContain(
+      'url = uri("https://repo.example.org/repository/gradle-cache/")',
+    );
+    expect(code(snippets, 'properties')).toBe('org.gradle.caching=true');
+    expect(code(snippets, 'ci')).toBe('./gradlew build --build-cache');
+    expect(supportsUsage('gradlecache')).toBe(true);
+  });
+});

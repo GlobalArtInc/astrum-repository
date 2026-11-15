@@ -109,6 +109,26 @@ describe('editing a document', () => {
     expect(differences(document, saved)).toEqual(['negativeCache.timeToLive']);
   });
 
+  it('attaches a content policy by its name and detaches it with null', () => {
+    const saved = edit(rawProxy, { policyName: 'strict' });
+    expect(differences(rawProxy, saved)).toEqual(['policy']);
+    expect(getPath(saved, ['policy', 'name'])).toBe('strict');
+    expect(getPath(edit(saved, { policyName: '' }), ['policy', 'name'])).toBeNull();
+  });
+
+  it('keeps an attached policy when the form does not change it', () => {
+    const document = clone(rawProxy);
+    document.policy = { name: 'strict' };
+    expect(fromDocument(document).policyName).toBe('strict');
+    expect(getPath(edit(document, { timeToLive: 5 }), ['policy', 'name'])).toBe('strict');
+  });
+
+  it('offers a policy to every repository but a group', () => {
+    expect(sections.policy({ format: 'raw', type: 'proxy' })).toBe(true);
+    expect(sections.policy({ format: 'docker', type: 'hosted' })).toBe(true);
+    expect(sections.policy({ format: 'raw', type: 'group' })).toBe(false);
+  });
+
   it('writes the applied cleanup policies, also into a document without cleanup', () => {
     const document = clone(rawProxy);
     document.cleanup = null;
@@ -124,6 +144,33 @@ describe('editing a document', () => {
     const saved = edit(dockerHosted, { latestPolicy: false });
     expect(getPath(saved, ['storage', 'latestPolicy'])).toBe(false);
     expect(differences(dockerHosted, saved)).toEqual(['storage.latestPolicy']);
+  });
+
+  it('round-trips the immutable tag rules and changes only the edited pattern list', () => {
+    const document = clone(dockerHosted);
+    (document.storage as Record<string, unknown>).immutableTags = {
+      patterns: ['v*'],
+      exceptions: ['latest'],
+    };
+    expect(canonical(toDocument(fromDocument(document), document))).toEqual(canonical(document));
+    const saved = edit(document, { immutableTagPatterns: 'v*\nrelease-*' });
+    expect(getPath(saved, ['storage', 'immutableTags', 'patterns'])).toEqual(['v*', 'release-*']);
+    expect(differences(document, saved)).toEqual(['storage.immutableTags.patterns']);
+  });
+
+  it('leaves out the immutable tag rules of a document that has none', () => {
+    const saved = edit(dockerHosted, { latestPolicy: false });
+    expect(saved.storage).not.toHaveProperty('immutableTags');
+  });
+
+  it('offers the immutable tag rules to docker hosted repositories only', () => {
+    expect(sections.immutableTags({ format: 'docker', type: 'hosted' })).toBe(true);
+    expect(sections.immutableTags({ format: 'docker', type: 'proxy' })).toBe(false);
+    expect(sections.immutableTags({ format: 'raw', type: 'hosted' })).toBe(false);
+    const rawHosted = (reference as unknown as Record<string, RepositoryDocument>)[
+      'raw/hosted/max'
+    ] as RepositoryDocument;
+    expect(edit(rawHosted, {}).storage).not.toHaveProperty('immutableTags');
   });
 
   it('sends a new secret only when one is typed', () => {
@@ -188,6 +235,21 @@ describe('new repositories', () => {
     expect(getPath(document, ['storage', 'writePolicy'])).toBe(
       spec.type === 'hosted' ? 'ALLOW_ONCE' : undefined,
     );
+  });
+
+  it('start a hosted bazelcache repository with allow, so action results are replaced', () => {
+    const write = (format: string) =>
+      getPath(template({ format, type: 'hosted' }, 'default'), ['storage', 'writePolicy']);
+    expect(write('bazelcache')).toBe('ALLOW');
+    expect(write('gradlecache')).toBe('ALLOW_ONCE');
+    expect(write('raw')).toBe('ALLOW_ONCE');
+  });
+
+  it('start a hosted sccache repository with allow, so entries are replaced', () => {
+    const write = (format: string) =>
+      getPath(template({ format, type: 'hosted' }, 'default'), ['storage', 'writePolicy']);
+    expect(write('sccache')).toBe('ALLOW');
+    expect(write('raw')).toBe('ALLOW_ONCE');
   });
 
   it.each(specs)('a filled $format $type form becomes a complete request', (spec) => {
@@ -299,6 +361,16 @@ describe('form checks', () => {
 });
 
 describe('server problems', () => {
+  it('land on the immutable tag lists they name, indexes included', () => {
+    const dockerHostedSpec: Spec = { format: 'docker', type: 'hosted' };
+    expect(formField('PARAMETER storage.immutableTags.patterns[0]', dockerHostedSpec)).toBe(
+      'immutableTagPatterns',
+    );
+    expect(formField('PARAMETER storage.immutableTags.exceptions[1]', dockerHostedSpec)).toBe(
+      'immutableTagExceptions',
+    );
+  });
+
   it('land on the fields they name', () => {
     const raw: Spec = { format: 'raw', type: 'proxy' };
     expect(formField('PARAMETER remoteUrl', raw)).toBe('remoteUrl');
@@ -595,5 +667,40 @@ describe('repository domains', () => {
       'http://images.example.org/prod/',
     );
     expect(domainAddress({ ...values, domainHost: 'nope' })).toBeNull();
+  });
+});
+
+describe('the quota of a repository', () => {
+  const hosted: Spec = { format: 'raw', type: 'hosted' };
+  const context = { spec: hosted, creating: false, stored: { password: false, bearerToken: false } };
+
+  it('is written as storage.quota only while it has a limit', () => {
+    const document = template(hosted, 'default');
+    const limited = toDocument(
+      { ...fromDocument(document), quotaLimitBytes: 1024 ** 2, quotaWarnPercent: 80, quotaEnforce: true },
+      document,
+    );
+    expect(limited.storage).toMatchObject({ quota: { limitBytes: 1048576, warnPercent: 80, enforce: true } });
+    const removed = toDocument({ ...fromDocument(limited), quotaLimitBytes: null }, limited);
+    expect(removed.storage).toMatchObject({ quota: null });
+  });
+
+  it('is validated: a limit above zero and a warning percent from 1 to 100', () => {
+    const values = { ...fromDocument(template(hosted, 'default')), quotaLimitBytes: 0, quotaWarnPercent: 90 };
+    expect(validate(values, context, t).quotaLimitBytes).toBe(t('repositories.form.errors.quotaLimit'));
+    const percent = { ...values, quotaLimitBytes: 10, quotaWarnPercent: 101 };
+    expect(validate(percent, context, t).quotaWarnPercent).toBe(
+      t('repositories.form.errors.quotaWarnPercent'),
+    );
+    expect(validate({ ...percent, quotaWarnPercent: 100 }, context, t).quotaWarnPercent).toBeUndefined();
+    expect(
+      validate({ ...values, quotaLimitBytes: null, quotaWarnPercent: null }, context, t).quotaWarnPercent,
+    ).toBeUndefined();
+  });
+
+  it('maps the server problems of the quota to its fields', () => {
+    expect(formField('PARAMETER quota.limitBytes', hosted)).toBe('quotaLimitBytes');
+    expect(formField('PARAMETER quota.warnPercent', hosted)).toBe('quotaWarnPercent');
+    expect(formField('PARAMETER quota.enforce', hosted)).toBe('quotaEnforce');
   });
 });

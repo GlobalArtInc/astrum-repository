@@ -1,6 +1,7 @@
 mod access_tokens;
 mod audit;
 pub(crate) mod session;
+mod session_passkey;
 pub mod ui;
 mod ui_state;
 
@@ -14,24 +15,11 @@ pub const INTERNAL: &str = "/service/rest/internal";
 pub fn routes() -> Router<AppState> {
     Router::new()
         .merge(session::routes())
+        .merge(session_passkey::routes())
         .merge(access_tokens::routes())
         .merge(audit::routes())
         .merge(ui::routes())
         .merge(ui_state::routes())
-}
-
-pub(crate) fn client_ip(headers: &HeaderMap) -> String {
-    headers
-        .get("x-forwarded-for")
-        .and_then(|value| value.to_str().ok())
-        .and_then(|value| value.split(',').next())
-        .or_else(|| {
-            headers
-                .get("x-real-ip")
-                .and_then(|value| value.to_str().ok())
-        })
-        .map(|value| value.trim().to_owned())
-        .unwrap_or_default()
 }
 
 pub(crate) fn is_https(headers: &HeaderMap) -> bool {

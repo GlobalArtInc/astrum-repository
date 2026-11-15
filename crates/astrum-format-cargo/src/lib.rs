@@ -2,7 +2,8 @@ mod hosted;
 pub mod index;
 mod remote;
 
-use astrum_content::store;
+use astrum_content::inventory::{Inventory, LicenseFact, PackageRef, cap_license};
+use astrum_content::store::{self, Component};
 use astrum_content::{
     Asset, BrowseLayout, CHALLENGE, ContentError, ContentRequest, Ctx, Format, Serve, View, group,
     serve,
@@ -47,6 +48,38 @@ enum Route {
     Me,
     Directory,
     Other,
+}
+
+fn package_inventory(name: &str, version: &str) -> Option<Inventory> {
+    if name.is_empty() || version.is_empty() {
+        return None;
+    }
+    let purl = format!("pkg:cargo/{name}@{version}");
+    Some(Inventory {
+        key: purl.clone(),
+        packages: vec![PackageRef {
+            ecosystem: "crates.io".to_owned(),
+            name: name.to_owned(),
+            version: version.to_owned(),
+            purl,
+        }],
+        license: None,
+        complete: true,
+        ..Inventory::default()
+    })
+}
+
+fn declared_license(text: &str) -> Option<String> {
+    let declared = cap_license(text).trim();
+    (!declared.is_empty()).then(|| declared.to_owned())
+}
+
+fn license_fact(attributes: &Value) -> Option<LicenseFact> {
+    let declared = declared_license(attributes.get(ID)?.get("license")?.as_str()?)?;
+    Some(LicenseFact {
+        declared,
+        source: "cargo.manifest".to_owned(),
+    })
 }
 
 fn route(path: &str) -> Route {
@@ -468,6 +501,9 @@ impl Cargo {
         let Some(subject) = ctx.subject.as_ref().filter(|subject| !subject.anonymous) else {
             return Ok(unauthorized(ctx, "sign in to get a token for cargo login"));
         };
+        subject
+            .require_unnarrowed()
+            .map_err(|_| ContentError::Forbidden)?;
         let Some(user_id) = subject.local_user_id() else {
             return Ok(json_response(
                 StatusCode::FORBIDDEN,
@@ -567,6 +603,20 @@ impl Format for Cargo {
         ID
     }
 
+    async fn inventory(
+        &self,
+        ctx: &Ctx,
+        component: &Component,
+    ) -> Result<Option<Inventory>, ContentError> {
+        let Some(mut inventory) = package_inventory(&component.name, &component.version) else {
+            return Ok(None);
+        };
+        if ctx.kind() == RepositoryType::Hosted {
+            inventory.license = license_fact(&component.attributes);
+        }
+        Ok(Some(inventory))
+    }
+
     async fn handle(&self, ctx: Ctx, request: ContentRequest) -> Result<Response, ContentError> {
         let route = route(&request.path);
         let answer = match (&request.method, &route) {
@@ -634,6 +684,43 @@ impl Format for Cargo {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn hosted_and_proxy_crates_name_themselves_by_name_and_version() {
+        let hosted = package_inventory("serde", "1.0.200").unwrap();
+        assert_eq!(hosted.key, "pkg:cargo/serde@1.0.200");
+        assert_eq!(hosted.packages[0].ecosystem, "crates.io");
+        assert_eq!(hosted.packages[0].name, "serde");
+        let proxy = package_inventory("tokio-util", "0.7.11").unwrap();
+        assert_eq!(proxy.key, "pkg:cargo/tokio-util@0.7.11");
+        assert!(package_inventory("serde", "").is_none());
+    }
+
+    #[test]
+    fn crate_licence_is_the_licence_field_of_its_manifest() {
+        let fact = license_fact(&json!({ ID: { "license": "MIT OR Apache-2.0" } })).unwrap();
+        assert_eq!(fact.declared, "MIT OR Apache-2.0");
+        assert_eq!(fact.source, "cargo.manifest");
+    }
+
+    #[test]
+    fn legacy_slash_licence_is_passed_through() {
+        let fact = license_fact(&json!({ ID: { "license": "MIT/Apache-2.0" } })).unwrap();
+        assert_eq!(fact.declared, "MIT/Apache-2.0");
+    }
+
+    #[test]
+    fn crate_without_licence_has_no_fact() {
+        assert!(license_fact(&json!({ ID: { "index": {} } })).is_none());
+        assert!(license_fact(&json!({ ID: { "license": null } })).is_none());
+        assert!(license_fact(&json!({ ID: { "license": "  " } })).is_none());
+    }
+
+    #[test]
+    fn declared_licence_is_cut_at_a_kib_on_a_character_boundary() {
+        let text = format!("a{}", "é".repeat(1000));
+        assert_eq!(declared_license(&text).unwrap().len(), 1023);
+    }
 
     #[test]
     fn paths_route_to_the_index_the_api_and_crate_files() {

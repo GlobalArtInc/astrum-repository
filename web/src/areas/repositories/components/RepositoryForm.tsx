@@ -34,6 +34,7 @@ import {
   TextInput,
 } from './fields';
 import styles from './fields.module.css';
+import { QuotaLimitInput } from './QuotaLimitInput';
 import { FooterError } from './SaveError';
 import { SuggestPort } from './SuggestPort';
 
@@ -74,6 +75,21 @@ function useCleanupOptions(format: string, applied: readonly string[], enabled: 
   );
   const known = (names.data ?? []).map((policy) => policy.name);
   return [...known, ...applied.filter((name) => !known.includes(name))];
+}
+
+export const SECURITY_POLICIES = `${V1}/security/policies`;
+
+interface PolicyChoice {
+  name: string;
+}
+
+function usePolicyOptions(current: string, enabled: boolean): Array<{ value: string; label: string }> {
+  const policies = useApi<PolicyChoice[]>(enabled ? SECURITY_POLICIES : null);
+  const known = (policies.data ?? []).map((policy) => ({ value: policy.name, label: policy.name }));
+  if (current !== '' && !known.some((option) => option.value === current)) {
+    known.unshift({ value: current, label: current });
+  }
+  return known;
 }
 
 export const ROUTING_RULES = `${V1}/routing-rules`;
@@ -159,6 +175,7 @@ const REMOTE_EXAMPLES: Record<string, string> = {
   maven2: 'https://repo1.maven.org/maven2/',
   nix: 'https://cache.nixos.org',
   npm: 'https://registry.npmjs.org/',
+  opam: 'https://opam.ocaml.org',
   openvsx: 'https://open-vsx.org',
   p2: 'https://download.eclipse.org/releases/2024-03/',
   pacman: 'https://geo.mirror.pkgbuild.com/',
@@ -170,6 +187,7 @@ const REMOTE_EXAMPLES: Record<string, string> = {
   firefox: 'https://addons.mozilla.org',
   helm: 'https://charts.helm.sh/stable/',
   hex: 'https://repo.hex.pm',
+  homebrew: 'https://formulae.brew.sh/api',
   huggingface: 'https://huggingface.co/',
   jetbrains: 'https://plugins.jetbrains.com',
   raw: 'https://example.org/files/',
@@ -239,6 +257,8 @@ export function RepositoryForm(props: RepositoryFormProps) {
   const { values } = form;
   const { onSaved, onDirtyChange, onReadyChange } = props;
   const canManagePolicies = useCan('astrum:cleanup-policies:read');
+  const canReadPolicies = useCan('astrum:policies:read');
+  const policyOptions = usePolicyOptions(values.policyName, sections.policy(spec) && canReadPolicies);
   const cleanupOptions = useCleanupOptions(spec.format, values.cleanupPolicies, !sections.group(spec));
   const routingRules = useRoutingOptions(values.routingRuleName, sections.proxy(spec));
   const domainCheck = useDomainCheck(values.domainHost);
@@ -818,6 +838,29 @@ export function RepositoryForm(props: RepositoryFormProps) {
             label={t('repositories.form.strict')}
             description={t('repositories.form.strictHint')}
           />
+          {sections.quota(spec) && (
+            <>
+              <QuotaLimitInput
+                {...field('quotaLimitBytes')}
+                label={t('repositories.form.quotaLimit')}
+                hint={t('repositories.form.quotaLimitHint')}
+              />
+              <NumberInput
+                {...field('quotaWarnPercent')}
+                label={t('repositories.form.quotaWarnPercent')}
+                hint={t('repositories.form.quotaWarnPercentHint')}
+                min={1}
+                max={100}
+              />
+              {spec.type === 'hosted' && (
+                <CheckInput
+                  {...field('quotaEnforce')}
+                  label={t('repositories.form.quotaEnforce')}
+                  description={t('repositories.form.quotaEnforceHint')}
+                />
+              )}
+            </>
+          )}
         </Section>
 
         {sections.writePolicy(spec) && (
@@ -827,6 +870,21 @@ export function RepositoryForm(props: RepositoryFormProps) {
               label={t('repositories.form.writePolicy')}
               hint={t('repositories.form.writePolicyHint')}
               options={options(WRITE_POLICIES)}
+            />
+          </Section>
+        )}
+
+        {sections.immutableTags(spec) && (
+          <Section title={t('repositories.form.sections.immutableTags')}>
+            <TextAreaInput
+              {...field('immutableTagPatterns')}
+              label={t('repositories.form.immutableTagPatterns')}
+              hint={t('repositories.form.immutableTagPatternsHint')}
+            />
+            <TextAreaInput
+              {...field('immutableTagExceptions')}
+              label={t('repositories.form.immutableTagExceptions')}
+              hint={t('repositories.form.immutableTagExceptionsHint')}
             />
           </Section>
         )}
@@ -1000,6 +1058,24 @@ export function RepositoryForm(props: RepositoryFormProps) {
                 options={writableOptions}
               />
             )}
+          </Section>
+        )}
+
+        {sections.policy(spec) && canReadPolicies && (
+          <Section
+            title={t('repositories.form.sections.policy')}
+            description={t('repositories.form.sections.policyText')}
+          >
+            <SelectInput
+              name="policyName"
+              error={form.errors.policyName}
+              value={values.policyName === '' ? NONE : values.policyName}
+              onChange={(value) => form.set('policyName', value === NONE ? '' : value)}
+              disabled={readOnly}
+              label={t('repositories.form.policy')}
+              hint={t('repositories.form.policyHint')}
+              options={[{ value: NONE, label: t('repositories.form.policyNone') }, ...policyOptions]}
+            />
           </Section>
         )}
 

@@ -33,13 +33,18 @@ File blob stores are directories of immutable files; copy them with any file-lev
 database backup:
 
 ```shell
-rsync -a --delete /srv/astrum/data/blobs/ /backup/astrum/blobs/
+rsync -aH --delete /srv/astrum/data/blobs/ /backup/astrum/blobs/
 ```
 
 File system or volume snapshots taken right after the database backup are faster and consistent.
 For S3 blob stores enable bucket versioning or replication instead. A remote blob store keeps its
 blobs in the directory of its agent on another server, laid out like a file blob store: back it up there
 the same way.
+
+File blob stores can contain hard links: a blob that the server duplicates inside one store can share its
+file with the original under two names. Use a backup tool that preserves hard links (`rsync -H`, file system
+or volume snapshots); one that does not stores every name as a separate file, so the backup grows larger than
+the store. Deleting one name frees no space while the other name lives.
 
 ## Secrets key
 

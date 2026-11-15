@@ -13,7 +13,7 @@ stored in the database and apply to every server on it.
 | **UI: Settings** | `rapture.settings` | UI | Sets the title of the browser tab and the session timeout |
 | **UI: Branding** | `rapture.branding` | UI | Shows your own HTML above and below every page of the web interface |
 | **Metrics: Prometheus** | `metrics.prometheus` | Monitoring | Serves metrics at `/service/metrics/prometheus`; see [Prometheus metrics](../operate/monitoring.md#prometheus-metrics) |
-| **Blob Stores: Space Alert** | `blobstores.space` | Monitoring | Sends free space, quota and reachability problems of blob stores to notification channels; see [blob store space alerts](../operate/monitoring.md#blob-store-space-alerts) |
+| **Blob Stores: Space Alert** | `blobstores.space` | Monitoring | Sends free space, quota, reachability and fill forecast problems of blob stores, and quota problems of repositories, to notification channels; see [blob store space alerts](../operate/monitoring.md#blob-store-space-alerts) |
 
 These are all the types this server has. Other optional features have pages of their own: the role
 every signed-in user gets is set under **Settings → Security → Default Role**, notifications under

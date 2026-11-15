@@ -1,23 +1,33 @@
 use std::collections::HashMap;
 use std::convert::Infallible;
 
+use astrum_content::usage::Usage;
 use astrum_db::audit::Event;
+use astrum_db::entity::repository_usage_day;
 use astrum_repo::{Problem, Repository, RepositoryType, Request, Spec, WriteError, Writer, store};
 use astrum_security::Subject;
-use axum::extract::{FromRequestParts, Path, State};
+use axum::extract::{FromRequestParts, Path, Query, State};
 use axum::http::request::Parts;
 use axum::http::{HeaderMap, StatusCode, Uri, header};
 use axum::routing::{get, post};
 use axum::{Json, Router};
-use sea_orm::{DbBackend, FromQueryResult, Statement};
+use chrono::{Days, NaiveDate, Utc};
+use sea_orm::{
+    ColumnTrait, DbBackend, EntityTrait, FromQueryResult, QueryFilter, QueryOrder, Statement,
+};
+use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
 use crate::error::{ApiError, FieldError};
+use crate::routes::customers;
 use crate::{AppState, Caller};
 
 pub const REPOSITORIES: &str = "/service/rest/v1/repositories";
 pub const REPOSITORY_SETTINGS: &str = "/service/rest/v1/repositorySettings";
 pub const AUDIT_DOMAIN: &str = "repository";
+pub const HISTORY_DEFAULT_DAYS: i64 = 90;
+pub const HISTORY_MAX_DAYS: i64 = 730;
+const POLICY_ATTACHED: &str = "policy";
 
 pub fn routes() -> Router<AppState> {
     Router::new()
@@ -27,9 +37,14 @@ pub fn routes() -> Router<AppState> {
             get(summary).delete(remove),
         )
         .route(
+            "/service/rest/v1/repositories/{name}/usage/history",
+            get(usage_history),
+        )
+        .route(
             "/service/rest/v1/repositories/{format}/{kind}",
             post(create),
         )
+        .route("/service/rest/v1/repositories/{name}/usage", get(usage))
         .route(
             "/service/rest/v1/repositories/{name}/invalidate-cache",
             post(invalidate_cache),
@@ -122,12 +137,117 @@ async fn summary(
     base: BaseUrl,
     Path(name): Path<String>,
 ) -> Result<Json<Value>, ApiError> {
+    let repository = readable(&state, &caller, &name).await?;
+    Ok(Json(repository.summary(&base.0)))
+}
+
+async fn usage(
+    State(state): State<AppState>,
+    caller: Caller,
+    Path(name): Path<String>,
+) -> Result<Json<Value>, ApiError> {
+    let repository = readable(&state, &caller, &name).await?;
+    let counted = astrum_content::usage::current(state.db().conn(), &repository.name)
+        .await
+        .map_err(ApiError::internal)?
+        .unwrap_or(Usage {
+            assets: 0,
+            bytes: 0,
+        });
+    let quota = repository
+        .attributes
+        .storage
+        .as_ref()
+        .and_then(|storage| storage.quota.clone());
+    let percent_used = quota
+        .as_ref()
+        .and_then(|quota| quota.limit_bytes)
+        .filter(|limit| *limit > 0)
+        .map(|limit| percent_used(counted.bytes, limit));
+    Ok(Json(json!({
+        "assets": counted.assets,
+        "bytes": counted.bytes,
+        "quota": quota,
+        "percentUsed": percent_used,
+    })))
+}
+
+fn percent_used(bytes: i64, limit: i64) -> f64 {
+    (bytes as f64 / limit as f64 * 1000.0).round() / 10.0
+}
+
+async fn readable(state: &AppState, caller: &Caller, name: &str) -> Result<Repository, ApiError> {
+    let subject = signed(caller)?;
+    let repository = existing(state, name).await?;
+    if !visible(subject, &repository) {
+        return Err(denied(subject));
+    }
+    Ok(repository)
+}
+
+#[derive(Deserialize)]
+struct HistoryQuery {
+    days: Option<String>,
+}
+
+#[derive(Serialize)]
+struct HistoryPoint {
+    day: String,
+    components: i64,
+    assets: i64,
+    bytes: i64,
+    downloads: i64,
+}
+
+async fn usage_history(
+    State(state): State<AppState>,
+    caller: Caller,
+    Path(name): Path<String>,
+    Query(query): Query<HistoryQuery>,
+) -> Result<Json<Vec<HistoryPoint>>, ApiError> {
     let subject = signed(&caller)?;
     let repository = existing(&state, &name).await?;
     if !visible(subject, &repository) {
         return Err(denied(subject));
     }
-    Ok(Json(repository.summary(&base.0)))
+    let days = history_days(query.days.as_deref(), HISTORY_DEFAULT_DAYS)?;
+    let rows = repository_usage_day::Entity::find()
+        .filter(repository_usage_day::Column::Repository.eq(repository.name.clone()))
+        .filter(repository_usage_day::Column::Day.gte(history_from(days)))
+        .order_by_asc(repository_usage_day::Column::Day)
+        .all(state.db().conn())
+        .await?;
+    Ok(Json(
+        rows.into_iter()
+            .map(|row| HistoryPoint {
+                day: row.day.to_string(),
+                components: row.components,
+                assets: row.assets,
+                bytes: row.bytes,
+                downloads: row.downloads,
+            })
+            .collect(),
+    ))
+}
+
+pub fn history_days(value: Option<&str>, default: i64) -> Result<i64, ApiError> {
+    let Some(value) = value else {
+        return Ok(default);
+    };
+    match value.parse::<i64>() {
+        Ok(days) if (1..=HISTORY_MAX_DAYS).contains(&days) => Ok(days),
+        _ => Err(ApiError::invalid(
+            "days",
+            format!("must be a whole number from 1 to {HISTORY_MAX_DAYS}"),
+        )),
+    }
+}
+
+pub fn history_from(days: i64) -> NaiveDate {
+    let today = Utc::now().date_naive();
+    today
+        .checked_sub_days(Days::new(u64::try_from(days - 1).unwrap_or_default()))
+        .unwrap_or(today)
 }
 
 async fn read(
@@ -216,6 +336,9 @@ async fn update(
     check_remote(&state, &repository, Some(&existing)).await?;
     let updated = writer.update(&existing.name, repository).await?;
     state.content().forget_repository(&updated.name);
+    if updated.policy_name().is_some() && updated.policy_name() != existing.policy_name() {
+        super::scan::enqueue_detached(&state, &updated.name, POLICY_ATTACHED);
+    }
     changed(&state, &caller, "updated", &updated).await
 }
 
@@ -234,9 +357,11 @@ async fn remove(
         .await
         .map_err(ApiError::internal)?;
     let deleted = writer.delete(&existing.name).await?;
-    state.content().forget_repository(&deleted.name);
+    state.content().forget_repository(&deleted.repository.name);
     state.content().purge_blobs(blobs).await;
-    changed(&state, &caller, "deleted", &deleted).await
+    customers::audit_released_tokens(&state, &caller, &deleted.repository.name, &deleted.tokens)
+        .await;
+    changed(&state, &caller, "deleted", &deleted.repository).await
 }
 
 async fn invalidate_cache(

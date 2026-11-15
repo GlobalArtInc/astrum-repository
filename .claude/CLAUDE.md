@@ -24,6 +24,23 @@ repository is public: never commit secrets.
   (`jetbrains`, `crates/astrum-format-jetbrains`; hosted, proxy and group: hosted ones generate `updatePlugins.xml`, take
   `POST api/updates/upload` and PUT, and all three answer the `idea.plugins.host` requests `plugins/list`, `pluginManager`
   and `plugin/download`, so a proxy of https://plugins.jetbrains.com can replace Marketplace in a closed network).
+  Also a JSR registry for Deno and TypeScript packages (`jsr`, `crates/astrum-format-jsr`; hosted, proxy of https://jsr.io and
+  group): it serves `@scope/name/meta.json`, `<version>_meta.json` and the files of a version, and takes `deno publish --token`
+  at `api/scopes/{scope}/packages/{name}/versions/{version}` (a gzipped tar, read with caps on its size, entries and paths;
+  a published version is never replaced); publishing needs a repository domain with `ROOT` routing, because Deno calls `/api/`
+  at the root of `JSR_URL`.
+  Also a Homebrew proxy (`homebrew`, `crates/astrum-format-homebrew`; proxy only, because brew verifies the signature of the
+  index): it passes `api/<name>.jws.json` and `api/internal/<name>.jws.json` from the remote URL (default
+  https://formulae.brew.sh/api) and the `homebrew/core` manifests and blobs at `v2/homebrew/core/<image>/...` from the fixed
+  origin https://ghcr.io with the anonymous pull token, checking the SHA-256 of a blob against its path before storing it;
+  every other path is 404 and never reaches an upstream. brew is pointed at it with `HOMEBREW_API_DOMAIN` and
+  `HOMEBREW_ARTIFACT_DOMAIN`, and sends no credentials for the index, so the repository must be readable anonymously.
+  Also OPAM (`opam`, `crates/astrum-format-opam`; hosted and proxy, no group because opam ranks repositories itself): a hosted
+  repository takes `curl -T` at `packages/<n>/<n>.<v>/opam`, `packages/<n>/<n>.<v>/files/<path>` and
+  `cache/<sha256|sha512>/<xx>/<digest>` (the body must match its digest) and generates `repo` and `index.tar.gz`, which is
+  rebuilt after every write or delete of a `packages/` file under an advisory lock per repository (at most 50 000 entries);
+  a proxy of https://opam.ocaml.org passes `index.tar.gz`, `repo` and the digest-checked `cache/` files and answers 404
+  without asking the remote for anything else. Credentials in the URL are unverified with a real opam client.
   Also a hosted-only Buf Schema Registry for Protobuf modules (`protobuf`, `crates/astrum-format-protobuf`: Connect
   services `buf.registry.module.v1` and `buf.registry.owner.v1.OwnerService`, checked with buf 1.75.0; it needs a
   repository domain with `ROOT` routing because buf sends no path prefix, and has no proxy, group or `v1beta1`
@@ -95,7 +112,7 @@ repository is public: never commit secrets.
 - Not done: retiring
   the Java container on `prod1-astrum1` (owner's call; the runbook asked for two quiet weeks first),
   renaming `astrum-next` to `astrum` in infra and gitops afterwards.
-- Owner deferred (2026-10-18): no limit on failed sign-ins, unknown Bearer tokens answer 401 instead of
+- Owner deferred (2026-10-18): unknown Bearer tokens answer 401 instead of
   anonymous, uploader and client address visible to readers, task types without a counterpart and cleanup
   `retain`, the Swift upload form and `/v1/lifecycle/phase`. On `docker-prod` (`forceBasicAuth`) the Java
   server challenged with Basic, the Rust server challenges with Bearer.
@@ -221,6 +238,10 @@ repository is public: never commit secrets.
 - Ownlate project `f1f93c0e-4902-434d-a551-e94ba7e1e304`, file `119d5931-d6cc-4e49-aaa6-ce23ad9b6257`.
   Write source texts first (no language), then Russian with approve=true; keep batches under ~150; a
   "session expired" error may still have applied the write. The CI workflow pulls and checks them when the secrets are set.
+- `pull` reads the PUBLISHED release language by language (`/public/v1/ota/<accessKey>/manifest` and `/bundles/<language>`,
+  the public key is in `tools/i18n/dictionaries.json`); it needs no token. So after importing or approving texts, create a
+  release (`create_release`), or `pull` and CI do not see them. The one-answer `translations-map` endpoint is refused by the
+  Ownlate gateway above 4 MiB (the project passed it in November 2026): do not use it.
 
 ## Parallel agents (how it worked)
 - One worktree per task: `git worktree add -b <branch> /home/user/wt/<name> origin/main`; install

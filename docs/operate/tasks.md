@@ -10,8 +10,9 @@ see [nodes and several servers](nodes.md#tasks-on-several-servers).
 
 ## Built-in tasks
 
-On its first start the server creates four tasks. It does not create them again, so a built-in task you
-delete stays deleted until you create one of its type yourself.
+On its first start the server creates five tasks. It does not create them again, so a built-in task you
+delete stays deleted until you create one of its type yourself. A server upgraded from a version without
+the usage task creates that one task once, on its first start after the upgrade.
 
 | Task | Type | Schedule |
 |---|---|---|
@@ -19,6 +20,7 @@ delete stays deleted until you create one of its type yourself.
 | Delete unused Docker manifests and layers | Docker - Delete unused manifests and images, all repositories, deploy offset 24 hours | Daily at 01:30 UTC, `0 30 1 * * ?` |
 | Compact blob stores | Admin - Compact blob store, all blob stores, 1 day | Daily at 02:00 UTC, `0 0 2 * * ?` |
 | Delete expired sessions and uploads | Admin - Delete expired sessions and uploads | Hourly, from five minutes after the first start |
+| Record repository usage | Record repository usage | Daily at 00:30 UTC, `0 30 0 * * ?` |
 
 ## Task types
 
@@ -29,11 +31,13 @@ fits.
 | Type | ID | Settings | What it does |
 |---|---|---|---|
 | Admin - Cleanup repositories using their associated policies | `repository.cleanup` | none; one only | Runs the [cleanup policies](../repositories/cleanup-policies.md) assigned to each hosted and proxy repository and deletes the components they match. A policy without criteria deletes nothing; a policy that is missing or made for another format is skipped with a warning in the log |
-| Admin - Compact blob store | `blobstore.compact` | **Blob Store** (a group compacts its members), **Minimum Blob Age (days)**, default `1` | Deletes the blobs no asset refers to and no unfinished Docker upload uses, such as the leftovers of interrupted uploads, once they are older than the minimum age; blobs younger than ten minutes are always kept |
+| Admin - Compact blob store | `blobstore.compact` | **Blob Store** (a group compacts its members), **Minimum Blob Age (days)**, default `1` | Deletes the blobs no asset refers to, no unfinished Docker upload uses and no running transfer holds, such as the leftovers of interrupted uploads, once they are older than the minimum age; blobs younger than ten minutes are always kept. A hold stays until **Admin - Delete expired sessions and uploads** drops it, so a held blob is never collected while that task does not run |
 | Repair - Recalculate blob store storage | `blobstore.metrics.reconcile` | **Blob Store** (not a group; all stores includes the members of groups) | Counts the blobs and bytes of a store again and corrects the totals shown for it; the log lists the old and the new totals |
+| Admin - Move idle blobs to another store | `blobstore.tier` | **Source**, **Target**, optional **Repository**, and the idle, size, limit, drain and **Dry run** options (see [moving idle blobs](../configure/blob-stores.md#moving-idle-blobs-to-another-store)) | Moves the assets idle for the given days from the source store to the target and points them at it; the old blobs are deleted after the drain time. No default schedule |
 | Repository - Delete unused components | `repository.purge-unused` | **Repository** (proxy repositories), **Last used in days**, default `30` | Deletes the cached assets of proxy repositories that nobody downloaded for that many days (counted from when they were cached, if never downloaded), and components left without assets; every deletion is audited |
-| Admin - Delete expired sessions and uploads | `security.purge-expired` | none; one only | Deletes web sessions idle for longer than the [session timeout](../configure/runtime.md#sessions) (none while it is `0`), expired tokens that formats such as Docker and npm hand out to clients, and Docker uploads left unfinished for 24 hours |
+| Admin - Delete expired sessions and uploads | `security.purge-expired` | none; one only | Deletes web sessions idle for longer than the [session timeout](../configure/runtime.md#sessions) (none while it is `0`), expired tokens that formats such as Docker and npm hand out to clients, and Docker uploads left unfinished for 24 hours; also drops blob holds past their time, deleting their blobs if no asset names them |
 | Docker - Delete unused manifests and images | `repository.docker.gc` | **Repository** (hosted Docker repositories), **Deploy offset (hours)**, default `24` | Deletes untagged manifests and the layers no manifest uses any more, if they were pushed longer ago than the deploy offset |
+| Record repository usage | `repository.usage.snapshot` | none; one only | Records, for the day before, the number of components, assets and bytes and the downloads of every repository, and the blob count, bytes and free space of every blob store, and corrects the usage counter of each repository first. A re-run for the same day replaces the rows. It deletes the records older than the setting `usage.history.daysKept` (default `730`, at least `1`). A blob store that does not answer for the free space within ten seconds is recorded without it |
 | Nix - Delete NAR files no narinfo uses | `repository.nix.gc` | **Repository** (hosted Nix repositories), **Deploy offset (hours)**, default `24` | Deletes NAR files that no narinfo file refers to, if they were uploaded longer ago than the offset, so that a `nix copy` in progress can still add their narinfo files |
 
 Some formats have a task that writes their metadata anew, for example after a change of the remote URL

@@ -3,6 +3,9 @@ mod support;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
+use astrum_content::store::{self, ComponentKey, PutAsset};
+use astrum_content::transfer::{Conflict, PROMOTED};
+use astrum_content::{Ctx, holds};
 use astrum_db::system::{BASE_URL_KEY, BaseUrl};
 use astrum_notify::{Mail, MailError, MailSender, Timing};
 use astrum_security::ssrf::{SSRF_KEY, SsrfProtection};
@@ -335,6 +338,119 @@ async fn component_changes_reach_a_signed_webhook() {
     assert_eq!(deliveries(&fixture).await, 0);
 }
 
+fn shared() -> ComponentKey {
+    ComponentKey {
+        namespace: "g".to_owned(),
+        name: "lib".to_owned(),
+        version: "1".to_owned(),
+        ..Default::default()
+    }
+}
+
+async fn upload_files(ctx: &Ctx, bodies: [&'static str; 3]) {
+    for (path, body) in ["/g/a.txt", "/g/b.txt", "/g/c.txt"].into_iter().zip(bodies) {
+        store::put(
+            ctx,
+            PutAsset::hosted(ctx, path).component(shared()),
+            astrum_blob::content_of(body.as_bytes()),
+        )
+        .await
+        .unwrap();
+    }
+}
+
+async fn promote_files(ctx: &Ctx, bodies: [&'static str; 3]) {
+    let mut items = Vec::new();
+    for (path, body) in ["/g/a.txt", "/g/b.txt", "/g/c.txt"].into_iter().zip(bodies) {
+        let blobs = ctx.content.blob_stores().get("default").await.unwrap();
+        let written = blobs
+            .put(astrum_blob::content_of(body.as_bytes()))
+            .await
+            .unwrap();
+        holds::hold(
+            ctx.db(),
+            &written.store,
+            written.id,
+            Duration::from_secs(600),
+        )
+        .await
+        .unwrap();
+        items.push((PutAsset::hosted(ctx, path).component(shared()), written));
+    }
+    store::record_many(ctx, items, Conflict::Replace, PROMOTED)
+        .await
+        .unwrap();
+}
+
+async fn watched(fixture: &Fixture) -> Receiver {
+    allow_loopback(fixture).await;
+    hosted(fixture, "target").await;
+    let (url, receiver) = start_receiver().await;
+    let mut channel = hook("Hook", &format!("{url}/hook"));
+    channel["events"] = json!(["published", "promoted", "updated", "deleted"]);
+    create(fixture, channel).await;
+    receiver
+}
+
+fn events(received: Vec<(HeaderMap, Value)>) -> Vec<String> {
+    received
+        .into_iter()
+        .map(|(_, body)| body["event"].as_str().unwrap().to_owned())
+        .collect()
+}
+
+#[tokio::test]
+async fn a_promotion_reaches_a_webhook_as_one_promoted_notice_for_a_new_and_an_existing_component()
+{
+    let fixture = ready().await;
+    let receiver = watched(&fixture).await;
+    let target = support::repository_ctx(&fixture, "target").await;
+    promote_files(&target, ["alpha", "bravo", "charlie"]).await;
+    fixture.state.notifier().flush_now().await.unwrap();
+    assert_eq!(events(receiver.taken()), ["component.promoted"]);
+
+    promote_files(&target, ["alpha 2", "bravo 2", "charlie 2"]).await;
+    fixture.state.notifier().flush_now().await.unwrap();
+    assert_eq!(events(receiver.taken()), ["component.promoted"]);
+}
+
+#[tokio::test]
+async fn a_promoted_component_deleted_in_the_same_window_is_reported_as_deleted() {
+    let fixture = ready().await;
+    let receiver = watched(&fixture).await;
+    let target = support::repository_ctx(&fixture, "target").await;
+    upload_files(&target, ["alpha", "bravo", "charlie"]).await;
+    fixture.state.notifier().flush_now().await.unwrap();
+    assert_eq!(events(receiver.taken()), ["component.published"]);
+    promote_files(&target, ["alpha 2", "bravo 2", "charlie 2"]).await;
+    let component = store::find(target.db(), "target", "/g/a.txt")
+        .await
+        .unwrap()
+        .unwrap()
+        .component_id
+        .unwrap();
+    assert!(
+        store::delete_component(&target.content, component)
+            .await
+            .unwrap()
+    );
+    fixture.state.notifier().flush_now().await.unwrap();
+    assert_eq!(events(receiver.taken()), ["component.deleted"]);
+}
+
+#[tokio::test]
+async fn a_replacement_by_hand_still_reaches_a_webhook_as_updated() {
+    let fixture = ready().await;
+    let receiver = watched(&fixture).await;
+    let target = support::repository_ctx(&fixture, "target").await;
+    upload_files(&target, ["alpha", "bravo", "charlie"]).await;
+    fixture.state.notifier().flush_now().await.unwrap();
+    assert_eq!(events(receiver.taken()), ["component.published"]);
+    upload_files(&target, ["alpha 2", "bravo 2", "charlie 2"]).await;
+    fixture.state.notifier().flush_now().await.unwrap();
+    assert_eq!(events(receiver.taken()), ["component.updated"]);
+}
+
 #[tokio::test]
 async fn failed_deliveries_are_retried_and_wait_for_the_lock() {
     let fixture = ready().await;
@@ -513,4 +629,210 @@ async fn email_channels_use_the_mail_sender() {
         "{}",
         mails[0].text
     );
+}
+
+const FOUND: &str = r#"{"policy":"strict","advisory":"GHSA-1","severity":"high"}"#;
+const BLOCKED: &str = r#"{"policy":"strict"}"#;
+
+fn slack(name: &str, url: &str, events: &[&str]) -> Value {
+    json!({"name": name, "type": "slack", "secret": url, "events": events, "language": "en"})
+}
+
+async fn capture(fixture: &Fixture, action: &str, wanted: &str, detail: &str) {
+    sea_orm::ConnectionTrait::execute_unprepared(
+        fixture.state.db().conn(),
+        &format!(
+            "SELECT notification_capture_events('{action}', \
+               ARRAY(SELECT id FROM component WHERE name LIKE '{wanted}' ORDER BY id), \
+               ARRAY(SELECT '{detail}' FROM component WHERE name LIKE '{wanted}' ORDER BY id))"
+        ),
+    )
+    .await
+    .unwrap();
+}
+
+async fn components(fixture: &Fixture, count: usize) {
+    sea_orm::ConnectionTrait::execute_unprepared(
+        fixture.state.db().conn(),
+        &format!(
+            "INSERT INTO component (repository, format, name, version) \
+             SELECT 'files', 'raw', 'part-' || g, '1' FROM generate_series(1, {count}) g"
+        ),
+    )
+    .await
+    .unwrap();
+}
+
+#[tokio::test]
+async fn security_events_reach_a_webhook_under_their_own_names() {
+    let fixture = ready().await;
+    allow_loopback(&fixture).await;
+    hosted(&fixture, "files").await;
+    components(&fixture, 2).await;
+    let (url, receiver) = start_receiver().await;
+    let mut body = hook("Hook", &format!("{url}/hook"));
+    body["events"] = json!(["vulnerability.found", "policy.blocked"]);
+    create(&fixture, body).await;
+    let refused = fixture
+        .call(
+            Method::POST,
+            CHANNELS,
+            Auth::Admin,
+            Some({
+                let mut body = hook("Other", &format!("{url}/other"));
+                body["events"] = json!(["policy.allowed"]);
+                body
+            }),
+        )
+        .await;
+    assert_eq!(refused.status, StatusCode::BAD_REQUEST);
+
+    capture(&fixture, "vulnerability.found", "part-1", FOUND).await;
+    capture(&fixture, "policy.blocked", "part-2", BLOCKED).await;
+    fixture.state.notifier().flush_now().await.unwrap();
+
+    let mut received = receiver.taken();
+    received.sort_by_key(|(_, body)| body["event"].as_str().unwrap().to_owned());
+    assert_eq!(received.len(), 2);
+    assert_eq!(received[0].0["x-astrum-event"], "policy.blocked");
+    assert_eq!(received[0].1["policy"], "strict");
+    assert_eq!(received[0].1["vulnerability"], Value::Null);
+    assert_eq!(received[1].0["x-astrum-event"], "vulnerability.found");
+    assert_eq!(
+        received[1].1["vulnerability"],
+        json!({"advisory": "GHSA-1", "severity": "high"})
+    );
+    assert_eq!(received[1].1["component"]["name"], "part-1");
+}
+
+#[tokio::test]
+async fn an_import_that_matches_hundreds_of_components_sends_one_summary_to_a_chat() {
+    let fixture = ready().await;
+    allow_loopback(&fixture).await;
+    hosted(&fixture, "files").await;
+    components(&fixture, 600).await;
+    let (url, receiver) = start_receiver().await;
+    create(
+        &fixture,
+        slack("Chat", &format!("{url}/chat"), &["vulnerability.found"]),
+    )
+    .await;
+
+    capture(&fixture, "vulnerability.found", "part-%", FOUND).await;
+    fixture.state.notifier().flush_now().await.unwrap();
+
+    let received = receiver.taken();
+    assert_eq!(received.len(), 1);
+    let text = received[0].1["text"].as_str().unwrap();
+    assert!(text.starts_with("📋 *Security notices: 600*"), "{text}");
+    assert!(text.contains("…and 580 more"), "{text}");
+    assert!(text.lines().count() <= 24, "{text}");
+}
+
+#[tokio::test]
+async fn the_stale_alert_goes_once_a_day_to_channels_that_listen_for_vulnerabilities() {
+    use astrum_notify::alerts::{StaleFeed, alert_stale};
+    let fixture = ready().await;
+    create(
+        &fixture,
+        slack(
+            "Chat",
+            "https://hooks.example.com/chat",
+            &["vulnerability.found"],
+        ),
+    )
+    .await;
+    create(
+        &fixture,
+        slack("Quiet", "https://hooks.example.com/quiet", &["published"]),
+    )
+    .await;
+    let db = fixture.state.db().conn();
+    let now = chrono::Utc::now();
+    let npm = || StaleFeed {
+        ecosystem: "npm".to_owned(),
+        synced_at: None,
+    };
+
+    assert_eq!(alert_stale(db, &[npm()], 7, now).await.unwrap(), 1);
+    assert_eq!(deliveries(&fixture).await, 1);
+    let text: String = sea_orm::ConnectionTrait::query_one(
+        db,
+        sea_orm::Statement::from_string(
+            sea_orm::DbBackend::Postgres,
+            "SELECT event || ' ' || text AS n FROM notification_delivery".to_owned(),
+        ),
+    )
+    .await
+    .unwrap()
+    .unwrap()
+    .try_get("", "n")
+    .unwrap();
+    assert!(
+        text.starts_with("advisories.stale ⚠️ *Vulnerability data is out of date*"),
+        "{text}"
+    );
+    assert!(text.contains("`npm`: has never been synced"), "{text}");
+
+    let later = now + chrono::Duration::hours(2);
+    assert_eq!(alert_stale(db, &[npm()], 7, later).await.unwrap(), 0);
+    assert_eq!(deliveries(&fixture).await, 1);
+
+    let recovered = now + chrono::Duration::hours(3);
+    assert_eq!(alert_stale(db, &[], 7, recovered).await.unwrap(), 0);
+    let again = now + chrono::Duration::hours(4);
+    assert_eq!(alert_stale(db, &[npm()], 7, again).await.unwrap(), 1);
+    assert_eq!(deliveries(&fixture).await, 2);
+
+    let next_day = again + chrono::Duration::hours(25);
+    assert_eq!(alert_stale(db, &[npm()], 7, next_day).await.unwrap(), 1);
+    assert_eq!(deliveries(&fixture).await, 3);
+}
+
+#[tokio::test]
+async fn a_stale_alert_whose_state_cannot_be_saved_queues_nothing_so_the_next_run_does_not_repeat_it()
+ {
+    use astrum_notify::alerts::{StaleFeed, alert_stale};
+    let fixture = ready().await;
+    create(
+        &fixture,
+        slack(
+            "Chat",
+            "https://hooks.example.com/chat",
+            &["vulnerability.found"],
+        ),
+    )
+    .await;
+    let db = fixture.state.db().conn();
+    let feeds = [StaleFeed {
+        ecosystem: "npm".to_owned(),
+        synced_at: None,
+    }];
+    sea_orm::ConnectionTrait::execute_unprepared(
+        db,
+        "CREATE FUNCTION refuse_state() RETURNS trigger LANGUAGE plpgsql AS $$ \
+           BEGIN RAISE EXCEPTION 'refused'; END $$; \
+         CREATE TRIGGER refuse_state BEFORE INSERT OR UPDATE ON setting \
+           FOR EACH ROW EXECUTE FUNCTION refuse_state()",
+    )
+    .await
+    .unwrap();
+
+    assert!(
+        alert_stale(db, &feeds, 7, chrono::Utc::now())
+            .await
+            .is_err()
+    );
+    assert_eq!(deliveries(&fixture).await, 0);
+
+    sea_orm::ConnectionTrait::execute_unprepared(db, "DROP TRIGGER refuse_state ON setting")
+        .await
+        .unwrap();
+    assert_eq!(
+        alert_stale(db, &feeds, 7, chrono::Utc::now())
+            .await
+            .unwrap(),
+        1
+    );
+    assert_eq!(deliveries(&fixture).await, 1);
 }

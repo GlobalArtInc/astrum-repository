@@ -54,6 +54,30 @@ pub fn dist_tags(doc: &Value) -> Map<String, Value> {
         .unwrap_or_default()
 }
 
+pub fn license(doc: &Value, version: &str) -> Option<String> {
+    let manifest = versions(doc)?.get(version)?;
+    if let Some(text) = declared_license(manifest.get("license")) {
+        return Some(text);
+    }
+    let alternatives: Vec<String> = manifest
+        .get("licenses")?
+        .as_array()?
+        .iter()
+        .filter_map(|entry| declared_license(Some(entry)))
+        .collect();
+    (!alternatives.is_empty()).then(|| alternatives.join(" OR "))
+}
+
+fn declared_license(value: Option<&Value>) -> Option<String> {
+    let text = match value? {
+        Value::String(text) => text.as_str(),
+        Value::Object(legacy) => legacy.get("type")?.as_str()?,
+        _ => return None,
+    };
+    let text = text.trim();
+    (!text.is_empty()).then(|| text.to_owned())
+}
+
 pub fn tarball_file(manifest: &Value) -> Option<String> {
     let url = manifest.pointer("/dist/tarball")?.as_str()?;
     let path = url.split(['?', '#']).next().unwrap_or(url);
@@ -663,5 +687,26 @@ mod tests {
             search_attributes(&doc),
             json!({"npm": {"name": "tool", "version": "1.0.0", "description": "does things", "keywords": ["cli", "tool"], "modified": "2026-10-12T00:00:00.000Z"}})
         );
+    }
+
+    #[test]
+    fn the_licence_of_a_version_comes_from_a_string_an_object_or_a_legacy_array() {
+        let doc = json!({
+            "name": "tool",
+            "versions": {
+                "1.0.0": {"license": "MIT"},
+                "2.0.0": {"license": {"type": "Apache-2.0", "url": "https://example.org/LICENSE"}},
+                "3.0.0": {"licenses": [{"type": "MIT"}, "GPL-2.0"]},
+                "4.0.0": {"description": "no licence"},
+                "5.0.0": {"license": "   "}
+            }
+        });
+        assert_eq!(license(&doc, "1.0.0").as_deref(), Some("MIT"));
+        assert_eq!(license(&doc, "2.0.0").as_deref(), Some("Apache-2.0"));
+        assert_eq!(license(&doc, "3.0.0").as_deref(), Some("MIT OR GPL-2.0"));
+        assert_eq!(license(&doc, "4.0.0"), None);
+        assert_eq!(license(&doc, "5.0.0"), None);
+        assert_eq!(license(&doc, "9.9.9"), None);
+        assert_eq!(license(&json!({"name": "tool"}), "1.0.0"), None);
     }
 }

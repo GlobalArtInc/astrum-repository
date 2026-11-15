@@ -50,7 +50,7 @@ pub fn valid_version(version: &str) -> bool {
 }
 
 impl Package {
-    fn new(scope: &str, name: &str, version: Option<&str>) -> Option<Self> {
+    pub(crate) fn new(scope: &str, name: &str, version: Option<&str>) -> Option<Self> {
         (valid_scope(scope) && valid_name(name) && version.is_none_or(valid_version)).then(|| {
             Self {
                 scope: scope.to_owned(),

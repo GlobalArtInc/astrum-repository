@@ -6,6 +6,7 @@ import { api, apiKey, path, useApi, useInvalidateApi, withQuery } from '../../..
 import { useSession } from '../../../auth/state';
 import { formatNumber, type Translate, useI18n, useT } from '../../../i18n';
 import { CopyButton, DateTime, ErrorState, FileSize, formatName, useToast } from '../../../ui';
+import { SigningChip } from '../docker/SupplyChain';
 import { componentTitle, fromProxy, guideComponentName } from '../links';
 import { parentOf } from '../tree/model';
 import {
@@ -24,6 +25,7 @@ import { AssetSummary } from './AssetSummary';
 import { DeleteButton } from './DeleteButton';
 import styles from './Details.module.css';
 import { FilePreview } from './FilePreview';
+import { ShareButton } from './ShareButton';
 import { VersionsTable } from './VersionsTable';
 import { isVersionNode } from './versions';
 
@@ -234,6 +236,7 @@ export function FolderPanel({ repository, node, onNavigate }: PanelProps & { nod
   const count = (value: number) => (listing.data ? formatNumber(language, value) : '—');
   const remove = async () => {
     const result = await api.delete<FolderDeleted>(treePath(repository.name, node.path));
+    const protectedAssets = result.protectedAssets ?? 0;
     onNavigate(parentOf(node.path));
     await changed();
     toast.success(
@@ -242,6 +245,7 @@ export function FolderPanel({ repository, node, onNavigate }: PanelProps & { nod
         t('browse.details.deletedAssets', { count: result.deletedAssets }),
         t('browse.details.deletedComponents', { count: result.deletedComponents }),
         result.skippedAssets > 0 ? t('browse.details.skippedAssets', { count: result.skippedAssets }) : '',
+        protectedAssets > 0 ? t('browse.details.protectedAssets', { count: protectedAssets }) : '',
       ]
         .filter(Boolean)
         .join(' · '),
@@ -254,15 +258,18 @@ export function FolderPanel({ repository, node, onNavigate }: PanelProps & { nod
           path={shownPath(node.path)}
           title={node.name}
           actions={
-            deletable && (
-              <DeleteButton
-                label={t('browse.details.deleteFolder')}
-                title={t('browse.details.deleteFolderTitle')}
-                description={t('browse.details.deleteFolderText', { name: node.name })}
-                repository={repository.name}
-                onConfirm={remove}
-              />
-            )
+            <>
+              <ShareButton repository={repository} path={node.path} prefix />
+              {deletable && (
+                <DeleteButton
+                  label={t('browse.details.deleteFolder')}
+                  title={t('browse.details.deleteFolderTitle')}
+                  description={t('browse.details.deleteFolderText', { name: node.name })}
+                  repository={repository.name}
+                  onConfirm={remove}
+                />
+              )}
+            </>
           }
         />
         {deletable && (
@@ -331,6 +338,13 @@ export function ComponentPanel({ repository, node, onNavigate }: PanelProps & { 
           }
           actions={
             <>
+              {repository.format === 'docker' && component.version !== '' && (
+                <SigningChip
+                  repository={node.repository ?? repository.name}
+                  image={component.name}
+                  reference={component.version}
+                />
+              )}
               <GuideButton
                 href={proxied ? guideUrl(repository.format, component, 'browse-tree-component') : null}
               />
@@ -614,6 +628,7 @@ function StoredAssetPanel({ repository, node, onNavigate }: PanelProps & { node:
                   {t('browse.details.download')}
                 </a>
               </Button>
+              <ShareButton repository={repository} path={details.path} prefix={false} />
               {details.canDelete && (
                 <DeleteButton
                   label={t('browse.details.deleteAsset')}

@@ -10,6 +10,7 @@ astrum-blob.workspace = true
 astrum-content.workspace = true
 astrum-db.workspace = true
 astrum-repo.workspace = true
+astrum-scan.workspace = true
 async-trait.workspace = true
 axum.workspace = true
 bytes.workspace = true

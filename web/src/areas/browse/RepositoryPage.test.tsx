@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ADMIN_STATE, fakeServer, jsonResponse, renderWithApp } from '../../test/render';
@@ -59,6 +59,27 @@ function server(extra: Record<string, () => Response> = {}) {
   });
   vi.stubGlobal('fetch', fake.fetch);
   return fake;
+}
+
+function searchWithTargets(targets: unknown[]) {
+  return server({
+    'GET /service/rest/v1/search?repository=files&q=two': () =>
+      jsonResponse({
+        items: [
+          {
+            id: 'c1',
+            repository: 'files',
+            format: 'raw',
+            group: '/a/b',
+            name: '/a/b/two.txt',
+            version: '',
+            assets: [{ path: '/a/b/two.txt' }],
+          },
+        ],
+        continuationToken: null,
+      }),
+    'GET /service/rest/internal/ui/promotion-targets?source=files': () => jsonResponse(targets),
+  });
 }
 
 function page(path: string) {
@@ -155,6 +176,42 @@ describe('the repository page', { timeout: 20_000 }, () => {
     expect(window.localStorage.getItem('astrum.browse.treeSort')).toBe('name');
   });
 
+  it('shares a folder from its panel as a prefix link', async () => {
+    const fake = server({
+      'POST /service/rest/v1/share-links': () =>
+        jsonResponse(
+          {
+            id: 'l1',
+            repository: 'files',
+            path: '/a/',
+            prefix: true,
+            note: '',
+            createdBy: 'admin',
+            createdAt: '2026-11-11T10:00:00.000Z',
+            expiresAt: '2026-11-18T10:00:00.000Z',
+            maxDownloads: null,
+            downloads: 0,
+            bytesServed: 0,
+            lastUsedAt: null,
+            expired: false,
+            url: 'http://localhost/service/share/astrum_share_0123456789abcdefghijklmnopqrstuvwxyzABCD/',
+          },
+          201,
+        ),
+    });
+    page('/browse/files/a/');
+    await userEvent.click(await screen.findByRole('button', { name: 'Share folder' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Create a folder share link' });
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Create link' }));
+    await waitFor(() => expect(fake.calls.some((call) => call.method === 'POST')).toBe(true));
+    expect(fake.calls.find((call) => call.method === 'POST')?.body).toEqual({
+      repository: 'files',
+      path: '/a/',
+      prefix: true,
+      expiresInHours: 168,
+    });
+  });
+
   it('deletes a folder after confirming and reports the counts', async () => {
     const fake = server({
       [`DELETE ${TREE}?path=%2Fa%2F`]: () =>
@@ -173,6 +230,23 @@ describe('the repository page', { timeout: 20_000 }, () => {
       screen.getByText('3 files deleted · 3 components deleted · 1 file kept because you may not delete it'),
     ).toBeInTheDocument();
     await waitFor(() => expect(router.state.location.pathname).toBe('/browse/files'));
+  });
+
+  it('reports the files a folder delete kept because of immutable tag rules', async () => {
+    const fake = server({
+      [`DELETE ${TREE}?path=%2Fa%2F`]: () =>
+        jsonResponse({ deletedAssets: 3, deletedComponents: 3, skippedAssets: 0, protectedAssets: 2 }),
+    });
+    page('/browse/files/a/');
+    await userEvent.click(await screen.findByRole('button', { name: 'Delete Folder' }));
+    const dialog = await screen.findByRole('alertdialog', { name: 'Delete Folder' });
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
+    await waitFor(() => expect(fake.calls.some((call) => call.method === 'DELETE')).toBe(true));
+    expect(
+      await screen.findByText(
+        '3 files deleted · 3 components deleted · 2 files kept because they are protected by immutable tag rules',
+      ),
+    ).toBeInTheDocument();
   });
 
   it('says when the selection is not in the repository', async () => {
@@ -212,6 +286,32 @@ describe('the repository page', { timeout: 20_000 }, () => {
     const results = await screen.findByRole('list', { name: 'Search results' }, { timeout: 3000 });
     await userEvent.click(within(results).getByRole('button', { name: /two\.txt/ }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/browse/files/a/b/two.txt'));
+  });
+
+  it('shows no promotion checkboxes when the repository has no targets', async () => {
+    searchWithTargets([]);
+    page('/browse/files');
+    await userEvent.type(await screen.findByRole('searchbox', { name: 'Search in files' }), 'two');
+    const results = await screen.findByRole('list', { name: 'Search results' }, { timeout: 3000 });
+    expect(within(results).getByRole('button', { name: /two\.txt/ })).toBeInTheDocument();
+    expect(within(results).queryByRole('checkbox')).not.toBeInTheDocument();
+  });
+
+  it('keeps the search panel open while the promote dialog is open', async () => {
+    searchWithTargets([{ name: 'mirror-eu', format: 'raw', type: 'hosted' }]);
+    page('/browse/files');
+    await userEvent.type(await screen.findByRole('searchbox', { name: 'Search in files' }), 'two');
+    const results = await screen.findByRole('list', { name: 'Search results' }, { timeout: 3000 });
+    await userEvent.click(within(results).getByRole('checkbox'));
+    await userEvent.click(screen.getByRole('button', { name: 'Promote selected' }));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.mouseDown(dialog);
+    expect(screen.getByRole('list', { name: 'Search results', hidden: true })).toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    fireEvent.mouseDown(document.body);
+    await waitFor(() =>
+      expect(screen.queryByRole('list', { name: 'Search results' })).not.toBeInTheDocument(),
+    );
   });
 
   it('shows the tags of a docker image folder in a table, newest first', async () => {

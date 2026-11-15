@@ -72,6 +72,11 @@ pub const FORMATS: &[Format] = &[
         types: HPG,
     },
     Format {
+        id: "bazelcache",
+        api_name: "bazelcache",
+        types: &[H],
+    },
+    Format {
         id: "cargo",
         api_name: "cargo",
         types: HPG,
@@ -127,6 +132,11 @@ pub const FORMATS: &[Format] = &[
         types: HPG,
     },
     Format {
+        id: "gradlecache",
+        api_name: "gradlecache",
+        types: &[H],
+    },
+    Format {
         id: "helm",
         api_name: "helm",
         types: HPG,
@@ -137,6 +147,11 @@ pub const FORMATS: &[Format] = &[
         types: HPG,
     },
     Format {
+        id: "homebrew",
+        api_name: "homebrew",
+        types: &[P],
+    },
+    Format {
         id: "huggingface",
         api_name: "huggingface",
         types: &[P],
@@ -144,6 +159,11 @@ pub const FORMATS: &[Format] = &[
     Format {
         id: "jetbrains",
         api_name: "jetbrains",
+        types: HPG,
+    },
+    Format {
+        id: "jsr",
+        api_name: "jsr",
         types: HPG,
     },
     Format {
@@ -170,6 +190,11 @@ pub const FORMATS: &[Format] = &[
         id: "nx",
         api_name: "nx",
         types: &[H],
+    },
+    Format {
+        id: "opam",
+        api_name: "opam",
+        types: HP,
     },
     Format {
         id: "openvsx",
@@ -222,6 +247,11 @@ pub const FORMATS: &[Format] = &[
         types: HPG,
     },
     Format {
+        id: "sccache",
+        api_name: "sccache",
+        types: &[H],
+    },
+    Format {
         id: "swift",
         api_name: "swift",
         types: HPG,
@@ -267,7 +297,7 @@ mod tests {
         sorted.sort_unstable();
         sorted.dedup();
         assert_eq!(ids, sorted);
-        assert_eq!(ids.len(), 39);
+        assert_eq!(ids.len(), 45);
     }
 
     #[test]

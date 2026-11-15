@@ -52,6 +52,7 @@ async fn users_are_listed_by_prefix_and_source() {
             "readOnly": false,
             "roles": ["as-admin"],
             "externalRoles": [],
+            "twoFactor": {"enrolled": false, "required": false, "requirement": "policy"},
         })
     );
     for (query, expected) in [
@@ -265,6 +266,7 @@ async fn users_are_updated_in_place() {
             "readOnly": false,
             "roles": [],
             "externalRoles": [],
+            "twoFactor": {"enrolled": false, "required": false, "requirement": "policy"},
         })
     );
     let reply = fixture

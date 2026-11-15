@@ -17,7 +17,7 @@ use crate::{Npm, reply};
 pub const MAX_PUBLISH: usize = 256 * 1024 * 1024;
 const MAX_SMALL: usize = 64 * 1024;
 
-fn now() -> String {
+pub fn now() -> String {
     Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true)
 }
 

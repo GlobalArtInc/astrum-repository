@@ -1,8 +1,10 @@
 use std::collections::BTreeMap;
 
+use astrum_blob::StoreConfig;
 use async_trait::async_trait;
 use serde_json::{Value, json};
 
+use crate::Problems;
 use crate::run::Run;
 
 pub type Properties = BTreeMap<String, String>;
@@ -202,6 +204,21 @@ pub trait TaskKind: Send + Sync + 'static {
         false
     }
 
+    fn system(&self) -> bool {
+        false
+    }
+
+    async fn validate(
+        &self,
+        _content: &astrum_content::Content,
+        _stored: Option<&Properties>,
+        _given: &Properties,
+    ) -> Result<(), crate::Problem> {
+        Ok(())
+    }
+
+    fn check(&self, _properties: &Properties, _stores: &[StoreConfig], _problems: &mut Problems) {}
+
     fn describe(&self, properties: &Properties) -> String;
 
     async fn run(&self, run: &Run) -> Result<String, TaskError>;
@@ -210,6 +227,10 @@ pub trait TaskKind: Send + Sync + 'static {
 #[async_trait]
 pub trait Expiry: Send + Sync + 'static {
     fn name(&self) -> &'static str;
+
+    fn counts_as_upload(&self) -> bool {
+        true
+    }
 
     async fn expire(&self, content: &astrum_content::Content) -> Result<u64, TaskError>;
 }

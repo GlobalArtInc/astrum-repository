@@ -47,6 +47,15 @@ struct UserXo {
     read_only: bool,
     roles: Vec<String>,
     external_roles: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    two_factor: Option<TwoFactorXo>,
+}
+
+#[derive(Debug, Serialize)]
+struct TwoFactorXo {
+    enrolled: bool,
+    required: bool,
+    requirement: &'static str,
 }
 
 #[derive(Debug, Deserialize)]
@@ -102,6 +111,16 @@ fn local(model: &SecurityModel, user: &astrum_security::User) -> UserXo {
         read_only: false,
         roles: model.roles_of(&user.id, DEFAULT_SOURCE).to_vec(),
         external_roles: Vec::new(),
+        two_factor: Some(two_factor(model, &user.id)),
+    }
+}
+
+fn two_factor(model: &SecurityModel, user_id: &str) -> TwoFactorXo {
+    let summary = model.second_factor.get(user_id);
+    TwoFactorXo {
+        enrolled: summary.is_some_and(|summary| summary.enrolled),
+        required: model.second_factor_standing(user_id).required,
+        requirement: summary.map_or("policy", |summary| summary.requirement.as_str()),
     }
 }
 
@@ -127,6 +146,7 @@ fn ldap_user(model: &SecurityModel, user: &astrum_security::ldap::LdapUser) -> U
         read_only: true,
         roles: model.roles_of(&user.username, ldap::SOURCE).to_vec(),
         external_roles: user.groups.clone(),
+        two_factor: None,
     }
 }
 
@@ -142,6 +162,7 @@ fn oidc_user(model: &SecurityModel, user: &astrum_security::oidc::OidcUser) -> U
         read_only: true,
         roles: model.roles_of(&user.user_id, oidc::SOURCE).to_vec(),
         external_roles: user.groups.clone(),
+        two_factor: None,
     }
 }
 
@@ -169,7 +190,7 @@ fn external_source(source: &str) -> bool {
     source != DEFAULT_SOURCE && USER_SOURCES.iter().any(|known| known.id == source)
 }
 
-fn user_not_found(user_id: &str) -> ApiError {
+pub(super) fn user_not_found(user_id: &str) -> ApiError {
     ApiError::not_found(format!("User '{user_id}' not found."))
 }
 
@@ -352,6 +373,12 @@ async fn create(
     check_roles(&model, &roles)?;
     if model.users.contains_key(&user_id) {
         return Err(already_exists());
+    }
+    if state.security().customer(&user_id).await?.is_some() {
+        return Err(ApiError::invalid(
+            "userId",
+            "a customer with this id exists",
+        ));
     }
     check_grants(&model, &subject, &roles)?;
 
@@ -551,6 +578,9 @@ async fn remove(
         state.security().revoke_format_tokens_of(&user_id).await?;
         state.security().delete_api_keys_of(&user_id).await?;
     }
+    astrum_content::share::delete_of_user(state.db().conn(), source, &user_id)
+        .await
+        .map_err(ApiError::internal)?;
 
     changed(
         &state,

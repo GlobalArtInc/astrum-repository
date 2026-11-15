@@ -2,16 +2,27 @@ mod access;
 mod downloads;
 mod error;
 pub mod format;
+mod gate;
 pub mod group;
+pub mod holds;
 mod http;
 pub mod ids;
 pub mod import;
+pub mod inventory;
 pub mod mime;
 pub mod proxy;
+pub mod replicated;
 mod request;
 pub mod routing;
 mod serve;
+pub mod share;
+pub mod staging;
 pub mod store;
+#[cfg(test)]
+mod tests;
+pub mod tiering;
+pub mod transfer;
+pub mod usage;
 pub mod zip;
 
 use std::collections::HashMap;
@@ -26,11 +37,12 @@ use sea_orm::DatabaseConnection;
 
 pub use access::{Grant, View};
 pub use downloads::DOWNLOAD_DAYS_KEPT;
-pub use error::{CHALLENGE, ContentError};
+pub use error::{BLOCKED_BY, CHALLENGE, ContentError, MAX_BLOCKED_TEXT};
 pub use format::{BrowseLayout, Format, SearchKey, UploadField, UploadForm, UploadSpec, fetch};
+pub use gate::{Cooldown, Gate, Open};
 pub use proxy::Freshness;
 pub use request::{ContentRequest, normalize};
-pub use serve::{Serve, serve};
+pub use serve::{Delivery, Serve, delivery, serve};
 pub use store::{Asset, Component, ComponentKey, PutAsset};
 
 pub const DOWNLOAD_FLUSH: Duration = Duration::from_secs(10);
@@ -48,6 +60,7 @@ struct Inner {
     secrets: SecretBox,
     outbound: astrum_outbound::Outbound,
     formats: RwLock<HashMap<&'static str, Arc<dyn Format>>>,
+    gate: RwLock<Arc<dyn Gate>>,
     proxy: proxy::ProxyState,
     routing: routing::RoutingCache,
     downloads: downloads::Downloads,
@@ -68,6 +81,7 @@ impl Content {
                 blob_stores,
                 secrets,
                 formats: RwLock::new(HashMap::new()),
+                gate: RwLock::new(Arc::new(Open)),
                 proxy: proxy::ProxyState::default(),
                 routing: routing::RoutingCache::default(),
                 downloads: downloads::Downloads::default(),
@@ -97,6 +111,22 @@ impl Content {
             .write()
             .expect("the format registry lock is never poisoned")
             .insert(format.id(), format);
+    }
+
+    pub fn register_gate(&self, gate: Arc<dyn Gate>) {
+        *self
+            .inner
+            .gate
+            .write()
+            .expect("the gate lock is never poisoned") = gate;
+    }
+
+    pub fn gate(&self) -> Arc<dyn Gate> {
+        self.inner
+            .gate
+            .read()
+            .expect("the gate lock is never poisoned")
+            .clone()
     }
 
     pub fn format(&self, id: &str) -> Option<Arc<dyn Format>> {
@@ -166,6 +196,20 @@ impl Content {
         self.inner.downloads.note(asset_id);
     }
 
+    pub fn note_token_download(
+        &self,
+        subject: Option<&Subject>,
+        repository: &str,
+        counted: bool,
+        bytes: u64,
+    ) {
+        if let Some(token) = subject.and_then(|subject| subject.token.as_ref()) {
+            self.inner
+                .downloads
+                .note_token(token, repository, counted, bytes);
+        }
+    }
+
     pub async fn audit_download(&self, asset: &Asset, initiator: &str) {
         let last = asset
             .last_downloaded_at
@@ -198,6 +242,10 @@ impl Content {
         downloads::Downloads::prune(self.db()).await
     }
 
+    pub async fn prune_token_download_days(&self) -> Result<u64, ContentError> {
+        downloads::Downloads::prune_tokens(self.db()).await
+    }
+
     pub fn spawn_background(&self) {
         let content = self.clone();
         tokio::spawn(async move {
@@ -208,10 +256,18 @@ impl Content {
                 if let Err(error) = content.flush_downloads().await {
                     tracing::warn!(%error, "download counts were not saved");
                 }
+                if ticks.is_multiple_of(DOWNLOAD_DAYS_PRUNE) {
+                    if let Err(error) = content.prune_download_days().await {
+                        tracing::warn!(%error, "old download days were not deleted");
+                    }
+                    if let Err(error) = share::prune(content.db()).await {
+                        tracing::warn!(%error, "expired share links were not deleted");
+                    }
+                }
                 if ticks.is_multiple_of(DOWNLOAD_DAYS_PRUNE)
-                    && let Err(error) = content.prune_download_days().await
+                    && let Err(error) = content.prune_token_download_days().await
                 {
-                    tracing::warn!(%error, "old download days were not deleted");
+                    tracing::warn!(%error, "old token download days were not deleted");
                 }
                 ticks = ticks.wrapping_add(1);
             }

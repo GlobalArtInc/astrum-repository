@@ -112,7 +112,7 @@ test('capabilities set the base URL, the title and the branding', async ({ page,
   await expect(page).toHaveTitle('UI: Settings - Team Repository');
 
   await page.goto('/admin/system/capabilities/create');
-  await expect(page.getByText('Types available: 2 of 3')).toBeVisible();
+  await expect(page.getByText('Types available: 5 of 6')).toBeVisible();
   await page.getByRole('radio', { name: /Base URL/ }).click();
   await page.getByRole('button', { name: 'Continue' }).click();
   await page.getByLabel('URL').fill('https://repo.example.com');

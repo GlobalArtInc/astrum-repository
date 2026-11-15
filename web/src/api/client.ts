@@ -1,5 +1,5 @@
 import { readCookie } from '../i18n/language';
-import { ApiError, errorFromBody } from './errors';
+import { ApiError, errorFromBody, parseRetryAfter } from './errors';
 
 export const REST = '/service/rest';
 export const V1 = `${REST}/v1`;
@@ -93,7 +93,12 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
     }
   }
   if (!response.ok) {
-    throw errorFromBody(response.status, response.statusText, await readBody(response));
+    throw errorFromBody(
+      response.status,
+      response.statusText,
+      await readBody(response),
+      parseRetryAfter(response.headers.get('Retry-After')),
+    );
   }
   if (response.status === 204 || method === 'HEAD') {
     return undefined as T;

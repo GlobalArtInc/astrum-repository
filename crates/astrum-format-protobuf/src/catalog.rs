@@ -288,6 +288,12 @@ impl<'a> Catalog<'a> {
             .ok_or_else(|| Status::internal(format!("{location} is missing")))?;
         let content = self.read(&found).await?;
         self.ctx.content.note_download(found.id);
+        self.ctx.content.note_token_download(
+            self.ctx.subject.as_ref(),
+            &found.repository,
+            true,
+            content.len() as u64,
+        );
         self.ctx
             .content
             .audit_download(&found, &self.ctx.uploader())

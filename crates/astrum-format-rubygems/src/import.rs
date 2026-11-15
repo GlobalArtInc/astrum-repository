@@ -34,6 +34,13 @@ pub async fn describe(file: &Imported) -> Result<Option<Described>, String> {
         .await
         .map_err(|error| error.to_string())?
         .map_err(|error| format!("the gem cannot be read: {error:?}"))?;
+    let expected = spec.gem_path();
+    if expected != file.path {
+        return Err(format!(
+            "the bundle path {} does not match {expected}, where the upload would store the gem",
+            file.path
+        ));
+    }
     let put = file
         .put(file.path.clone())
         .component(component(&spec))

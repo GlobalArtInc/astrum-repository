@@ -1,4 +1,5 @@
 import type { Area } from '../../app/area';
+import { EXCEPTION_READ, POLICY_CREATE, POLICY_READ } from './policy/permissions';
 
 const PRIVILEGES_READ = 'astrum:privileges:read';
 const ROLES_NEED = { all: ['astrum:roles:read', PRIVILEGES_READ] };
@@ -64,7 +65,62 @@ export const securityArea: Area = {
       need: SETTINGS_READ,
     },
     { path: 'admin/security/realms', load: () => import('./realms/RealmsPage'), need: SETTINGS_READ },
+    {
+      path: 'admin/security/share-links',
+      load: () => import('./share-links/ShareLinksPage'),
+      requiresUser: true,
+    },
     { path: 'admin/security/ssrf-protection', load: () => import('./ssrf/SsrfPage'), need: ADMINISTRATOR },
+    {
+      path: 'admin/security/ip-allow',
+      load: () => import('./ip-allow/IpAllowPage'),
+      need: ADMINISTRATOR,
+    },
+    {
+      path: 'admin/security/two-factor',
+      load: () => import('./two-factor/TwoFactorPolicyPage'),
+      need: ADMINISTRATOR,
+    },
+    {
+      path: 'admin/security/policies',
+      load: () => import('./policy/PoliciesPage'),
+      need: POLICY_READ,
+    },
+    {
+      path: 'admin/security/policies/create',
+      load: () => import('./policy/PolicyPage'),
+      need: { all: [POLICY_READ, POLICY_CREATE] },
+    },
+    {
+      path: 'admin/security/policies/:name',
+      load: () => import('./policy/PolicyPage'),
+      need: POLICY_READ,
+    },
+    {
+      path: 'admin/security/policy-exceptions',
+      load: () => import('./policy/ExceptionsPage'),
+      need: EXCEPTION_READ,
+    },
+    {
+      path: 'admin/security/cooldown',
+      load: () => import('./CooldownPage'),
+      need: POLICY_READ,
+    },
+    {
+      path: 'admin/security/trusted-keys',
+      load: () => import('./policy/TrustedKeysPage'),
+      need: POLICY_READ,
+    },
+    {
+      path: 'admin/security/vulnerability-data',
+      load: () => import('./policy/VulnerabilityDataPage'),
+      need: POLICY_READ,
+    },
+    {
+      path: 'admin/security/licenses',
+      load: () => import('./licenses/LicensesPage'),
+      need: ADMINISTRATOR,
+    },
   ],
   settings: [
     {
@@ -91,6 +147,51 @@ export const securityArea: Area = {
       id: 'realms',
       to: '/admin/security/realms',
       need: SETTINGS_READ,
+    },
+    {
+      id: 'ip-allow',
+      to: '/admin/security/ip-allow',
+      need: ADMINISTRATOR,
+    },
+    {
+      id: 'two-factor',
+      to: '/admin/security/two-factor',
+      need: ADMINISTRATOR,
+    },
+    {
+      id: 'policies',
+      to: '/admin/security/policies',
+      need: POLICY_READ,
+    },
+    {
+      id: 'policy-exceptions',
+      to: '/admin/security/policy-exceptions',
+      need: EXCEPTION_READ,
+    },
+    {
+      id: 'cooldown',
+      to: '/admin/security/cooldown',
+      need: POLICY_READ,
+    },
+    {
+      id: 'trusted-keys',
+      to: '/admin/security/trusted-keys',
+      need: POLICY_READ,
+    },
+    {
+      id: 'vulnerability-data',
+      to: '/admin/security/vulnerability-data',
+      need: POLICY_READ,
+    },
+    {
+      id: 'licenses',
+      to: '/admin/security/licenses',
+      need: ADMINISTRATOR,
+    },
+    {
+      id: 'share-links',
+      to: '/admin/security/share-links',
+      requiresUser: true,
     },
   ],
 };

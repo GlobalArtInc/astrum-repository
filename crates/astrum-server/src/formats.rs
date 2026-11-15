@@ -10,6 +10,7 @@ pub fn register(content: &Content) {
     content.register(Arc::new(astrum_format_ansible::Ansible::default()));
     content.register(Arc::new(astrum_format_apt::Apt::default()));
     content.register(Arc::new(astrum_format_bazel::Bazel));
+    content.register(Arc::new(astrum_format_bazelcache::BazelCache));
     content.register(Arc::new(astrum_format_cargo::Cargo::default()));
     content.register(Arc::new(astrum_format_chef::Chef::default()));
     content.register(Arc::new(astrum_format_chrome::Chrome::default()));
@@ -21,15 +22,19 @@ pub fn register(content: &Content) {
     content.register(Arc::new(astrum_format_firefox::Firefox::default()));
     content.register(Arc::new(astrum_format_gitlfs::GitLfs));
     content.register(Arc::new(astrum_format_go::Go));
+    content.register(Arc::new(astrum_format_gradlecache::GradleCache));
     content.register(Arc::new(astrum_format_helm::Helm::default()));
     content.register(Arc::new(astrum_format_hex::Hex::default()));
+    content.register(Arc::new(astrum_format_homebrew::Homebrew::default()));
     content.register(Arc::new(astrum_format_huggingface::HuggingFace::default()));
     content.register(Arc::new(astrum_format_jetbrains::Jetbrains::default()));
+    content.register(Arc::new(astrum_format_jsr::Jsr::default()));
     content.register(Arc::new(astrum_format_maven::Maven));
     content.register(Arc::new(astrum_format_nix::Nix));
     content.register(Arc::new(astrum_format_npm::Npm::default()));
     content.register(Arc::new(astrum_format_nuget::Nuget::default()));
     content.register(Arc::new(astrum_format_nx::Nx));
+    content.register(Arc::new(astrum_format_opam::Opam::default()));
     content.register(Arc::new(astrum_format_openvsx::OpenVsx));
     content.register(Arc::new(astrum_format_p2::P2::default()));
     content.register(Arc::new(astrum_format_pacman::Pacman::default()));
@@ -39,6 +44,7 @@ pub fn register(content: &Content) {
     content.register(Arc::new(astrum_format_pypi::PyPi));
     content.register(Arc::new(astrum_format_r::R::default()));
     content.register(Arc::new(astrum_format_raw::Raw));
+    content.register(Arc::new(astrum_format_sccache::Sccache));
     content.register(Arc::new(astrum_format_swift::Swift));
     content.register(Arc::new(astrum_format_terraform::Terraform::default()));
     content.register(Arc::new(astrum_format_rubygems::Rubygems));
@@ -56,14 +62,21 @@ pub fn register_tasks(tasks: &Tasks) {
         astrum_format_conda::task::RebuildMetadata::default(),
     ));
     tasks.register(Arc::new(astrum_format_docker::gc::Gc));
+    tasks.register(Arc::new(astrum_format_docker::children::Children));
     tasks.register(Arc::new(astrum_format_hex::task::RebuildMetadata::default()));
     tasks.add_expiry(Arc::new(astrum_format_docker::gc::UploadExpiry));
+    tasks.add_expiry(Arc::new(astrum_tasks::kinds::cooldown::CooldownExpiry));
     tasks.register(Arc::new(astrum_format_nix::task::Gc));
     tasks.register(Arc::new(
         astrum_format_pacman::task::RebuildMetadata::default(),
     ));
     tasks.register(Arc::new(astrum_format_r::task::RebuildMetadata::default()));
+    tasks.register(Arc::new(astrum_replication::reconcile::Reconcile));
     tasks.register(Arc::new(astrum_format_yum::task::RebuildMetadata::default()));
+}
+
+pub fn register_image_transfers(state: &AppState) {
+    state.set_image_transfers(Arc::new(astrum_format_docker::transfer::Images));
 }
 
 pub fn routes() -> Router<AppState> {

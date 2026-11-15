@@ -18,6 +18,7 @@ astrum-format-alpine = { path = "crates/astrum-format-alpine" }
 astrum-format-ansible = { path = "crates/astrum-format-ansible" }
 astrum-format-apt = { path = "crates/astrum-format-apt" }
 astrum-format-bazel = { path = "crates/astrum-format-bazel" }
+astrum-format-bazelcache = { path = "crates/astrum-format-bazelcache" }
 astrum-format-cargo = { path = "crates/astrum-format-cargo" }
 astrum-format-chef = { path = "crates/astrum-format-chef" }
 astrum-format-chrome = { path = "crates/astrum-format-chrome" }
@@ -29,15 +30,19 @@ astrum-format-docker = { path = "crates/astrum-format-docker" }
 astrum-format-firefox = { path = "crates/astrum-format-firefox" }
 astrum-format-gitlfs = { path = "crates/astrum-format-gitlfs" }
 astrum-format-go = { path = "crates/astrum-format-go" }
+astrum-format-gradlecache = { path = "crates/astrum-format-gradlecache" }
 astrum-format-helm = { path = "crates/astrum-format-helm" }
 astrum-format-hex = { path = "crates/astrum-format-hex" }
+astrum-format-homebrew = { path = "crates/astrum-format-homebrew" }
 astrum-format-huggingface = { path = "crates/astrum-format-huggingface" }
 astrum-format-jetbrains = { path = "crates/astrum-format-jetbrains" }
+astrum-format-jsr = { path = "crates/astrum-format-jsr" }
 astrum-format-maven = { path = "crates/astrum-format-maven" }
 astrum-format-nix = { path = "crates/astrum-format-nix" }
 astrum-format-npm = { path = "crates/astrum-format-npm" }
 astrum-format-nuget = { path = "crates/astrum-format-nuget" }
 astrum-format-nx = { path = "crates/astrum-format-nx" }
+astrum-format-opam = { path = "crates/astrum-format-opam" }
 astrum-format-openvsx = { path = "crates/astrum-format-openvsx" }
 astrum-format-p2 = { path = "crates/astrum-format-p2" }
 astrum-format-pacman = { path = "crates/astrum-format-pacman" }
@@ -47,6 +52,7 @@ astrum-format-puppet = { path = "crates/astrum-format-puppet" }
 astrum-format-pypi = { path = "crates/astrum-format-pypi" }
 astrum-format-r = { path = "crates/astrum-format-r" }
 astrum-format-raw = { path = "crates/astrum-format-raw" }
+astrum-format-sccache = { path = "crates/astrum-format-sccache" }
 astrum-format-swift = { path = "crates/astrum-format-swift" }
 astrum-format-terraform = { path = "crates/astrum-format-terraform" }
 astrum-format-turbo = { path = "crates/astrum-format-turbo" }
@@ -59,9 +65,14 @@ astrum-format-yum = { path = "crates/astrum-format-yum" }
 astrum-db = { path = "crates/astrum-db" }
 astrum-logging = { path = "crates/astrum-logging" }
 astrum-notify = { path = "crates/astrum-notify" }
+astrum-policy = { path = "crates/astrum-policy" }
+astrum-replication = { path = "crates/astrum-replication" }
 astrum-repo = { path = "crates/astrum-repo" }
+astrum-sbom = { path = "crates/astrum-sbom" }
+astrum-scan = { path = "crates/astrum-scan" }
 astrum-security = { path = "crates/astrum-security" }
 astrum-server = { path = "crates/astrum-server" }
+astrum-signature = { path = "crates/astrum-signature" }
 astrum-tasks = { path = "crates/astrum-tasks" }
 astrum-testkit = { path = "crates/astrum-testkit" }
 
@@ -95,9 +106,11 @@ md-5 = "0.10"
 migrator = { package = "sqlmig", version = "0.2.1" }
 mime_guess = "2"
 multer = "3"
+p256 = "0.13"
 percent-encoding = "2"
 pgp = { version = "0.21", default-features = false }
 prost = "0.14"
+qrcode = { version = "0.14", default-features = false, features = ["svg"] }
 quick-xml = "0.42"
 rand = "0.9"
 rand_core06 = { package = "rand_core", version = "0.6", features = ["getrandom"] }
@@ -136,7 +149,9 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 url = "2"
 uuid = { version = "1", features = ["v4", "serde"] }
+webauthn-rs = { version = "=0.6.2", features = ["danger-allow-state-serialisation"] }
 x509-parser = "0.18"
+zeroize = "1"
 
 [profile.dev]
 debug = "line-tables-only"

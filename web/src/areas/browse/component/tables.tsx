@@ -14,7 +14,11 @@ import { type ReactNode, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { formatNumber, useI18n, useT } from '../../../i18n';
 import { DateTime, EmptyState, FileSize } from '../../../ui';
+import type { Severity } from '../../security/findings/model';
+import { SeverityBadge } from '../../security/findings/SeverityBadge';
 import { Pager, pageCount, pageSlice } from '../Pager';
+import { type PromotionItem, promotionItem } from '../promote/model';
+import { PromoteRepository } from '../promote/PromoteRepository';
 import { browseUrl } from '../tree/model';
 import type { RepositoryItem, SearchAsset, VersionEntry } from '../types';
 import styles from './ComponentPage.module.css';
@@ -202,17 +206,15 @@ export function usePaging(total: number, initial = 20) {
 
 type VersionSort = 'version' | 'modified';
 
-export function VersionsTab({
-  versions,
-  current,
-  hrefOf,
-  compare,
-}: {
+interface VersionsTabProps {
   versions: VersionEntry[];
   current: string;
+  currentSeverity?: Severity | null;
   hrefOf(version: string): string;
   compare(left: string, right: string): number;
-}) {
+}
+
+export function VersionsTab({ versions, current, currentSeverity, hrefOf, compare }: VersionsTabProps) {
   const t = useT();
   const { language } = useI18n();
   const navigate = useNavigate();
@@ -321,6 +323,11 @@ export function VersionsTab({
                     <Link to={hrefOf(entry.version)} className={styles.plainLink}>
                       {entry.version}
                     </Link>
+                    {entry.version === current && currentSeverity && (
+                      <span className={styles.versionSeverity}>
+                        <SeverityBadge severity={currentSeverity} />
+                      </span>
+                    )}
                   </Table.RowHeaderCell>
                   <Table.Cell>
                     <Badge color="gray" variant="soft" radius="full">
@@ -361,13 +368,15 @@ interface RepositoryRow {
   versions: number;
 }
 
-export function RepositoriesTab({
-  versions,
-  repositories,
-}: {
+export interface RepositoriesTabProps {
   versions: VersionEntry[];
   repositories: RepositoryItem[];
-}) {
+  current: VersionEntry;
+  format: string;
+  name: string;
+}
+
+export function RepositoriesTab({ versions, repositories, current, format, name }: RepositoriesTabProps) {
   const t = useT();
   const [sort, setSort] = useState<RepositorySort>('repository');
   const [direction, setDirection] = useState<Direction>('asc');
@@ -489,24 +498,38 @@ export function RepositoriesTab({
                   direction={direction}
                   onChange={change}
                 />
+                <Table.ColumnHeaderCell>
+                  <span className="visually-hidden">{t('browse.promote.actions')}</span>
+                </Table.ColumnHeaderCell>
               </Table.Row>
             </Table.Header>
             <Table.Body>
-              {shown.map((row) => (
-                <Table.Row key={row.name}>
-                  <Table.RowHeaderCell>
-                    <Link to={browseUrl(row.name)} className={styles.plainLink}>
-                      {row.name}
-                    </Link>
-                  </Table.RowHeaderCell>
-                  <Table.Cell>{t(TYPE_LABELS[row.type])}</Table.Cell>
-                  <Table.Cell>
-                    <Badge color="gray" variant="soft" radius="full">
-                      {t('browse.component.versionCount', { count: row.versions })}
-                    </Badge>
-                  </Table.Cell>
-                </Table.Row>
-              ))}
+              {shown.map((row) => {
+                const index = current.repositories.indexOf(row.name);
+                const componentId = current.componentIds[index];
+                const items: PromotionItem[] =
+                  index < 0 || componentId === undefined
+                    ? []
+                    : [promotionItem(format, { id: componentId, name, version: current.version })];
+                return (
+                  <Table.Row key={row.name}>
+                    <Table.RowHeaderCell>
+                      <Link to={browseUrl(row.name)} className={styles.plainLink}>
+                        {row.name}
+                      </Link>
+                    </Table.RowHeaderCell>
+                    <Table.Cell>{t(TYPE_LABELS[row.type])}</Table.Cell>
+                    <Table.Cell>
+                      <Badge color="gray" variant="soft" radius="full">
+                        {t('browse.component.versionCount', { count: row.versions })}
+                      </Badge>
+                    </Table.Cell>
+                    <Table.Cell>
+                      <PromoteRepository source={row.name} format={format} items={items} />
+                    </Table.Cell>
+                  </Table.Row>
+                );
+              })}
             </Table.Body>
           </Table.Root>
         )}

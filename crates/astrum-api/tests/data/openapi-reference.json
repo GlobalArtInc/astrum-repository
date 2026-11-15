@@ -54,6 +54,7 @@
      "204": {},
      "403": {},
      "404": {},
+     "409": {},
      "422": {}
     },
     "tags": [
@@ -297,6 +298,34 @@
     ]
    }
   },
+  "/v1/blobstores/{name}/forecast": {
+   "get": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "name",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/BlobStoreForecastXO"
+        }
+       }
+      }
+     }
+    },
+    "tags": [
+     "Blob store"
+    ]
+   }
+  },
   "/v1/blobstores/{name}/quota-status": {
    "get": {
     "parameters": [
@@ -397,6 +426,7 @@
      "204": {},
      "403": {},
      "404": {},
+     "409": {},
      "422": {}
     },
     "tags": [
@@ -430,6 +460,270 @@
     },
     "tags": [
      "components"
+    ]
+   }
+  },
+  "/v1/components/{id}/security": {
+   "get": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "id",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "scan": {
+           "type": "object",
+           "properties": {
+            "state": {
+             "type": "string"
+            },
+            "scannedAt": {
+             "type": "string",
+             "nullable": true
+            },
+            "packages": {
+             "type": "integer",
+             "format": "int64",
+             "nullable": true
+            }
+           }
+          },
+          "policy": {
+           "type": "object",
+           "properties": {
+            "name": {
+             "type": "string"
+            },
+            "revision": {
+             "type": "integer",
+             "format": "int64",
+             "nullable": true
+            }
+           },
+           "nullable": true
+          },
+          "verdict": {
+           "type": "object",
+           "properties": {
+            "policy": {
+             "type": "string"
+            },
+            "revision": {
+             "type": "integer",
+             "format": "int64"
+            },
+            "state": {
+             "type": "string"
+            },
+            "blocked": {
+             "type": "boolean"
+            },
+            "counts": {
+             "type": "object",
+             "properties": {
+              "critical": {
+               "type": "integer",
+               "format": "int64"
+              },
+              "high": {
+               "type": "integer",
+               "format": "int64"
+              },
+              "medium": {
+               "type": "integer",
+               "format": "int64"
+              },
+              "low": {
+               "type": "integer",
+               "format": "int64"
+              },
+              "unknown": {
+               "type": "integer",
+               "format": "int64"
+              }
+             }
+            },
+            "maxSeverity": {
+             "type": "string",
+             "nullable": true
+            },
+            "reasons": {
+             "type": "array",
+             "items": {
+              "type": "object"
+             }
+            },
+            "computedAt": {
+             "type": "string"
+            }
+           },
+           "nullable": true
+          },
+          "vulnerabilities": {
+           "type": "array",
+           "items": {
+            "type": "object",
+            "properties": {
+             "id": {
+              "type": "string"
+             },
+             "aliases": {
+              "type": "array",
+              "items": {
+               "type": "string"
+              }
+             },
+             "severity": {
+              "type": "string"
+             },
+             "score": {
+              "type": "number",
+              "format": "double",
+              "nullable": true
+             },
+             "summary": {
+              "type": "string"
+             },
+             "fixed": {
+              "type": "string",
+              "nullable": true
+             },
+             "malicious": {
+              "type": "boolean"
+             },
+             "excepted": {
+              "type": "boolean"
+             }
+            }
+           }
+          },
+          "truncated": {
+           "type": "boolean"
+          },
+          "license": {
+           "type": "string",
+           "nullable": true
+          }
+         }
+        }
+       }
+      }
+     },
+     "401": {},
+     "404": {}
+    },
+    "tags": [
+     "components"
+    ]
+   }
+  },
+  "/v1/docker/{repository}/sbom": {
+   "get": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "repository",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "image",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "digest",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "page",
+      "required": false,
+      "schema": {
+       "type": "integer"
+      }
+     },
+     {
+      "in": "query",
+      "name": "filter",
+      "required": false,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {},
+     "400": {},
+     "401": {},
+     "403": {},
+     "404": {},
+     "413": {},
+     "422": {},
+     "503": {}
+    },
+    "tags": [
+     "Docker: supply chain"
+    ]
+   }
+  },
+  "/v1/docker/{repository}/supply-chain": {
+   "get": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "repository",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "image",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "reference",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {},
+     "400": {},
+     "401": {},
+     "403": {},
+     "404": {}
+    },
+    "tags": [
+     "Docker: supply chain"
     ]
    }
   },
@@ -612,6 +906,955 @@
     },
     "tags": [
      "HTTP settings"
+    ]
+   }
+  },
+  "/v1/promotions": {
+   "post": {
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/PromotionRequestXO"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PromotionResponseXO"
+        }
+       }
+      }
+     },
+     "400": {},
+     "401": {},
+     "403": {},
+     "404": {}
+    },
+    "tags": [
+     "Promotions"
+    ]
+   }
+  },
+  "/v1/replication/capabilities": {
+   "get": {
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ReplicationCapabilities"
+        }
+       }
+      }
+     },
+     "401": {},
+     "403": {}
+    },
+    "tags": [
+     "Replication"
+    ],
+    "description": "Tells the protocol version, the instance id and the formats this server takes part in replication with. Needs the privilege astrum:replication:receive or astrum:replication:pull."
+   }
+  },
+  "/v1/replication/remotes": {
+   "get": {
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/ReplicationRemoteXO"
+         },
+         "type": "array"
+        }
+       }
+      }
+     },
+     "403": {}
+    },
+    "tags": [
+     "Replication"
+    ]
+   },
+   "post": {
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ReplicationRemoteRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ReplicationRemoteXO"
+        }
+       }
+      }
+     },
+     "400": {},
+     "403": {},
+     "409": {}
+    },
+    "tags": [
+     "Replication"
+    ]
+   }
+  },
+  "/v1/replication/remotes/{id}": {
+   "delete": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "id",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid"
+      }
+     }
+    ],
+    "responses": {
+     "204": {},
+     "403": {},
+     "404": {},
+     "409": {}
+    },
+    "tags": [
+     "Replication"
+    ]
+   },
+   "get": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "id",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ReplicationRemoteXO"
+        }
+       }
+      }
+     },
+     "403": {},
+     "404": {}
+    },
+    "tags": [
+     "Replication"
+    ]
+   },
+   "put": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "id",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ReplicationRemoteRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ReplicationRemoteXO"
+        }
+       }
+      }
+     },
+     "400": {},
+     "403": {},
+     "404": {},
+     "409": {}
+    },
+    "tags": [
+     "Replication"
+    ]
+   }
+  },
+  "/v1/replication/remotes/{id}/check": {
+   "post": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "id",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ReplicationRemoteCheckXO"
+        }
+       }
+      }
+     },
+     "403": {},
+     "404": {},
+     "409": {}
+    },
+    "tags": [
+     "Replication"
+    ]
+   }
+  },
+  "/v1/replication/{repo}/blobs/missing": {
+   "post": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "repo",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ReplicationMissingRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ReplicationMissingReply"
+        }
+       }
+      }
+     },
+     "400": {},
+     "401": {},
+     "403": {},
+     "404": {}
+    },
+    "tags": [
+     "Replication"
+    ]
+   }
+  },
+  "/v1/replication/{repo}/blobs/{sha256}": {
+   "put": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "repo",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "in": "path",
+      "name": "sha256",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/octet-stream": {
+       "schema": {
+        "type": "string",
+        "format": "binary"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {},
+     "201": {},
+     "400": {},
+     "401": {},
+     "403": {},
+     "404": {},
+     "413": {},
+     "422": {},
+     "429": {}
+    },
+    "tags": [
+     "Replication"
+    ]
+   },
+   "get": {
+    "description": "Streams the blob of an asset that belongs to a component of the hosted repository, for a server that pulls. Needs the privilege astrum:replication:pull (astrum:replication:receive alone is not enough) and Read on the whole repository. The blob is found by its digest among the assets of components of this repository only.",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "repo",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "in": "path",
+      "name": "sha256",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/octet-stream": {
+        "schema": {
+         "type": "string",
+         "format": "binary"
+        }
+       }
+      }
+     },
+     "400": {},
+     "401": {},
+     "403": {},
+     "404": {}
+    },
+    "tags": [
+     "Replication"
+    ]
+   }
+  },
+  "/v1/replication/{repo}/bundle": {
+   "get": {
+    "description": "Returns the bundle of one component of the hosted repository, for a server that pulls: its coordinates, the descriptors of its assets and the origin mark of the component (or the instance id of this server when the component was published here). Needs the privilege astrum:replication:pull (astrum:replication:receive alone is not enough) and Read on the whole repository. Answers 404 with the code component_not_found when the repository has no such component.",
+    "parameters": [
+     {
+      "in": "path",
+      "name": "repo",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "namespace",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": ""
+      }
+     },
+     {
+      "in": "query",
+      "name": "name",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "version",
+      "required": false,
+      "schema": {
+       "type": "string",
+       "default": ""
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ReplicationBundle"
+        }
+       }
+      }
+     },
+     "400": {},
+     "401": {},
+     "403": {},
+     "404": {}
+    },
+    "tags": [
+     "Replication"
+    ]
+   }
+  },
+  "/v1/replication/{repo}/components": {
+   "delete": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "repo",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ReplicationTombstone"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "204": {},
+     "400": {},
+     "401": {},
+     "403": {},
+     "404": {},
+     "409": {}
+    },
+    "tags": [
+     "Replication"
+    ]
+   },
+   "post": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "repo",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ReplicationBundle"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ReplicationOutcome"
+        }
+       }
+      }
+     },
+     "400": {},
+     "401": {},
+     "403": {},
+     "404": {},
+     "409": {},
+     "413": {}
+    },
+    "tags": [
+     "Replication"
+    ]
+   }
+  },
+  "/v1/replication/{repo}/inventory": {
+   "get": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "repo",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "after",
+      "required": false,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "limit",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "format": "int32",
+       "minimum": 1,
+       "maximum": 1000,
+       "default": 500
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ReplicationInventoryPage"
+        }
+       }
+      }
+     },
+     "400": {},
+     "401": {},
+     "403": {},
+     "404": {}
+    },
+    "tags": [
+     "Replication"
+    ],
+    "description": "Lists the components of the hosted repository in key order, with their fingerprints and origin marks. Needs the privilege astrum:replication:receive (to push) or astrum:replication:pull (to pull), and Read on the whole repository."
+   }
+  },
+  "/v1/replication/{repo}/inventory/compare": {
+   "post": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "repo",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ReplicationInventoryCompare"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ReplicationInventoryCompareReply"
+        }
+       }
+      }
+     },
+     "400": {},
+     "401": {},
+     "403": {},
+     "404": {}
+    },
+    "tags": [
+     "Replication"
+    ],
+    "description": "Names the keys whose fingerprint differs from the repository or that it lacks. Needs the privilege astrum:replication:receive (to push) or astrum:replication:pull (to pull), and Read on the whole repository."
+   }
+  },
+  "/v1/replications": {
+   "get": {
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/ReplicationXO"
+         },
+         "type": "array"
+        }
+       }
+      }
+     },
+     "403": {}
+    },
+    "tags": [
+     "Replication"
+    ]
+   },
+   "post": {
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ReplicationRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ReplicationXO"
+        }
+       }
+      }
+     },
+     "400": {},
+     "403": {},
+     "409": {}
+    },
+    "tags": [
+     "Replication"
+    ]
+   }
+  },
+  "/v1/replications/{id}": {
+   "delete": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "id",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid"
+      }
+     }
+    ],
+    "responses": {
+     "204": {},
+     "403": {},
+     "404": {},
+     "409": {}
+    },
+    "tags": [
+     "Replication"
+    ]
+   },
+   "get": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "id",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ReplicationXO"
+        }
+       }
+      }
+     },
+     "403": {},
+     "404": {}
+    },
+    "tags": [
+     "Replication"
+    ]
+   },
+   "put": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "id",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ReplicationRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ReplicationXO"
+        }
+       }
+      }
+     },
+     "400": {},
+     "403": {},
+     "404": {},
+     "409": {}
+    },
+    "tags": [
+     "Replication"
+    ]
+   }
+  },
+  "/v1/replications/{id}/items": {
+   "get": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "id",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid"
+      }
+     },
+     {
+      "in": "query",
+      "name": "state",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "enum": [
+        "dead",
+        "pending",
+        "leased"
+       ]
+      }
+     },
+     {
+      "in": "query",
+      "name": "after",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "format": "int64"
+      }
+     },
+     {
+      "in": "query",
+      "name": "limit",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "format": "int32",
+       "minimum": 1,
+       "maximum": 200,
+       "default": 50
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ReplicationItemPageXO"
+        }
+       }
+      }
+     },
+     "400": {},
+     "403": {},
+     "404": {}
+    },
+    "tags": [
+     "Replication"
+    ]
+   }
+  },
+  "/v1/replications/{id}/items/discard": {
+   "post": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "id",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ReplicationItemsRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ReplicationDiscardXO"
+        }
+       }
+      }
+     },
+     "400": {},
+     "403": {},
+     "404": {}
+    },
+    "tags": [
+     "Replication"
+    ]
+   }
+  },
+  "/v1/replications/{id}/items/retry": {
+   "post": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "id",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ReplicationItemsRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ReplicationRetryXO"
+        }
+       }
+      }
+     },
+     "400": {},
+     "403": {},
+     "404": {}
+    },
+    "tags": [
+     "Replication"
+    ]
+   }
+  },
+  "/v1/replications/{id}/reconcile": {
+   "post": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "id",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid"
+      }
+     }
+    ],
+    "responses": {
+     "202": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ReplicationReconcileXO"
+        }
+       }
+      }
+     },
+     "403": {},
+     "404": {},
+     "409": {}
+    },
+    "tags": [
+     "Replication"
+    ]
+   }
+  },
+  "/v1/replications/{id}/status": {
+   "get": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "id",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ReplicationStatusXO"
+        }
+       }
+      }
+     },
+     "403": {},
+     "404": {}
+    },
+    "tags": [
+     "Replication"
     ]
    }
   },
@@ -1500,6 +2743,168 @@
       "application/json": {
        "schema": {
         "$ref": "#/components/schemas/BazelProxyRepositoryApiRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "204": {},
+     "400": {},
+     "401": {},
+     "403": {}
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   }
+  },
+  "/v1/repositories/bazelcache/hosted": {
+   "post": {
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/BazelCacheHostedRepositoryApiRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {},
+     "401": {},
+     "403": {}
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   }
+  },
+  "/v1/repositories/bazelcache/hosted/{repositoryName}": {
+   "get": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "repositoryName",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AbstractApiRepository"
+        }
+       }
+      }
+     }
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   },
+   "put": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "repositoryName",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/BazelCacheHostedRepositoryApiRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "204": {},
+     "400": {},
+     "401": {},
+     "403": {}
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   }
+  },
+  "/v1/repositories/sccache/hosted": {
+   "post": {
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/SccacheHostedRepositoryApiRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {},
+     "401": {},
+     "403": {}
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   }
+  },
+  "/v1/repositories/sccache/hosted/{repositoryName}": {
+   "get": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "repositoryName",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AbstractApiRepository"
+        }
+       }
+      }
+     }
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   },
+   "put": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "repositoryName",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/SccacheHostedRepositoryApiRequest"
        }
       }
      },
@@ -3820,6 +5225,87 @@
     ]
    }
   },
+  "/v1/repositories/gradlecache/hosted": {
+   "post": {
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/GradleCacheHostedRepositoryApiRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {},
+     "401": {},
+     "403": {}
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   }
+  },
+  "/v1/repositories/gradlecache/hosted/{repositoryName}": {
+   "get": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "repositoryName",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AbstractApiRepository"
+        }
+       }
+      }
+     }
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   },
+   "put": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "repositoryName",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/GradleCacheHostedRepositoryApiRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "204": {},
+     "400": {},
+     "401": {},
+     "403": {}
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   }
+  },
   "/v1/repositories/helm/hosted": {
    "post": {
     "requestBody": {
@@ -4220,6 +5706,87 @@
     ]
    }
   },
+  "/v1/repositories/homebrew/proxy": {
+   "post": {
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/HomebrewProxyRepositoryApiRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {},
+     "401": {},
+     "403": {}
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   }
+  },
+  "/v1/repositories/homebrew/proxy/{repositoryName}": {
+   "get": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "repositoryName",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AbstractApiRepository"
+        }
+       }
+      }
+     }
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   },
+   "put": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "repositoryName",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/HomebrewProxyRepositoryApiRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "204": {},
+     "400": {},
+     "401": {},
+     "403": {}
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   }
+  },
   "/v1/repositories/huggingface/proxy": {
    "post": {
     "requestBody": {
@@ -4523,6 +6090,244 @@
       "application/json": {
        "schema": {
         "$ref": "#/components/schemas/JetbrainsProxyRepositoryApiRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "204": {},
+     "400": {},
+     "401": {},
+     "403": {}
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   }
+  },
+  "/v1/repositories/jsr/group": {
+   "post": {
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/JsrGroupRepositoryApiRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {},
+     "401": {},
+     "403": {}
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   }
+  },
+  "/v1/repositories/jsr/group/{repositoryName}": {
+   "get": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "repositoryName",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {},
+     "401": {},
+     "403": {},
+     "404": {}
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   },
+   "put": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "repositoryName",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/JsrGroupRepositoryApiRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "204": {},
+     "400": {},
+     "401": {},
+     "403": {}
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   }
+  },
+  "/v1/repositories/jsr/hosted": {
+   "post": {
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/JsrHostedRepositoryApiRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {},
+     "401": {},
+     "403": {}
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   }
+  },
+  "/v1/repositories/jsr/hosted/{repositoryName}": {
+   "get": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "repositoryName",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AbstractApiRepository"
+        }
+       }
+      }
+     }
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   },
+   "put": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "repositoryName",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/JsrHostedRepositoryApiRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "204": {},
+     "400": {},
+     "401": {},
+     "403": {}
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   }
+  },
+  "/v1/repositories/jsr/proxy": {
+   "post": {
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/JsrProxyRepositoryApiRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {},
+     "401": {},
+     "403": {}
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   }
+  },
+  "/v1/repositories/jsr/proxy/{repositoryName}": {
+   "get": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "repositoryName",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AbstractApiRepository"
+        }
+       }
+      }
+     }
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   },
+   "put": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "repositoryName",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/JsrProxyRepositoryApiRequest"
        }
       }
      },
@@ -5561,6 +7366,168 @@
       "application/json": {
        "schema": {
         "$ref": "#/components/schemas/NxHostedRepositoryApiRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "204": {},
+     "400": {},
+     "401": {},
+     "403": {}
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   }
+  },
+  "/v1/repositories/opam/hosted": {
+   "post": {
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/OpamHostedRepositoryApiRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {},
+     "401": {},
+     "403": {}
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   }
+  },
+  "/v1/repositories/opam/hosted/{repositoryName}": {
+   "get": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "repositoryName",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AbstractApiRepository"
+        }
+       }
+      }
+     }
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   },
+   "put": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "repositoryName",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/OpamHostedRepositoryApiRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "204": {},
+     "400": {},
+     "401": {},
+     "403": {}
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   }
+  },
+  "/v1/repositories/opam/proxy": {
+   "post": {
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/OpamProxyRepositoryApiRequest"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {},
+     "401": {},
+     "403": {}
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   }
+  },
+  "/v1/repositories/opam/proxy/{repositoryName}": {
+   "get": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "repositoryName",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/AbstractApiRepository"
+        }
+       }
+      }
+     }
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   },
+   "put": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "repositoryName",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/OpamProxyRepositoryApiRequest"
        }
       }
      },
@@ -8818,6 +10785,131 @@
     ]
    }
   },
+  "/v1/repositories/{repositoryName}/usage": {
+   "get": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "repositoryName",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "properties": {
+          "assets": {
+           "format": "int64",
+           "type": "integer"
+          },
+          "bytes": {
+           "format": "int64",
+           "type": "integer"
+          },
+          "percentUsed": {
+           "format": "double",
+           "nullable": true,
+           "type": "number"
+          },
+          "quota": {
+           "nullable": true,
+           "properties": {
+            "enforce": {
+             "type": "boolean"
+            },
+            "limitBytes": {
+             "format": "int64",
+             "type": "integer"
+            },
+            "warnPercent": {
+             "format": "int32",
+             "type": "integer"
+            }
+           },
+           "type": "object"
+          }
+         },
+         "type": "object"
+        }
+       }
+      }
+     },
+     "401": {},
+     "403": {},
+     "404": {}
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   }
+  },
+  "/v1/repositories/{repositoryName}/usage/history": {
+   "get": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "repositoryName",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "days",
+      "schema": {
+       "default": 90,
+       "maximum": 730,
+       "minimum": 1,
+       "type": "integer"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "properties": {
+           "assets": {
+            "type": "integer"
+           },
+           "bytes": {
+            "type": "integer"
+           },
+           "components": {
+            "type": "integer"
+           },
+           "day": {
+            "type": "string"
+           },
+           "downloads": {
+            "type": "integer"
+           }
+          },
+          "type": "object"
+         },
+         "type": "array"
+        }
+       }
+      }
+     },
+     "400": {},
+     "401": {},
+     "403": {},
+     "404": {}
+    },
+    "tags": [
+     "Repository Management"
+    ]
+   }
+  },
   "/v1/repositorySettings": {
    "get": {
     "responses": {
@@ -10377,6 +12469,210 @@
     ]
    }
   },
+  "/v1/security/advisories/feeds": {
+   "get": {
+    "tags": [
+     "Security management: advisories"
+    ],
+    "responses": {
+     "200": {},
+     "401": {},
+     "403": {}
+    }
+   }
+  },
+  "/v1/security/advisories/import": {
+   "post": {
+    "tags": [
+     "Security management: advisories"
+    ],
+    "parameters": [
+     {
+      "name": "ecosystem",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "force",
+      "in": "query",
+      "schema": {
+       "type": "boolean"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/zip": {
+       "schema": {
+        "type": "string",
+        "format": "binary"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {},
+     "400": {},
+     "401": {},
+     "403": {},
+     "409": {},
+     "413": {}
+    }
+   }
+  },
+  "/v1/security/advisories/{id}": {
+   "get": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "id",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "id": {
+           "type": "string"
+          },
+          "aliases": {
+           "type": "array",
+           "items": {
+            "type": "string"
+           }
+          },
+          "summary": {
+           "type": "string"
+          },
+          "severity": {
+           "type": "string"
+          },
+          "score": {
+           "type": "number",
+           "format": "double",
+           "nullable": true
+          },
+          "malicious": {
+           "type": "boolean"
+          },
+          "published": {
+           "type": "string",
+           "nullable": true
+          },
+          "modified": {
+           "type": "string"
+          },
+          "withdrawn": {
+           "type": "string",
+           "nullable": true
+          },
+          "references": {
+           "type": "array",
+           "items": {
+            "type": "object",
+            "properties": {
+             "type": {
+              "type": "string"
+             },
+             "url": {
+              "type": "string"
+             }
+            }
+           }
+          },
+          "affected": {
+           "type": "array",
+           "items": {
+            "type": "object",
+            "properties": {
+             "ecosystem": {
+              "type": "string"
+             },
+             "name": {
+              "type": "string"
+             },
+             "ranges": {
+              "type": "array",
+              "items": {
+               "type": "object"
+              }
+             },
+             "versions": {
+              "type": "array",
+              "items": {
+               "type": "string"
+              }
+             }
+            }
+           }
+          },
+          "truncated": {
+           "type": "boolean"
+          },
+          "components": {
+           "type": "array",
+           "items": {
+            "type": "object",
+            "properties": {
+             "componentId": {
+              "type": "string"
+             },
+             "repository": {
+              "type": "string"
+             },
+             "format": {
+              "type": "string"
+             },
+             "name": {
+              "type": "string"
+             },
+             "version": {
+              "type": "string"
+             },
+             "fixed": {
+              "type": "string",
+              "nullable": true
+             },
+             "excepted": {
+              "type": "boolean"
+             },
+             "blocked": {
+              "type": "boolean"
+             }
+            }
+           }
+          },
+          "componentCount": {
+           "type": "integer",
+           "format": "int64"
+          },
+          "componentsTruncated": {
+           "type": "boolean"
+          }
+         }
+        }
+       }
+      }
+     },
+     "401": {},
+     "403": {},
+     "404": {}
+    },
+    "tags": [
+     "Security management: findings"
+    ]
+   }
+  },
   "/v1/security/anonymous": {
    "get": {
     "responses": {
@@ -10541,6 +12837,219 @@
     ]
    }
   },
+  "/v1/security/cooldown": {
+   "get": {
+    "tags": [
+     "Security management: policies"
+    ],
+    "parameters": [
+     {
+      "in": "query",
+      "name": "repository",
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "allowEmptyValue": true,
+      "in": "query",
+      "name": "continuationToken",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {},
+     "401": {}
+    }
+   }
+  },
+  "/v1/security/exceptions": {
+   "get": {
+    "tags": [
+     "Security management: exceptions"
+    ],
+    "responses": {
+     "200": {},
+     "401": {},
+     "403": {}
+    }
+   },
+   "post": {
+    "tags": [
+     "Security management: exceptions"
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {},
+     "400": {},
+     "401": {},
+     "403": {}
+    }
+   }
+  },
+  "/v1/security/exceptions/{id}": {
+   "delete": {
+    "tags": [
+     "Security management: exceptions"
+    ],
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "204": {},
+     "401": {},
+     "403": {},
+     "404": {}
+    }
+   }
+  },
+  "/v1/security/findings": {
+   "get": {
+    "parameters": [
+     {
+      "in": "query",
+      "name": "repository",
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "severity",
+      "schema": {
+       "type": "string",
+       "enum": [
+        "critical",
+        "high",
+        "medium",
+        "low",
+        "unknown"
+       ]
+      }
+     },
+     {
+      "in": "query",
+      "name": "advisory",
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "blocked",
+      "schema": {
+       "type": "boolean"
+      }
+     },
+     {
+      "in": "query",
+      "name": "continuationToken",
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "limit",
+      "schema": {
+       "type": "integer",
+       "format": "int32",
+       "minimum": 1,
+       "maximum": 200
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "items": {
+           "type": "array",
+           "items": {
+            "type": "object",
+            "properties": {
+             "componentId": {
+              "type": "string"
+             },
+             "repository": {
+              "type": "string"
+             },
+             "format": {
+              "type": "string"
+             },
+             "namespace": {
+              "type": "string"
+             },
+             "name": {
+              "type": "string"
+             },
+             "version": {
+              "type": "string"
+             },
+             "advisory": {
+              "type": "string"
+             },
+             "severity": {
+              "type": "string"
+             },
+             "score": {
+              "type": "number",
+              "format": "double",
+              "nullable": true
+             },
+             "fixed": {
+              "type": "string",
+              "nullable": true
+             },
+             "malicious": {
+              "type": "boolean"
+             },
+             "excepted": {
+              "type": "boolean"
+             },
+             "blocked": {
+              "type": "boolean"
+             }
+            }
+           }
+          },
+          "continuationToken": {
+           "type": "string",
+           "nullable": true
+          }
+         }
+        }
+       }
+      }
+     },
+     "400": {},
+     "401": {}
+    },
+    "tags": [
+     "Security management: findings"
+    ]
+   }
+  },
   "/v1/security/jwt": {
    "put": {
     "responses": {
@@ -10550,6 +13059,351 @@
     "tags": [
      "Security management: JWT"
     ]
+   }
+  },
+  "/v1/security/keys": {
+   "get": {
+    "tags": [
+     "Security management: keys"
+    ],
+    "responses": {
+     "200": {},
+     "401": {},
+     "403": {}
+    }
+   },
+   "post": {
+    "tags": [
+     "Security management: keys"
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {},
+     "400": {},
+     "401": {},
+     "403": {},
+     "409": {}
+    }
+   }
+  },
+  "/v1/security/keys/{name}": {
+   "delete": {
+    "tags": [
+     "Security management: keys"
+    ],
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "204": {},
+     "401": {},
+     "403": {},
+     "404": {},
+     "409": {}
+    }
+   }
+  },
+  "/v1/security/licenses": {
+   "get": {
+    "parameters": [
+     {
+      "in": "query",
+      "name": "repository",
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "license",
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "state",
+      "schema": {
+       "type": "string",
+       "enum": [
+        "spdx",
+        "mapped",
+        "unknown",
+        "none"
+       ]
+      }
+     },
+     {
+      "in": "query",
+      "name": "format",
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "continuationToken",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "items": {
+           "type": "array",
+           "items": {
+            "type": "object",
+            "properties": {
+             "repository": {
+              "type": "string"
+             },
+             "format": {
+              "type": "string"
+             },
+             "namespace": {
+              "type": "string"
+             },
+             "name": {
+              "type": "string"
+             },
+             "version": {
+              "type": "string"
+             },
+             "declared": {
+              "type": "string"
+             },
+             "expression": {
+              "type": "string",
+              "nullable": true
+             },
+             "ids": {
+              "type": "array",
+              "items": {
+               "type": "string"
+              }
+             },
+             "state": {
+              "type": "string",
+              "enum": [
+               "spdx",
+               "mapped",
+               "unknown",
+               "none"
+              ]
+             },
+             "verdict": {
+              "type": "string",
+              "enum": [
+               "pass",
+               "blocked",
+               "reported",
+               "unjudged"
+              ]
+             }
+            }
+           }
+          },
+          "continuationToken": {
+           "type": "string",
+           "nullable": true
+          }
+         }
+        }
+       }
+      }
+     },
+     "400": {},
+     "401": {}
+    },
+    "tags": [
+     "Security management: licences"
+    ]
+   }
+  },
+  "/v1/security/licenses/export.csv": {
+   "get": {
+    "parameters": [
+     {
+      "in": "query",
+      "name": "repository",
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "license",
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "in": "query",
+      "name": "state",
+      "schema": {
+       "type": "string",
+       "enum": [
+        "spdx",
+        "mapped",
+        "unknown",
+        "none"
+       ]
+      }
+     },
+     {
+      "in": "query",
+      "name": "format",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "text/csv": {
+        "schema": {
+         "type": "string"
+        }
+       }
+      }
+     },
+     "400": {},
+     "401": {}
+    },
+    "tags": [
+     "Security management: licences"
+    ]
+   }
+  },
+  "/v1/security/policies": {
+   "get": {
+    "tags": [
+     "Security management: policies"
+    ],
+    "responses": {
+     "200": {},
+     "401": {},
+     "403": {}
+    }
+   },
+   "post": {
+    "tags": [
+     "Security management: policies"
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {},
+     "400": {},
+     "401": {},
+     "403": {},
+     "409": {}
+    }
+   }
+  },
+  "/v1/security/policies/{name}": {
+   "get": {
+    "tags": [
+     "Security management: policies"
+    ],
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {},
+     "401": {},
+     "403": {},
+     "404": {}
+    }
+   },
+   "put": {
+    "tags": [
+     "Security management: policies"
+    ],
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {},
+     "400": {},
+     "401": {},
+     "403": {},
+     "404": {}
+    }
+   },
+   "delete": {
+    "tags": [
+     "Security management: policies"
+    ],
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "204": {},
+     "401": {},
+     "403": {},
+     "404": {},
+     "409": {}
+    }
    }
   },
   "/v1/security/privileges": {
@@ -11297,6 +14151,40 @@
     ]
    }
   },
+  "/v1/security/scan": {
+   "post": {
+    "tags": [
+     "Security management: scan"
+    ],
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "required": [
+         "repository"
+        ],
+        "properties": {
+         "repository": {
+          "type": "string"
+         },
+         "componentId": {
+          "type": "string"
+         }
+        }
+       }
+      }
+     }
+    },
+    "responses": {
+     "202": {},
+     "400": {},
+     "401": {},
+     "403": {},
+     "404": {}
+    }
+   }
+  },
   "/v1/security/ssrf-protection": {
    "get": {
     "responses": {
@@ -11343,6 +14231,119 @@
     },
     "tags": [
      "Security Management: SSRF Protection"
+    ]
+   }
+  },
+  "/v1/security/summary": {
+   "get": {
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "generatedAt": {
+           "type": "string"
+          },
+          "totals": {
+           "type": "object",
+           "properties": {
+            "critical": {
+             "type": "integer",
+             "format": "int64"
+            },
+            "high": {
+             "type": "integer",
+             "format": "int64"
+            },
+            "medium": {
+             "type": "integer",
+             "format": "int64"
+            },
+            "low": {
+             "type": "integer",
+             "format": "int64"
+            },
+            "unknown": {
+             "type": "integer",
+             "format": "int64"
+            },
+            "blocked": {
+             "type": "integer",
+             "format": "int64"
+            },
+            "componentsScanned": {
+             "type": "integer",
+             "format": "int64"
+            },
+            "componentsVulnerable": {
+             "type": "integer",
+             "format": "int64"
+            },
+            "truncated": {
+             "type": "boolean"
+            }
+           }
+          },
+          "repositories": {
+           "type": "array",
+           "items": {
+            "type": "object",
+            "properties": {
+             "critical": {
+              "type": "integer",
+              "format": "int64"
+             },
+             "high": {
+              "type": "integer",
+              "format": "int64"
+             },
+             "medium": {
+              "type": "integer",
+              "format": "int64"
+             },
+             "low": {
+              "type": "integer",
+              "format": "int64"
+             },
+             "unknown": {
+              "type": "integer",
+              "format": "int64"
+             },
+             "blocked": {
+              "type": "integer",
+              "format": "int64"
+             },
+             "componentsScanned": {
+              "type": "integer",
+              "format": "int64"
+             },
+             "componentsVulnerable": {
+              "type": "integer",
+              "format": "int64"
+             },
+             "truncated": {
+              "type": "boolean"
+             },
+             "repository": {
+              "type": "string"
+             },
+             "format": {
+              "type": "string"
+             }
+            }
+           }
+          }
+         }
+        }
+       }
+      }
+     },
+     "401": {}
+    },
+    "tags": [
+     "Security management: findings"
     ]
    }
   },
@@ -11525,6 +14526,98 @@
     },
     "tags": [
      "Security management: users"
+    ]
+   }
+  },
+  "/v1/share-links": {
+   "get": {
+    "parameters": [
+     {
+      "in": "query",
+      "name": "all",
+      "schema": {
+       "type": "boolean"
+      }
+     },
+     {
+      "in": "query",
+      "name": "repository",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/ShareLinkXO"
+         },
+         "type": "array"
+        }
+       }
+      }
+     },
+     "401": {},
+     "403": {}
+    },
+    "tags": [
+     "Share links"
+    ]
+   },
+   "post": {
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/CreateShareLinkXO"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CreatedShareLinkXO"
+        }
+       }
+      }
+     },
+     "400": {},
+     "401": {},
+     "403": {},
+     "404": {}
+    },
+    "tags": [
+     "Share links"
+    ]
+   }
+  },
+  "/v1/share-links/{id}": {
+   "delete": {
+    "parameters": [
+     {
+      "in": "path",
+      "name": "id",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "204": {},
+     "401": {},
+     "403": {},
+     "404": {}
+    },
+    "tags": [
+     "Share links"
     ]
    }
   },
@@ -13237,6 +16330,70 @@
     },
     "type": "object"
    },
+   "BazelCacheHostedRepositoryApiRequest": {
+    "properties": {
+     "cleanup": {
+      "$ref": "#/components/schemas/CleanupPolicyAttributes"
+     },
+     "component": {
+      "$ref": "#/components/schemas/ComponentAttributes"
+     },
+     "domain": {
+      "$ref": "#/components/schemas/DomainAttributes"
+     },
+     "name": {
+      "example": "internal",
+      "minLength": 1,
+      "pattern": "^[a-zA-Z0-9\\-]{1}[a-zA-Z0-9_\\-\\.]*$",
+      "type": "string"
+     },
+     "online": {
+      "example": true,
+      "type": "boolean"
+     },
+     "storage": {
+      "$ref": "#/components/schemas/HostedStorageAttributes"
+     }
+    },
+    "required": [
+     "name",
+     "online",
+     "storage"
+    ],
+    "type": "object"
+   },
+   "SccacheHostedRepositoryApiRequest": {
+    "properties": {
+     "cleanup": {
+      "$ref": "#/components/schemas/CleanupPolicyAttributes"
+     },
+     "component": {
+      "$ref": "#/components/schemas/ComponentAttributes"
+     },
+     "domain": {
+      "$ref": "#/components/schemas/DomainAttributes"
+     },
+     "name": {
+      "example": "internal",
+      "minLength": 1,
+      "pattern": "^[a-zA-Z0-9\\-]{1}[a-zA-Z0-9_\\-\\.]*$",
+      "type": "string"
+     },
+     "online": {
+      "example": true,
+      "type": "boolean"
+     },
+     "storage": {
+      "$ref": "#/components/schemas/HostedStorageAttributes"
+     }
+    },
+    "required": [
+     "name",
+     "online",
+     "storage"
+    ],
+    "type": "object"
+   },
    "BazelGroupRepositoryApiRequest": {
     "properties": {
      "domain": {
@@ -13387,6 +16544,34 @@
       "type": "boolean"
      }
     },
+    "type": "object"
+   },
+   "BlobStoreForecastXO": {
+    "properties": {
+     "daysUntilFull": {
+      "nullable": true,
+      "type": "number"
+     },
+     "bytesPerDay": {
+      "nullable": true,
+      "type": "number"
+     },
+     "basis": {
+      "enum": [
+       "capacity",
+       "softQuota"
+      ],
+      "nullable": true,
+      "type": "string"
+     },
+     "sampleDays": {
+      "format": "int32",
+      "type": "integer"
+     }
+    },
+    "required": [
+     "sampleDays"
+    ],
     "type": "object"
    },
    "BlobStoreQuotaResultXO": {
@@ -14426,6 +17611,93 @@
     ],
     "type": "object"
    },
+   "CreateShareLinkXO": {
+    "properties": {
+     "expiresInHours": {
+      "format": "int64",
+      "type": "integer"
+     },
+     "maxDownloads": {
+      "format": "int32",
+      "type": "integer"
+     },
+     "note": {
+      "type": "string"
+     },
+     "path": {
+      "type": "string"
+     },
+     "prefix": {
+      "type": "boolean"
+     },
+     "repository": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "path",
+     "repository"
+    ],
+    "type": "object"
+   },
+   "CreatedShareLinkXO": {
+    "properties": {
+     "bytesServed": {
+      "format": "int64",
+      "type": "integer"
+     },
+     "createdAt": {
+      "format": "date-time",
+      "type": "string"
+     },
+     "createdBy": {
+      "type": "string"
+     },
+     "downloads": {
+      "format": "int32",
+      "type": "integer"
+     },
+     "expired": {
+      "description": "True when the link has passed its expiry and no longer works",
+      "type": "boolean"
+     },
+     "expiresAt": {
+      "format": "date-time",
+      "type": "string"
+     },
+     "id": {
+      "format": "uuid",
+      "type": "string"
+     },
+     "lastUsedAt": {
+      "format": "date-time",
+      "nullable": true,
+      "type": "string"
+     },
+     "maxDownloads": {
+      "format": "int32",
+      "nullable": true,
+      "type": "integer"
+     },
+     "note": {
+      "type": "string"
+     },
+     "path": {
+      "type": "string"
+     },
+     "prefix": {
+      "type": "boolean"
+     },
+     "repository": {
+      "type": "string"
+     },
+     "url": {
+      "description": "The address of the link, shown only in this answer",
+      "type": "string"
+     }
+    },
+    "type": "object"
+   },
    "DockerAttributes": {
     "properties": {
      "forceBasicAuth": {
@@ -15122,6 +18394,38 @@
     ],
     "type": "object"
    },
+   "GradleCacheHostedRepositoryApiRequest": {
+    "properties": {
+     "cleanup": {
+      "$ref": "#/components/schemas/CleanupPolicyAttributes"
+     },
+     "component": {
+      "$ref": "#/components/schemas/ComponentAttributes"
+     },
+     "domain": {
+      "$ref": "#/components/schemas/DomainAttributes"
+     },
+     "name": {
+      "example": "internal",
+      "minLength": 1,
+      "pattern": "^[a-zA-Z0-9\\-]{1}[a-zA-Z0-9_\\-\\.]*$",
+      "type": "string"
+     },
+     "online": {
+      "example": true,
+      "type": "boolean"
+     },
+     "storage": {
+      "$ref": "#/components/schemas/HostedStorageAttributes"
+     }
+    },
+    "required": [
+     "name",
+     "online",
+     "storage"
+    ],
+    "type": "object"
+   },
    "GroupAttributes": {
     "properties": {
      "memberNames": {
@@ -15361,6 +18665,56 @@
       "type": "string"
      }
     },
+    "type": "object"
+   },
+   "HomebrewProxyRepositoryApiRequest": {
+    "properties": {
+     "cleanup": {
+      "$ref": "#/components/schemas/CleanupPolicyAttributes"
+     },
+     "domain": {
+      "$ref": "#/components/schemas/DomainAttributes"
+     },
+     "firewall": {
+      "$ref": "#/components/schemas/FirewallAttributes"
+     },
+     "httpClient": {
+      "$ref": "#/components/schemas/HttpClientAttributes"
+     },
+     "name": {
+      "example": "internal",
+      "minLength": 1,
+      "pattern": "^[a-zA-Z0-9\\-]{1}[a-zA-Z0-9_\\-\\.]*$",
+      "type": "string"
+     },
+     "negativeCache": {
+      "$ref": "#/components/schemas/NegativeCacheAttributes"
+     },
+     "online": {
+      "example": true,
+      "type": "boolean"
+     },
+     "proxy": {
+      "$ref": "#/components/schemas/ProxyAttributes"
+     },
+     "replication": {
+      "$ref": "#/components/schemas/ReplicationAttributes"
+     },
+     "routingRuleName": {
+      "type": "string"
+     },
+     "storage": {
+      "$ref": "#/components/schemas/StorageAttributes"
+     }
+    },
+    "required": [
+     "httpClient",
+     "name",
+     "negativeCache",
+     "online",
+     "proxy",
+     "storage"
+    ],
     "type": "object"
    },
    "HostedStorageAttributes": {
@@ -15708,6 +19062,118 @@
     "type": "object"
    },
    "JetbrainsProxyRepositoryApiRequest": {
+    "properties": {
+     "cleanup": {
+      "$ref": "#/components/schemas/CleanupPolicyAttributes"
+     },
+     "domain": {
+      "$ref": "#/components/schemas/DomainAttributes"
+     },
+     "firewall": {
+      "$ref": "#/components/schemas/FirewallAttributes"
+     },
+     "httpClient": {
+      "$ref": "#/components/schemas/HttpClientAttributes"
+     },
+     "name": {
+      "example": "internal",
+      "minLength": 1,
+      "pattern": "^[a-zA-Z0-9\\-]{1}[a-zA-Z0-9_\\-\\.]*$",
+      "type": "string"
+     },
+     "negativeCache": {
+      "$ref": "#/components/schemas/NegativeCacheAttributes"
+     },
+     "online": {
+      "example": true,
+      "type": "boolean"
+     },
+     "proxy": {
+      "$ref": "#/components/schemas/ProxyAttributes"
+     },
+     "replication": {
+      "$ref": "#/components/schemas/ReplicationAttributes"
+     },
+     "routingRuleName": {
+      "type": "string"
+     },
+     "storage": {
+      "$ref": "#/components/schemas/StorageAttributes"
+     }
+    },
+    "required": [
+     "httpClient",
+     "name",
+     "negativeCache",
+     "online",
+     "proxy",
+     "storage"
+    ],
+    "type": "object"
+   },
+   "JsrGroupRepositoryApiRequest": {
+    "properties": {
+     "domain": {
+      "$ref": "#/components/schemas/DomainAttributes"
+     },
+     "group": {
+      "$ref": "#/components/schemas/GroupAttributes"
+     },
+     "name": {
+      "example": "internal",
+      "minLength": 1,
+      "pattern": "^[a-zA-Z0-9\\-]{1}[a-zA-Z0-9_\\-\\.]*$",
+      "type": "string"
+     },
+     "online": {
+      "example": true,
+      "type": "boolean"
+     },
+     "storage": {
+      "$ref": "#/components/schemas/StorageAttributes"
+     }
+    },
+    "required": [
+     "group",
+     "name",
+     "online",
+     "storage"
+    ],
+    "type": "object"
+   },
+   "JsrHostedRepositoryApiRequest": {
+    "properties": {
+     "cleanup": {
+      "$ref": "#/components/schemas/CleanupPolicyAttributes"
+     },
+     "component": {
+      "$ref": "#/components/schemas/ComponentAttributes"
+     },
+     "domain": {
+      "$ref": "#/components/schemas/DomainAttributes"
+     },
+     "name": {
+      "example": "internal",
+      "minLength": 1,
+      "pattern": "^[a-zA-Z0-9\\-]{1}[a-zA-Z0-9_\\-\\.]*$",
+      "type": "string"
+     },
+     "online": {
+      "example": true,
+      "type": "boolean"
+     },
+     "storage": {
+      "$ref": "#/components/schemas/HostedStorageAttributes"
+     }
+    },
+    "required": [
+     "name",
+     "online",
+     "storage"
+    ],
+    "type": "object"
+   },
+   "JsrProxyRepositoryApiRequest": {
     "properties": {
      "cleanup": {
       "$ref": "#/components/schemas/CleanupPolicyAttributes"
@@ -16728,6 +20194,203 @@
      }
     }
    },
+   "PromotionAssetXO": {
+    "properties": {
+     "path": {
+      "type": "string"
+     },
+     "size": {
+      "format": "int64",
+      "type": "integer"
+     },
+     "status": {
+      "enum": [
+       "new",
+       "replaced",
+       "unchanged",
+       "conflict"
+      ],
+      "type": "string"
+     }
+    },
+    "type": "object"
+   },
+   "PromotionItemXO": {
+    "properties": {
+     "componentId": {
+      "description": "The id of a component in the source repository",
+      "type": "string"
+     },
+     "digest": {
+      "description": "Docker: the digest of the image",
+      "type": "string"
+     },
+     "image": {
+      "description": "Docker: the image name",
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     },
+     "namespace": {
+      "description": "The group or namespace of the component; empty when the format has none",
+      "type": "string"
+     },
+     "tag": {
+      "description": "Docker: the tag of the image",
+      "type": "string"
+     },
+     "targetTags": {
+      "description": "Docker: tags the image gets in the target",
+      "items": {
+       "type": "string"
+      },
+      "type": "array"
+     },
+     "version": {
+      "type": "string"
+     }
+    },
+    "type": "object"
+   },
+   "PromotionRequestXO": {
+    "properties": {
+     "conflict": {
+      "description": "What to do when the target holds the same path with other content",
+      "enum": [
+       "fail",
+       "skip",
+       "replace"
+      ],
+      "type": "string"
+     },
+     "distTags": {
+      "description": "npm: move the dist-tags that pointed at the version (default true). Other formats accept and ignore it",
+      "type": "boolean"
+     },
+     "dryRun": {
+      "description": "Report the plan and write nothing",
+      "type": "boolean"
+     },
+     "items": {
+      "description": "At most 100 items",
+      "items": {
+       "$ref": "#/components/schemas/PromotionItemXO"
+      },
+      "type": "array"
+     },
+     "move": {
+      "description": "Delete the source component after a copy, or when the target already holds identical content. Docker deletes the source tag only and takes tag items only",
+      "type": "boolean"
+     },
+     "referrers": {
+      "description": "Docker: take the referrers of the image along",
+      "type": "boolean"
+     },
+     "source": {
+      "type": "string"
+     },
+     "target": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "items",
+     "source",
+     "target"
+    ],
+    "type": "object"
+   },
+   "PromotionResponseXO": {
+    "properties": {
+     "dryRun": {
+      "type": "boolean"
+     },
+     "results": {
+      "items": {
+       "$ref": "#/components/schemas/PromotionResultXO"
+      },
+      "type": "array"
+     }
+    },
+    "type": "object"
+   },
+   "PromotionResultXO": {
+    "properties": {
+     "assetCount": {
+      "format": "int32",
+      "type": "integer"
+     },
+     "assets": {
+      "description": "The first 500 assets of the plan or the copy",
+      "items": {
+       "$ref": "#/components/schemas/PromotionAssetXO"
+      },
+      "type": "array"
+     },
+     "bytesCopied": {
+      "format": "int64",
+      "type": "integer"
+     },
+     "bytesReused": {
+      "format": "int64",
+      "type": "integer"
+     },
+     "componentId": {
+      "type": "string"
+     },
+     "componentIds": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array"
+     },
+     "error": {
+      "type": "string"
+     },
+     "item": {
+      "$ref": "#/components/schemas/PromotionItemXO"
+     },
+     "retryable": {
+      "description": "Set on a conflict, on a failure, and on a copied or unchanged item whose source the immutable tags rule keeps. True: the content changed while the transfer ran, or the request time budget ran out before this item started, so a repeat may succeed. False: the target holds different content, or the immutable tags rule keeps the source or causes the conflict; a repeat does not change that until the rule is changed",
+      "type": "boolean"
+     },
+     "sourceKept": {
+      "description": "Set when a move was asked for: true when the source component was not deleted, including when the immutable tags rule protects it or it changed while the move ran",
+      "type": "boolean"
+     },
+     "status": {
+      "enum": [
+       "copied",
+       "unchanged",
+       "skipped",
+       "conflict",
+       "forbidden",
+       "notFound",
+       "unsupported",
+       "failed"
+      ],
+      "type": "string"
+     },
+     "skippedChildren": {
+      "description": "Docker: the number of child manifests that a tag-based index named and the source lacked, which were left out",
+      "format": "int32",
+      "type": "integer"
+     },
+     "warning": {
+      "description": "Docker: set for a digest-only image copied without any tag; an untagged image is removed by the next garbage collection",
+      "type": "string"
+     },
+     "warnings": {
+      "description": "Derived data (an index or checksum file) of a copied component that could not be refreshed in the target after the copy; the copy itself is complete. Absent when there is nothing to report",
+      "items": {
+       "type": "string"
+      },
+      "type": "array"
+     }
+    },
+    "type": "object"
+   },
    "ProtobufHostedRepositoryApiRequest": {
     "properties": {
      "cleanup": {
@@ -17432,6 +21095,27 @@
      }
     }
    },
+   "ReplicationAssetOutcome": {
+    "type": "object",
+    "properties": {
+     "path": {
+      "type": "string"
+     },
+     "status": {
+      "type": "string",
+      "enum": [
+       "new",
+       "replaced",
+       "unchanged",
+       "conflict"
+      ]
+     },
+     "size": {
+      "type": "integer",
+      "format": "int64"
+     }
+    }
+   },
    "ReplicationAttributes": {
     "properties": {
      "assetPathRegex": {
@@ -17446,6 +21130,791 @@
      "preemptivePullEnabled"
     ],
     "type": "object"
+   },
+   "ReplicationBundle": {
+    "type": "object",
+    "properties": {
+     "format": {
+      "type": "string"
+     },
+     "namespace": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     },
+     "version": {
+      "type": "string"
+     },
+     "assets": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ReplicationBundleAsset"
+      }
+     },
+     "meta": {
+      "type": "object"
+     },
+     "origin": {
+      "type": "string",
+      "nullable": true
+     }
+    },
+    "required": [
+     "format",
+     "namespace",
+     "name",
+     "version",
+     "assets"
+    ]
+   },
+   "ReplicationBundleAsset": {
+    "type": "object",
+    "properties": {
+     "path": {
+      "type": "string"
+     },
+     "kind": {
+      "type": "string"
+     },
+     "contentType": {
+      "type": "string"
+     },
+     "size": {
+      "type": "integer",
+      "format": "int64"
+     },
+     "sha1": {
+      "type": "string"
+     },
+     "sha256": {
+      "type": "string"
+     },
+     "sha512": {
+      "type": "string"
+     },
+     "md5": {
+      "type": "string"
+     },
+     "attributes": {
+      "type": "object"
+     }
+    },
+    "required": [
+     "path",
+     "kind",
+     "contentType",
+     "size",
+     "sha1",
+     "sha256",
+     "sha512",
+     "md5",
+     "attributes"
+    ]
+   },
+   "ReplicationCapabilities": {
+    "type": "object",
+    "properties": {
+     "protocol": {
+      "type": "integer",
+      "format": "int32"
+     },
+     "instanceId": {
+      "type": "string",
+      "format": "uuid"
+     },
+     "version": {
+      "type": "string"
+     },
+     "formats": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     }
+    }
+   },
+   "ReplicationDiscardXO": {
+    "type": "object",
+    "properties": {
+     "discarded": {
+      "type": "integer",
+      "format": "int64"
+     }
+    }
+   },
+   "ReplicationInventoryCompare": {
+    "type": "object",
+    "properties": {
+     "items": {
+      "type": "array",
+      "maxItems": 1000,
+      "items": {
+       "$ref": "#/components/schemas/ReplicationInventoryKey"
+      }
+     }
+    },
+    "required": [
+     "items"
+    ]
+   },
+   "ReplicationInventoryCompareReply": {
+    "type": "object",
+    "properties": {
+     "differing": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     }
+    }
+   },
+   "ReplicationInventoryEntry": {
+    "type": "object",
+    "properties": {
+     "key": {
+      "type": "string"
+     },
+     "fingerprint": {
+      "type": "string"
+     },
+     "origin": {
+      "type": "string",
+      "format": "uuid",
+      "nullable": true
+     }
+    }
+   },
+   "ReplicationInventoryKey": {
+    "type": "object",
+    "properties": {
+     "key": {
+      "type": "string"
+     },
+     "fingerprint": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "key",
+     "fingerprint"
+    ]
+   },
+   "ReplicationInventoryPage": {
+    "type": "object",
+    "properties": {
+     "items": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ReplicationInventoryEntry"
+      }
+     },
+     "next": {
+      "type": "string",
+      "nullable": true
+     }
+    }
+   },
+   "ReplicationItemPageXO": {
+    "type": "object",
+    "properties": {
+     "items": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ReplicationItemXO"
+      }
+     },
+     "next": {
+      "type": "integer",
+      "format": "int64",
+      "nullable": true
+     }
+    }
+   },
+   "ReplicationItemXO": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "integer",
+      "format": "int64"
+     },
+     "key": {
+      "type": "string"
+     },
+     "state": {
+      "type": "string",
+      "enum": [
+       "pending",
+       "leased",
+       "dead"
+      ]
+     },
+     "reason": {
+      "type": "string",
+      "enum": [
+       "event",
+       "reconcile",
+       "retry"
+      ]
+     },
+     "attempts": {
+      "type": "integer",
+      "format": "int32"
+     },
+     "notBefore": {
+      "type": "string",
+      "format": "date-time"
+     },
+     "firstQueuedAt": {
+      "type": "string",
+      "format": "date-time"
+     },
+     "lastError": {
+      "type": "string",
+      "nullable": true
+     }
+    }
+   },
+   "ReplicationItemsRequest": {
+    "type": "object",
+    "description": "Give exactly one of ids and all.",
+    "properties": {
+     "ids": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1000,
+      "items": {
+       "type": "integer",
+       "format": "int64"
+      }
+     },
+     "all": {
+      "type": "boolean",
+      "enum": [
+       true
+      ]
+     }
+    }
+   },
+   "ReplicationMissingReply": {
+    "type": "object",
+    "properties": {
+     "missing": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     }
+    }
+   },
+   "ReplicationMissingRequest": {
+    "type": "object",
+    "properties": {
+     "sha256": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     }
+    },
+    "required": [
+     "sha256"
+    ]
+   },
+   "ReplicationOutcome": {
+    "type": "object",
+    "properties": {
+     "status": {
+      "type": "string",
+      "enum": [
+       "copied",
+       "unchanged",
+       "skipped",
+       "conflict"
+      ]
+     },
+     "componentId": {
+      "type": "integer",
+      "format": "int64",
+      "nullable": true
+     },
+     "componentIds": {
+      "type": "array",
+      "items": {
+       "type": "integer",
+       "format": "int64"
+      }
+     },
+     "assets": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ReplicationAssetOutcome"
+      }
+     },
+     "bytesCopied": {
+      "type": "integer",
+      "format": "int64"
+     },
+     "bytesReused": {
+      "type": "integer",
+      "format": "int64"
+     }
+    }
+   },
+   "ReplicationReconcileXO": {
+    "type": "object",
+    "properties": {
+     "run": {
+      "type": "integer",
+      "format": "int64"
+     }
+    }
+   },
+   "ReplicationRemoteCheckXO": {
+    "type": "object",
+    "properties": {
+     "ok": {
+      "type": "boolean"
+     },
+     "protocol": {
+      "type": "integer",
+      "format": "int32"
+     },
+     "instanceId": {
+      "type": "string",
+      "format": "uuid"
+     },
+     "version": {
+      "type": "string"
+     },
+     "formats": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "error": {
+      "type": "object",
+      "properties": {
+       "kind": {
+        "type": "string",
+        "enum": [
+         "retryable",
+         "permanent",
+         "refused"
+        ]
+       },
+       "message": {
+        "type": "string"
+       }
+      }
+     }
+    }
+   },
+   "ReplicationRemoteRequest": {
+    "type": "object",
+    "required": [
+     "name",
+     "url"
+    ],
+    "properties": {
+     "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100
+     },
+     "url": {
+      "type": "string"
+     },
+     "token": {
+      "type": "string",
+      "writeOnly": true,
+      "description": "Required on create. On update, absent or null keeps the stored value."
+     },
+     "useTrustStore": {
+      "type": "boolean"
+     },
+     "allowPrivateNetwork": {
+      "type": "boolean"
+     },
+     "maxConcurrency": {
+      "type": "integer",
+      "format": "int32",
+      "minimum": 1,
+      "maximum": 16,
+      "default": 2
+     },
+     "maxBytesPerSecond": {
+      "type": "integer",
+      "format": "int64",
+      "minimum": 1,
+      "nullable": true
+     }
+    }
+   },
+   "ReplicationRemoteXO": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid"
+     },
+     "name": {
+      "type": "string"
+     },
+     "url": {
+      "type": "string"
+     },
+     "hasToken": {
+      "type": "boolean"
+     },
+     "useTrustStore": {
+      "type": "boolean"
+     },
+     "allowPrivateNetwork": {
+      "type": "boolean"
+     },
+     "maxConcurrency": {
+      "type": "integer",
+      "format": "int32"
+     },
+     "maxBytesPerSecond": {
+      "type": "integer",
+      "format": "int64",
+      "nullable": true
+     },
+     "remoteInstanceId": {
+      "type": "string",
+      "format": "uuid",
+      "nullable": true
+     },
+     "remoteVersion": {
+      "type": "string",
+      "nullable": true
+     },
+     "checkedAt": {
+      "type": "string",
+      "format": "date-time",
+      "nullable": true
+     },
+     "failures": {
+      "type": "integer",
+      "format": "int32"
+     },
+     "suspendedUntil": {
+      "type": "string",
+      "format": "date-time",
+      "nullable": true
+     },
+     "lastError": {
+      "type": "string",
+      "nullable": true
+     },
+     "createdAt": {
+      "type": "string",
+      "format": "date-time"
+     },
+     "updatedAt": {
+      "type": "string",
+      "format": "date-time"
+     }
+    }
+   },
+   "ReplicationRequest": {
+    "type": "object",
+    "required": [
+     "name",
+     "sourceRepository",
+     "remoteId",
+     "remoteRepository"
+    ],
+    "properties": {
+     "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100
+     },
+     "direction": {
+      "type": "string",
+      "enum": [
+       "push",
+       "pull"
+      ],
+      "default": "push",
+      "description": "push sends the components of the local repository to the remote; pull fetches the components of the remote repository into the local one. The direction cannot be changed after the replication is created."
+     },
+     "sourceRepository": {
+      "type": "string",
+      "description": "The local repository: the source of a push replication, the target of a pull replication. For a pull it must be hosted and writable."
+     },
+     "remoteId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "For a pull replication it cannot be changed after the replication is created."
+     },
+     "remoteRepository": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "description": "The repository of the remote: the target of a push replication, the source of a pull replication. For a pull replication it cannot be changed after the replication is created."
+     },
+     "enabled": {
+      "type": "boolean",
+      "default": true
+     },
+     "nameFilter": {
+      "type": "string",
+      "maxLength": 10240,
+      "nullable": true
+     },
+     "versionFilter": {
+      "type": "string",
+      "maxLength": 10240,
+      "nullable": true
+     },
+     "propagateDeletes": {
+      "type": "boolean",
+      "default": false
+     },
+     "settleSeconds": {
+      "type": "integer",
+      "format": "int32",
+      "minimum": 0,
+      "maximum": 3600,
+      "default": 30
+     },
+     "reconcileMinutes": {
+      "type": "integer",
+      "format": "int32",
+      "enum": [
+       5,
+       10,
+       15,
+       20,
+       30,
+       60,
+       120,
+       180,
+       240,
+       360,
+       480,
+       720,
+       1440
+      ],
+      "description": "Minutes between two reconciles of the replication with its remote; one of the listed values",
+      "default": 360
+     },
+     "alertChannels": {
+      "type": "array",
+      "items": {
+       "type": "string",
+       "format": "uuid"
+      }
+     }
+    }
+   },
+   "ReplicationRetryXO": {
+    "type": "object",
+    "properties": {
+     "retried": {
+      "type": "integer",
+      "format": "int64"
+     }
+    }
+   },
+   "ReplicationStatusXO": {
+    "type": "object",
+    "properties": {
+     "enabled": {
+      "type": "boolean"
+     },
+     "pending": {
+      "type": "integer",
+      "format": "int64"
+     },
+     "leased": {
+      "type": "integer",
+      "format": "int64"
+     },
+     "dead": {
+      "type": "integer",
+      "format": "int64"
+     },
+     "lagSeconds": {
+      "type": "integer",
+      "format": "int64",
+      "nullable": true
+     },
+     "lastSuccessAt": {
+      "type": "string",
+      "format": "date-time",
+      "nullable": true
+     },
+     "lastFailureAt": {
+      "type": "string",
+      "format": "date-time",
+      "nullable": true
+     },
+     "lastError": {
+      "type": "string",
+      "nullable": true
+     },
+     "lastReconcileAt": {
+      "type": "string",
+      "format": "date-time",
+      "nullable": true
+     },
+     "alertState": {
+      "type": "string",
+      "enum": [
+       "ok",
+       "failing",
+       "dead_items"
+      ]
+     },
+     "remote": {
+      "type": "object",
+      "properties": {
+       "suspendedUntil": {
+        "type": "string",
+        "format": "date-time",
+        "nullable": true
+       },
+       "failures": {
+        "type": "integer",
+        "format": "int32"
+       },
+       "lastError": {
+        "type": "string",
+        "nullable": true
+       }
+      }
+     }
+    }
+   },
+   "ReplicationTombstone": {
+    "type": "object",
+    "properties": {
+     "namespace": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     },
+     "version": {
+      "type": "string"
+     },
+     "fingerprint": {
+      "type": "string"
+     },
+     "origin": {
+      "type": "string",
+      "format": "uuid"
+     }
+    },
+    "required": [
+     "namespace",
+     "name",
+     "version",
+     "fingerprint",
+     "origin"
+    ]
+   },
+   "ReplicationXO": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid"
+     },
+     "name": {
+      "type": "string"
+     },
+     "direction": {
+      "type": "string",
+      "enum": [
+       "push",
+       "pull"
+      ]
+     },
+     "sourceRepository": {
+      "type": "string",
+      "description": "The local repository: the source of a push replication, the target of a pull replication"
+     },
+     "remoteId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "For a pull replication it cannot be changed after the replication is created."
+     },
+     "remoteRepository": {
+      "type": "string",
+      "description": "The repository of the remote: the target of a push replication, the source of a pull replication. For a pull replication it cannot be changed after the replication is created."
+     },
+     "enabled": {
+      "type": "boolean"
+     },
+     "nameFilter": {
+      "type": "string",
+      "nullable": true
+     },
+     "versionFilter": {
+      "type": "string",
+      "nullable": true
+     },
+     "propagateDeletes": {
+      "type": "boolean"
+     },
+     "settleSeconds": {
+      "type": "integer",
+      "format": "int32"
+     },
+     "reconcileMinutes": {
+      "type": "integer",
+      "format": "int32"
+     },
+     "alertChannels": {
+      "type": "array",
+      "items": {
+       "type": "string",
+       "format": "uuid"
+      }
+     },
+     "alertState": {
+      "type": "string",
+      "enum": [
+       "ok",
+       "failing",
+       "dead_items"
+      ]
+     },
+     "lastSuccessAt": {
+      "type": "string",
+      "format": "date-time",
+      "nullable": true
+     },
+     "lastFailureAt": {
+      "type": "string",
+      "format": "date-time",
+      "nullable": true
+     },
+     "lastError": {
+      "type": "string",
+      "nullable": true
+     },
+     "lastReconcileAt": {
+      "type": "string",
+      "format": "date-time",
+      "nullable": true
+     },
+     "createdAt": {
+      "type": "string",
+      "format": "date-time"
+     },
+     "updatedAt": {
+      "type": "string",
+      "format": "date-time"
+     }
+    }
    },
    "RepositoriesForVersionResponse": {
     "properties": {
@@ -17957,6 +22426,60 @@
       "type": "string"
      }
     }
+   },
+   "ShareLinkXO": {
+    "properties": {
+     "bytesServed": {
+      "format": "int64",
+      "type": "integer"
+     },
+     "createdAt": {
+      "format": "date-time",
+      "type": "string"
+     },
+     "createdBy": {
+      "type": "string"
+     },
+     "downloads": {
+      "format": "int32",
+      "type": "integer"
+     },
+     "expired": {
+      "description": "True when the link has passed its expiry and no longer works",
+      "type": "boolean"
+     },
+     "expiresAt": {
+      "format": "date-time",
+      "type": "string"
+     },
+     "id": {
+      "format": "uuid",
+      "type": "string"
+     },
+     "lastUsedAt": {
+      "format": "date-time",
+      "nullable": true,
+      "type": "string"
+     },
+     "maxDownloads": {
+      "format": "int32",
+      "nullable": true,
+      "type": "integer"
+     },
+     "note": {
+      "type": "string"
+     },
+     "path": {
+      "type": "string"
+     },
+     "prefix": {
+      "type": "boolean"
+     },
+     "repository": {
+      "type": "string"
+     }
+    },
+    "type": "object"
    },
    "SsrfProtectionConfigurationXO": {
     "properties": {
@@ -18915,6 +23438,88 @@
       "type": "string"
      }
     },
+    "type": "object"
+   },
+   "OpamHostedRepositoryApiRequest": {
+    "properties": {
+     "cleanup": {
+      "$ref": "#/components/schemas/CleanupPolicyAttributes"
+     },
+     "component": {
+      "$ref": "#/components/schemas/ComponentAttributes"
+     },
+     "domain": {
+      "$ref": "#/components/schemas/DomainAttributes"
+     },
+     "name": {
+      "example": "internal",
+      "minLength": 1,
+      "pattern": "^[a-zA-Z0-9\\-]{1}[a-zA-Z0-9_\\-\\.]*$",
+      "type": "string"
+     },
+     "online": {
+      "example": true,
+      "type": "boolean"
+     },
+     "storage": {
+      "$ref": "#/components/schemas/HostedStorageAttributes"
+     }
+    },
+    "required": [
+     "name",
+     "online",
+     "storage"
+    ],
+    "type": "object"
+   },
+   "OpamProxyRepositoryApiRequest": {
+    "properties": {
+     "cleanup": {
+      "$ref": "#/components/schemas/CleanupPolicyAttributes"
+     },
+     "domain": {
+      "$ref": "#/components/schemas/DomainAttributes"
+     },
+     "firewall": {
+      "$ref": "#/components/schemas/FirewallAttributes"
+     },
+     "httpClient": {
+      "$ref": "#/components/schemas/HttpClientAttributes"
+     },
+     "name": {
+      "example": "internal",
+      "minLength": 1,
+      "pattern": "^[a-zA-Z0-9\\-]{1}[a-zA-Z0-9_\\-\\.]*$",
+      "type": "string"
+     },
+     "negativeCache": {
+      "$ref": "#/components/schemas/NegativeCacheAttributes"
+     },
+     "online": {
+      "example": true,
+      "type": "boolean"
+     },
+     "proxy": {
+      "$ref": "#/components/schemas/ProxyAttributes"
+     },
+     "replication": {
+      "$ref": "#/components/schemas/ReplicationAttributes"
+     },
+     "routingRuleName": {
+      "type": "string"
+     },
+     "storage": {
+      "$ref": "#/components/schemas/StorageAttributes"
+     }
+    },
+    "required": [
+     "httpClient",
+     "name",
+     "negativeCache",
+     "online",
+     "proxy",
+     "storage"
+    ],
     "type": "object"
    }
   }

@@ -2,7 +2,9 @@ pub mod api_keys;
 pub mod bootstrap;
 pub mod catalogue;
 pub mod credentials;
+pub mod customers;
 pub mod format_tokens;
+pub mod ip_allow;
 pub mod ldap;
 pub mod model;
 pub mod oauth;
@@ -11,6 +13,7 @@ pub mod password;
 pub mod permission;
 pub mod privilege;
 pub mod realm;
+pub mod recovery_codes;
 pub mod secrets;
 pub mod selector;
 pub mod sessions;
@@ -18,6 +21,8 @@ pub mod ssrf;
 pub mod subject;
 pub mod tls;
 pub mod tokens;
+pub mod totp;
+pub mod two_factor;
 
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicI64, Ordering};
@@ -37,8 +42,11 @@ pub use secrets::SecretBox;
 pub use selector::{Selector, SelectorError};
 pub use sessions::{ActiveSession, NewSession};
 pub use ssrf::SsrfProtection;
-pub use subject::{EXTERNAL_CREDENTIALS, Scope, Subject};
-pub use tokens::{TokenError, TokenInfo};
+pub use subject::{
+    EXTERNAL_CREDENTIALS, NarrowedSubject, PublicIdentity, Scope, Subject, TokenRef,
+};
+pub use tokens::{NewToken, TokenError, TokenInfo};
+pub use two_factor::{FactorSummary, Gate, Pending, Standing, TwoFactorPolicy};
 
 const VERIFIED_FOR: Duration = Duration::from_secs(300);
 const VERIFIED_LIMIT: usize = 10_000;
@@ -55,6 +63,12 @@ pub enum Error {
     Io(#[from] std::io::Error),
     #[error("a background job ended early: {0}")]
     Join(#[from] tokio::task::JoinError),
+    #[error(
+        "the stored IP allow list is invalid: {0}; stop the server and run `astrum ip-allow reset` to clear it"
+    )]
+    IpAllow(String),
+    #[error("only a signed-in user of the local realm can hold a format token")]
+    NotLocal,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -75,6 +89,8 @@ pub enum OidcSignIn {
 pub enum AuthError {
     #[error("the user name or password is wrong")]
     BadCredentials,
+    #[error("the user name or password is wrong")]
+    SecondFactor(Pending),
     #[error(transparent)]
     Internal(#[from] Error),
 }
@@ -86,6 +102,7 @@ pub struct Security {
     reloading: tokio::sync::Mutex<()>,
     verified: Mutex<HashMap<[u8; 32], Instant>>,
     failures: Mutex<HashMap<String, (u32, Instant)>>,
+    basic_failures: sessions::BasicFailures,
     secrets: Option<SecretBox>,
     ldap: ldap::Ldap,
     oidc: oidc::OidcProvider,
@@ -108,6 +125,7 @@ impl Security {
             reloading: tokio::sync::Mutex::new(()),
             verified: Mutex::new(HashMap::new()),
             failures: Mutex::new(HashMap::new()),
+            basic_failures: sessions::BasicFailures::default(),
             secrets: None,
             ldap: ldap::Ldap::new(),
             oidc: oidc::OidcProvider::default(),
@@ -246,8 +264,12 @@ impl Security {
         if !user.status.can_sign_in() {
             return Ok(None);
         }
+        let Some(subject) = model.local_subject(user_id, realm::LOCAL) else {
+            return Ok(None);
+        };
+        let gate = model.second_factor_gate(user_id, chrono::Utc::now());
         let key = cache_key(user_id, password, &stored);
-        if !self.recently_verified(&key) {
+        if gate != Gate::Open || !self.recently_verified(&key) {
             let candidate = password.to_owned();
             let hash = stored.clone();
             let verified = tokio::task::spawn_blocking(move || password::verify(&hash, &candidate))
@@ -259,9 +281,18 @@ impl Security {
             if verified == password::Verified::MatchButOutdated {
                 self.rehash(user_id, password).await?;
             }
-            self.remember(key);
+            if gate == Gate::Open {
+                self.remember(key);
+            }
         }
-        Ok(model.local_subject(user_id, realm::LOCAL))
+        match gate {
+            Gate::Open => Ok(Some(subject)),
+            gate => Err(AuthError::SecondFactor(Pending {
+                user_id: user_id.to_owned(),
+                realm: realm::LOCAL.to_owned(),
+                gate,
+            })),
+        }
     }
 
     async fn authenticate_ldap(
@@ -462,4 +493,68 @@ fn cache_key(user_id: &str, password: &str, stored: &str) -> [u8; 32] {
         digest.update(part.as_bytes());
     }
     digest.finalize().into()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sea_orm::ConnectionTrait;
+
+    const PASSWORD: &str = "cache-password-1";
+
+    async fn security_with() -> (astrum_testkit::TestDatabase, Security) {
+        let test = astrum_testkit::TestDatabase::create().await;
+        let db = test.migrated().await;
+        let hash = password::hash(PASSWORD);
+        for user in ["open", "enrolled"] {
+            db.conn()
+                .execute_unprepared(&format!(
+                    "INSERT INTO security_user (id, first_name, last_name, email, password_hash, status) \
+                     VALUES ('{user}', '{user}', 'Tester', '{user}@example.org', '{hash}', 'active')"
+                ))
+                .await
+                .unwrap();
+        }
+        db.conn()
+            .execute_unprepared(
+                "INSERT INTO user_second_factor (user_id, totp_secret, totp_confirmed_at) \
+                 VALUES ('enrolled', 'sealed', now())",
+            )
+            .await
+            .unwrap();
+        let security = Security::load(db.conn().clone()).await.unwrap();
+        (test, security)
+    }
+
+    fn cached(security: &Security) -> usize {
+        security.verified.lock().unwrap().len()
+    }
+
+    fn key_for(security: &Security, user: &str, candidate: &str) -> [u8; 32] {
+        let stored = security.model().users[user].password_hash.clone().unwrap();
+        cache_key(user, candidate, &stored)
+    }
+
+    #[tokio::test]
+    async fn a_gated_password_is_never_remembered_and_never_read_from_the_cache() {
+        let (_test, security) = security_with().await;
+        security.authenticate("open", PASSWORD).await.unwrap();
+        assert_eq!(cached(&security), 1, "an open user is remembered");
+
+        assert!(matches!(
+            security.authenticate("enrolled", PASSWORD).await,
+            Err(AuthError::SecondFactor(_))
+        ));
+        assert!(matches!(
+            security.authenticate("enrolled", PASSWORD).await,
+            Err(AuthError::SecondFactor(_))
+        ));
+        assert_eq!(cached(&security), 1, "an enrolled user is never remembered");
+
+        security.remember(key_for(&security, "enrolled", "not-the-password"));
+        assert!(matches!(
+            security.authenticate("enrolled", "not-the-password").await,
+            Err(AuthError::BadCredentials)
+        ));
+    }
 }

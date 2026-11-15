@@ -561,7 +561,7 @@ impl Conan {
             }
             Route::CheckCredentials => {
                 return match ctx.subject.as_ref().filter(|subject| !subject.anonymous) {
-                    Some(subject) => Ok(text(StatusCode::OK, subject.user_id.clone())),
+                    Some(subject) => Ok(text(StatusCode::OK, subject.public_identity().id)),
                     None => Err(ContentError::Unauthorized),
                 };
             }

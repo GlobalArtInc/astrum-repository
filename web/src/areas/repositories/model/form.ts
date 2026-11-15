@@ -10,6 +10,7 @@ import {
   sameJson,
   setPath,
 } from './document';
+import { quotaDocument, quotaFields } from './quota';
 import { type Spec, sections } from './spec';
 
 export interface RepositoryValues {
@@ -19,6 +20,8 @@ export interface RepositoryValues {
   strictContentTypeValidation: boolean;
   writePolicy: string;
   latestPolicy: boolean;
+  immutableTagPatterns: string;
+  immutableTagExceptions: string;
   remoteUrl: string;
   contentMaxAge: number | null;
   metadataMaxAge: number | null;
@@ -86,6 +89,7 @@ export interface RepositoryValues {
   routingRuleName: string;
   useTrustStore: boolean;
   cleanupPolicies: string[];
+  policyName: string;
   repodataDepth: number | null;
   deployPolicy: string;
   yumKeypair: string;
@@ -93,6 +97,9 @@ export interface RepositoryValues {
   domainHost: string;
   domainRouting: string;
   domainPath: string;
+  quotaLimitBytes: number | null;
+  quotaWarnPercent: number | null;
+  quotaEnforce: boolean;
 }
 
 export type FieldKey = keyof RepositoryValues;
@@ -115,6 +122,8 @@ export const FIELDS: readonly FieldDef[] = [
   { key: 'strictContentTypeValidation', path: ['storage', 'strictContentTypeValidation'], kind: 'bool' },
   { key: 'writePolicy', path: ['storage', 'writePolicy'], kind: 'enum' },
   { key: 'latestPolicy', path: ['storage', 'latestPolicy'], kind: 'bool' },
+  { key: 'immutableTagPatterns', path: ['storage', 'immutableTags', 'patterns'], kind: 'lines' },
+  { key: 'immutableTagExceptions', path: ['storage', 'immutableTags', 'exceptions'], kind: 'lines' },
   { key: 'remoteUrl', path: ['proxy', 'remoteUrl'], kind: 'text' },
   { key: 'contentMaxAge', path: ['proxy', 'contentMaxAge'], kind: 'int' },
   { key: 'metadataMaxAge', path: ['proxy', 'metadataMaxAge'], kind: 'int' },
@@ -186,6 +195,7 @@ export const FIELDS: readonly FieldDef[] = [
   { key: 'routingRuleName', path: ['routingRuleName'], kind: 'enum' },
   { key: 'useTrustStore', path: ['httpClient', 'connection', 'useTrustStore'], kind: 'bool' },
   { key: 'cleanupPolicies', path: ['cleanup', 'policyNames'], kind: 'list' },
+  { key: 'policyName', path: ['policy', 'name'], kind: 'enum' },
   { key: 'repodataDepth', path: ['yum', 'repodataDepth'], kind: 'int' },
   { key: 'deployPolicy', path: ['yum', 'deployPolicy'], kind: 'enum' },
   { key: 'yumKeypair', path: ['yumSigning', 'keypair'], kind: 'secret' },
@@ -249,6 +259,10 @@ export function fromDocument(document: RepositoryDocument): RepositoryValues {
   for (const def of FIELDS) {
     values[def.key] = read(def, getPath(document, def.path));
   }
+  const quota = quotaFields(document);
+  values.quotaLimitBytes = quota.limitBytes;
+  values.quotaWarnPercent = quota.warnPercent;
+  values.quotaEnforce = quota.enforce;
   return values as unknown as RepositoryValues;
 }
 
@@ -268,6 +282,14 @@ export function toDocument(values: RepositoryValues, original: RepositoryDocumen
       continue;
     }
     setPath(next, def.path, write(def, value));
+  }
+  const quota = quotaDocument({
+    limitBytes: values.quotaLimitBytes,
+    warnPercent: values.quotaWarnPercent,
+    enforce: values.quotaEnforce,
+  });
+  if (!sameJson(quota, getPath(original, ['storage', 'quota']) ?? null)) {
+    setPath(next, ['storage', 'quota'], quota);
   }
   return next;
 }
@@ -308,7 +330,7 @@ export function template(spec: Spec, blobStoreName = ''): RepositoryDocument {
   };
   const storage = document.storage as JsonObject;
   if (sections.writePolicy(spec)) {
-    storage.writePolicy = 'ALLOW_ONCE';
+    storage.writePolicy = ['bazelcache', 'sccache'].includes(spec.format) ? 'ALLOW' : 'ALLOW_ONCE';
   }
   if (sections.latestPolicy(spec)) {
     storage.latestPolicy = false;
@@ -475,6 +497,14 @@ export function validate(values: RepositoryValues, context: ValidationContext, t
   if (sections.writePolicy(spec) && values.writePolicy === '') {
     errors.writePolicy = t('repositories.form.errors.writePolicyRequired');
   }
+  if (sections.quota(spec) && values.quotaLimitBytes !== null) {
+    if (values.quotaLimitBytes <= 0) {
+      errors.quotaLimitBytes = t('repositories.form.errors.quotaLimit');
+    }
+    if (!between(values.quotaWarnPercent, 1, 100)) {
+      errors.quotaWarnPercent = t('repositories.form.errors.quotaWarnPercent');
+    }
+  }
   if (sections.proxy(spec)) {
     if (values.remoteUrl.trim() === '') {
       errors.remoteUrl = t('repositories.form.errors.remoteUrlRequired');
@@ -581,6 +611,10 @@ const SIGNING_FIELDS: Record<string, readonly [FieldKey, FieldKey]> = {
 
 export function formField(id: string, spec: Spec): FieldKey | null {
   const name = id.replace(/^PARAMETER\s+/, '').trim();
+  const immutable = /immutableTags\.(patterns|exceptions)(\[\d+\])?$/.exec(name);
+  if (immutable) {
+    return immutable[1] === 'patterns' ? 'immutableTagPatterns' : 'immutableTagExceptions';
+  }
   const last = name.split('.').pop() ?? name;
   switch (last) {
     case 'enabled':
@@ -619,6 +653,12 @@ export function formField(id: string, spec: Spec): FieldKey | null {
       return 'hexKeypair';
     case 'pacmanSigning':
       return 'pacmanKeypair';
+    case 'limitBytes':
+      return 'quotaLimitBytes';
+    case 'warnPercent':
+      return 'quotaWarnPercent';
+    case 'enforce':
+      return 'quotaEnforce';
     default:
       return SAME_NAME.has(last) ? (last as FieldKey) : null;
   }

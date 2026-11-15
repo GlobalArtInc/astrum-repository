@@ -56,6 +56,82 @@ async fn every_migration_can_be_taken_back() {
         .collect();
     assert!(left.is_empty(), "{left:?}");
     assert_eq!(db.migrate().await.unwrap().len(), count);
+
+    let conn = db.conn();
+    let from_cooldown = MIGRATIONS
+        .all()
+        .unwrap()
+        .iter()
+        .filter(|migration| migration.stamp >= 1_794_710_000_000)
+        .count();
+    let cooldown_exception = "INSERT INTO policy_exception (id, rule, name, reason, created_by) \
+         VALUES (gen_random_uuid(), 'cooldown', 'left', 'audited', 'tester')";
+    conn.execute_unprepared(cooldown_exception).await.unwrap();
+    assert_eq!(
+        MIGRATIONS.revert(conn, from_cooldown).await.unwrap().len(),
+        from_cooldown
+    );
+    let left = conn
+        .query_one(Statement::from_string(
+            DbBackend::Postgres,
+            "SELECT count(*) AS n FROM policy_exception".to_owned(),
+        ))
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(left.try_get::<i64>("", "n").unwrap(), 0);
+    assert!(conn.execute_unprepared(cooldown_exception).await.is_err());
+    assert_eq!(db.migrate().await.unwrap().len(), from_cooldown);
+    conn.execute_unprepared(cooldown_exception).await.unwrap();
+}
+
+#[tokio::test]
+async fn taking_back_the_customer_schema_drops_every_narrowed_token() {
+    let test = TestDatabase::create().await;
+    let db = test.migrated().await;
+    let conn = db.conn();
+    conn.execute_unprepared(
+        "INSERT INTO customer (id, name, created_by) VALUES ('acme', 'Acme', 'admin')",
+    )
+    .await
+    .unwrap();
+    let token = |name: &str, customer: &str, repositories: &str| {
+        format!(
+            "INSERT INTO access_token (id, user_id, name, token_hash, token_hint, scope, customer, repositories, expires_at) \
+             VALUES (gen_random_uuid(), 'admin', '{name}', md5('{name}'), 'astrum_xxxx', 'READ', {customer}, {repositories}, now() + interval '1 day')"
+        )
+    };
+    for sql in [
+        token("customer", "'acme'", "ARRAY['a']"),
+        token("limited", "NULL", "ARRAY['a']"),
+        token("plain", "NULL", "NULL"),
+    ] {
+        conn.execute_unprepared(&sql).await.unwrap();
+    }
+    let from_customers = MIGRATIONS
+        .all()
+        .unwrap()
+        .iter()
+        .filter(|migration| migration.stamp >= 1_794_501_007_000)
+        .count();
+    let reverted = MIGRATIONS.revert(conn, from_customers).await.unwrap();
+    assert_eq!(reverted.len(), from_customers);
+    assert!(
+        reverted.last().unwrap().contains("Customers"),
+        "{reverted:?}"
+    );
+    let names: Vec<String> = conn
+        .query_all(Statement::from_string(
+            DbBackend::Postgres,
+            "SELECT name FROM access_token ORDER BY name".to_owned(),
+        ))
+        .await
+        .unwrap()
+        .into_iter()
+        .map(|row| row.try_get::<String>("", "name").unwrap())
+        .collect();
+    assert_eq!(names, vec!["plain"]);
+    assert_eq!(db.migrate().await.unwrap().len(), from_customers);
 }
 
 #[tokio::test]
@@ -206,4 +282,202 @@ async fn the_old_default_title_loses_globalart_and_own_titles_stay() {
         assert!(ui.debug_allowed);
     }
     assert_eq!(astrum_db::system::DEFAULT_TITLE, "Astrum Repository");
+}
+
+async fn function_definitions(db: &astrum_db::Database) -> Vec<String> {
+    db.conn()
+        .query_all(Statement::from_string(
+            DbBackend::Postgres,
+            "SELECT pg_get_functiondef(p.oid) AS def FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = current_schema() AND p.proname IN ('notification_asset_stored', 'notification_component_changed') ORDER BY p.proname",
+        ))
+        .await
+        .unwrap()
+        .into_iter()
+        .map(|row| row.try_get::<String>("", "def").unwrap())
+        .collect()
+}
+
+async fn events_of(db: &astrum_db::Database, name: &str) -> Vec<String> {
+    db.conn()
+        .query_one(Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            "SELECT events FROM notification_channel WHERE name = $1",
+            [name.into()],
+        ))
+        .await
+        .unwrap()
+        .unwrap()
+        .try_get::<Vec<String>>("", "events")
+        .unwrap()
+}
+
+#[tokio::test]
+async fn policy_dirty_rows_follow_their_repository() {
+    let test = TestDatabase::create().await;
+    let db = test.migrated().await;
+    let conn = db.conn();
+    conn.execute_unprepared(
+        "INSERT INTO repository (name, format, type) VALUES ('releases', 'maven2', 'hosted')",
+    )
+    .await
+    .unwrap();
+    conn.execute_unprepared(
+        "INSERT INTO policy_dirty (repository, subject) VALUES ('releases', 'c:1')",
+    )
+    .await
+    .unwrap();
+    let orphan = conn
+        .execute_unprepared(
+            "INSERT INTO policy_dirty (repository, subject) VALUES ('missing', 'c:2')",
+        )
+        .await;
+    assert!(orphan.is_err());
+    conn.execute_unprepared("DELETE FROM repository WHERE name = 'releases'")
+        .await
+        .unwrap();
+    let left = conn
+        .query_one(Statement::from_string(
+            DbBackend::Postgres,
+            "SELECT count(*) AS n FROM policy_dirty".to_owned(),
+        ))
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(left.try_get::<i64>("", "n").unwrap(), 0);
+}
+
+async fn number(db: &astrum_db::Database, sql: &str) -> i64 {
+    db.conn()
+        .query_one(Statement::from_string(DbBackend::Postgres, sql.to_owned()))
+        .await
+        .unwrap()
+        .unwrap()
+        .try_get("", "n")
+        .unwrap()
+}
+
+#[tokio::test]
+async fn the_promoted_notification_migration_restores_the_old_functions_and_channels() {
+    let test = TestDatabase::create().await;
+    let db = test.migrated().await;
+    let conn = db.conn();
+    let all = MIGRATIONS.all().unwrap();
+    let since = all.len()
+        - all
+            .iter()
+            .position(|migration| migration.name.starts_with("NotifyPromotedAction"))
+            .unwrap();
+    let current = function_definitions(&db).await;
+    MIGRATIONS.revert(conn, since).await.unwrap();
+    let original = include_str!("../migrations/1791914370285-create-notifications.up.sql");
+    let from = original
+        .find("CREATE FUNCTION notification_component_changed")
+        .unwrap();
+    let to = original
+        .find("CREATE TRIGGER notification_component_created")
+        .unwrap();
+    let before = function_definitions(&db).await;
+    assert_ne!(before, current);
+    conn.execute_unprepared(
+        &original[from..to].replace("CREATE FUNCTION", "CREATE OR REPLACE FUNCTION"),
+    )
+    .await
+    .unwrap();
+    assert_eq!(function_definitions(&db).await, before);
+
+    conn.execute_unprepared(
+        "INSERT INTO notification_channel (id, name, type, events) VALUES \
+         (gen_random_uuid(), 'all three', 'webhook', ARRAY['published', 'updated', 'deleted']), \
+         (gen_random_uuid(), 'one', 'webhook', ARRAY['published'])",
+    )
+    .await
+    .unwrap();
+    assert_eq!(db.migrate().await.unwrap().len(), since);
+    assert_eq!(function_definitions(&db).await, current);
+    assert_eq!(
+        events_of(&db, "all three").await,
+        ["published", "updated", "deleted", "promoted"]
+    );
+    assert_eq!(events_of(&db, "one").await, ["published"]);
+
+    MIGRATIONS.revert(conn, since).await.unwrap();
+    assert_eq!(function_definitions(&db).await, before);
+    assert_eq!(
+        events_of(&db, "all three").await,
+        ["published", "updated", "deleted"]
+    );
+    assert_eq!(db.migrate().await.unwrap().len(), since);
+    assert_eq!(function_definitions(&db).await, current);
+}
+
+#[tokio::test]
+async fn policies_with_the_license_rule_on_are_marked_stale_when_the_license_migration_runs() {
+    let test = TestDatabase::create().await;
+    let db = test.migrated().await;
+    let conn = db.conn();
+    let all = MIGRATIONS.all().unwrap();
+    let since = all.len()
+        - all
+            .iter()
+            .position(|migration| migration.name.starts_with("JudgeLicenceChanges"))
+            .unwrap();
+    MIGRATIONS.revert(conn, since).await.unwrap();
+    conn.execute_unprepared(
+        "INSERT INTO repository (name, format, type, attributes) \
+           VALUES ('one', 'npm', 'hosted', '{\"policy\":{\"name\":\"lic\"}}'); \
+         INSERT INTO content_policy (name, licenses) VALUES \
+           ('lic', '{\"mode\":\"block\",\"list\":\"deny\",\"ids\":[\"GPL-3.0-only\"]}'), \
+           ('watch', '{\"mode\":\"report\"}'), ('quiet', '{\"mode\":\"off\"}'); \
+         INSERT INTO content_policy (name) VALUES ('plain'); \
+         INSERT INTO policy_verdict (repository, subject, policy, blocked, state, policy_revision) \
+           VALUES ('one', 'c:1', 'lic', false, 'pass', 1); \
+         INSERT INTO revision (name, value) VALUES ('policies', 7)",
+    )
+    .await
+    .unwrap();
+
+    assert_eq!(db.migrate().await.unwrap().len(), since);
+
+    for (policy, revision) in [("lic", 2), ("watch", 2), ("quiet", 1), ("plain", 1)] {
+        assert_eq!(
+            number(
+                &db,
+                &format!("SELECT revision AS n FROM content_policy WHERE name = '{policy}'")
+            )
+            .await,
+            revision,
+            "{policy}"
+        );
+    }
+    assert_eq!(
+        number(
+            &db,
+            "SELECT value AS n FROM revision WHERE name = 'policies'"
+        )
+        .await,
+        8
+    );
+    assert_eq!(
+        number(
+            &db,
+            "SELECT count(*) AS n FROM policy_verdict v JOIN content_policy p ON p.name = v.policy \
+             WHERE v.policy_revision <> p.revision"
+        )
+        .await,
+        1
+    );
+
+    MIGRATIONS.revert(conn, since).await.unwrap();
+    conn.execute_unprepared("DELETE FROM content_policy WHERE name IN ('lic', 'watch')")
+        .await
+        .unwrap();
+    assert_eq!(db.migrate().await.unwrap().len(), since);
+    assert_eq!(
+        number(
+            &db,
+            "SELECT value AS n FROM revision WHERE name = 'policies'"
+        )
+        .await,
+        8
+    );
 }

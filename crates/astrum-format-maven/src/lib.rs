@@ -1,5 +1,6 @@
 mod hosted;
 pub mod import;
+mod license;
 pub mod metadata;
 pub mod path;
 pub mod pom;
@@ -9,7 +10,10 @@ pub mod version;
 mod xml;
 
 use astrum_content::format::SearchTarget;
-use astrum_content::store::{self, ComponentKey, PutAsset};
+use astrum_content::import::{Described, Imported, Plan};
+use astrum_content::inventory::{Inventory, PackageRef};
+use astrum_content::store::{self, Component, ComponentKey, PutAsset};
+use astrum_content::transfer::{Bundle, GenericTransfer, Transfer};
 use astrum_content::{
     Asset, ContentError, ContentRequest, Ctx, Format, Freshness, SearchKey, Serve, UploadForm,
     UploadSpec, View, group, proxy, serve,
@@ -20,6 +24,7 @@ use async_trait::async_trait;
 use axum::http::{Method, StatusCode};
 use axum::response::{IntoResponse, Response};
 use chrono::{DateTime, Utc};
+use futures_util::future::BoxFuture;
 use serde_json::json;
 
 use crate::path::{Coordinates, Kind, MavenPath};
@@ -60,6 +65,35 @@ const SEARCH_KEYS: &[SearchKey] = &[
 
 pub struct Maven;
 
+static TRANSFER: GenericTransfer = GenericTransfer {
+    plan: import::plan,
+    describe: describe_imported,
+    after: None,
+    admit: Some(admit_bundle),
+    replaceable: None,
+    check_content_type: true,
+    carried: &[],
+    bundle_skip: None,
+};
+
+fn describe_imported(file: &Imported) -> BoxFuture<'_, Result<Option<Described>, String>> {
+    Box::pin(import::describe(file))
+}
+
+fn admit_bundle<'a>(ctx: &'a Ctx, bundle: &'a Bundle) -> BoxFuture<'a, Result<(), ContentError>> {
+    Box::pin(std::future::ready(admit(ctx, bundle)))
+}
+
+fn admit(ctx: &Ctx, bundle: &Bundle) -> Result<(), ContentError> {
+    for asset in &bundle.assets {
+        if import::plan(RepositoryType::Hosted, &asset.path, &asset.kind) == Plan::Derived {
+            continue;
+        }
+        check_write(ctx, &path::parse(&asset.path))?;
+    }
+    Ok(())
+}
+
 pub(crate) fn component_key(coordinates: &Coordinates) -> ComponentKey {
     ComponentKey {
         namespace: coordinates.group_id.clone(),
@@ -73,6 +107,27 @@ pub(crate) fn component_key(coordinates: &Coordinates) -> ComponentKey {
             "baseVersion": coordinates.base_version,
         }}),
     }
+}
+
+pub(crate) fn package_inventory(namespace: &str, name: &str, version: &str) -> Option<Inventory> {
+    if namespace.is_empty() || name.is_empty() || version.is_empty() {
+        return None;
+    }
+    let base = version::base_version(version);
+    let version = base.strip_suffix("-SNAPSHOT").unwrap_or(&base);
+    let purl = format!("pkg:maven/{namespace}/{name}@{version}");
+    Some(Inventory {
+        key: purl.clone(),
+        packages: vec![PackageRef {
+            ecosystem: "Maven".to_owned(),
+            name: format!("{namespace}:{name}"),
+            version: version.to_owned(),
+            purl,
+        }],
+        license: None,
+        complete: true,
+        ..Inventory::default()
+    })
 }
 
 pub(crate) fn describe(parsed: &MavenPath, put: PutAsset) -> PutAsset {
@@ -150,6 +205,19 @@ fn refused(ctx: &Ctx, parsed: &MavenPath) -> Option<String> {
         };
         format!("Repository version policy: {name} does not allow {what}")
     })
+}
+
+fn check_write(ctx: &Ctx, parsed: &MavenPath) -> Result<(), ContentError> {
+    if let Some(message) = refused(ctx, parsed) {
+        return Err(ContentError::BadRequest(message));
+    }
+    if strict(ctx) && !parsed.kind.follows_layout() {
+        return Err(ContentError::BadRequest(format!(
+            "Invalid path for a Maven 2 repository: {}",
+            parsed.path
+        )));
+    }
+    Ok(())
 }
 
 fn freshness(kind: &Kind) -> Freshness {
@@ -362,15 +430,7 @@ impl Maven {
         if parsed.kind == Kind::ArchetypeCatalog {
             return Err(not_allowed(&request.method, READ_ALLOW));
         }
-        if let Some(message) = refused(ctx, &parsed) {
-            return Err(ContentError::BadRequest(message));
-        }
-        if strict(ctx) && !parsed.kind.follows_layout() {
-            return Err(ContentError::BadRequest(format!(
-                "Invalid path for a Maven 2 repository: {}",
-                parsed.path
-            )));
-        }
+        check_write(ctx, &parsed)?;
         let write_policy = ctx
             .repository
             .attributes
@@ -449,6 +509,20 @@ impl Format for Maven {
         ID
     }
 
+    async fn inventory(
+        &self,
+        ctx: &Ctx,
+        component: &Component,
+    ) -> Result<Option<Inventory>, ContentError> {
+        let Some(mut inventory) =
+            package_inventory(&component.namespace, &component.name, &component.version)
+        else {
+            return Ok(None);
+        };
+        inventory.license = license::fact(ctx, component).await?;
+        Ok(Some(inventory))
+    }
+
     async fn handle(&self, ctx: Ctx, request: ContentRequest) -> Result<Response, ContentError> {
         let kind = ctx.kind();
         match request.method {
@@ -499,5 +573,50 @@ impl Format for Maven {
 
     fn search_keys(&self) -> &'static [SearchKey] {
         SEARCH_KEYS
+    }
+
+    fn transfer(&self) -> Option<&dyn Transfer> {
+        Some(&TRANSFER)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn package(name: &str, version: &str, purl: &str) -> PackageRef {
+        PackageRef {
+            ecosystem: "Maven".to_owned(),
+            name: name.to_owned(),
+            version: version.to_owned(),
+            purl: purl.to_owned(),
+        }
+    }
+
+    #[test]
+    fn hosted_and_proxy_releases_name_group_artifact_and_version() {
+        let hosted = package_inventory("org.example", "lib", "1.2.3").unwrap();
+        assert_eq!(hosted.key, "pkg:maven/org.example/lib@1.2.3");
+        assert_eq!(
+            hosted.packages,
+            [package(
+                "org.example:lib",
+                "1.2.3",
+                "pkg:maven/org.example/lib@1.2.3"
+            )]
+        );
+        let proxy = package_inventory("com.acme", "tool", "2.0").unwrap();
+        assert_eq!(proxy.key, "pkg:maven/com.acme/tool@2.0");
+        assert!(proxy.license.is_none() && proxy.complete);
+        assert!(package_inventory("org.example", "lib", "").is_none());
+    }
+
+    #[test]
+    fn snapshots_use_their_base_version() {
+        for version in ["1.0-SNAPSHOT", "1.0-20260101.120000-1"] {
+            let found = package_inventory("org.example", "lib", version).unwrap();
+            assert_eq!(found.key, "pkg:maven/org.example/lib@1.0");
+            assert_eq!(found.packages[0].version, "1.0");
+        }
     }
 }

@@ -7,6 +7,8 @@ pub const ANONYMOUS_ROLE: &str = "as-anonymous";
 pub const ADMIN_USER: &str = "admin";
 pub const ANONYMOUS_USER: &str = "anonymous";
 pub const DEFAULT_SOURCE: &str = "default";
+pub const REPLICATION_RECEIVE: &str = "as-replication-receive";
+pub const REPLICATION_PULL: &str = "as-replication-pull";
 
 type Application = (&'static str, &'static str, &'static [Action], &'static str);
 
@@ -150,6 +152,36 @@ const APPLICATION: &[Application] = &[
         "Upload components",
     ),
     (
+        "as-customers-all",
+        "customers",
+        &[Action::All],
+        "Every action on customers",
+    ),
+    (
+        "as-customers-create",
+        "customers",
+        &[Action::Add, Action::Read],
+        "Create customers and issue their tokens",
+    ),
+    (
+        "as-customers-delete",
+        "customers",
+        &[Action::Delete, Action::Read],
+        "Delete customers and revoke their tokens",
+    ),
+    (
+        "as-customers-read",
+        "customers",
+        &[Action::Read],
+        "Read customers, their tokens and their usage",
+    ),
+    (
+        "as-customers-update",
+        "customers",
+        &[Action::Edit, Action::Read],
+        "Change customers",
+    ),
+    (
         "as-datastores-all",
         "datastores",
         &[Action::All],
@@ -235,6 +267,60 @@ const APPLICATION: &[Application] = &[
         "Every action on metrics",
     ),
     (
+        "as-policies-all",
+        "policies",
+        &[Action::All],
+        "Every action on content policies, trusted keys and advisory data",
+    ),
+    (
+        "as-policies-create",
+        "policies",
+        &[Action::Add, Action::Read],
+        "Create content policies and trusted keys",
+    ),
+    (
+        "as-policies-delete",
+        "policies",
+        &[Action::Delete, Action::Read],
+        "Delete content policies and trusted keys",
+    ),
+    (
+        "as-policies-read",
+        "policies",
+        &[Action::Read],
+        "Read content policies, trusted keys and advisory data",
+    ),
+    (
+        "as-policies-update",
+        "policies",
+        &[Action::Edit, Action::Read],
+        "Change content policies and import advisory data",
+    ),
+    (
+        "as-policyexceptions-all",
+        "policyexceptions",
+        &[Action::All],
+        "Every action on policy exceptions",
+    ),
+    (
+        "as-policyexceptions-create",
+        "policyexceptions",
+        &[Action::Add, Action::Read],
+        "Create policy exceptions",
+    ),
+    (
+        "as-policyexceptions-delete",
+        "policyexceptions",
+        &[Action::Delete, Action::Read],
+        "Delete policy exceptions",
+    ),
+    (
+        "as-policyexceptions-read",
+        "policyexceptions",
+        &[Action::Read],
+        "Read policy exceptions",
+    ),
+    (
         "as-privileges-all",
         "privileges",
         &[Action::All],
@@ -263,6 +349,30 @@ const APPLICATION: &[Application] = &[
         "privileges",
         &[Action::Edit, Action::Read],
         "Change privileges",
+    ),
+    (
+        "as-replication-create",
+        "replication",
+        &[Action::Add, Action::Read],
+        "Create replication remotes and replications",
+    ),
+    (
+        "as-replication-delete",
+        "replication",
+        &[Action::Delete, Action::Read],
+        "Delete replication remotes and replications",
+    ),
+    (
+        "as-replication-read",
+        "replication",
+        &[Action::Read],
+        "Read replication remotes and replications",
+    ),
+    (
+        "as-replication-update",
+        "replication",
+        &[Action::Edit, Action::Read],
+        "Change replication remotes and replications",
     ),
     (
         "as-roles-all",
@@ -337,6 +447,30 @@ const APPLICATION: &[Application] = &[
         "settings",
         &[Action::Edit, Action::Read],
         "Change settings",
+    ),
+    (
+        "as-sharelinks-all",
+        "sharelinks",
+        &[Action::All],
+        "Every action on share links",
+    ),
+    (
+        "as-sharelinks-create",
+        "sharelinks",
+        &[Action::Add],
+        "Create share links",
+    ),
+    (
+        "as-sharelinks-delete",
+        "sharelinks",
+        &[Action::Delete, Action::Read],
+        "Delete share links",
+    ),
+    (
+        "as-sharelinks-read",
+        "sharelinks",
+        &[Action::Read],
+        "Read share links",
     ),
     (
         "as-ssl-truststore-all",
@@ -494,6 +628,22 @@ pub fn builtin_privileges<'a>(formats: impl IntoIterator<Item = &'a str>) -> Vec
             pattern: "astrum:*".to_owned(),
         },
     }];
+    privileges.push(Privilege {
+        id: REPLICATION_RECEIVE.to_owned(),
+        description: "Receive replicated components from another server".to_owned(),
+        read_only: true,
+        kind: PrivilegeKind::Wildcard {
+            pattern: "astrum:replication:receive".to_owned(),
+        },
+    });
+    privileges.push(Privilege {
+        id: REPLICATION_PULL.to_owned(),
+        description: "Let another server pull components from this one".to_owned(),
+        read_only: true,
+        kind: PrivilegeKind::Wildcard {
+            pattern: "astrum:replication:pull".to_owned(),
+        },
+    });
     privileges.extend(
         APPLICATION
             .iter()
@@ -597,6 +747,10 @@ mod tests {
     use std::collections::BTreeSet;
 
     use super::*;
+    use crate::permission::Permission;
+
+    const ASTRUM_ONLY: [&str; 3] = ["as-customers-", "as-policies-", "as-policyexceptions-"];
+    const ASTRUM_ONLY_COUNT: usize = 14;
 
     #[test]
     fn the_catalogue_has_the_names_existing_installations_use() {
@@ -610,6 +764,8 @@ mod tests {
         for id in [
             "as-all",
             "as-users-read",
+            "as-customers-read",
+            "as-customers-delete",
             "as-userschangepw",
             "as-tasks-run",
             "as-repository-view-*-*-read",
@@ -620,11 +776,26 @@ mod tests {
         ] {
             assert!(ids.contains(id), "{id}");
         }
+        let permission = |id: &str| {
+            privileges
+                .iter()
+                .find(|privilege| privilege.id == id)
+                .and_then(Privilege::permission)
+                .map(|permission| permission.to_string())
+        };
+        for (id, expected) in [
+            ("as-sharelinks-all", "astrum:sharelinks:*"),
+            ("as-sharelinks-create", "astrum:sharelinks:create"),
+            ("as-sharelinks-delete", "astrum:sharelinks:delete,read"),
+            ("as-sharelinks-read", "astrum:sharelinks:read"),
+        ] {
+            assert_eq!(permission(id).as_deref(), Some(expected), "{id}");
+        }
         assert!(
             !ids.contains("as-healthcheck-read"),
             "the old server names it in the anonymous role but does not list it"
         );
-        assert_eq!(privileges.len(), 1 + 76 + 12 + 12);
+        assert_eq!(privileges.len(), 1 + 2 + 84 + ASTRUM_ONLY_COUNT + 12 + 12);
         assert!(
             privileges
                 .iter()
@@ -700,6 +871,12 @@ mod tests {
         };
         let ours: Vec<serde_json::Value> = builtin_privileges(formats)
             .iter()
+            .filter(|privilege| {
+                !privilege.id.starts_with("as-replication-")
+                    && !ASTRUM_ONLY
+                        .iter()
+                        .any(|prefix| privilege.id.starts_with(prefix))
+            })
             .map(|privilege| {
                 let mut value = privilege.kind.properties();
                 let map = value.as_object_mut().unwrap();
@@ -710,15 +887,103 @@ mod tests {
             })
             .collect();
         let mut expected: Vec<serde_json::Value> = reference.iter().map(shape).collect();
-        let mut actual = ours;
         let by_name =
             |privilege: &serde_json::Value| privilege["name"].as_str().unwrap().to_owned();
+        let known: BTreeSet<String> = expected.iter().map(by_name).collect();
+        let (mut actual, added): (Vec<_>, Vec<_>) = ours
+            .into_iter()
+            .partition(|privilege| known.contains(&by_name(privilege)));
+        let mut added: Vec<String> = added.iter().map(by_name).collect();
+        added.sort();
+        assert_eq!(
+            added,
+            [
+                "as-sharelinks-all",
+                "as-sharelinks-create",
+                "as-sharelinks-delete",
+                "as-sharelinks-read"
+            ]
+        );
         expected.sort_by_key(by_name);
         actual.sort_by_key(by_name);
         assert_eq!(actual.len(), expected.len());
         for (actual, expected) in actual.iter().zip(&expected) {
             assert_eq!(actual, expected);
         }
+    }
+
+    #[test]
+    fn replication_privileges_grant_their_own_permissions() {
+        let privileges = builtin_privileges(["maven2"]);
+        let granted = |id: &str| {
+            privileges
+                .iter()
+                .find(|privilege| privilege.id == id)
+                .and_then(|privilege| privilege.permission())
+                .unwrap()
+        };
+        assert_eq!(
+            granted("as-replication-update").to_string(),
+            "astrum:replication:read,update"
+        );
+        assert_eq!(
+            granted(REPLICATION_RECEIVE).to_string(),
+            "astrum:replication:receive"
+        );
+        assert_eq!(
+            granted(REPLICATION_PULL).to_string(),
+            "astrum:replication:pull"
+        );
+        let receive = Permission::parse("astrum:replication:receive").unwrap();
+        let pull = Permission::parse("astrum:replication:pull").unwrap();
+        for id in [
+            "as-replication-read",
+            "as-replication-create",
+            "as-replication-update",
+            "as-replication-delete",
+        ] {
+            assert!(!granted(id).implies(&receive), "{id}");
+            assert!(!granted(id).implies(&pull), "{id}");
+        }
+        assert!(!granted(REPLICATION_RECEIVE).implies(&pull));
+        assert!(!granted(REPLICATION_PULL).implies(&receive));
+        assert!(granted(ALL).implies(&pull));
+    }
+
+    #[test]
+    fn the_policy_privileges_grant_the_permissions_the_routes_check() {
+        let privileges = builtin_privileges(["raw"]);
+        let granted = |id: &str| {
+            privileges
+                .iter()
+                .find(|privilege| privilege.id == id)
+                .and_then(|privilege| privilege.permission())
+                .map(|permission| permission.to_string())
+        };
+        for (id, permission) in [
+            ("as-policies-all", "astrum:policies:*"),
+            ("as-policies-read", "astrum:policies:read"),
+            ("as-policies-create", "astrum:policies:create,read"),
+            ("as-policies-update", "astrum:policies:read,update"),
+            ("as-policies-delete", "astrum:policies:delete,read"),
+            ("as-policyexceptions-all", "astrum:policyexceptions:*"),
+            ("as-policyexceptions-read", "astrum:policyexceptions:read"),
+            (
+                "as-policyexceptions-create",
+                "astrum:policyexceptions:create,read",
+            ),
+            (
+                "as-policyexceptions-delete",
+                "astrum:policyexceptions:delete,read",
+            ),
+        ] {
+            assert_eq!(granted(id).as_deref(), Some(permission), "{id}");
+        }
+        let count = privileges
+            .iter()
+            .filter(|privilege| ASTRUM_ONLY.iter().any(|p| privilege.id.starts_with(p)))
+            .count();
+        assert_eq!(count, ASTRUM_ONLY_COUNT);
     }
 
     #[test]

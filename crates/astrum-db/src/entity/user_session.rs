@@ -13,6 +13,7 @@ pub struct Model {
     pub last_seen_at: DateTimeWithTimeZone,
     pub client_ip: String,
     pub user_agent: String,
+    pub restricted: bool,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

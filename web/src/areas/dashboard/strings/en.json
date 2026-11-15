@@ -14,6 +14,10 @@
   "dashboard.home.loading": "Loading the usage of the repositories…",
   "dashboard.home.error": "The usage of the repositories could not be loaded",
   "dashboard.home.noRepositories": "There are no repositories you may browse yet.",
+  "dashboard.growth.title": "Largest growth, 30 days",
+  "dashboard.growth.empty": "No repository grew over the last 30 days.",
+  "dashboard.growth.delta": "+{size}",
+  "dashboard.growth.range": "{from} to {to}",
   "dashboard.kpi.downloads": "Downloads",
   "dashboard.kpi.downloadsCaption": "today {today} · avg {average} a day",
   "dashboard.kpi.components": "Components",
@@ -65,5 +69,15 @@
   },
   "dashboard.unused.never": "never downloaded: {count} ({size})",
   "dashboard.unused.empty": "Every component was downloaded or added in the last {period}.",
-  "dashboard.unused.cleanup": "Configure cleanup policies"
+  "dashboard.unused.cleanup": "Configure cleanup policies",
+  "dashboard.security.title": "Vulnerabilities",
+  "dashboard.security.blocked": "Blocked components",
+  "dashboard.security.scanned": "{scanned} scanned, {vulnerable} vulnerable",
+  "dashboard.security.age": {
+    "one": "Advisory data synced {count} day ago",
+    "other": "Advisory data synced {count} days ago"
+  },
+  "dashboard.security.neverSynced": "No advisory feed has synced yet",
+  "dashboard.security.stale": "Stale: older than {days} days",
+  "dashboard.security.dataLink": "Vulnerability data"
 }

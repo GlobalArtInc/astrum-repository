@@ -5,6 +5,8 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+use astrum_content::ContentError;
+use astrum_content::transfer::Status;
 use astrum_security::ssrf::{SSRF_KEY, SsrfProtection};
 use axum::Router;
 use axum::body::Body;
@@ -249,13 +251,23 @@ async fn hosted_files_go_in_and_come_out() {
 }
 
 #[tokio::test]
-async fn uploads_record_the_peer_address_unless_a_proxy_names_the_client() {
+async fn uploads_record_the_peer_unless_a_trusted_proxy_names_the_client() {
     let fixture = ready().await;
+    fixture.trust(&["10.0.0.0/8"]);
     create(&fixture, "hosted", hosted("peers", "ALLOW")).await;
     let credentials = STANDARD.encode(format!("admin:{}", fixture.admin_password));
-    for (path, forwarded) in [
-        ("/repository/peers/direct.txt", None),
-        ("/repository/peers/forwarded.txt", Some("203.0.113.9")),
+    for (path, peer, forwarded) in [
+        ("/repository/peers/direct.txt", [192, 0, 2, 7], None),
+        (
+            "/repository/peers/forged.txt",
+            [192, 0, 2, 7],
+            Some("203.0.113.9"),
+        ),
+        (
+            "/repository/peers/proxied.txt",
+            [10, 0, 0, 5],
+            Some("203.0.113.9"),
+        ),
     ] {
         let mut request = Request::builder()
             .method(Method::PUT)
@@ -268,7 +280,7 @@ async fn uploads_record_the_peer_address_unless_a_proxy_names_the_client() {
         let mut request = request.body(Body::from("peer\n")).unwrap();
         request
             .extensions_mut()
-            .insert(ConnectInfo(SocketAddr::from(([192, 0, 2, 7], 40000))));
+            .insert(ConnectInfo(SocketAddr::from((peer, 40000))));
         let response = astrum_api::router(fixture.state.clone())
             .oneshot(request)
             .await
@@ -296,7 +308,8 @@ async fn uploads_record_the_peer_address_unless_a_proxy_names_the_client() {
         })
         .collect();
     assert_eq!(addresses["/direct.txt"], "192.0.2.7");
-    assert_eq!(addresses["/forwarded.txt"], "203.0.113.9");
+    assert_eq!(addresses["/forged.txt"], "192.0.2.7");
+    assert_eq!(addresses["/proxied.txt"], "203.0.113.9");
 }
 
 #[tokio::test]
@@ -1250,4 +1263,72 @@ async fn deleting_a_repository_removes_its_content_and_counts_downloads() {
         .await
         .unwrap();
     assert_eq!(metrics_after.blob_count + 1, metrics_before.blob_count);
+}
+
+#[tokio::test]
+async fn components_are_promoted_between_hosted_repositories() {
+    let fixture = ready().await;
+    create(&fixture, "hosted", hosted("source", "ALLOW")).await;
+    create(&fixture, "hosted", hosted("target", "ALLOW")).await;
+    assert_eq!(
+        put(
+            &fixture,
+            "/repository/source/docs/readme.txt",
+            b"promoted",
+            Auth::Admin
+        )
+        .await,
+        StatusCode::CREATED
+    );
+    let format = astrum_format_raw::Raw;
+    let bundle = support::bundle_of(&fixture, &format, "source", "/docs/readme.txt").await;
+    let outcome = support::receive(&fixture, &format, "source", "target", &bundle).await;
+    assert_eq!(outcome.status, Status::Copied);
+    let served = fixture
+        .call(
+            Method::GET,
+            "/repository/target/docs/readme.txt",
+            Auth::Admin,
+            None,
+        )
+        .await;
+    assert_eq!(served.status, StatusCode::OK);
+    assert_eq!(served.body, b"promoted".to_vec());
+}
+
+#[tokio::test]
+async fn a_promoted_file_must_match_its_extension_as_an_upload_does() {
+    let fixture = ready().await;
+    let mut loose = hosted("loose", "ALLOW");
+    loose["storage"]["strictContentTypeValidation"] = json!(false);
+    create(&fixture, "hosted", loose).await;
+    create(&fixture, "hosted", hosted("strict", "ALLOW")).await;
+    assert_eq!(
+        put(
+            &fixture,
+            "/repository/loose/lib.jar",
+            b"plain text",
+            Auth::Admin
+        )
+        .await,
+        StatusCode::CREATED
+    );
+    let format = astrum_format_raw::Raw;
+    let bundle = support::bundle_of(&fixture, &format, "loose", "/lib.jar").await;
+    match support::try_receive(&fixture, &format, "loose", "strict", &bundle).await {
+        Err(ContentError::BadRequest(message)) => {
+            assert!(
+                message.contains("expected [application/java-archive]"),
+                "{message}"
+            );
+        }
+        other => panic!("expected a refusal, got {other:?}"),
+    }
+    assert_eq!(
+        fixture
+            .call(Method::GET, "/repository/strict/lib.jar", Auth::Admin, None)
+            .await
+            .status,
+        StatusCode::NOT_FOUND
+    );
 }

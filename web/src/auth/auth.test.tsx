@@ -13,6 +13,7 @@ import { STATE_KEY } from './state';
 vi.mock('./browser', () => ({ openFresh: vi.fn() }));
 
 const AREAS = [dashboardArea, settingsArea];
+const TWO_FACTOR_STATUS = '/service/rest/internal/ui/user/two-factor';
 const STRANGER: UiState = { ...ANONYMOUS_STATE, anonymousAccess: false, permissions: [] };
 
 function app(path: string, state: UiState) {
@@ -102,7 +103,9 @@ describe('signing out', () => {
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Sign Out' }));
     await waitFor(() => expect(openFresh).toHaveBeenCalledWith('/'));
     expect(
-      server.calls.filter((call) => call.path !== GITHUB_STARS).map((call) => `${call.method} ${call.path}`),
+      server.calls
+        .filter((call) => call.path !== GITHUB_STARS && call.path !== TWO_FACTOR_STATUS)
+        .map((call) => `${call.method} ${call.path}`),
     ).toEqual(['DELETE /service/rest/internal/session']);
     expect(screen.queryByRole('alertdialog')).toBeNull();
   });

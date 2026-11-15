@@ -466,6 +466,7 @@ fn api_error(error: ContentError) -> Response {
         other => other.to_string(),
     };
     let mut response = json_response(&Method::GET, status, JSON_TYPE, &json!({"error": message}));
+    error.mark(&mut response);
     let headers = response.headers_mut();
     match error {
         ContentError::Unauthorized => {
@@ -785,6 +786,7 @@ impl OpenVsx {
                     match Box::pin(self.file(&member, file)).await {
                         Ok(Some(found)) => return Ok(Some(found)),
                         Ok(None) => {}
+                        Err(error @ ContentError::Blocked(_)) => return Err(error),
                         Err(error) => log_member(ctx, &member, &error),
                     }
                 }
@@ -940,6 +942,7 @@ impl OpenVsx {
                         }
                         Ok(Some(found)) => return Ok(Some(found)),
                         Ok(None) => {}
+                        Err(error @ ContentError::Blocked(_)) => return Err(error),
                         Err(error) => log_member(ctx, &member, &error),
                     }
                 }
@@ -1005,6 +1008,7 @@ impl OpenVsx {
             Box::pin(limited.into_data_stream().map_err(io::Error::other));
         let written = match store::write_blob(ctx, body).await {
             Ok(written) => written,
+            Err(error @ ContentError::QuotaExceeded { .. }) => return Err(error),
             Err(error) => {
                 tracing::info!(repository = ctx.name(), %error, "an extension package could not be stored");
                 return Err(ContentError::BadRequest(format!(

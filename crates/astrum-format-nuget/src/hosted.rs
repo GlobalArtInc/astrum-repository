@@ -2,7 +2,9 @@ use std::collections::HashMap;
 use std::io;
 
 use astrum_blob::{ContentStream, Written};
+use astrum_content::import::Plan;
 use astrum_content::store::{self, ComponentKey, PutAsset};
+use astrum_content::transfer::Bundle;
 use astrum_content::{Asset, Component, ContentError, ContentRequest, Ctx, UploadForm, View};
 use astrum_db::entity::{asset, component};
 use astrum_repo::RepositoryType;
@@ -15,7 +17,8 @@ use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, QueryOrder};
 use serde_json::{Value, json};
 
 use crate::archive::{self, ArchiveError};
-use crate::metadata::{Metadata, parse_nuspec};
+use crate::import;
+use crate::metadata::{Metadata, parse_nuspec, valid_id};
 use crate::route::{package_path, symbols_path};
 use crate::version::Version;
 use crate::{ID, PACKAGE_KIND, SYMBOLS_KIND, ZIP, reply};
@@ -372,4 +375,49 @@ pub async fn upload(ctx: &Ctx, form: UploadForm) -> Result<(), ContentError> {
 
 pub fn attributes(metadata: &Metadata) -> Value {
     json!({ ID: metadata })
+}
+
+pub async fn admit(ctx: &Ctx, bundle: &Bundle) -> Result<(), ContentError> {
+    if !valid_id(&bundle.name) {
+        return Err(invalid(format!("the id {} is not valid", bundle.name)));
+    }
+    if let Some(existing) = existing_name(ctx, &bundle.name).await?
+        && existing != bundle.name
+    {
+        return Err(invalid(format!(
+            "the id {} differs from {existing} only in case, which the repository already holds",
+            bundle.name
+        )));
+    }
+    let version = Version::parse(&bundle.version)
+        .ok_or_else(|| invalid(format!("the version {} is not valid", bundle.version)))?;
+    let normalized = version.normalized();
+    let package = package_path(&bundle.name, &normalized);
+    let symbols = symbols_path(&bundle.name, &normalized);
+    let mut has_package = false;
+    let mut has_symbols = false;
+    for asset in &bundle.assets {
+        if import::plan(RepositoryType::Hosted, &asset.path, &asset.kind) != Plan::Import {
+            continue;
+        }
+        if asset.path.eq_ignore_ascii_case(&package) {
+            has_package = true;
+        } else if asset.path.eq_ignore_ascii_case(&symbols) {
+            has_symbols = true;
+        } else {
+            return Err(ContentError::BadRequest(format!(
+                "the bundle path {} does not match {package} or {symbols}, where the upload would store it",
+                asset.path
+            )));
+        }
+    }
+    if has_symbols && !has_package && one(ctx, &bundle.name, &bundle.version).await?.is_none() {
+        return Err(ContentError::BadRequest(format!(
+            "the package {} {} is not in {}; push it before its symbols",
+            bundle.name,
+            normalized,
+            ctx.name()
+        )));
+    }
+    Ok(())
 }

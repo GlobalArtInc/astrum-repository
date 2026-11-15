@@ -1,14 +1,17 @@
 use std::process::ExitCode;
 
-use astrum_server::cli::{Cli, Command};
+use astrum_server::cli::{Cli, Command, IpAllowCommand, TwoFactorCommand};
 use astrum_server::config::{self, Config};
-use astrum_server::{Server, check, migrate, shutdown_signal, telemetry, version_line};
+use astrum_server::{
+    Server, check, migrate, reset_ip_allow, reset_two_factor, shutdown_signal, telemetry,
+    version_line,
+};
 use clap::Parser;
 
 #[tokio::main]
 async fn main() -> ExitCode {
     let cli = Cli::parse();
-    let command = cli.command.unwrap_or(Command::Serve);
+    let command = cli.command.clone().unwrap_or(Command::Serve);
     if command == Command::Version {
         println!("{}", version_line());
         return ExitCode::SUCCESS;
@@ -25,6 +28,32 @@ async fn main() -> ExitCode {
             Ok(()) => ExitCode::SUCCESS,
             Err(error) => {
                 eprintln!("astrum check: {error:#}");
+                ExitCode::FAILURE
+            }
+        },
+        Command::IpAllow {
+            action: IpAllowCommand::Reset,
+        } => match reset_ip_allow(&config).await {
+            Ok(()) => {
+                println!(
+                    "the IP allow lists were cleared: every address is allowed on every surface; running servers follow within a few seconds"
+                );
+                ExitCode::SUCCESS
+            }
+            Err(error) => {
+                eprintln!("astrum ip-allow reset: {error:#}");
+                ExitCode::FAILURE
+            }
+        },
+        Command::TwoFactor {
+            action: TwoFactorCommand::Reset { user_id },
+        } => match reset_two_factor(&config, &user_id).await {
+            Ok(()) => {
+                println!("second factor of {user_id} was reset");
+                ExitCode::SUCCESS
+            }
+            Err(error) => {
+                eprintln!("astrum two-factor reset: {error:#}");
                 ExitCode::FAILURE
             }
         },

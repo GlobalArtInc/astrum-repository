@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fakeServer, jsonResponse, renderWithApp } from '../../test/render';
@@ -217,5 +217,80 @@ describe('the overview', { timeout: 20_000 }, () => {
     expect(componentName({ format: 'raw', group: '/docs', name: '/docs/a.pdf' })).toBe('docs/a.pdf');
     expect(componentName({ format: 'npm', group: 'team', name: 'tool' })).toBe('@team/tool');
     expect(componentName({ format: 'docker', group: null, name: 'qa/hello' })).toBe('qa/hello');
+  });
+});
+
+const DAY_MS = 86_400_000;
+
+const SUMMARY = {
+  generatedAt: '2026-11-11T10:00:00.000Z',
+  totals: {
+    critical: 2,
+    high: 1,
+    medium: 0,
+    low: 0,
+    unknown: 0,
+    blocked: 3,
+    componentsScanned: 9,
+    componentsVulnerable: 4,
+    truncated: false,
+  },
+  repositories: [],
+};
+
+function serveSecurity(feeds: unknown[] | null, summary: object | null = SUMMARY) {
+  const handlers: Record<string, () => Response> = {
+    [`GET ${USAGE_PATH}?days=30`]: () => jsonResponse(DATA),
+  };
+  if (summary !== null) {
+    handlers['GET /service/rest/v1/security/summary'] = () => jsonResponse(summary);
+  }
+  if (feeds !== null) {
+    handlers['GET /service/rest/v1/security/advisories/feeds'] = () => jsonResponse(feeds);
+  }
+  const server = fakeServer(handlers);
+  vi.stubGlobal('fetch', server.fetch);
+  return server;
+}
+
+describe('the vulnerability tile', { timeout: 20_000 }, () => {
+  it('shows the totals, the blocked count and the age of the advisory data', async () => {
+    serveSecurity([
+      {
+        ecosystem: 'npm',
+        records: 10,
+        syncedAt: new Date(Date.now() - 20 * DAY_MS).toISOString(),
+        attemptedAt: null,
+        lastError: null,
+      },
+      {
+        ecosystem: 'maven',
+        records: 5,
+        syncedAt: new Date(Date.now() - 2 * DAY_MS).toISOString(),
+        attemptedAt: null,
+        lastError: null,
+      },
+    ]);
+    renderWithApp(<DashboardPage />);
+    const tile = await screen.findByRole('region', { name: 'Vulnerabilities' });
+    expect(within(tile).getByText('Critical')).toBeInTheDocument();
+    expect(within(tile).getByText('Blocked components: 3')).toBeInTheDocument();
+    expect(within(tile).getByText('9 scanned, 4 vulnerable')).toBeInTheDocument();
+    expect(within(tile).getByText('Advisory data synced 20 days ago')).toBeInTheDocument();
+    expect(within(tile).getByText('Stale: older than 7 days')).toBeInTheDocument();
+    expect(within(tile).getByRole('link', { name: 'Vulnerability data' })).toHaveAttribute(
+      'href',
+      '/admin/security/vulnerability-data',
+    );
+  });
+
+  it('stays out of the page when the summary is not there', async () => {
+    const server = serveSecurity([], null);
+    renderWithApp(<DashboardPage />);
+    expect(await screen.findByText('Not used for 90 days')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(server.calls.some((call) => call.path.includes('/security/summary'))).toBe(true),
+    );
+    expect(screen.queryByRole('region', { name: 'Vulnerabilities' })).not.toBeInTheDocument();
   });
 });

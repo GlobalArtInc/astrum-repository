@@ -342,10 +342,25 @@ async fn asset_content(
         owner,
         asset,
     } = locate(&state, &caller, &name, query.path.as_deref()).await?;
+    let owner_ctx = context(&state, &subject, owner);
     let readable = context(&state, &subject, repository).allowed(View::Read, &asset.path)
-        || context(&state, &subject, owner).allowed(View::Read, &asset.path);
+        || owner_ctx.allowed(View::Read, &asset.path);
     if !readable {
         return Err(ApiError::forbidden());
+    }
+    if asset.component_id.is_some() {
+        state
+            .content()
+            .gate()
+            .check(&owner_ctx, &asset)
+            .await
+            .map_err(content_error)?;
+    }
+    if let Some(format) = state.content().format(&asset.format) {
+        format
+            .gate_asset(&owner_ctx, &asset)
+            .await
+            .map_err(content_error)?;
     }
     if asset.size > PREVIEW_LIMIT {
         return Err(ApiError::BadRequest(format!(

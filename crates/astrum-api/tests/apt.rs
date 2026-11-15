@@ -3,6 +3,9 @@ mod support;
 use std::io::{Read, Write};
 use std::sync::Arc;
 
+use astrum_content::store::{self, ComponentKey, PutAsset};
+use astrum_content::transfer::{Bundle, Conflict, LocalSource, PROMOTED, Status, Terms};
+use astrum_content::{ContentError, Format};
 use astrum_format_apt::deb;
 use astrum_security::ssrf::{SSRF_KEY, SsrfProtection};
 use axum::body::Body;
@@ -38,10 +41,14 @@ async fn create(fixture: &Fixture, kind: &str, body: Value) {
 }
 
 fn hosted(name: &str) -> Value {
+    hosted_with(name, "ALLOW_ONCE")
+}
+
+fn hosted_with(name: &str, policy: &str) -> Value {
     json!({
         "name": name,
         "online": true,
-        "storage": {"blobStoreName": "default", "strictContentTypeValidation": true, "writePolicy": "ALLOW_ONCE"},
+        "storage": {"blobStoreName": "default", "strictContentTypeValidation": true, "writePolicy": policy},
         "apt": {"distribution": "bookworm"},
         "aptSigning": {"keypair": astrum_format_apt::testing::signing_key()},
     })
@@ -356,4 +363,150 @@ async fn proxies_cache_metadata_and_packages_of_their_remote() {
     assert_eq!(item["group"], "all");
     let refused = post(&fixture, "mirror", hello, "application/octet-stream").await;
     assert_eq!(refused.status, StatusCode::METHOD_NOT_ALLOWED);
+}
+
+const HELLO: &str = "/pool/h/hello-astrum/hello-astrum_1.0.0_amd64.deb";
+
+async fn promotion_pair(target_policy: &str) -> (Fixture, Bundle) {
+    let fixture = ready().await;
+    create(&fixture, "hosted", hosted("debs-source")).await;
+    create(
+        &fixture,
+        "hosted",
+        hosted_with("debs-target", target_policy),
+    )
+    .await;
+    let reply = post(
+        &fixture,
+        "debs-source",
+        package("hello-astrum", "1.0.0", "amd64"),
+        "application/octet-stream",
+    )
+    .await;
+    assert_eq!(reply.status, StatusCode::CREATED, "{}", reply.text());
+    let bundle = support::bundle_of(
+        &fixture,
+        &astrum_format_apt::Apt::default(),
+        "debs-source",
+        HELLO,
+    )
+    .await;
+    (fixture, bundle)
+}
+
+async fn promote(fixture: &Fixture, bundle: &Bundle) -> Result<(), ContentError> {
+    let from = support::repository_ctx(fixture, "debs-source").await;
+    let to = support::repository_ctx(fixture, "debs-target").await;
+    astrum_format_apt::Apt::default()
+        .transfer()
+        .expect("apt takes part in promotion")
+        .receive(
+            &to,
+            bundle,
+            &LocalSource::new(from),
+            Terms::new(Conflict::Fail, PROMOTED),
+        )
+        .await
+        .map(|_| ())
+}
+
+async fn recorded(fixture: &Fixture, path: &str) -> bool {
+    store::find(fixture.state.db().conn(), "debs-target", path)
+        .await
+        .unwrap()
+        .is_some()
+}
+
+#[tokio::test]
+async fn packages_are_promoted_and_the_target_lists_them() {
+    let (fixture, bundle) = promotion_pair("ALLOW_ONCE").await;
+    let format = astrum_format_apt::Apt::default();
+    let outcome = support::receive(&fixture, &format, "debs-source", "debs-target", &bundle).await;
+    assert_eq!(outcome.status, Status::Copied);
+    assert!(outcome.warnings.is_empty(), "{:?}", outcome.warnings);
+    assert!(recorded(&fixture, "/dists/bookworm/Release").await);
+    let served = get(&fixture, &format!("/repository/debs-target{HELLO}")).await;
+    assert_eq!(served.body, package("hello-astrum", "1.0.0", "amd64"));
+    let listing = get(
+        &fixture,
+        "/repository/debs-target/dists/bookworm/main/binary-amd64/Packages",
+    )
+    .await
+    .text();
+    assert!(
+        listing.contains("Package: hello-astrum\nVersion: 1.0.0\n"),
+        "{listing}"
+    );
+    assert!(
+        listing.contains("Filename: pool/h/hello-astrum/hello-astrum_1.0.0_amd64.deb\n"),
+        "{listing}"
+    );
+    let signed = get(&fixture, "/repository/debs-target/dists/bookworm/InRelease").await;
+    assert!(
+        signed
+            .text()
+            .starts_with("-----BEGIN PGP SIGNED MESSAGE-----")
+    );
+}
+
+#[tokio::test]
+async fn promotion_into_a_read_only_repository_is_refused() {
+    let (fixture, bundle) = promotion_pair("DENY").await;
+    match promote(&fixture, &bundle).await {
+        Err(ContentError::BadRequest(found)) => {
+            assert_eq!(found, "the repository debs-target is read-only")
+        }
+        other => panic!("expected a refusal, got {other:?}"),
+    }
+    assert!(!recorded(&fixture, HELLO).await);
+}
+
+#[tokio::test]
+async fn bundles_with_a_path_the_upload_would_not_use_are_refused() {
+    let (fixture, bundle) = promotion_pair("ALLOW_ONCE").await;
+    let mut elsewhere = bundle.clone();
+    elsewhere.assets[0].path = "/pool/h/hello-astrum/hello-astrum_9.9.9_amd64.deb".to_owned();
+    let mut renamed = bundle.clone();
+    renamed.name = "other".to_owned();
+    renamed.assets[0].path = "/pool/o/other/other_1.0.0_amd64.deb".to_owned();
+    let mut udeb = bundle.clone();
+    udeb.assets[0].path = HELLO.replace(".deb", ".udeb");
+    let other = "/pool/o/other/other_1.0.0_amd64.deb";
+    let from = support::repository_ctx(&fixture, "debs-source").await;
+    let mut put = PutAsset::hosted(&from, other)
+        .kind("deb")
+        .content_type("application/x-debian-package")
+        .component(ComponentKey {
+            namespace: "amd64".to_owned(),
+            name: "other".to_owned(),
+            version: "1.0.0".to_owned(),
+            kind: String::new(),
+            attributes: json!({}),
+        });
+    put.check_content_type = false;
+    store::put(
+        &from,
+        put,
+        astrum_blob::content_of(package("hello-astrum", "1.0.0", "amd64")),
+    )
+    .await
+    .unwrap();
+    let swapped = support::bundle_of(
+        &fixture,
+        &astrum_format_apt::Apt::default(),
+        "debs-source",
+        other,
+    )
+    .await;
+    for crafted in [elsewhere, renamed, udeb, swapped] {
+        let path = crafted.assets[0].path.clone();
+        match promote(&fixture, &crafted).await {
+            Err(ContentError::BadRequest(found)) => {
+                assert!(found.contains("where the upload would store"), "{found}")
+            }
+            other => panic!("expected a refusal for {path}, got {other:?}"),
+        }
+        assert!(!recorded(&fixture, &path).await);
+    }
+    assert!(!recorded(&fixture, HELLO).await);
 }

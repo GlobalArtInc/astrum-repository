@@ -140,6 +140,7 @@ test('a wheel goes up to a pypi repository chosen in the form', async ({ page, s
   await target.fill('upload-py');
   await page.getByRole('option', { name: /upload-pypi/ }).click();
   await expect(page).toHaveURL(/\/upload\/upload-pypi$/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Upload to upload-pypi' })).toBeVisible();
   await fileInput(page).setInputFiles({
     name: wheelName('e2e-tool', '0.1.0'),
     mimeType: 'application/zip',

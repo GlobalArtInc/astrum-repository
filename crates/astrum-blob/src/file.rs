@@ -1,4 +1,4 @@
-use std::io;
+use std::io::{self, Read, Write};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 
@@ -6,22 +6,30 @@ use async_trait::async_trait;
 use futures_util::StreamExt;
 use tokio::io::{AsyncSeekExt, AsyncWriteExt};
 
-use crate::digest::Hasher;
+use crate::digest::{self, Hasher};
 use crate::{
-    BlobId, BlobStore, Content, ContentStream, Error, Metrics, StoreKind, StoredBlob, Totals,
-    Written, clamp_range, stream,
+    BlobId, BlobStore, Content, ContentStream, Digests, Error, Metrics, StoreKind, StoredBlob,
+    Totals, Written, clamp_range, stream,
 };
 
 pub const CONTENT_DIR: &str = "content";
 pub const TEMP_DIR: &str = "tmp";
 pub const STALE_TEMP: Duration = Duration::from_secs(3600);
 const TEMP_SUFFIX: &str = ".part";
+const HASH_BUFFER: usize = 256 * 1024;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum LinkFault {
+    Refused,
+    Unowned,
+}
 
 #[derive(Debug)]
 pub struct FileBlobStore {
     name: String,
     root: PathBuf,
     metrics: Metrics,
+    fault: Option<LinkFault>,
 }
 
 impl FileBlobStore {
@@ -46,6 +54,7 @@ impl FileBlobStore {
             name: name.into(),
             root: root.into(),
             metrics,
+            fault: None,
         };
         let metadata = tokio::fs::metadata(&store.root)
             .await
@@ -63,6 +72,11 @@ impl FileBlobStore {
         }
         store.sweep_temp(STALE_TEMP).await;
         Ok(store)
+    }
+
+    pub fn with_link_fault(mut self, fault: LinkFault) -> Self {
+        self.fault = Some(fault);
+        self
     }
 
     pub fn root(&self) -> &Path {
@@ -112,6 +126,66 @@ impl FileBlobStore {
         file.flush().await.map_err(Error::io(temp))?;
         file.sync_all().await.map_err(Error::io(temp))?;
         Ok(hasher.finish())
+    }
+
+    async fn link(&self, source: &Path, temp: &Path) -> Result<Option<u64>, Error> {
+        let linked = match self.fault {
+            Some(LinkFault::Refused) => Err(io::Error::from(io::ErrorKind::CrossesDevices)),
+            _ => tokio::fs::hard_link(source, temp).await,
+        };
+        match linked {
+            Ok(()) => {}
+            Err(error) if linking_refused(&error) => return Ok(None),
+            Err(error) => {
+                return Err(Error::Io {
+                    path: source.to_owned(),
+                    source: error,
+                });
+            }
+        }
+        let touched = match self.fault {
+            Some(LinkFault::Unowned) => Err(io::Error::from(io::ErrorKind::PermissionDenied)),
+            _ => touch(temp).await,
+        };
+        if let Err(error) = touched {
+            tracing::warn!(store = %self.name, source = %source.display(), %error, "a hard link could not be touched, so the blob is copied instead");
+            tokio::fs::remove_file(temp)
+                .await
+                .map_err(Error::io(temp))?;
+            return Ok(None);
+        }
+        let size = tokio::fs::metadata(temp)
+            .await
+            .map_err(Error::io(temp))?
+            .len();
+        Ok(Some(size))
+    }
+
+    async fn materialize(
+        &self,
+        id: BlobId,
+        source: &Path,
+        temp: &Path,
+        expected: &Digests,
+    ) -> Result<(u64, Digests), Error> {
+        let made = match self.link(source, temp).await {
+            Ok(Some(size)) => Ok((size, expected.lowercased())),
+            Ok(None) => copy_hashed(source, temp).await.and_then(|(size, digests)| {
+                digest::check(&self.name, id, expected, &digests)?;
+                Ok((size, digests))
+            }),
+            Err(error) => Err(error),
+        };
+        match made {
+            Err(Error::Digest { .. }) | Ok(_) => made,
+            Err(_) if matches!(tokio::fs::try_exists(source).await, Ok(false)) => {
+                Err(Error::Missing {
+                    store: self.name.clone(),
+                    id,
+                })
+            }
+            Err(error) => Err(error),
+        }
     }
 
     async fn open_blob(&self, id: BlobId) -> Result<Option<(tokio::fs::File, u64)>, Error> {
@@ -164,6 +238,37 @@ impl BlobStore for FileBlobStore {
         self.metrics.added(size).await;
         Ok(Written {
             id,
+            store: self.name.clone(),
+            size,
+            digests,
+        })
+    }
+
+    async fn duplicate(&self, id: BlobId, expected: &Digests) -> Result<Written, Error> {
+        digest::require(&self.name, id, expected)?;
+        let copy = BlobId::new();
+        let source = self.path_of(id);
+        let target = self.path_of(copy);
+        let temp = self.temp_dir().join(format!("{copy}{TEMP_SUFFIX}"));
+        let guard = TempFile(Some(temp.clone()));
+        let (size, digests) = self.materialize(id, &source, &temp, expected).await?;
+        let parent = target
+            .parent()
+            .expect("a blob path always has a parent")
+            .to_owned();
+        tokio::fs::create_dir_all(&parent)
+            .await
+            .map_err(Error::io(&parent))?;
+        tokio::fs::rename(&temp, &target)
+            .await
+            .map_err(Error::io(&target))?;
+        guard.keep();
+        if let Err(error) = sync_dir(&parent).await {
+            tracing::warn!(dir = %parent.display(), %error, "a directory could not be synced");
+        }
+        self.metrics.added(size).await;
+        Ok(Written {
+            id: copy,
             store: self.name.clone(),
             size,
             digests,
@@ -398,6 +503,47 @@ async fn copy_file(source: &Path, temp: &Path) -> Result<(), Error> {
         .map_err(Error::io(temp))?;
     file.sync_all().await.map_err(Error::io(temp))?;
     Ok(())
+}
+
+async fn copy_hashed(source: &Path, temp: &Path) -> Result<(u64, Digests), Error> {
+    let (from, to) = (source.to_owned(), temp.to_owned());
+    tokio::task::spawn_blocking(move || {
+        let mut input = std::fs::File::open(&from).map_err(Error::io(&from))?;
+        let mut output = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&to)
+            .map_err(Error::io(&to))?;
+        let mut hasher = Hasher::default();
+        let mut buffer = vec![0u8; HASH_BUFFER];
+        loop {
+            match input.read(&mut buffer) {
+                Ok(0) => break,
+                Ok(read) => {
+                    hasher.update(&buffer[..read]);
+                    output.write_all(&buffer[..read]).map_err(Error::io(&to))?;
+                }
+                Err(error) if error.kind() == io::ErrorKind::Interrupted => {}
+                Err(error) => return Err(Error::io(&from)(error)),
+            }
+        }
+        output.sync_all().map_err(Error::io(&to))?;
+        Ok(hasher.finish())
+    })
+    .await
+    .map_err(|error| Error::Io {
+        path: source.to_owned(),
+        source: io::Error::other(error),
+    })?
+}
+
+async fn touch(path: &Path) -> io::Result<()> {
+    let owned = path.to_owned();
+    tokio::task::spawn_blocking(move || {
+        std::fs::File::open(&owned)?.set_modified(SystemTime::now())
+    })
+    .await
+    .map_err(io::Error::other)?
 }
 
 pub async fn remove_if_empty(root: &Path) -> Result<bool, Error> {

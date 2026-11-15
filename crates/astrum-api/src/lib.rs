@@ -1,17 +1,26 @@
 pub mod auth;
 pub mod base_url;
+pub mod client;
+pub mod customer_expiry;
 pub mod domains;
 pub mod error;
+pub mod forecast;
+pub mod gate;
 pub mod github;
+pub mod images;
+pub mod ip_allow;
 pub mod json;
 pub mod limits;
 pub mod metrics;
 mod notify_mail;
+mod relying_party;
 pub mod revisions;
 pub mod routes;
+pub mod second_factor;
 pub mod space;
 
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, OnceLock};
 
 use astrum_blob::BlobStores;
@@ -56,10 +65,23 @@ struct Inner {
     node_id: uuid::Uuid,
     started_at: chrono::DateTime<chrono::FixedOffset>,
     application_port: OnceLock<u16>,
+    trusted_proxies: OnceLock<client::TrustedProxies>,
+    image_transfers: OnceLock<Arc<dyn images::ImageTransfers>>,
+    promotion_budget: OnceLock<std::time::Duration>,
     repository_changes: tokio::sync::Notify,
     limits: limits::Limiter,
     metrics: metrics::Registry,
+    scan_metrics: Arc<astrum_scan::worker::Metrics>,
+    matcher_metrics: Arc<astrum_scan::matcher::Metrics>,
+    verdict_metrics: Arc<astrum_scan::verdict::Metrics>,
+    policy_cache: Arc<astrum_policy::cache::Cache>,
+    gate_metrics: Arc<gate::Metrics>,
+    selector_row_cap: AtomicUsize,
+    examine_cap: AtomicUsize,
+    licence_export_cap: AtomicUsize,
     stars: github::Stars,
+    ip_allow_denials: ip_allow::Denials,
+    replication_instance: tokio::sync::OnceCell<uuid::Uuid>,
 }
 
 impl AppState {
@@ -70,6 +92,11 @@ impl AppState {
             secrets.clone(),
         ));
         let content = Content::new(db.conn().clone(), blob_stores.clone(), secrets.clone());
+        let policy_cache: Arc<astrum_policy::cache::Cache> = Arc::default();
+        let gate_metrics: Arc<gate::Metrics> = Arc::default();
+        content.register_gate(Arc::new(
+            gate::PolicyGate::new(policy_cache.clone(), gate_metrics.clone()).sized_for(db.conn()),
+        ));
         let security = security
             .with_secrets(secrets.clone())
             .with_trust_store(Arc::new(content.outbound().clone()));
@@ -96,10 +123,23 @@ impl AppState {
                 node_id: uuid::Uuid::new_v4(),
                 started_at: chrono::Utc::now().fixed_offset(),
                 application_port: OnceLock::new(),
+                trusted_proxies: OnceLock::new(),
+                image_transfers: OnceLock::new(),
+                promotion_budget: OnceLock::new(),
                 repository_changes: tokio::sync::Notify::new(),
                 limits: limits::Limiter::default(),
                 metrics: metrics::Registry::default(),
+                scan_metrics: Arc::default(),
+                matcher_metrics: Arc::default(),
+                verdict_metrics: Arc::default(),
+                policy_cache,
+                gate_metrics,
+                selector_row_cap: AtomicUsize::new(routes::findings::SELECTOR_ROW_CAP),
+                examine_cap: AtomicUsize::new(routes::findings::EXAMINE_CAP),
+                licence_export_cap: AtomicUsize::new(routes::licenses::EXPORT_ROW_CAP),
                 stars: github::Stars::default(),
+                ip_allow_denials: ip_allow::Denials::default(),
+                replication_instance: tokio::sync::OnceCell::new(),
             }),
         }
     }
@@ -181,8 +221,42 @@ impl AppState {
         let _ = self.inner.application_port.set(port);
     }
 
+    pub fn set_image_transfers(&self, transfers: Arc<dyn images::ImageTransfers>) {
+        if self.inner.image_transfers.set(transfers).is_err() {
+            tracing::warn!("image transfers were registered twice; the first registration stays");
+        }
+    }
+
+    pub fn image_transfers(&self) -> Option<Arc<dyn images::ImageTransfers>> {
+        self.inner.image_transfers.get().cloned()
+    }
+
+    pub fn set_promotion_budget(&self, budget: std::time::Duration) {
+        if self.inner.promotion_budget.set(budget).is_err() {
+            tracing::warn!("the promotion time budget was set twice; the first value stays");
+        }
+    }
+
+    pub fn promotion_budget(&self) -> Option<std::time::Duration> {
+        self.inner.promotion_budget.get().copied()
+    }
+
     pub fn application_port(&self) -> Option<u16> {
         self.inner.application_port.get().copied()
+    }
+
+    pub fn set_trusted_proxies(
+        &self,
+        trusted: client::TrustedProxies,
+    ) -> Result<(), client::TrustedProxies> {
+        self.inner.trusted_proxies.set(trusted)
+    }
+
+    pub fn trusted_proxies(&self) -> &client::TrustedProxies {
+        self.inner
+            .trusted_proxies
+            .get()
+            .unwrap_or(&client::NO_PROXIES)
     }
 
     pub fn repository_changes(&self) -> &tokio::sync::Notify {
@@ -199,6 +273,58 @@ impl AppState {
 
     pub fn metrics(&self) -> &metrics::Registry {
         &self.inner.metrics
+    }
+
+    pub fn ip_allow_denials(&self) -> &ip_allow::Denials {
+        &self.inner.ip_allow_denials
+    }
+
+    pub(crate) fn replication_instance(&self) -> &tokio::sync::OnceCell<uuid::Uuid> {
+        &self.inner.replication_instance
+    }
+
+    pub fn scan_metrics(&self) -> &Arc<astrum_scan::worker::Metrics> {
+        &self.inner.scan_metrics
+    }
+
+    pub fn matcher_metrics(&self) -> &Arc<astrum_scan::matcher::Metrics> {
+        &self.inner.matcher_metrics
+    }
+
+    pub fn verdict_metrics(&self) -> &Arc<astrum_scan::verdict::Metrics> {
+        &self.inner.verdict_metrics
+    }
+
+    pub fn selector_row_cap(&self) -> usize {
+        self.inner.selector_row_cap.load(Ordering::Relaxed)
+    }
+
+    pub fn examine_cap(&self) -> usize {
+        self.inner.examine_cap.load(Ordering::Relaxed)
+    }
+
+    pub fn set_examine_cap(&self, cap: usize) {
+        self.inner.examine_cap.store(cap, Ordering::Relaxed);
+    }
+
+    pub fn licence_export_cap(&self) -> usize {
+        self.inner.licence_export_cap.load(Ordering::Relaxed)
+    }
+
+    pub fn set_licence_export_cap(&self, cap: usize) {
+        self.inner.licence_export_cap.store(cap, Ordering::Relaxed);
+    }
+
+    pub fn set_selector_row_cap(&self, cap: usize) {
+        self.inner.selector_row_cap.store(cap, Ordering::Relaxed);
+    }
+
+    pub fn policy_cache(&self) -> &Arc<astrum_policy::cache::Cache> {
+        &self.inner.policy_cache
+    }
+
+    pub fn gate_metrics(&self) -> &Arc<gate::Metrics> {
+        &self.inner.gate_metrics
     }
 
     pub async fn audit(&self, caller: &Caller, event: Event) {
@@ -238,7 +364,15 @@ pub fn on_domains(state: AppState, app: Router) -> Router {
             state.clone(),
             metrics::track,
         ))
-        .layer(middleware::from_fn_with_state(state, domains::route))
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            ip_allow::guard,
+        ))
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            domains::route,
+        ))
+        .layer(middleware::from_fn_with_state(state, client::scope))
 }
 
 pub fn routes_with(state: AppState, extra: Router<AppState>) -> Router {
@@ -270,13 +404,24 @@ fn endpoints(extra: Router<AppState>) -> Router<AppState> {
         .merge(routes::content::routes())
         .merge(routes::legacy::routes())
         .merge(routes::components::routes())
+        .merge(routes::promotions::routes())
         .merge(routes::tasks::routes())
+        .merge(routes::customers::routes())
         .merge(routes::cleanup_policies::routes())
+        .merge(routes::advisories::routes())
+        .merge(routes::cooldown::routes())
+        .merge(routes::policies::routes())
+        .merge(routes::scan::routes())
+        .merge(routes::findings::routes())
+        .merge(routes::licenses::routes())
         .merge(routes::support::routes())
         .merge(routes::capabilities::routes())
         .merge(routes::routing_rules::routes())
         .merge(routes::outbound::routes())
+        .merge(routes::replication::routes())
         .merge(routes::email::routes())
+        .merge(routes::share::routes())
+        .merge(routes::share_links::routes())
         .merge(routes::mcp::routes())
         .merge(routes::oauth::routes())
         .merge(metrics::routes())

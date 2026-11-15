@@ -6,6 +6,7 @@ export const userArea: Area = {
     { path: 'user/account', load: () => import('./AccountPage'), requiresUser: true },
     { path: 'user/access-tokens', load: () => import('./AccessTokensPage'), requiresUser: true },
     { path: 'user/nuget-api-key', load: () => import('./NugetApiKeyPage'), requiresUser: true },
+    { path: 'user/security', load: () => import('./SecurityPage'), requiresUser: true },
     { path: 'user/authorize', load: () => import('./AuthorizePage'), requiresUser: true },
   ],
 };
