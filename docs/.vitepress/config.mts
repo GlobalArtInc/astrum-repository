@@ -85,6 +85,7 @@ const sidebar: DefaultTheme.SidebarItem[] = [
       { text: 'SSL certificates', link: '/configure/ssl-certificates' },
       { text: 'Capabilities', link: '/configure/capabilities' },
       { text: 'Replication', link: '/configure/replication' },
+      { text: 'Notifications', link: '/configure/notifications' },
     ],
   },
   {

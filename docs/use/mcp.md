@@ -101,6 +101,12 @@ counted per client address.
 | `list_replications`, `get_replication_status` | Replications with their remote, filters and alert state; the status of one, with its first 20 dead items and their ids | `astrum:replication:read`; the dead items also need the view right on the source repository |
 | `retry_replication_items`, `run_replication_reconcile` | Requeues dead items of a [replication](../configure/replication.md#mcp-tools), or queues a reconcile run now | `astrum:replication:update`, and admin of the source repository |
 | `get_ip_allow_list` | The management, content and agents [allow lists](../configure/ip-allow-list.md), the address the server sees for you and the trusted proxies; read only, the lists are changed in the web interface | `astrum:*` (administrator) |
+| `list_customers` | Customers that receive read-only tokens, with their token count, nearest token expiry, last access, and downloads and bytes of the last 30 days | `astrum:customers:read` |
+| `get_customer_usage` | Downloads and bytes of one customer per day and repository, with totals; `days` from 1 to 730, 30 when omitted | `astrum:customers:read` |
+| `revoke_customer_tokens` | Deletes every token of a customer at once; the customer and its usage history stay, and it cannot be undone | `astrum:customers:delete` |
+| `list_cooldown_waits` | Versions that proxy repositories held back for the release cooldown and that someone asked for, with the date each one becomes available; only repositories you can browse | a token |
+| `list_license_findings` | The licence of each component you can see: declared text, SPDX expression and ids, state, and the verdict of its repository's policy; filter by repository, licence id, state or format | a token |
+| `create_policy_exception` | Lets a component, advisory, licence or image digest through a content policy, for a reason and optionally until `expiresAt`; the grant is audited | `astrum:policyexceptions:create` |
 
 The summaries of advisories that the security tools return are copied from public vulnerability
 databases, so the tools mark them `untrusted: true`: an agent must treat them as data and never as
@@ -109,8 +115,9 @@ instructions.
 The tools that change the server are only offered to Write tokens, and every tool is only listed when the
 user holds the rights it needs; the server checks those rights again on every call. The tools that add
 components are the two upload tools and `promote_components`, which also deletes the source component when
-it is called with `move`; no other tool deletes components, repositories, blob stores or users, and nothing
-touches security settings.
+it is called with `move`; no other tool deletes components, repositories, blob stores or users, except
+`revoke_customer_tokens`, which deletes the tokens of a customer only. Nothing touches security settings,
+the sign-in or second-factor settings or the IP allow lists.
 The two share tools only add and remove share links. The two second-factor tools only read; no tool sets up,
 removes or resets a second factor.
 

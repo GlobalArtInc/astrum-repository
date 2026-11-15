@@ -32,6 +32,7 @@ The same pages are published as a site at https://astrum.globalart.dev.
 - [SSL certificates](configure/ssl-certificates.md)
 - [Capabilities](configure/capabilities.md)
 - [Replication to another Astrum server](configure/replication.md)
+- [Notifications](configure/notifications.md): channels, events and webhook requests
 
 ## Repositories
 
