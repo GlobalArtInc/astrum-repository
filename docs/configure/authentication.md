@@ -199,12 +199,13 @@ Password checks sent with HTTP Basic authentication, and the Docker token endpoi
 user name and client address. After 10 wrong passwords within 5 minutes the same user name from the same
 address gets `429 Too Many Requests` with a `Retry-After` header (for Docker, the `TOOMANYREQUESTS`
 error), even with the right password; other addresses and other users are not affected. Only wrong
-passwords count: any number of correct password checks may run in parallel. At most 64 checks of one user
-name from one address run at the same time; the 65th answers `429` with the message `too many concurrent
-sign-ins` and does not count as a failure. Because a failure is counted when its check ends, an attacker
-who sends guesses in parallel can try at most 73 passwords (10 allowed failures plus 64 concurrent checks
-minus one) before the block takes effect. Access tokens are not throttled. The counters live in the memory of each node and reset when it restarts. A valid
-NuGet API key still works as the password while the user name and address are blocked.
+passwords count as failures, and a failure is counted when its check ends. Every password check, right or wrong,
+takes one of the 64 slots for its user name and address: at most 64 checks run at the same time, and the 65th
+answers `429` with the message `too many concurrent sign-ins` and does not count as a failure. So an attacker
+who sends guesses in parallel can try at most 73 passwords (10 allowed failures plus 64 concurrent checks minus
+one) before the block takes effect. Access tokens are not throttled. The counters live in the memory of each node
+and reset when it restarts. A valid NuGet API key still works as the password while the user name and address are
+blocked.
 
 The client address is the address of the TCP connection, unless the connection comes from a
 [trusted proxy](reverse-proxy.md#trusted-proxies): then it is the first address of `X-Forwarded-For`,

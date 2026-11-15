@@ -1,5 +1,6 @@
 {
   "url": "https://api.ownlate.com",
+  "accessKey": "f8d9eed5e03545ab809584ef6dee4aa20eef2e9159294fd39972a9191b48cac4",
   "tokenEnv": "ASTRUM_OWNLATE_TOKEN",
   "projectEnv": "ASTRUM_OWNLATE_PROJECT",
   "source": "en",
