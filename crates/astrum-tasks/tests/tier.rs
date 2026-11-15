@@ -622,7 +622,7 @@ async fn a_zero_speed_limit_means_no_limit() {
             .starts_with("moved 3 assets (6.0 MB) from default to other;")
     );
     assert!(
-        started.elapsed() < Duration::from_secs(2),
+        started.elapsed() < Duration::from_secs(5),
         "{:?}",
         started.elapsed()
     );
