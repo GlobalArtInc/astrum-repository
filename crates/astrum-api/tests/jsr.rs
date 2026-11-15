@@ -5,8 +5,8 @@ use std::io::{Read, Write};
 use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
 
-use astrum_security::Scope;
 use astrum_security::ssrf::{SSRF_KEY, SsrfProtection};
+use astrum_security::{NewToken, Scope};
 use axum::Router;
 use axum::body::Body;
 use axum::extract::{Path, State};
@@ -78,7 +78,7 @@ async fn token(fixture: &Fixture, scope: Scope) -> String {
     fixture
         .state
         .security()
-        .create_token("admin", "jsr", scope, None)
+        .create_token("admin", NewToken::personal("jsr", scope, None))
         .await
         .unwrap()
         .1

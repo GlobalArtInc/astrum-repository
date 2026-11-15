@@ -2,7 +2,7 @@ mod support;
 
 use std::sync::Arc;
 
-use astrum_security::Scope;
+use astrum_security::{NewToken, Scope};
 use axum::body::Body;
 use axum::http::{Method, StatusCode, header};
 use serde_json::json;
@@ -51,7 +51,7 @@ async fn credentials(fixture: &Fixture, scope: Scope) -> String {
     let token = fixture
         .state
         .security()
-        .create_token("admin", "bazel", scope, None)
+        .create_token("admin", NewToken::personal("bazel", scope, None))
         .await
         .unwrap()
         .1;
