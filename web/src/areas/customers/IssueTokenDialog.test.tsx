@@ -213,7 +213,7 @@ describe('the issue token dialog', () => {
     expect(within(dialog).getByText('must be given, from 1 to 3650 days')).toBeInTheDocument();
     refuse = true;
     await userEvent.click(within(dialog).getByRole('button', { name: 'Issue' }));
-    expect(await within(dialog).findByText('You do not have the permission this needs.')).toBeInTheDocument();
+    expect(await within(dialog).findByText('the repository releases is not readable')).toBeInTheDocument();
   });
 
   it('takes the owner suggestions from the enabled local users', async () => {

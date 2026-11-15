@@ -196,6 +196,8 @@
   "user.tokens.everyone": "All Users",
   "user.tokens.expires": "Valid Until",
   "user.tokens.expiry": "Lifetime",
+  "user.tokens.externalOff": "Personal access tokens are switched off for accounts of an identity provider on this server. Sign in with a local account, or ask an administrator to switch them on.",
+  "user.tokens.externalOidcNote": "Tokens of this account stop working after 90 days without a sign-in through the identity provider.",
   "user.tokens.intro": "Use a token in place of your password in Docker, npm, Maven, pip and other clients. You can revoke it at any time and your password stays the same.",
   "user.tokens.lastUsed": "Last Used",
   "user.tokens.mine": "My Tokens",

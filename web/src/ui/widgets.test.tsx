@@ -82,6 +82,16 @@ describe('small widgets', () => {
     expect(retry).toHaveBeenCalled();
   });
 
+  it('show the server message of a 403 and the generic text without one', () => {
+    const { unmount } = renderWithApp(
+      <ErrorState error={new ApiError(403, 'the repository releases is not readable')} />,
+    );
+    expect(screen.getByRole('alert')).toHaveTextContent('the repository releases is not readable');
+    unmount();
+    renderWithApp(<ErrorState error={new ApiError(403, '')} />);
+    expect(screen.getByRole('alert')).toHaveTextContent('You do not have the permission this needs.');
+  });
+
   it('title pages and show breadcrumbs', () => {
     renderWithApp(
       <Page

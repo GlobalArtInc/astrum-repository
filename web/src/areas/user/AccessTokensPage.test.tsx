@@ -1,9 +1,19 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fakeServer, jsonResponse, renderWithApp } from '../../test/render';
+import { ADMIN_STATE, fakeServer, jsonResponse, renderWithApp } from '../../test/render';
 import AccessTokensPage from './AccessTokensPage';
 import AccountPage from './AccountPage';
+
+const TOKENS_PATH = '/service/rest/internal/access-tokens';
+
+function externalState(source: string, externalTokens: boolean) {
+  return {
+    ...ADMIN_STATE,
+    user: { userId: 'ada', name: 'Ada Lovelace', email: 'ada@example.org', source },
+    externalTokens,
+  };
+}
 
 const TOKEN = {
   id: '0b6c3f3e-0000-4000-8000-000000000001',
@@ -205,6 +215,59 @@ describe('the access tokens page', () => {
     );
     renderWithApp(<AccessTokensPage />);
     expect(await screen.findByText('Sign in with your password first')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Create Token' })).toBeNull();
+  });
+
+  it('explains that an identity provider account gets no token form while the server option is off', async () => {
+    const server = fakeServer({
+      'GET /service/rest/internal/access-tokens': () => jsonResponse([]),
+      'POST /service/rest/internal/access-tokens': () => jsonResponse(TOKEN, 201),
+    });
+    vi.stubGlobal('fetch', server.fetch);
+    renderWithApp(<AccessTokensPage />, { state: externalState('OAuth2', false) });
+    expect(await screen.findByText(/switched off for accounts of an identity provider/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Create Token' })).toBeNull();
+    expect(screen.queryByRole('textbox', { name: 'Name' })).toBeNull();
+    expect(server.calls.some((call) => call.path === TOKENS_PATH)).toBe(false);
+    expect(server.calls.some((call) => call.method === 'POST')).toBe(false);
+  });
+
+  it('shows the 90 day note to an OIDC account while the server option is on', async () => {
+    vi.stubGlobal(
+      'fetch',
+      fakeServer({ 'GET /service/rest/internal/access-tokens': () => jsonResponse([]) }).fetch,
+    );
+    renderWithApp(<AccessTokensPage />, { state: externalState('OAuth2', true) });
+    expect(await screen.findByRole('button', { name: 'Create Token' })).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Tokens of this account stop working after 90 days without a sign-in through the identity provider.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('shows the token form to an LDAP account without the 90 day note while the server option is on', async () => {
+    vi.stubGlobal(
+      'fetch',
+      fakeServer({ 'GET /service/rest/internal/access-tokens': () => jsonResponse([]) }).fetch,
+    );
+    renderWithApp(<AccessTokensPage />, { state: externalState('LDAP', true) });
+    expect(await screen.findByRole('button', { name: 'Create Token' })).toBeInTheDocument();
+    expect(screen.queryByText(/stop working after 90 days/)).toBeNull();
+  });
+
+  it('shows the reason the server gives when it does not manage the account credentials', async () => {
+    vi.stubGlobal(
+      'fetch',
+      fakeServer({
+        'GET /service/rest/internal/access-tokens': () =>
+          jsonResponse({ id: '*', message: 'credentials of this account are managed outside Astrum' }, 403),
+      }).fetch,
+    );
+    renderWithApp(<AccessTokensPage />, { state: externalState('Kerberos', true) });
+    expect(
+      await screen.findByText('credentials of this account are managed outside Astrum'),
+    ).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Create Token' })).toBeNull();
   });
 });

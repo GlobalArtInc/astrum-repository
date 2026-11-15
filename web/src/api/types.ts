@@ -31,6 +31,7 @@ export interface UiState {
   sessionTimeoutMinutes: number;
   adminPasswordFile: string | null;
   oidcEnabled?: boolean;
+  externalTokens?: boolean;
   defaultRole?: { id: string; name: string } | null;
   nugetApiKeyRealm?: boolean;
   uiSettings?: { title: string; debugAllowed: boolean };
